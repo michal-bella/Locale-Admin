@@ -41,7 +41,7 @@ Telo (schéma `loginRequestSchema`):
 - `email` sa pred porovnaním upraví cez `trim()` a malé písmená, takže prihlásenie nezávisí od veľkosti písmen.
 - `password` je iba povinné (1 až 128 znakov). Pravidlá nového hesla sa tu nekontrolujú, zlé heslo preto vráti 401, nie 400.
 - Zlý email, zlé heslo aj neaktívny používateľ vrátia rovnakú odpoveď 401 `AUTH_INVALID_CREDENTIALS`. Pri neexistujúcom emaile backend aj tak overí heslo voči falošnému hashu, aby sa odpovede nelíšili časom.
-- Pri úspechu backend nastaví `User.lastLoginAt`, zmaže všetky expirované session (všetkých používateľov), vytvorí novú session, pošle `Set-Cookie` a vráti `200` s `AuthUser`.
+- Pri úspechu backend nastaví `User.lastLoginAt`, zmaže všetky expirované session (všetkých používateľov) aj session z cookie poslanej s požiadavkou (ak existuje), vytvorí novú session, pošle `Set-Cookie` a vráti `200` s `AuthUser`.
 
 | HTTP | `code`                     | Kedy                                          |
 | ---- | -------------------------- | --------------------------------------------- |
@@ -103,7 +103,7 @@ Jeden globálny middleware pre všetky `POST`, `PUT`, `PATCH` a `DELETE` požiad
 - `Content-Type: application/json` (telo musí byť JSON, aj prázdne `{}`),
 - hlavičku `X-Requested-With: XMLHttpRequest`.
 
-Inak vráti 403 `CSRF_REJECTED` a telo sa ani neparsuje. `GET` požiadavky sa nekontrolujú a nikdy nič nemenia. CORS nie je zapnutý, cudzia stránka preto nemôže poslať požiadavku s vlastnou hlavičkou. FE axios inštancia hlavičku posiela a pri mutácii bez tela pridá `{}`.
+Inak vráti 403 `CSRF_REJECTED` a telo sa ani neparsuje. `GET` požiadavky sa nekontrolujú a nemenia doménové dáta. Jedinou výnimkou je vlastná session volajúceho: `requireAuth` jej predĺži platnosť (sliding TTL) alebo ju zmaže po expirácii. CORS nie je zapnutý, cudzia stránka preto nemôže poslať požiadavku s vlastnou hlavičkou. FE axios inštancia hlavičku posiela a pri mutácii bez tela pridá `{}`.
 
 ## Rate limit
 

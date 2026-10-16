@@ -35,7 +35,7 @@ pnpm install
 
 Oba režimy zdieľajú tú istú DB. Porty sa nebijú, takže môžu bežať naraz. Porty DB (`5433`) a BE kontajnera (`3001`) sú dostupné iba z `localhost`, nie z lokálnej siete.
 
-FE aj BE sú v oboch režimoch na jednom origine: vo vývoji Vite proxy presmeruje `/api` na `localhost:3000`, v stacku nginx presmeruje `/api` na kontajner `backend`.
+FE aj BE sú v oboch režimoch na jednom origine: vo vývoji Vite proxy presmeruje `/api` na `localhost:3000`, v stacku nginx presmeruje `/api` na kontajner `backend`. Pri `NODE_ENV=development` počúva BE iba na `127.0.0.1`, z iného zariadenia v sieti nie je dostupný (inak by šlo obísť rate limit loginu podvrhnutým `X-Forwarded-For`).
 
 ```mermaid
 flowchart LR

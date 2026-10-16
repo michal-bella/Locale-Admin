@@ -133,6 +133,24 @@ describe('POST /api/auth/login', () => {
 		expect(remaining).toHaveLength(2)
 	})
 
+	it('replaces the session of a still-valid cookie sent with the login', async () => {
+		const app = createTestApp()
+		const { user } = await createUser()
+		const oldCookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
+		const otherBrowserCookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
+
+		const res = await postLogin(app, { email: user.email, password: TEST_PASSWORD }).set('Cookie', oldCookie)
+
+		expect(res.status).toBe(200)
+		expect(await findSessionByCookie(oldCookie)).toBeNull()
+		expect(await findSessionByCookie(otherBrowserCookie)).not.toBeNull()
+		const newToken = getSessionSetCookie(res)?.value ?? ''
+		const sessions = await getTestPrisma().session.findMany({ where: { userId: user.id }, select: { tokenHash: true } })
+		expect(sessions.map(({ tokenHash }) => tokenHash).sort()).toEqual(
+			[hashSessionToken(newToken), hashSessionToken(otherBrowserCookie.split('=')[1] ?? '')].sort(),
+		)
+	})
+
 	it('returns 429 RATE_LIMITED with Retry-After after the limit, counting every attempt', async () => {
 		const app = createTestApp({ config: { loginRateLimitMax: 3, loginRateLimitWindowMs: 60_000 } })
 		const { user } = await createUser()

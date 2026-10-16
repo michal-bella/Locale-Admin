@@ -27,7 +27,7 @@ Node 24, Express 5, TypeScript strict (ESM), Prisma 7 with `@prisma/adapter-pg`,
 - Every error response uses the shared contract: throw `AppError` with an `ERROR_CODE` from `@locale/shared`; the error middleware formats it. Unknown errors become 500 `INTERNAL_ERROR` and are logged.
 - Request bodies are validated with schemas from `@locale/shared`. Never define request or response schemas here.
 - Never return `passwordHash` or session tokens in a response.
-- `GET` handlers never mutate state.
+- `GET` handlers never change domain state. `requireAuth` may refresh or delete the caller's own session row (sliding TTL, expiry).
 - Protected routes use `createRequireAuth(prisma, config)` (and `requireRole(...)`); read the user with `getAuth(req)`. Never trust a user id from the body.
 - Every `POST`/`PUT`/`PATCH`/`DELETE` passes the global CSRF middleware (JSON body + `X-Requested-With: XMLHttpRequest`); tests send `CSRF_HEADERS` from `test/helpers/auth.ts`.
 - No CORS middleware (same origin via nginx or Vite proxy).

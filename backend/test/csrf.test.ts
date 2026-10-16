@@ -19,6 +19,14 @@ describe('CSRF middleware', () => {
 		expectCsrfRejected(await request(createTestApp()).post('/api/auth/login').send({ email: user.email, password: TEST_PASSWORD }))
 	})
 
+	it('rejects a JSON mutation with a wrong X-Requested-With value', async () => {
+		const { user } = await createUser()
+
+		const res = await request(createTestApp()).post('/api/auth/login').set('X-Requested-With', 'fetch').send({ email: user.email, password: TEST_PASSWORD })
+
+		expectCsrfRejected(res)
+	})
+
 	it('rejects a form-encoded mutation even with X-Requested-With', async () => {
 		const { user } = await createUser()
 

@@ -28,6 +28,8 @@ src/pages/NotFoundPage/NotFoundPage.test.tsx
 3. Tailwind utilities only for layout and spacing (`flex`, `gap-4`, `min-h-dvh`).
 
 - Never hardcode hex colors in components. Layer order in `src/styles/global.css`: `@layer theme, base, mantine, components, utilities;` — keep it so Tailwind preflight does not override Mantine.
+- Colors must work in light and dark. In `c` / `color` props and CSS modules use the scheme-aware `--app-color-*` tokens (`var(--app-color-muted)`, `c='var(--app-color-text-strong)'`), never `slate.N`, `black` or `white`. A new color that differs between schemes gets one token in both `light` and `dark` of `cssVariablesResolver` (`src/styles/mantineTheme.ts`) and a row in the color-scheme table in `docs/frontend.md`. A one-off dark-only tweak goes into a CSS module as `[data-mantine-color-scheme='dark'] .x { … }`.
+- Color scheme: Mantine `localStorageColorSchemeManager` (key `mantine-color-scheme-value`, default `light`); `index.html` sets the attribute before first paint, keep it in sync with `COLOR_SCHEME_STORAGE_KEY` / `DEFAULT_COLOR_SCHEME`.
 - Font: DM Sans from `@fontsource-variable/dm-sans` (no CDN).
 
 ## i18n

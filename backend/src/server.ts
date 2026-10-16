@@ -1,4 +1,23 @@
-import { PASSWORD_MIN_LENGTH } from '@locale/shared'
+import { createApp } from './app'
+import { parseEnv } from './config/env'
+import { createLogger } from './lib/logger'
+import { createPrismaClient } from './lib/prisma'
 
-// Placeholder until step A3 adds the Express app.
-console.info(`backend scaffold, PASSWORD_MIN_LENGTH=${PASSWORD_MIN_LENGTH}`)
+const config = parseEnv(process.env)
+const logger = createLogger(config)
+const prisma = createPrismaClient(config.databaseUrl)
+const app = createApp(config, { prisma, logger })
+
+const server = app.listen(config.port, () => {
+	logger.info({ port: config.port, version: config.appVersion }, 'Backend listening')
+})
+
+const shutdown = (signal: NodeJS.Signals) => {
+	logger.info({ signal }, 'Shutting down')
+	server.close(() => {
+		void prisma.$disconnect().finally(() => process.exit(0))
+	})
+}
+
+process.once('SIGTERM', shutdown)
+process.once('SIGINT', shutdown)

@@ -56,7 +56,24 @@ Chyba v `beforeLoad` alebo v komponente routy bez vlastného `errorComponent` zo
 
 Komponenty stránok `/login` a `/admin/users` sa načítajú až pri prvej návšteve routy. Route súbor (`loginRoute.ts`, `adminUsersRoute.ts`) drží iba kritickú časť (`path`, `beforeLoad` guard, pri `/admin/users` aj `errorComponent`, aby sa 403 zobrazila bez čakania na chunk stránky) a cez `.lazy(() => import('@/routes/<route>.lazy').then((module) => module.Route))` pripojí súbor `<route>.lazy.ts`, ktorý obsahuje `createLazyRoute('<route id>')({ component })`. Route id je cesta vrátane pathless rodiča (`/_authenticated/admin/users`), typecheck preklep v id zachytí. `HomePage` (prázdna) a stránky 404, 403 a chybová stránka ostávajú v hlavnom chunku.
 
-Výsledok `pnpm --filter frontend build` (2026-10-16): hlavný chunk `index` 498 kB (gzip 160 kB), zdieľaný chunk knižníc 231 kB (gzip 73 kB, načíta sa hneď cez `modulepreload`), lazy chunky: stránka Používatelia 38 kB, formuláre (React Hook Form, resolver) 36 kB, prihlásenie 4 kB. Vite už nevypíše varovanie o chunku nad 500 kB, ale hlavný chunk je tesne pod hranicou a JS načítaný pri štarte je spolu asi 730 kB (pred rozdelením 763 kB). Väčšinu tvoria knižnice (React, Mantine, TanStack, zod), ďalšie zmenšenie by vyžadovalo rozdeliť ich, nie stránky.
+Knižnice sú v samostatných chunkoch cez `build.rolldownOptions.output.codeSplitting.groups` vo `vite.config.ts`: `react` (react, react-dom, scheduler), `mantine` (`@mantine/*`), `tanstack` (`@tanstack/*`) a `i18n-zod` (i18next, react-i18next, zod). Menia sa iba pri aktualizácii závislostí, takže ich prehliadač drží v cache aj po novom release aplikácie. Ostatné knižnice delí rolldown automaticky, takže tie, ktoré používajú iba lazy stránky (React Hook Form, resolver), ostávajú v lazy chunkoch. `chunkSizeWarningLimit` sa nemení.
+
+Výsledok `pnpm --filter frontend build` (2026-10-16, minifikované / gzip):
+
+| Chunk                                            | Pred rozdelením knižníc | Po rozdelení        |
+| ------------------------------------------------ | ----------------------- | ------------------- |
+| `index` (kód aplikácie)                          | 525 kB / 167 kB         | 71 kB / 27 kB       |
+| zdieľaný chunk knižníc (`queryKeys`)             | 231 kB / 73 kB          | –                   |
+| `react`                                          | –                       | 219 kB / 68 kB      |
+| `mantine`                                        | –                       | 231 kB / 71 kB      |
+| `tanstack`                                       | –                       | 110 kB / 36 kB      |
+| `i18n-zod`                                       | –                       | 132 kB / 39 kB      |
+| **JS pri štarte spolu** (vrátane runtime 0,7 kB) | **756 kB / 240 kB**     | **763 kB / 241 kB** |
+| lazy: formuláre (`getApiErrorDetails`)           | 36 kB                   | 34 kB               |
+| lazy: stránka Používatelia                       | 11 kB                   | 6 kB                |
+| lazy: prihlásenie                                | 4 kB                    | 2 kB                |
+
+Žiadny chunk nie je nad 500 kB a build nehlási kruhové závislosti medzi chunkmi. JS pri štarte je o 1 % väčší, lebo Mantine komponenty, ktoré používali iba lazy stránky, sú teraz v chunku `mantine`. Lazy chunky sa o to zmenšili.
 
 ### Guardy
 

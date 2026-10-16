@@ -32,12 +32,12 @@ Each role ends with a short report:
 ```bash
 scripts/agents/check-scope.sh frontend-developer main agent/fe-login
 scripts/agents/check-scope.sh backend-developer main agent/be-login
-git merge --no-ff agent/fe-login
-git merge --no-ff agent/be-login
+git merge --no-ff --no-edit agent/fe-login
+git merge --no-ff --no-edit agent/be-login
 pnpm install && pnpm verify && pnpm stack:up
 ```
 
-Lockfile conflicts are resolved by re-running `pnpm install`, never by hand.
+Keep git's default merge message (`Merge branch '…'`); commitlint ignores it, while a custom `merge: …` subject is rejected. Lockfile conflicts are resolved by re-running `pnpm install`, never by hand.
 
 ## 5. E2E
 

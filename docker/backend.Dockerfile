@@ -19,6 +19,8 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm deploy --filter backend -
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# Prisma's schema engine (used by `prisma migrate deploy`) needs OpenSSL.
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build --chown=node:node /out ./
 USER node

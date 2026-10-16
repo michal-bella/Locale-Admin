@@ -49,4 +49,29 @@ FE a BE bežia na rovnakom origine: v Dockeri cez nginx proxy, vo vývoji cez Vi
 
 ## Auth flow
 
-Prihlásenie, session v DB a CSRF ochrana pribudnú v míľniku B (plán: [phase-1.md](./plans/phase-1.md)).
+Session je uložená v Postgrese, prehliadač má iba httpOnly cookie `locale_session` s náhodným tokenom (rozhodnutie: [ADR 0004](./decisions/0004-db-session.md), endpointy: [api/auth.md](./api/auth.md)).
+
+```mermaid
+sequenceDiagram
+  participant B as Prehliadač (SPA)
+  participant N as nginx :8080
+  participant A as Backend
+  participant D as Postgres
+  B->>N: POST /api/auth/login (JSON + X-Requested-With)
+  N->>A: proxy
+  A->>A: CSRF kontrola, rate limit (IP)
+  A->>D: User podľa emailu, overenie argon2, zmazanie expirovaných session
+  A->>D: INSERT Session (SHA-256 hash tokenu)
+  A-->>B: 200 AuthUser + Set-Cookie locale_session
+  B->>N: GET /api/auth/me (cookie)
+  N->>A: proxy
+  A->>D: Session podľa hashu, kontrola expirácie
+  A-->>B: 200 AuthUser (príp. nový Set-Cookie pri posune TTL)
+  B->>N: POST /api/auth/logout (telo {})
+  A->>D: DELETE Session
+  A-->>B: 204 + zmazaná cookie
+```
+
+- **CSRF:** globálny middleware odmietne `POST`/`PUT`/`PATCH`/`DELETE` bez `Content-Type: application/json` a `X-Requested-With: XMLHttpRequest` (403 `CSRF_REJECTED`). Axios inštancia FE obe hlavičky posiela vždy.
+- **Sliding TTL:** 7 dní od poslednej aktivity, najviac 30 dní od loginu. DB a cookie sa posúvajú najviac raz za 5 minút.
+- **FE guardy:** `beforeLoad` chránených rout načíta `GET /api/auth/me` cez TanStack Query. 401 → `/login`, prihlásený používateľ na `/login` → `/`, stránky iba pre `ADMIN` zobrazia ostatným 403.

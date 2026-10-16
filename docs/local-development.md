@@ -65,23 +65,30 @@ flowchart LR
 
 ## ENV premenné
 
-| Premenná                                            | Kde              | Popis                                                                 |
-| --------------------------------------------------- | ---------------- | --------------------------------------------------------------------- |
-| `DB_PORT`                                           | compose          | port Postgresu na hoste (default `5433`, `5432` býva obsadený)        |
-| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | compose          | prístup do lokálnej DB                                                |
-| `DATABASE_URL`                                      | BE, Prisma       | pripojenie k DB z hosta. V kontajneri ho compose prepíše na host `db` |
-| `TEST_DATABASE_URL`                                 | integračné testy | test DB, názov musí končiť na `_test`                                 |
-| `NODE_ENV`, `PORT`, `LOG_LEVEL`                     | BE               | prostredie, port, úroveň logovania                                    |
-| `SEED_ADMIN_PASSWORD`                               | BE, seed         | heslo admina pre seed, povinné, min. 8 znakov                         |
-| `APP_VERSION`                                       | BE               | verzia v odpovedi `GET /api/health`, nepovinná (default `0.0.0`)      |
+| Premenná                                            | Kde              | Popis                                                                                              |
+| --------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
+| `DB_PORT`                                           | compose          | port Postgresu na hoste (default `5433`, `5432` býva obsadený)                                     |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | compose          | prístup do lokálnej DB                                                                             |
+| `DATABASE_URL`                                      | BE, Prisma       | pripojenie k DB z hosta. V kontajneri ho compose prepíše na host `db`                              |
+| `TEST_DATABASE_URL`                                 | integračné testy | test DB, názov musí končiť na `_test`                                                              |
+| `NODE_ENV`, `PORT`, `LOG_LEVEL`                     | BE               | prostredie, port, úroveň logovania                                                                 |
+| `SEED_ADMIN_PASSWORD`                               | BE, seed         | heslo admina pre seed, povinné, min. 8 znakov                                                      |
+| `APP_VERSION`                                       | BE               | verzia v odpovedi `GET /api/health`, nepovinná (default `0.0.0`)                                   |
+| `COOKIE_SECURE`                                     | BE               | `Secure` príznak session cookie. Default `true`, v `.env.example` a compose `false` (lokálne http) |
+| `SESSION_TTL_DAYS`                                  | BE               | platnosť session od poslednej aktivity v dňoch (default `7`)                                       |
+| `SESSION_MAX_AGE_DAYS`                              | BE               | absolútny limit session od prihlásenia v dňoch (default `30`)                                      |
+| `LOGIN_RATE_LIMIT_MAX`                              | BE               | počet pokusov o login z jednej IP za okno (default `10`, `pnpm test:e2e` používa `1000`)           |
+| `LOGIN_RATE_LIMIT_WINDOW_MS`                        | BE               | dĺžka okna rate limitu v ms (default `900000` = 15 min)                                            |
 
 ## Troubleshooting
 
-| Problém                               | Riešenie                                                                                |
-| ------------------------------------- | --------------------------------------------------------------------------------------- |
-| `Missing .env`                        | `cp .env.example .env`                                                                  |
-| port `5433` je obsadený               | zmeň `DB_PORT` v `.env` a port v `DATABASE_URL` / `TEST_DATABASE_URL`                   |
-| BE nenaštartuje: chyba ENV            | chýba alebo je neplatná premenná, napr. `SEED_ADMIN_PASSWORD`; chyba vypíše jej názov   |
-| `docker compose up` čaká na `backend` | `pnpm stack:logs backend`, najčastejšie migrácia alebo pripojenie k DB                  |
-| refresh na hlbokej route vráti 404    | nginx nemá SPA fallback, skontroluj `docker/nginx/default.conf`                         |
-| test DB neexistuje                    | vytvorí ju `globalSetup` integračných testov, prípadne `pnpm db:down` a zmazanie volume |
+| Problém                                          | Riešenie                                                                                                   |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `Missing .env`                                   | `cp .env.example .env`                                                                                     |
+| port `5433` je obsadený                          | zmeň `DB_PORT` v `.env` a port v `DATABASE_URL` / `TEST_DATABASE_URL`                                      |
+| BE nenaštartuje: chyba ENV                       | chýba alebo je neplatná premenná, napr. `SEED_ADMIN_PASSWORD`; chyba vypíše jej názov                      |
+| `docker compose up` čaká na `backend`            | `pnpm stack:logs backend`, najčastejšie migrácia alebo pripojenie k DB                                     |
+| refresh na hlbokej route vráti 404               | nginx nemá SPA fallback, skontroluj `docker/nginx/default.conf`                                            |
+| test DB neexistuje                               | vytvorí ju `globalSetup` integračných testov, prípadne `pnpm db:down` a zmazanie volume                    |
+| po prihlásení sa cookie neuloží (stále `/login`) | cez http musí byť `COOKIE_SECURE=false` v `.env` (Safari a WebKit `Secure` cookie cez http zahodia)        |
+| login vracia 429                                 | prekročený `LOGIN_RATE_LIMIT_MAX`; počkaj `Retry-After` sekúnd alebo reštartuj backend (limit je v pamäti) |

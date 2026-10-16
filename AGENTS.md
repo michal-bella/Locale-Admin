@@ -75,6 +75,8 @@ Skills live in [`.agents/skills/`](.agents/skills/) (Agent Skills format). A ski
 | `frontend-conventions` | writing frontend code                                                                                   |
 | `figma-to-code`        | implementing a Figma design                                                                             |
 | `api-smoke`            | smoke testing the API with curl                                                                         |
+| `add-endpoint`         | adding or changing an `/api/*` endpoint end to end (contract, BE, tests, docs)                          |
+| `add-page`             | adding a new screen or route in the SPA (lazy route, hooks, states, form modal, tests)                  |
 | `docs-update`          | updating `docs/`                                                                                        |
 
 ## Tool adapters

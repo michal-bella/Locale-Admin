@@ -46,6 +46,7 @@ src/pages/NotFoundPage/NotFoundPage.test.tsx
 ## Routing (TanStack Router, code-based, ADR 0002)
 
 - One file per route in `src/routes/` (`indexRoute.ts`), added to the tree in `src/routes/router.ts`.
+- Pages with real content are code-split: the page component lives in `<name>Route.lazy.ts` (`createLazyRoute('<route id>')`, the id includes the pathless parent, e.g. `/_authenticated/admin/users`) and the eager route file calls `.lazy(...)`. Guards (`beforeLoad`) and `errorComponent` stay eager. Recipe: skill `add-page`.
 - Unknown routes render `NotFoundPage` via `notFoundComponent` on the root route.
 - Protected pages are children of the pathless layout route `authenticatedRoute` (`_authenticated`, renders `AppLayout` with the top bar). Its `beforeLoad` calls `context.queryClient.ensureQueryData(meQueryOptions)`, redirects to `/login` on 401 and passes `context.user` to children.
 - Role-only pages throw `ForbiddenError` (`lib/forbiddenError.ts`) from `beforeLoad`; the route's `errorComponent` (`components/RouteError`) renders `ForbiddenPage` and keeps the URL (see `adminUsersRoute.ts`).
@@ -57,6 +58,8 @@ src/pages/NotFoundPage/NotFoundPage.test.tsx
 React Hook Form + `zodResolver(schemaFromShared)`. Map BE `details` to fields with ``setError(path, { message: t(`validation.${code}`, params) })``.
 
 ## Tests
+
+- Lint has no per-package script: run root `pnpm lint`.
 
 - Render the whole app with `renderApp` (`src/test/renderApp.tsx`) and mock the API with `src/test/mockApi.ts` (`signedInAs(user)`, `signedOut()`, `apiError(...)`).
 

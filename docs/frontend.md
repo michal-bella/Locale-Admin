@@ -30,7 +30,7 @@ Spúšťajú sa z rootu cez `pnpm --filter frontend <skript>`.
 | `pages/`      | obrazovky rout (`HomePage`, `LoginPage`, `UsersPage`, `ForbiddenPage`, `NotFoundPage`, `ErrorPage`)                                                                                    |
 | `routes/`     | strom rout, guardy a router (`createAppRouter`)                                                                                                                                        |
 | `api/`        | axios inštancia `http`, `queryClient`, `QUERY_KEYS`, auth hooky (`api/auth/`), hooky správy používateľov (`api/adminUsers/`), 401 interceptor, `getApiErrorCode`, `getApiErrorDetails` |
-| `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n, `ForbiddenError`, `formatDate`                                                                                                             |
+| `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n, `ForbiddenError`, `formatDate`, `utils.ts` (`isLanguage`)                                                                                  |
 | `locales/`    | preklady `sk.json`, `en.json`                                                                                                                                                          |
 | `styles/`     | Mantine theme, globálne CSS s poradím vrstiev, prekrytia Mantine komponentov                                                                                                           |
 | `assets/`     | `icons/` (zdrojové SVG z Figmy)                                                                                                                                                        |
@@ -130,7 +130,7 @@ Podľa Figmy `28:2` bez sidebaru a drobčekov, vnútri `AppLayout` na route `/ad
 
 `CreateUserModal` podľa Figmy `28:191`, zložený z `Modal.Root` a podkomponentov (nadpis a popis v hlavičke, vlastná ikona `Close`):
 
-- šírka 560 px, radius `xl`, okraj `slate.2`, tieň `shadows.modal`, overlay `theme.black` s 25 % krytím a rozmazaním 2 px
+- šírka 560 px, radius `xl`, biele pozadie obsahu aj hlavičky, okraj `slate.2`, tieň `shadows.modal`, overlay `theme.black` s 25 % krytím a rozmazaním 2 px
 - hlavička: nadpis „Nový používateľ“ 18 / 28 / 700 `slate.9`, popis 14 px, zatváracie tlačidlo 34 px s ikonou `slate.4`, spodný okraj `slate.1`
 - polia **E-mail** (placeholder `meno@firma.sk`) a **Heslo** (`TextInput type="password"`, placeholder `Min. {{min}} znakov` s `PASSWORD_MIN_LENGTH`; Figma má „Min. 6“, platí konštanta)
 - päta s pozadím `slate.0` (60 %): **Zrušiť** (`variant="default"`) a **Vytvoriť používateľa**
@@ -140,6 +140,7 @@ Správanie:
 - React Hook Form + `zodResolver(createUserRequestSchema)` zo `@locale/shared`, chyby zodu cez `toValidationCode` → `validation.<CODE>` (s `{{min}}` / `{{max}}`). Odoslaný email je normalizovaný (trim, malé písmená).
 - `400 VALIDATION_ERROR` s `details` → `setError` pri poliach. `409 EMAIL_TAKEN` → `errors.EMAIL_TAKEN` pri poli E-mail. Iné chyby → červená Mantine notifikácia `errors.<CODE>`, modál ostáva otvorený.
 - Počas odosielania je tlačidlo v stave `loading` (aj `disabled`) a `onSubmit` počas bežiacej mutácie nič neurobí, formulár sa nedá odoslať dvakrát.
+- Počas odosielania sa modál nedá zavrieť: **Zrušiť** a krížik sú `disabled`, `Esc` a klik mimo modálu sú vypnuté (`closeOnEscape`, `closeOnClickOutside`). Inak by zatvorenie resetovalo mutáciu a stratila by sa notifikácia o úspechu alebo chybe.
 - Po úspechu: invalidácia zoznamu, zelená notifikácia „Používateľ {{email}} bol vytvorený.“, reset formulára a zatvorenie modálu. **Zrušiť**, krížik, `Esc` aj klik mimo modálu formulár tiež resetujú.
 
 ## Stránka 403
@@ -166,6 +167,7 @@ Správanie:
 
 - Poradie vrstiev v `styles/global.css`: `theme, base, mantine, components, utilities`. Tailwind preflight (`base`) je pod Mantine, takže nerozbije jeho komponenty. Tailwind utility sú nad Mantine.
 - Mantine má prednosť: theme a prekrytia komponentov (`styles/mantineTheme.ts`), potom CSS moduly, Tailwind iba na layout a spacing.
+- `Modal` (aj `Modal.Root`) má v theme bielu `content` a `header` (`styles/components/Modal.module.css`). Mantine ich inak farbí `--mantine-color-body`, čo je tu sivé pozadie stránky.
 - Font DM Sans sa hostuje lokálne z balíka `@fontsource-variable/dm-sans`. Nastavuje sa v Mantine theme (`fontFamily`, `headings.fontFamily`) aj v Tailwind `--font-sans`.
 - Aplikácia je iba vo svetlej téme.
 

@@ -48,6 +48,21 @@ const fillAndSubmit = (dialog: HTMLElement, email: string, password: string) => 
 	fireEvent.click(within(dialog).getByRole('button', { name: 'Vytvoriť používateľa' }))
 }
 
+/** POST /admin/users never resolves; returns the list of POST requests sent. */
+const mockPendingCreate = () => {
+	signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([JANA]) })
+	const adapter = http.defaults.adapter as AxiosAdapter
+	const posts: unknown[] = []
+	http.defaults.adapter = (config) => {
+		if (config.method === 'post' && config.url === '/admin/users') {
+			posts.push(config)
+			return new Promise(() => undefined)
+		}
+		return adapter(config)
+	}
+	return posts
+}
+
 beforeAll(() => {
 	// The global 3 retries with backoff would delay the error state by seconds.
 	queryClient.setQueryDefaults(QUERY_KEYS.ADMIN.USERS(), { retry: false })
@@ -214,6 +229,43 @@ describe('CreateUserModal', () => {
 
 		const reopened = await openModal()
 		expect(within(reopened).getByLabelText('E-mail')).toHaveValue('')
+	})
+
+	it('sends one request when the form is submitted twice while pending', async () => {
+		const posts = mockPendingCreate()
+		renderApp('/admin/users')
+		const dialog = await openModal()
+
+		fillAndSubmit(dialog, 'nova@firma.sk', 'long-enough-password')
+		const submit = within(dialog).getByRole('button', { name: 'Vytvoriť používateľa' })
+		await waitFor(() => expect(submit).toHaveAttribute('data-loading', 'true'))
+		expect(submit).toBeDisabled()
+
+		const form = submit.closest('form')
+		expect(form).not.toBeNull()
+		fireEvent.submit(form as HTMLFormElement)
+		fireEvent.click(submit)
+
+		await waitFor(() => expect(posts).toHaveLength(1))
+		await new Promise((resolve) => setTimeout(resolve, 50))
+		expect(posts).toHaveLength(1)
+	})
+
+	it('cannot be closed while the request is pending', async () => {
+		mockPendingCreate()
+		renderApp('/admin/users')
+		const dialog = await openModal()
+
+		fillAndSubmit(dialog, 'nova@firma.sk', 'long-enough-password')
+		const cancel = within(dialog).getByRole('button', { name: 'Zrušiť' })
+		await waitFor(() => expect(cancel).toBeDisabled())
+		expect(within(dialog).getByRole('button', { name: 'Zavrieť' })).toBeDisabled()
+
+		fireEvent.keyDown(dialog, { key: 'Escape' })
+		fireEvent.click(cancel)
+
+		expect(screen.getByRole('dialog', { name: 'Nový používateľ' })).toBeInTheDocument()
+		expect(within(dialog).getByLabelText('E-mail')).toHaveValue('nova@firma.sk')
 	})
 
 	it('resets the form on cancel', async () => {

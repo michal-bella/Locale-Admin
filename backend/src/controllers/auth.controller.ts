@@ -15,7 +15,7 @@ export const createLoginController =
 	(prisma: PrismaClient, config: AuthControllerConfig): RequestHandler =>
 	async (req, res) => {
 		const input = loginRequestSchema.parse(req.body)
-		const { user, token, expiresAt } = await login(prisma, input, config)
+		const { user, token, expiresAt } = await login(prisma, input, config, readSessionToken(req))
 		setSessionCookie(res, config, token, expiresAt)
 		res.status(200).json(user)
 	}

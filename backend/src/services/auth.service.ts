@@ -5,7 +5,7 @@ import { AppError } from '../lib/errors'
 import { getDummyPasswordHash, verifyPassword } from '../lib/password'
 import { type PrismaClient } from '../lib/prisma'
 
-import { buildNewSession, type SessionConfig } from './session.service'
+import { buildNewSession, hashSessionToken, type SessionConfig } from './session.service'
 
 export type LoginResult = {
 	user: AuthUser
@@ -15,7 +15,8 @@ export type LoginResult = {
 
 const invalidCredentials = () => new AppError(401, ERROR_CODE.AUTH_INVALID_CREDENTIALS, 'Invalid email or password')
 
-export const login = async (prisma: PrismaClient, { email, password }: LoginRequest, config: SessionConfig): Promise<LoginResult> => {
+/** `previousToken` is the session cookie sent with the login request; its session is replaced by the new one. */
+export const login = async (prisma: PrismaClient, { email, password }: LoginRequest, config: SessionConfig, previousToken?: string): Promise<LoginResult> => {
 	const user = await prisma.user.findUnique({ where: { email } })
 	const passwordMatches = await verifyPassword(user?.passwordHash ?? (await getDummyPasswordHash()), password)
 	if (!user || !passwordMatches || !user.isActive) {
@@ -25,7 +26,9 @@ export const login = async (prisma: PrismaClient, { email, password }: LoginRequ
 	const now = new Date()
 	const { token, data } = buildNewSession(user.id, config, now)
 	const [, updatedUser, session] = await prisma.$transaction([
-		prisma.session.deleteMany({ where: { expiresAt: { lt: now } } }),
+		prisma.session.deleteMany({
+			where: { OR: [{ expiresAt: { lt: now } }, ...(previousToken ? [{ tokenHash: hashSessionToken(previousToken) }] : [])] },
+		}),
 		prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: now } }),
 		prisma.session.create({ data }),
 	])

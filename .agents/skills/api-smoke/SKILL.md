@@ -67,7 +67,37 @@ curl -s -w '\n%{http_code}\n' -X POST $BASE/auth/login -H 'X-Requested-With: XML
 # 403 CSRF_REJECTED (application/x-www-form-urlencoded)
 ```
 
-`403 FORBIDDEN` (role check) has no production endpoint until `GET /api/admin/users` (milestone C); it is covered by `backend/test/requireRole.test.ts`.
+## Admin users (milestone C)
+
+Needs the admin `$JAR` from the Auth section (log in again after the logout step). Smoke users get the prefix `smoke-editor-` and are deleted at the end.
+
+```bash
+EMAIL="smoke-editor-$(date +%s)@example.com"; UP=$(echo "$EMAIL" | tr a-z A-Z); PW="smoke-pass-$RANDOM-x"
+
+curl -s -w '\n%{http_code}\n' $BASE/admin/users
+# 401 AUTH_UNAUTHENTICATED (no cookie)
+
+curl -s -w '\n%{http_code}\n' -b $JAR -X POST $BASE/admin/users "${H[@]}" -d "{\"email\":\" $UP \",\"password\":\"$PW\",\"role\":\"ADMIN\"}"
+# 201 {"id":"…","email":"smoke-editor-…@example.com","role":"EDITOR","createdAt":"…"} (email normalized, role ignored)
+
+curl -s -w '\n%{http_code}\n' -b $JAR -X POST $BASE/admin/users "${H[@]}" -d "{\"email\":\"$UP\",\"password\":\"$PW\"}"
+# 409 EMAIL_TAKEN (also for a different letter case)
+
+curl -s -w '\n%{http_code}\n' -b $JAR -X POST $BASE/admin/users "${H[@]}" -d '{"email":"nope","password":"short"}'
+# 400 VALIDATION_ERROR, details [{"path":"email","code":"INVALID_EMAIL"},{"path":"password","code":"TOO_SHORT","params":{"min":8}}]
+
+curl -s -w '\n%{http_code}\n' -b $JAR $BASE/admin/users
+# 200 {"users":[…]} newest first, no passwordHash
+
+EJAR=$(mktemp)
+curl -s -o /dev/null -c $EJAR -X POST $BASE/auth/login "${H[@]}" -d "{\"email\":\"$EMAIL\",\"password\":\"$PW\"}"
+curl -s -w '\n%{http_code}\n' -b $EJAR $BASE/admin/users
+# 403 FORBIDDEN (EDITOR; same for POST)
+
+docker compose exec -T db psql -U locale -d locale -c "DELETE FROM \"User\" WHERE email LIKE 'smoke-editor-%@example.com'"
+```
+
+macOS ships bash 3.2: use `tr` for upper case, not `${VAR^^}`.
 
 ### 429 rate limit
 

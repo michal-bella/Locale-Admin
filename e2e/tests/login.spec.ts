@@ -2,14 +2,15 @@ import { expect, test } from '@playwright/test'
 
 import { readApiError } from '../support/api'
 import { ANONYMOUS, expectLoggedInHome, getSessionToken, loginViaUi, SESSION_COOKIE } from '../support/auth'
-import { countSessionsByToken, createEditor, getLastLoginAt } from '../support/db'
+import { countSessionsByToken, getLastLoginAt } from '../support/db'
 import { ADMIN_EMAIL, getAdminPassword } from '../support/env'
+import { createEditor } from '../support/users'
 
 // Each test logs in on its own: logging out of the shared storageState session would break other tests.
 test.use({ storageState: ANONYMOUS })
 
 test('logs in via the UI and logs out', async ({ page, playwright, baseURL }) => {
-	await loginViaUi(page, await createEditor())
+	await loginViaUi(page, await createEditor(playwright.request, baseURL))
 	await expectLoggedInHome(page)
 	const token = await getSessionToken(page.context())
 	expect(await countSessionsByToken(token)).toBe(1)
@@ -31,8 +32,8 @@ test('logs in via the UI and logs out', async ({ page, playwright, baseURL }) =>
 	await api.dispose()
 })
 
-test('session survives a page reload', async ({ page }) => {
-	await loginViaUi(page, await createEditor())
+test('session survives a page reload', async ({ page, playwright, baseURL }) => {
+	await loginViaUi(page, await createEditor(playwright.request, baseURL))
 	await expectLoggedInHome(page)
 	await page.reload()
 	await expectLoggedInHome(page)

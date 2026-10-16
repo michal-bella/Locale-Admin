@@ -42,7 +42,32 @@
 	"usersPage": {
 		"eyebrow": "Administration",
 		"title": "Users",
-		"description": "Accounts that have access to the system."
+		"description": "Accounts that have access to the system.",
+		"createButton": "Create user",
+		"table": {
+			"label": "User list",
+			"email": "Email",
+			"createdAt": "Created",
+			"empty": "There are no users yet.",
+			"loadError": "The user list could not be loaded.",
+			"retry": "Try again"
+		},
+		"createModal": {
+			"title": "New user",
+			"description": "Enter an email and a password for the new account.",
+			"close": "Close",
+			"email": {
+				"label": "Email",
+				"placeholder": "name@company.com"
+			},
+			"password": {
+				"label": "Password",
+				"placeholder": "Min. {{min}} characters"
+			},
+			"cancel": "Cancel",
+			"submit": "Create user",
+			"success": "User {{email}} has been created."
+		}
 	},
 	"topBar": {
 		"language": "Language",

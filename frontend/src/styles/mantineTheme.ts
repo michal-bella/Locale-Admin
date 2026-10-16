@@ -24,20 +24,26 @@ export const mantineTheme = createTheme({
 	headings: {
 		fontFamily: FONT_FAMILY,
 		fontWeight: '700',
-		sizes: { h1: { fontSize: rem(32), lineHeight: '1.5' } },
+		sizes: { h1: { fontSize: rem(32), lineHeight: '1.5' }, h2: { fontSize: rem(28), lineHeight: '1.5' } },
 	},
 	radius: { xs: rem(4), sm: rem(8), md: rem(10), lg: rem(12), xl: rem(16) },
 	defaultRadius: 'md',
 	shadows: {
 		primary: '0 4px 11px rgba(232, 62, 140, 0.2)',
 		'primary-lg': '0 5px 14px rgba(232, 62, 140, 0.3)',
+		modal: '0 24px 80px rgba(15, 23, 42, 0.18)',
 	},
 	components: {
 		Button: Button.extend({
 			defaultProps: { size: 'md', variant: 'filled' },
 			classNames: { root: buttonClasses.root },
 			vars: (_theme, props) => ({
-				root: props.size === 'md' ? { '--button-height': rem(40), '--button-padding-x': rem(15), '--button-fz': 'var(--mantine-font-size-xs)' } : {},
+				root: {
+					...(props.size === 'md' ? { '--button-height': rem(40), '--button-padding-x': rem(15), '--button-fz': 'var(--mantine-font-size-xs)' } : {}),
+					...(props.variant === 'default'
+						? { '--button-bd': `${rem(1)} solid var(--mantine-color-slate-2)`, '--button-color': 'var(--mantine-color-slate-6)' }
+						: {}),
+				},
 			}),
 		}),
 		Input: Input.extend({

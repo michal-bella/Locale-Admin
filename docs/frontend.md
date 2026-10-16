@@ -23,19 +23,19 @@ Spúšťajú sa z rootu cez `pnpm --filter frontend <skript>`.
 
 ## Štruktúra `src/`
 
-| Priečinok     | Obsah                                                                                                                                      |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `atoms/`      | malé obaly nad Mantine (`ButtonLink`)                                                                                                      |
-| `components/` | zložené komponenty (`AppLayout`, `TopBar`, `UserMenu`, `LanguageSwitcher`, `Brand`, `CenteredLayout`, `PageIntro`, `RouteError`, `Icons/`) |
-| `pages/`      | obrazovky rout (`HomePage`, `LoginPage`, `UsersPage`, `ForbiddenPage`, `NotFoundPage`, `ErrorPage`)                                        |
-| `routes/`     | strom rout, guardy a router (`createAppRouter`)                                                                                            |
-| `api/`        | axios inštancia `http`, `queryClient`, `QUERY_KEYS`, auth hooky (`api/auth/`), 401 interceptor, `getApiErrorCode`, `getApiErrorDetails`    |
-| `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n, `ForbiddenError`                                                                               |
-| `locales/`    | preklady `sk.json`, `en.json`                                                                                                              |
-| `styles/`     | Mantine theme, globálne CSS s poradím vrstiev, prekrytia Mantine komponentov                                                               |
-| `assets/`     | `icons/` (zdrojové SVG z Figmy)                                                                                                            |
-| `types/`      | typy iba pre FE (typované i18n kľúče)                                                                                                      |
-| `test/`       | `setup.ts`, `renderApp` a `mockApi` pre unit testy                                                                                         |
+| Priečinok     | Obsah                                                                                                                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `atoms/`      | malé obaly nad Mantine (`ButtonLink`)                                                                                                                                                  |
+| `components/` | zložené komponenty (`AppLayout`, `TopBar`, `UserMenu`, `LanguageSwitcher`, `Brand`, `CenteredLayout`, `PageIntro`, `RouteError`, `UsersTable`, `CreateUserModal`, `Icons/`)            |
+| `pages/`      | obrazovky rout (`HomePage`, `LoginPage`, `UsersPage`, `ForbiddenPage`, `NotFoundPage`, `ErrorPage`)                                                                                    |
+| `routes/`     | strom rout, guardy a router (`createAppRouter`)                                                                                                                                        |
+| `api/`        | axios inštancia `http`, `queryClient`, `QUERY_KEYS`, auth hooky (`api/auth/`), hooky správy používateľov (`api/adminUsers/`), 401 interceptor, `getApiErrorCode`, `getApiErrorDetails` |
+| `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n, `ForbiddenError`, `formatDate`                                                                                                             |
+| `locales/`    | preklady `sk.json`, `en.json`                                                                                                                                                          |
+| `styles/`     | Mantine theme, globálne CSS s poradím vrstiev, prekrytia Mantine komponentov                                                                                                           |
+| `assets/`     | `icons/` (zdrojové SVG z Figmy)                                                                                                                                                        |
+| `types/`      | typy iba pre FE (typované i18n kľúče)                                                                                                                                                  |
+| `test/`       | `setup.ts`, `renderApp` a `mockApi` pre unit testy                                                                                                                                     |
 
 Priečinok komponentu obsahuje `Component.tsx`, `types.ts` (props) a voliteľne `Component.module.css`. Komponenty sa exportujú ako default a importujú plnou cestou (`@/components/Brand/Brand`). Barrel súbor je iba `components/Icons/index.ts`.
 
@@ -47,7 +47,7 @@ TanStack Router s routami v kóde (ADR 0002), jeden súbor na routu v `routes/`.
 | -------------- | -------------------------------------- | ----------------------------------------------- | ---------------------------------------- |
 | `/login`       | `loginRoute`                           | `LoginPage`                                     | iba neprihlásený (prihlásený ide na `/`) |
 | `/`            | `indexRoute` pod `_authenticated`      | `HomePage` (vo Fáze 1 prázdna)                  | prihlásený                               |
-| `/admin/users` | `adminUsersRoute` pod `_authenticated` | `UsersPage` (v míľniku B iba nadpis)            | `ADMIN`, ostatní vidia `ForbiddenPage`   |
+| `/admin/users` | `adminUsersRoute` pod `_authenticated` | `UsersPage` (zoznam a vytvorenie používateľa)   | `ADMIN`, ostatní vidia `ForbiddenPage`   |
 | neexistujúca   | root                                   | `NotFoundPage` (`notFoundComponent` root route) | všetci                                   |
 
 Chyba v `beforeLoad` alebo v komponente routy bez vlastného `errorComponent` zobrazí `ErrorPage` (`defaultErrorComponent` routera).
@@ -80,6 +80,13 @@ Produkčný server (nginx) musí pre neznáme cesty vrátiť `index.html` (SPA f
 
 Interceptor ignoruje `/auth/login` (zlé heslo je chyba formulára) a `/auth/me` (401 z neho riešia guardy samy, inak by sa navigovalo dvakrát). Session cookie (`locale_session`, httpOnly) FE nečíta, posiela ju prehliadač.
 
+### Správa používateľov
+
+| Hook                                           | Čo robí                                                                                                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `adminUsersQueryOptions`, `useAdminUsersQuery` | `GET /api/admin/users` (`AdminUserListResponse`), kľúč `QUERY_KEYS.ADMIN.USERS()`, globálny `retry` (3 pokusy, nie pri 401)                                        |
+| `useCreateUserMutation`                        | `POST /api/admin/users` (`CreateUserRequest` → `AdminUser`). Po úspechu `invalidateQueries(QUERY_KEYS.ADMIN.USERS())` a čaká na nové načítanie, kým mutácia skončí |
+
 ## Layout a horná lišta
 
 Prihlásené stránky majú `AppLayout`: horná lišta `TopBar` a pod ňou `<main>` s obsahom routy. Sidebar, drobčeky a ikona `?` vo Fáze 1 nie sú.
@@ -100,6 +107,34 @@ Podľa Figmy `5:2861`: `CenteredLayout`, `PageIntro` (Prihlásenie / Vitajte sp�
 - Odpoveď `VALIDATION_ERROR` s `details` sa priradí k poliam (`setError`). Ostatné chyby sa zobrazia nad tlačidlom (Mantine `Alert`) ako `errors.<CODE>`. Pri 429 sa zobrazí `loginPage.form.rateLimited` so sekundami z hlavičky `Retry-After`, ak hlavička chýba, tak `errors.RATE_LIMITED`.
 - Počas odosielania je tlačidlo v stave `loading` (zároveň `disabled`), formulár sa nedá odoslať dvakrát.
 - Heslo je obyčajný `TextInput type="password"` bez prepínača viditeľnosti (Figma ho nemá).
+
+## Stránka Používatelia
+
+Podľa Figmy `28:2` bez sidebaru a drobčekov, vnútri `AppLayout` na route `/admin/users` (iba `ADMIN`). Obsah má šírku najviac 1200 px a padding 32 px.
+
+- Hlavička: `PageIntro` s `titleSize="h2"` (malý ružový nadpis „Správa“, H1 „Používatelia“ vo veľkosti 28 px, popis) a vpravo dole primárne tlačidlo **Vytvoriť používateľa** s ikonou `Plus`, ktoré otvorí modál.
+- `UsersTable`: Mantine `Table` v karte (biela, okraj `slate.2`, radius `xl`). Hlavička tabuľky na pozadí `slate.0`, texty 10 px / 700 veľkými písmenami `slate.4`. Stĺpce **E-mail** (avatar 32 px s iniciálami z emailu cez `getInitials({ email, firstName: null, lastName: null })`, pozadie `slate.1`, text `slate.6`) a **Vytvorený** (šírka 180 px, dátum cez `formatDate`). Riadky oddeľuje okraj `slate.1`. Poradie je z API (najnovší hore).
+- Stavy, ktoré nie sú vo Figme: načítavanie (3 riadky Mantine `Skeleton`, tabuľka má `aria-busy`), prázdny zoznam (text v tabuľke) a chyba (text „Zoznam používateľov sa nepodarilo načítať.“, preklad `errors.<CODE>` a tlačidlo **Skúsiť znova**, ktoré zavolá `refetch`).
+
+### Formátovanie dátumu
+
+`lib/formatDate.ts`: `formatDate(isoDate, language)` cez `Intl.DateTimeFormat` s číselným dňom, mesiacom a rokom, bez dátumovej knižnice. Jazyk UI `sk` → `sk-SK` (`12. 10. 2026`, `3. 10. 2026`), `en` → `en-GB` (`12/10/2026`, `03/10/2026`). Neznámy jazyk použije `sk`. Tabuľka berie `i18n.language`, takže zmena jazyka preformátuje dátumy bez reloadu.
+
+### Modál Nový používateľ
+
+`CreateUserModal` podľa Figmy `28:191`, zložený z `Modal.Root` a podkomponentov (nadpis a popis v hlavičke, vlastná ikona `Close`):
+
+- šírka 560 px, radius `xl`, okraj `slate.2`, tieň `shadows.modal`, overlay `theme.black` s 25 % krytím a rozmazaním 2 px
+- hlavička: nadpis „Nový používateľ“ 18 / 28 / 700 `slate.9`, popis 14 px, zatváracie tlačidlo 34 px s ikonou `slate.4`, spodný okraj `slate.1`
+- polia **E-mail** (placeholder `meno@firma.sk`) a **Heslo** (`TextInput type="password"`, placeholder `Min. {{min}} znakov` s `PASSWORD_MIN_LENGTH`; Figma má „Min. 6“, platí konštanta)
+- päta s pozadím `slate.0` (60 %): **Zrušiť** (`variant="default"`) a **Vytvoriť používateľa**
+
+Správanie:
+
+- React Hook Form + `zodResolver(createUserRequestSchema)` zo `@locale/shared`, chyby zodu cez `toValidationCode` → `validation.<CODE>` (s `{{min}}` / `{{max}}`). Odoslaný email je normalizovaný (trim, malé písmená).
+- `400 VALIDATION_ERROR` s `details` → `setError` pri poliach. `409 EMAIL_TAKEN` → `errors.EMAIL_TAKEN` pri poli E-mail. Iné chyby → červená Mantine notifikácia `errors.<CODE>`, modál ostáva otvorený.
+- Počas odosielania je tlačidlo v stave `loading` (aj `disabled`) a `onSubmit` počas bežiacej mutácie nič neurobí, formulár sa nedá odoslať dvakrát.
+- Po úspechu: invalidácia zoznamu, zelená notifikácia „Používateľ {{email}} bol vytvorený.“, reset formulára a zatvorenie modálu. **Zrušiť**, krížik, `Esc` aj klik mimo modálu formulár tiež resetujú.
 
 ## Stránka 403
 
@@ -130,7 +165,7 @@ Podľa Figmy `5:2861`: `CenteredLayout`, `PageIntro` (Prihlásenie / Vitajte sp�
 
 ## Mapovanie Figma → theme
 
-Figma súbor nemá premenné. Hodnoty sú zo štýlov login screenu (node `5:2861`) cez `get_design_context`.
+Figma súbor nemá premenné. Hodnoty sú zo štýlov login screenu (node `5:2861`), stránky Používatelia (`28:2`) a modálu (`28:191`) cez `get_design_context`.
 
 ### Farby
 
@@ -147,6 +182,10 @@ Figma súbor nemá premenné. Hodnoty sú zo štýlov login screenu (node `5:286
 | `#90A1B9`        | „WORKSPACE“, pätička               | `slate.4` (`slate-400`)                         |
 | `#94A3B8`        | ikona zvončeka (Figma `28:27`)     | `slate.4` (najbližší odtieň)                    |
 | `#E2E8F0`        | okraj inputu, okraj hornej lišty   | `slate.2` (`slate-200`)                         |
+| `#F8FAFC`        | hlavička tabuľky, päta modálu      | `slate.0` (`slate-50`)                          |
+| `#F1F5F9`        | okraj riadkov, pozadie avatara     | `slate.1` (`slate-100`)                         |
+| `#45556C`        | iniciály v tabuľke                 | `slate.6` (`slate-600`)                         |
+| `#475569`        | text sekundárneho tlačidla         | `slate.6` (najbližší odtieň)                    |
 | `#0F172B`        | pozadie avatara v menu             | `slate.9`                                       |
 | `#E83E8C`        | tlačidlo, pozadie loga             | `brand.6` (`primaryColor`)                      |
 | `#D72F7C`        | malý nadpis nad H1 („PRIHLÁSENIE“) | `brand.7`                                       |
@@ -155,14 +194,18 @@ Primárna farba `brand` má 10 odtieňov: `#FDEEF5`, `#FBD9E8`, `#F6B0D0`, `#F18
 
 ### Radius a tiene
 
-| Figma                               | Kde               | Theme                         |
-| ----------------------------------- | ----------------- | ----------------------------- |
-| 10 px                               | tlačidlo          | `radius.md` (`defaultRadius`) |
-| 12 px                               | input, ikona loga | `radius.lg`                   |
-| drop shadow `0 4 11` `#E83E8C` 20 % | tlačidlo          | `shadows.primary`             |
-| drop shadow `0 5 14` `#E83E8C` 30 % | ikona loga        | `shadows.primary-lg`          |
+| Figma                               | Kde                  | Theme                         |
+| ----------------------------------- | -------------------- | ----------------------------- |
+| 10 px                               | tlačidlo             | `radius.md` (`defaultRadius`) |
+| 12 px                               | input, ikona loga    | `radius.lg`                   |
+| drop shadow `0 4 11` `#E83E8C` 20 % | tlačidlo             | `shadows.primary`             |
+| drop shadow `0 5 14` `#E83E8C` 30 % | ikona loga           | `shadows.primary-lg`          |
+| 16 px                               | karta tabuľky, modál | `radius.xl`                   |
+| shadow `0 24 80` `#0F172A` 18 %     | modál                | `shadows.modal`               |
 
-Ostatné radiusy: `xs` 4 px, `sm` 8 px, `xl` 16 px.
+Ostatné radiusy: `xs` 4 px, `sm` 8 px.
+
+Sekundárne tlačidlo (`variant="default"`, Figma „Zrušiť“) má v theme okraj `slate.2` a text `slate.6`.
 
 ### Inputy
 
@@ -180,6 +223,8 @@ Prekrytie `Input` a `InputWrapper` v theme (`styles/components/Input.module.css`
 | Figma (veľkosť / riadok / váha)  | Kde                    | Theme                                             |
 | -------------------------------- | ---------------------- | ------------------------------------------------- |
 | 32 / 48 / 700, tracking −1,12 px | H1                     | `headings.sizes.h1`, `letter-spacing: -0.035em`   |
+| 28 / 42 / 700, tracking −0,98 px | H1 stránky v layoute   | `headings.sizes.h2` (`PageIntro titleSize="h2"`)  |
+| 18 / 28 / 700, tracking −0,36 px | nadpis modálu          | `fontSizes.lg`, CSS modul `CreateUserModal`       |
 | 16 / 24 / 400                    | základný text          | `fontSizes.md`, `lineHeights.md` (1.5)            |
 | 15 / 22,5 / 700                  | „Locale“ v logu        | CSS modul `Brand`                                 |
 | 14 / 20 / 400                    | odstavec               | `fontSizes.sm`, `lineHeights.sm`                  |
@@ -195,7 +240,7 @@ Nie je vo Figme, je navrhnutá podľa login screenu: rovnaké pozadie, logo „L
 
 ## Ikony
 
-1. SVG sa exportuje z Figmy (Figma MCP) do `src/assets/icons/` (`logo.svg`, `arrow-right.svg`, `bell.svg`). Farba ťahu sa v súbore nastaví na `white`, aby ju SVGR nahradil za `currentColor`.
+1. SVG sa exportuje z Figmy (Figma MCP) do `src/assets/icons/` (`logo.svg`, `arrow-right.svg`, `bell.svg`, `plus.svg`, `close.svg`). Farba ťahu sa v súbore nastaví na `white` (napr. `close.svg` má vo Figme `#90A1B9`), aby ju SVGR nahradil za `currentColor`.
 2. `pnpm --filter frontend generate-icons` cez SVGR (`svgr.config.cjs`) vygeneruje TypeScript komponenty do `src/components/Icons/` a barrel `index.ts`, potom spustí ESLint a Prettier.
 3. Farba `white` z Figmy sa nahradí za `currentColor`, ikona preberá farbu textu. Predvolená veľkosť je veľkosť z Figmy, mení sa cez `width` a `height`, `viewBox` zostáva.
 

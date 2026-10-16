@@ -6,41 +6,41 @@ Current plan: [`docs/plans/phase-1.md`](docs/plans/phase-1.md). Human documentat
 
 ## Domain
 
-| Term | Meaning |
-|---|---|
-| Organization | A customer. Has many projects. |
-| Project | One translation sheet (e.g. B2B admin, B2C iOS, B2C Android, web URLs). |
-| Editor | A person who edits translations in projects. |
-| Global role | `ADMIN` (manages users) or `EDITOR`. Stored on `User.role`. |
+| Term         | Meaning                                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| Organization | A customer. Has many projects.                                                                     |
+| Project      | One translation sheet (e.g. B2B admin, B2C iOS, B2C Android, web URLs).                            |
+| Editor       | A person who edits translations in projects.                                                       |
+| Global role  | `ADMIN` (manages users) or `EDITOR`. Stored on `User.role`.                                        |
 | Project role | Administrator, Translator, Developer, Reviewer. Per project, comes with projects (not in phase 1). |
 
 There is no self-registration. Only an `ADMIN` creates users.
 
 ## Repository layout
 
-| Path | What | Rules |
-|---|---|---|
-| `frontend/` | React SPA (Vite+, Mantine, Tailwind, TanStack Router + Query) | [`frontend/AGENTS.md`](frontend/AGENTS.md) |
-| `backend/` | Express 5 API, Prisma, PostgreSQL | [`backend/AGENTS.md`](backend/AGENTS.md) |
-| `packages/shared/` | zod schemas, DTO types, error codes shared by FE and BE | [`packages/shared/AGENTS.md`](packages/shared/AGENTS.md) |
-| `e2e/` | Playwright E2E and smoke tests | [`e2e/AGENTS.md`](e2e/AGENTS.md) |
-| `docker/` | Dockerfiles, nginx config, Postgres init scripts | |
-| `scripts/` | environment, DB and agent helper scripts (bash) | |
-| `docs/` | human documentation (Slovak, synced to Notion later) | skill `docs-update` |
-| `.agents/` | agent roles, skills, workflows (source of truth for all AI tools) | |
+| Path               | What                                                              | Rules                                                    |
+| ------------------ | ----------------------------------------------------------------- | -------------------------------------------------------- |
+| `frontend/`        | React SPA (Vite+, Mantine, Tailwind, TanStack Router + Query)     | [`frontend/AGENTS.md`](frontend/AGENTS.md)               |
+| `backend/`         | Express 5 API, Prisma, PostgreSQL                                 | [`backend/AGENTS.md`](backend/AGENTS.md)                 |
+| `packages/shared/` | zod schemas, DTO types, error codes shared by FE and BE           | [`packages/shared/AGENTS.md`](packages/shared/AGENTS.md) |
+| `e2e/`             | Playwright E2E and smoke tests                                    | [`e2e/AGENTS.md`](e2e/AGENTS.md)                         |
+| `docker/`          | Dockerfiles, nginx config, Postgres init scripts                  |                                                          |
+| `scripts/`         | environment, DB and agent helper scripts (bash)                   |                                                          |
+| `docs/`            | human documentation (Slovak, synced to Notion later)              | skill `docs-update`                                      |
+| `.agents/`         | agent roles, skills, workflows (source of truth for all AI tools) |                                                          |
 
 ## Commands
 
 Run from the repo root. Package manager is **pnpm** only (never npm or yarn).
 
-| Command | What |
-|---|---|
-| `pnpm dev` | FE (`:5173`) + BE (`:3000`) locally with hot reload. Needs `pnpm db:up` |
-| `pnpm db:up` / `db:down` | Postgres in Docker |
-| `pnpm db:migrate` / `db:seed` / `db:reset` | Prisma migrate dev + seed / seed only / drop, migrate, seed |
-| `pnpm stack:up` / `stack:down` / `stack:logs [service]` | production stack in Docker on `http://localhost:8080` |
-| `pnpm lint` / `typecheck` / `test` / `test:integration` / `test:e2e` | checks |
-| `pnpm verify` | lint + typecheck + secretlint + unit + integration. Must pass before a step is done |
+| Command                                                              | What                                                                                |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `pnpm dev`                                                           | FE (`:5173`) + BE (`:3000`) locally with hot reload. Needs `pnpm db:up`             |
+| `pnpm db:up` / `db:down`                                             | Postgres in Docker                                                                  |
+| `pnpm db:migrate` / `db:seed` / `db:reset`                           | Prisma migrate dev + seed / seed only / drop, migrate, seed                         |
+| `pnpm stack:up` / `stack:down` / `stack:logs [service]`              | production stack in Docker on `http://localhost:8080`                               |
+| `pnpm lint` / `typecheck` / `test` / `test:integration` / `test:e2e` | checks                                                                              |
+| `pnpm verify`                                                        | lint + typecheck + secretlint + unit + integration. Must pass before a step is done |
 
 ## Hard rules
 
@@ -64,18 +64,18 @@ Roles are defined in [`.agents/agents/`](.agents/agents/): `orchestrator`, `fron
 
 Skills live in [`.agents/skills/`](.agents/skills/) (Agent Skills format). A skill exists only when it contains real, verified commands for this repo.
 
-| Skill | Use when |
-|---|---|
-| `project-standards` | lint, format, typecheck, naming, secrets check |
-| `commit-messages` | writing a commit |
-| `local-env` | starting, stopping, inspecting or debugging the local environment or local DB; working in git worktrees |
-| `database-migrations` | changing the Prisma schema, migrations, seed |
-| `testing` | writing or running unit, integration or E2E tests |
-| `backend-conventions` | writing backend code |
-| `frontend-conventions` | writing frontend code |
-| `figma-to-code` | implementing a Figma design |
-| `api-smoke` | smoke testing the API with curl |
-| `docs-update` | updating `docs/` |
+| Skill                  | Use when                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------- |
+| `project-standards`    | lint, format, typecheck, naming, secrets check                                                          |
+| `commit-messages`      | writing a commit                                                                                        |
+| `local-env`            | starting, stopping, inspecting or debugging the local environment or local DB; working in git worktrees |
+| `database-migrations`  | changing the Prisma schema, migrations, seed                                                            |
+| `testing`              | writing or running unit, integration or E2E tests                                                       |
+| `backend-conventions`  | writing backend code                                                                                    |
+| `frontend-conventions` | writing frontend code                                                                                   |
+| `figma-to-code`        | implementing a Figma design                                                                             |
+| `api-smoke`            | smoke testing the API with curl                                                                         |
+| `docs-update`          | updating `docs/`                                                                                        |
 
 ## Tool adapters
 

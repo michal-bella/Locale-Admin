@@ -14,11 +14,11 @@ The base and head commits of the step (`git diff <base>...<head>`), the plan ste
 
 A list of findings. Each finding has: severity, file and line, description, suggested fix.
 
-| Severity | Definition | Blocks the step |
-|---|---|---|
-| `high` | bug, security problem, broken hard rule or contract, failing acceptance criterion, change outside allowed files, failing test | yes |
-| `medium` | works but breaks project conventions, missing test or documentation, `docs/` does not match code | yes, unless fixed or deliberately deferred with a reason |
-| `low` | style, naming, small simplification | no |
+| Severity | Definition                                                                                                                    | Blocks the step                                          |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `high`   | bug, security problem, broken hard rule or contract, failing acceptance criterion, change outside allowed files, failing test | yes                                                      |
+| `medium` | works but breaks project conventions, missing test or documentation, `docs/` does not match code                              | yes, unless fixed or deliberately deferred with a reason |
+| `low`    | style, naming, small simplification                                                                                           | no                                                       |
 
 ## Allowed tools
 

@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+dist/
+build/
+coverage/
+backend/src/generated/
+backend/prisma/migrations/
+e2e/test-results/
+e2e/playwright-report/
+docs/plans/

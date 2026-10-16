@@ -1,0 +1,51 @@
+{
+	"name": "locale-admin",
+	"private": true,
+	"type": "module",
+	"packageManager": "pnpm@12.8.2",
+	"engines": {
+		"node": ">=24.21.0"
+	},
+	"scripts": {
+		"dev": "pnpm --parallel --filter frontend --filter backend dev",
+		"build": "pnpm -r build",
+		"lint": "eslint . && prettier --check .",
+		"lint:fix": "eslint . --fix && prettier --write .",
+		"typecheck": "pnpm -r typecheck",
+		"secretlint": "secretlint --secretlintignore .secretlintignore \"**/*\"",
+		"test": "pnpm -r --if-present test",
+		"test:integration": "pnpm --filter backend --if-present test:integration",
+		"test:e2e": "pnpm --filter e2e --if-present test:e2e",
+		"verify": "pnpm lint && pnpm typecheck && pnpm secretlint && pnpm test && pnpm test:integration",
+		"db:up": "scripts/db.sh up",
+		"db:down": "scripts/db.sh down",
+		"db:migrate": "scripts/db.sh migrate",
+		"db:seed": "scripts/db.sh seed",
+		"db:reset": "scripts/db.sh reset",
+		"stack:up": "scripts/stack.sh up",
+		"stack:down": "scripts/stack.sh down",
+		"stack:logs": "scripts/stack.sh logs",
+		"prepare": "husky"
+	},
+	"devDependencies": {
+		"@commitlint/cli": "21.2.3",
+		"@commitlint/config-conventional": "21.2.3",
+		"@eslint/js": "10.0.1",
+		"@secretlint/secretlint-rule-preset-recommend": "13.0.6",
+		"@tanstack/eslint-plugin-query": "5.104.0",
+		"@types/node": "^24.19.1",
+		"eslint": "10.11.0",
+		"eslint-config-prettier": "10.1.8",
+		"eslint-import-resolver-typescript": "4.4.5",
+		"eslint-plugin-import-x": "4.17.1",
+		"eslint-plugin-react-hooks": "7.1.1",
+		"eslint-plugin-react-refresh": "0.5.7",
+		"globals": "17.13.0",
+		"husky": "9.1.7",
+		"lint-staged": "17.6.0",
+		"prettier": "3.9.9",
+		"secretlint": "13.0.6",
+		"typescript": "6.0.3",
+		"typescript-eslint": "8.71.0"
+	}
+}

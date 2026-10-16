@@ -1,0 +1,12 @@
+packages:
+  - frontend
+  - backend
+  - packages/*
+  - e2e
+
+# Supply-chain guard: only install versions published at least 14 days ago.
+minimumReleaseAge: 20160
+
+# Dependencies allowed (true) or denied (false) to run install scripts.
+allowBuilds:
+  unrs-resolver: false

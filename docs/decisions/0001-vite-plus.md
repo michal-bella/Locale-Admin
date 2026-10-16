@@ -1,5 +1,5 @@
 ---
-title: "0001: Vite+ vo frontende"
+title: '0001: Vite+ vo frontende'
 updated: 2026-10-16
 notion_page_id:
 ---

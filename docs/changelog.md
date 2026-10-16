@@ -1,5 +1,5 @@
 ---
-title: "Changelog"
+title: 'Changelog'
 updated: 2026-10-16
 notion_page_id:
 ---

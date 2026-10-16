@@ -9,4 +9,8 @@ minimumReleaseAge: 20160
 
 # Dependencies allowed (true) or denied (false) to run install scripts.
 allowBuilds:
+  '@prisma/engines': true
+  argon2: true
+  esbuild: true
+  prisma: true
   unrs-resolver: false

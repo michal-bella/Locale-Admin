@@ -9,6 +9,7 @@ import { type PrismaClient } from './lib/prisma'
 import { csrfMiddleware } from './middleware/csrf.middleware'
 import { errorMiddleware } from './middleware/error.middleware'
 import { notFoundMiddleware } from './middleware/notFound.middleware'
+import { createAdminRouter } from './routes/admin.routes'
 import { createAuthRouter } from './routes/auth.routes'
 import { createHealthRouter } from './routes/health.routes'
 
@@ -38,6 +39,7 @@ export const createApp = (config: Config, deps: AppDeps): Express => {
 
 	app.use('/api/health', createHealthRouter(deps.prisma, config.appVersion))
 	app.use('/api/auth', createAuthRouter(deps.prisma, config))
+	app.use('/api/admin', createAdminRouter(deps.prisma, config))
 	app.use('/api', notFoundMiddleware)
 
 	app.use(errorMiddleware)

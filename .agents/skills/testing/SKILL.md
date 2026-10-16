@@ -44,7 +44,7 @@ it('returns 404 in the error contract', async () => {
 
 ## E2E (Playwright)
 
-- `pnpm test:e2e` (`scripts/test-e2e.sh`): starts `db`, recreates `backend` and `frontend` with `LOGIN_RATE_LIMIT_MAX=1000`, then runs `playwright test` in `e2e/`. Prefer it over `pnpm --filter e2e test:e2e`: with the default limit (10 logins per 15 min) a direct run uses all 10 attempts, so a second direct run within 15 minutes fails with 429.
+- `pnpm test:e2e` (`scripts/test-e2e.sh`): starts `db`, recreates `backend` and `frontend` with `LOGIN_RATE_LIMIT_MAX=1000`, then runs `playwright test` in `e2e/`. Prefer it over `pnpm --filter e2e test:e2e`: one run makes about 12 login attempts (setup 2, per browser 4 in `login.spec` and 1 in `users.spec`), more than the default limit of 10 per 15 min, so a direct run against a stack with the default limit fails with 429.
 - First time on a machine: `pnpm --filter e2e exec playwright install chromium webkit`.
 - Projects: `setup` (`tests/auth.setup.ts`: UI login as ADMIN and a fresh EDITOR, saves `e2e/.auth/{admin,editor}.json`) → `chromium`, `webkit` → `teardown` (deletes `e2e-editor-%@example.com` users). ADMIN storage state is the default; use `ANONYMOUS` from `support/auth.ts` for logged-out tests.
 - The setup project logs in the ADMIN first, then creates the EDITOR through `POST /api/admin/users` as the ADMIN (`createEditor` in `support/users.ts`). Every user a test creates must use the `e2e-editor-` prefix (`TEST_EDITOR_EMAIL_PREFIX`): the teardown deletes those EDITORs directly in the DB (there is no DELETE endpoint).

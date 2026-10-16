@@ -66,7 +66,7 @@ pnpm test:e2e --project=webkit         # iba jeden prehliadač
 
 `pnpm test:e2e` (skript `scripts/test-e2e.sh`) najprv spustí Postgres, ak nebeží (`docker compose up -d --wait db`, bežiaci kontajner nereštartuje), potom znova vytvorí kontajnery `backend` a `frontend` (`docker compose up -d --build --wait --force-recreate --no-deps`) s `LOGIN_RATE_LIMIT_MAX=1000`, aby testy neskončili na 429, a potom spustí `pnpm --filter e2e test:e2e` (`playwright test`). Stack po testoch beží ďalej s limitom 1000; `pnpm stack:up` vráti hodnoty z `.env`.
 
-Testy sa dajú pustiť aj priamo (`pnpm --filter e2e test:e2e`) proti už bežiacemu stacku. Jeden beh urobí približne 10 pokusov o prihlásenie, takže pri predvolenom limite 10 za 15 minút ďalší beh skončí na 429; vtedy použite `pnpm test:e2e`.
+Testy sa dajú pustiť aj priamo (`pnpm --filter e2e test:e2e`) proti už bežiacemu stacku. Jeden beh urobí približne 12 pokusov o prihlásenie (setup 2, na prehliadač 4 v `login.spec` a 1 v `users.spec`), teda viac ako predvolený limit 10 za 15 minút. Priamy beh preto potrebuje zvýšený `LOGIN_RATE_LIMIT_MAX`; inak použite `pnpm test:e2e`.
 
 Iná adresa aplikácie (napr. dev mód počas písania testov) cez `E2E_BASE_URL`:
 

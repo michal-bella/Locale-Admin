@@ -22,7 +22,7 @@ Files: `backend/prisma/schema.prisma`, `backend/prisma/migrations/`, `backend/pr
 4. Update `docs/database.md` (table + Mermaid ER diagram).
 5. Run `pnpm --filter backend test:integration` (globalSetup applies migrations to `locale_test` with `prisma migrate deploy`).
 
-Never edit an applied migration; add a new one. Production-like environments (Docker) only run `prisma migrate deploy` on start (`start:prod`).
+Never edit an applied migration; add a new one. Production-like environments (Docker) only run `prisma migrate deploy` on start (`docker/backend-entrypoint.sh`; `start:prod` is the same sequence outside Docker).
 
 ## Seed
 

@@ -34,6 +34,7 @@ Written from how the Používatelia page (`/admin/users`) was built (milestone C
 - React Hook Form + `zodResolver(sharedSchema)`; the same schema the BE parses.
 - Server errors: 400 → each `details` item to `setError(path, { message: t(`validation.${code}`, params) })`; known conflict codes (409 `EMAIL_TAKEN`) → `setError` on the field with ``t(`errors.${code}`)``; anything else → red notification. Never show the BE `message`.
 - Submit button `loading` and ignore submits while pending; on success: notification, `reset()`, close. Closing (Cancel, X, Esc, overlay) also resets.
+- While the mutation is pending the modal cannot be closed (`closeOnEscape` / `closeOnClickOutside={!isPending}`, Cancel and X `disabled`), otherwise the result of the request would be lost.
 - Placeholders with constants via i18n interpolation (`Min. {{min}} znakov` with `PASSWORD_MIN_LENGTH`).
 
 ## 5. i18n

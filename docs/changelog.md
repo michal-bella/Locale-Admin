@@ -8,6 +8,14 @@ notion_page_id:
 
 ## Fáza 1
 
+### Míľnik C: Používatelia (2026-10-16)
+
+- zdieľaný kontrakt: `createUserRequestSchema`, `AdminUser`, `adminUserListResponseSchema`
+- backend: `GET /api/admin/users` (od najnovšieho, bez `passwordHash`) a `POST /api/admin/users` (vždy `EDITOR`, 409 `EMAIL_TAKEN` aj pri inej veľkosti písmen a súbehu), router `/api/admin` iba pre `ADMIN` ([API](./api/admin-users.md))
+- frontend: stránka Používatelia podľa Figmy (tabuľka s iniciálami, dátum podľa jazyka, stavy loading/prázdny/chyba), modál Nový používateľ (chyby 400 a 409 pri poli, nedá sa odoslať dvakrát ani zavrieť počas odosielania), lazy načítanie stránok a vendor chunky (hlavný chunk 71 kB namiesto 763 kB), biely modál v theme
+- E2E: testovací EDITOR vzniká cez `POST /api/admin/users`, poistka na lokálnu DB, nové testy stránky Používatelia a API (401, 403, 400, 409, CSRF)
+- harness: nové skills `add-endpoint` a `add-page`, `api-smoke` a `testing` doplnené o správu používateľov
+
 ### Míľnik B: Prihlásenie (2026-10-16)
 
 - zdieľaný kontrakt: `ROLE`, `loginRequestSchema`, `AuthUser`, `getInitials`

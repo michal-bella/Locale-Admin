@@ -30,4 +30,4 @@ Read, edit, shell for `pnpm` and Prisma commands inside your worktree, `pnpm db:
 
 ## Hands off when
 
-`pnpm --filter backend lint`, `typecheck`, `test` and `test:integration` pass and `scripts/agents/check-scope.sh backend-developer <base>` passes (`<base>` is the base commit from your task). Handoff report: what changed, how it was verified (commands and results), what is open, what you need from the orchestrator.
+Root `pnpm lint` and `pnpm --filter backend typecheck`, `test` and `test:integration` pass and `scripts/agents/check-scope.sh backend-developer <base>` passes (`<base>` is the base commit from your task). Handoff report: what changed, how it was verified (commands and results), what is open, what you need from the orchestrator.

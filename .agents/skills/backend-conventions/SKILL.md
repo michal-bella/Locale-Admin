@@ -49,7 +49,9 @@ Mount new routers in `src/app.ts` under `/api/<area>` **before** `app.use('/api'
 - Protect a route with `createRequireAuth(prisma, config)` and, for roles, `requireRole(ROLE.ADMIN)` (`src/middleware/auth.middleware.ts`). Read the user with `getAuth(req).user` (an `AuthUser` from `@locale/shared`); `getAuth(req).sessionId` is the current session.
 
 ```ts
-router.get('/', createRequireAuth(prisma, config), requireRole(ROLE.ADMIN), createListUsersController(prisma))
+// routes/admin.routes.ts: one guard for every /api/admin/* route
+router.use(createRequireAuth(prisma, config), requireRole(ROLE.ADMIN))
+router.use('/users', createAdminUsersRouter(prisma))
 ```
 
 - Session logic lives in `services/session.service.ts` (token + SHA-256 hash, sliding TTL, `SESSION_TOUCH_INTERVAL_MS` = 5 min, absolute limit); cookie helpers in `lib/sessionCookie.ts` (`locale_session`). Never set the cookie by hand.

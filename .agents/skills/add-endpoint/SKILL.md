@@ -35,7 +35,7 @@ pnpm --filter @locale/shared test && pnpm lint && pnpm typecheck
 
 ## 3. Integration tests (`backend/test/<area>.test.ts`)
 
-Helpers in `backend/test/helpers/` (`createUser({ role, createdAt })`, `loginAs(user)`). Cover at least: success shape (`toEqual` on the exact body, no extra fields), sort order, 400 `details` per field with `params`, 409, 401 without session, 403 `FORBIDDEN` for the wrong role (GET and POST), 403 `CSRF_REJECTED` without `X-Requested-With`, and that the result is usable (e.g. the created user can log in).
+Helpers in `backend/test/helpers/` (`createUser({ role, createdAt })`, `loginAs(app, { email, password })`). Cover at least: success shape (`toEqual` on the exact body, no extra fields), sort order, 400 `details` per field with `params`, 409, 401 without session, 403 `FORBIDDEN` for the wrong role (GET and POST), 403 `CSRF_REJECTED` without `X-Requested-With`, and that the result is usable (e.g. the created user can log in).
 
 ```bash
 pnpm --filter backend typecheck && pnpm --filter backend test && pnpm --filter backend test:integration

@@ -27,18 +27,18 @@ Každá chyba má tvar `{ error: { code, message, details? } }`.
 - `message` je iba anglický text pre logy a vývojárov. Frontend ho nikdy nezobrazuje, prekladá iba `code`.
 - `details` sa posiela pri validačných chybách: `[{ path: 'email', code: 'INVALID_EMAIL' }]`. Kódy sú z enumu `VALIDATION_CODE` (`REQUIRED`, `INVALID_EMAIL`, `TOO_SHORT`, `TOO_LONG`, `INVALID`). Pri `TOO_SHORT` a `TOO_LONG` je aj `params: { min }` alebo `{ max }`.
 
-| HTTP | `code`                     | Kedy                                                              |
-| ---- | -------------------------- | ----------------------------------------------------------------- |
-| 400  | `VALIDATION_ERROR`         | nevalidné telo požiadavky (zod) alebo poškodený JSON              |
-| 413  | `VALIDATION_ERROR`         | telo požiadavky je väčšie ako 100 KB                              |
-| 415  | `VALIDATION_ERROR`         | nepodporovaný charset alebo `Content-Encoding` tela požiadavky    |
-| 401  | `AUTH_INVALID_CREDENTIALS` | zlý email alebo heslo, neaktívny user                             |
-| 401  | `AUTH_UNAUTHENTICATED`     | chýba alebo expirovala session                                    |
-| 403  | `FORBIDDEN`                | prihlásený bez oprávnenia                                         |
-| 403  | `CSRF_REJECTED`            | mutácia bez `Content-Type: application/json` a `X-Requested-With` |
-| 404  | `NOT_FOUND`                | neexistujúci endpoint alebo záznam                                |
-| 409  | `EMAIL_TAKEN`              | email už existuje                                                 |
-| 429  | `RATE_LIMITED`             | prekročený rate limit, s hlavičkou `Retry-After`                  |
-| 500  | `INTERNAL_ERROR`           | neočakávaná chyba, detail je iba v logu                           |
+| HTTP | `code`                     | Kedy                                                                                |
+| ---- | -------------------------- | ----------------------------------------------------------------------------------- |
+| 400  | `VALIDATION_ERROR`         | nevalidné telo požiadavky (zod) alebo poškodený JSON                                |
+| 413  | `VALIDATION_ERROR`         | telo požiadavky je väčšie ako 100 KB                                                |
+| 415  | `VALIDATION_ERROR`         | nepodporovaný charset alebo `Content-Encoding` tela požiadavky                      |
+| 401  | `AUTH_INVALID_CREDENTIALS` | zlý email alebo heslo, neaktívny user                                               |
+| 401  | `AUTH_UNAUTHENTICATED`     | chýba alebo expirovala session                                                      |
+| 403  | `FORBIDDEN`                | prihlásený bez oprávnenia                                                           |
+| 403  | `CSRF_REJECTED`            | mutácia bez `Content-Type: application/json` a `X-Requested-With`                   |
+| 404  | `NOT_FOUND`                | neexistujúci endpoint alebo záznam (pod `/api/admin/*` iba pre ADMIN, inak 401/403) |
+| 409  | `EMAIL_TAKEN`              | email už existuje                                                                   |
+| 429  | `RATE_LIMITED`             | prekročený rate limit, s hlavičkou `Retry-After`                                    |
+| 500  | `INTERNAL_ERROR`           | neočakávaná chyba, detail je iba v logu                                             |
 
 Pre validáciu sa používa iba 400, nie 422. Chyby parsovania tela (413, 415 a ďalšie 4xx z `express.json()`) vracajú svoj HTTP status s kódom `VALIDATION_ERROR` a logujú sa ako `warn`, nie `error`. Kódy `AUTH_*`, `FORBIDDEN`, `CSRF_REJECTED` a `RATE_LIMITED` vracia backend od míľnika B (viď [auth](./auth.md)), `EMAIL_TAKEN` od míľnika C (viď [správa používateľov](./admin-users.md)).

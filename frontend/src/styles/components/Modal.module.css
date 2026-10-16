@@ -1,4 +1,4 @@
 .content,
 .header {
-	background-color: var(--mantine-color-white);
+	background-color: var(--app-color-surface);
 }

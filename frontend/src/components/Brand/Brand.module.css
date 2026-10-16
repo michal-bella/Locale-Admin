@@ -5,7 +5,7 @@
 	height: 2.25rem;
 	border-radius: var(--mantine-radius-lg);
 	background-color: var(--mantine-primary-color-filled);
-	color: var(--mantine-color-white);
+	color: var(--mantine-primary-color-contrast);
 	box-shadow: var(--mantine-shadow-primary-lg);
 }
 

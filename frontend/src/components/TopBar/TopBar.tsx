@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import Brand from '@/components/Brand/Brand'
 import { Bell } from '@/components/Icons'
 import LanguageSwitcher from '@/components/LanguageSwitcher/LanguageSwitcher'
+import ThemeSwitcher from '@/components/ThemeSwitcher/ThemeSwitcher'
 import UserMenu from '@/components/UserMenu/UserMenu'
 
 import classes from './TopBar.module.css'
@@ -16,6 +17,7 @@ const TopBar = () => {
 			<Brand />
 			<div className='flex items-center gap-2'>
 				<LanguageSwitcher />
+				<ThemeSwitcher />
 				<div role='img' aria-label={t('topBar.notifications')} className={classes.notifications}>
 					<Bell aria-hidden />
 				</div>

@@ -29,14 +29,14 @@ const UserMenu = () => {
 		<Menu position='bottom-end' width={240} radius='lg' shadow='md'>
 			<Menu.Target>
 				<UnstyledButton aria-label={t('topBar.userMenu.label')} className={classes.trigger}>
-					<Avatar size={32} radius='xl' color='slate.9' variant='filled' classNames={{ placeholder: classes.initials }}>
+					<Avatar size={32} radius='xl' color='var(--app-color-avatar)' variant='filled' classNames={{ placeholder: classes.initials }}>
 						{getInitials(user)}
 					</Avatar>
 				</UnstyledButton>
 			</Menu.Target>
 			<Menu.Dropdown>
 				<Menu.Label>
-					<Text component='span' fz='xs' fw={600} c='slate.8' className={classes.email}>
+					<Text component='span' fz='xs' fw={600} c='var(--app-color-text-strong)' className={classes.email}>
 						{user.email}
 					</Text>
 				</Menu.Label>

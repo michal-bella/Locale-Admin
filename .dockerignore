@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+.git
+.env
+.env.*
+!.env.example
+.husky
+.agents
+.claude
+.codex
+docs
+e2e/test-results
+e2e/playwright-report
+backend/src/generated

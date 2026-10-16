@@ -15,7 +15,7 @@
 		"secretlint": "secretlint --secretlintignore .secretlintignore \"**/*\"",
 		"test": "pnpm -r --if-present test",
 		"test:integration": "pnpm --filter backend --if-present test:integration",
-		"test:e2e": "pnpm --filter e2e --if-present test:e2e",
+		"test:e2e": "scripts/test-e2e.sh",
 		"verify": "pnpm lint && pnpm typecheck && pnpm secretlint && pnpm test && pnpm test:integration",
 		"db:up": "scripts/db.sh up",
 		"db:down": "scripts/db.sh down",

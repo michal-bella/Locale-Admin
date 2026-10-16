@@ -30,4 +30,4 @@ Read, edit, shell for `pnpm` commands inside your worktree, Figma MCP (read), Co
 
 ## Hands off when
 
-`pnpm --filter frontend lint`, `typecheck` and `test` pass and `scripts/agents/check-scope.sh frontend-developer main` passes. Handoff report: what changed, how it was verified (commands and results), what is open, what you need from the orchestrator.
+`pnpm --filter frontend lint`, `typecheck` and `test` pass and `scripts/agents/check-scope.sh frontend-developer <base>` passes (`<base>` is the base commit from your task). Handoff report: what changed, how it was verified (commands and results), what is open, what you need from the orchestrator.

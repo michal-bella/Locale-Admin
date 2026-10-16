@@ -14,7 +14,7 @@ Pravidlo: najnovšia stabilná verzia staršia ako 2 týždne (ochrana pred čer
 
 | Oblasť | Verzia | Poznámka |
 |---|---|---|
-| Node | 24 LTS (`24.12.0` lokálne, image `node:24-bookworm-slim`) | Vite+ vyžaduje `^24.11.0` |
+| Node | 24 LTS (`24.21.0` v `.nvmrc` aj v image `node:24.21.0-bookworm-slim`) | Vite+ vyžaduje `^24.11.0` |
 | pnpm | 12.8.2 | cez `packageManager` + corepack |
 | Vite+ | 1.0.0 (MIT, stabilná) | `vp dev` / `vp build` / `vp test`, config `vite.config.ts` cez `vite-plus` |
 | TypeScript | **6.0.3** | TS 7 (natívny) zatiaľ nepodporuje `typescript-eslint` (`<6.1.0`), viď ADR |
@@ -60,7 +60,7 @@ Pravidlo: najnovšia stabilná verzia staršia ako 2 týždne (ochrana pred čer
 
 ### A3. Kontrakt + Docker, DB, Prisma, seed, health (BE) a FE kostra – paralelne
 
-1. **Kontrakt (orchestrátor):** v `packages/shared` schéma `HealthResponse`, `ErrorCode`, `ValidationCode`, pravidlá hesla, schéma ENV pre seed. Merge do `main`.
+1. **Kontrakt (orchestrátor):** v `packages/shared` schéma `HealthResponse`, `ErrorCode`, `ValidationCode`, pravidlá hesla. Merge do `main`. (Schéma ENV pre seed je napokon v `backend/src/config/env.ts`, lebo ju používa iba backend.)
 2. **Backend Developer (worktree):** Express 5 cez `createApp(config)`, validácia ENV zodom v `server.ts`, pino, helmet, chybový middleware podľa kontraktu (404 `NOT_FOUND`, 500 `INTERNAL_ERROR`), Prisma schéma `User` + `Session`, migrácia, idempotentný seed, `GET /api/health` so stavom DB, test DB `locale_test` a integračné testy pre health a seed.
 3. **Frontend Developer (worktree):** Vite+ app, Mantine theme z Figmy (farby, font, radius), DM Sans lokálne, Tailwind s CSS layers, react-i18next (`sk`, `en`), TanStack Router a Query, axios inštancia, stránka 404 v štýle login screenu, `/` prázdna stránka.
 4. **Orchestrátor:** `docker-compose.yml` (db, backend, frontend s healthcheckmi), Dockerfiles, nginx, Postgres init skript, `scripts/` pre oba režimy, `DATABASE_URL` override pre kontajner.

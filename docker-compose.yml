@@ -11,7 +11,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (cp .env.example .env)}
       POSTGRES_DB: ${POSTGRES_DB:-locale}
     ports:
-      - '${DB_PORT:-5433}:5432'
+      # Bound to localhost only: the DB uses a dev password.
+      - '127.0.0.1:${DB_PORT:-5433}:5432'
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -32,8 +33,11 @@ services:
       # Inside Docker the DB host is "db", not the localhost URL from .env.
       DATABASE_URL: postgresql://${POSTGRES_USER:-locale}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-locale}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?Set SEED_ADMIN_PASSWORD in .env (cp .env.example .env)}
+    # init: true runs a tiny init as PID 1 that forwards signals and reaps zombies.
+    init: true
     ports:
-      - '3001:3000'
+      # Debug access only, bound to localhost (a direct client could spoof X-Forwarded-For otherwise).
+      - '127.0.0.1:3001:3000'
     depends_on:
       db:
         condition: service_healthy

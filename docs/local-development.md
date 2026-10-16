@@ -33,7 +33,7 @@ pnpm install
 | Migrácie a seed | `pnpm db:migrate` (spustí aj seed)            | automaticky pri štarte BE kontajnera               |
 | Na čo           | každodenný vývoj, unit a integračné testy     | smoke testy, E2E, akceptačné kritériá              |
 
-Oba režimy zdieľajú tú istú DB. Porty sa nebijú, takže môžu bežať naraz.
+Oba režimy zdieľajú tú istú DB. Porty sa nebijú, takže môžu bežať naraz. Porty DB (`5433`) a BE kontajnera (`3001`) sú dostupné iba z `localhost`, nie z lokálnej siete.
 
 FE aj BE sú v oboch režimoch na jednom origine: vo vývoji Vite proxy presmeruje `/api` na `localhost:3000`, v stacku nginx presmeruje `/api` na kontajner `backend`.
 
@@ -73,6 +73,7 @@ flowchart LR
 | `TEST_DATABASE_URL`                                 | integračné testy | test DB, názov musí končiť na `_test`                                 |
 | `NODE_ENV`, `PORT`, `LOG_LEVEL`                     | BE               | prostredie, port, úroveň logovania                                    |
 | `SEED_ADMIN_PASSWORD`                               | BE, seed         | heslo admina pre seed, povinné, min. 8 znakov                         |
+| `APP_VERSION`                                       | BE               | verzia v odpovedi `GET /api/health`, nepovinná (default `0.0.0`)      |
 
 ## Troubleshooting
 

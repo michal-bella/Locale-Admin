@@ -4,7 +4,7 @@ Reviews changes. Read only.
 
 ## Responsibility
 
-Review the diff of a step against `AGENTS.md` (root and module), the skills, the plan and its acceptance criteria. Check that `docs/` matches the code. Run `scripts/agents/check-scope.sh` for every role branch in the step.
+Review the diff of a step against `AGENTS.md` (root and module), the skills, the plan and its acceptance criteria. Check that `docs/` matches the code. Run `scripts/agents/check-scope.sh <role> <base> <branch>` for every role branch in the step, with the branch's base commit from the task (or `$(git merge-base <merge-commit>^1 <branch>)` if it is already merged). An empty-diff warning is a finding, not a pass.
 
 ## Inputs
 

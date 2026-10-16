@@ -54,4 +54,4 @@ Mount new routers in `src/app.ts` under `/api/<area>` **before** `app.use('/api'
 
 ## Build and run
 
-`pnpm --filter backend dev` (tsx watch), `build` (tsdown → `dist/server.js`, `dist/seed.js`, bundles `@locale/shared` and the Prisma client), `start:prod` (migrate deploy + seed + server; Docker CMD).
+`pnpm --filter backend dev` (tsx watch), `build` (tsdown → `dist/server.js`, `dist/seed.js`, bundles `@locale/shared` and the Prisma client), `start:prod` (migrate deploy + seed + server). Docker runs the same steps through `docker/backend-entrypoint.sh`, which `exec`s node so `docker stop` (SIGTERM) reaches the server's shutdown handler.

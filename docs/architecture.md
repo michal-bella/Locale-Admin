@@ -41,7 +41,8 @@ FE a BE bežia na rovnakom origine: v Dockeri cez nginx proxy, vo vývoji cez Vi
 | `backend`  | `docker/backend.Dockerfile` (Node 24, multi-stage)                 | `3001` (iba debug) | `GET /api/health` vráti 200 |
 | `frontend` | `docker/frontend.Dockerfile` (build cez Vite+, runtime nginx 1.30) | `8080`             | nginx vráti `index.html`    |
 
-- Backend pri štarte spustí `prisma migrate deploy`, idempotentný seed a server (`start:prod`). Beží ako používateľ `node`.
+- Backend pri štarte spustí `prisma migrate deploy`, idempotentný seed a server (`docker/backend-entrypoint.sh`, server dostane SIGTERM a korektne sa ukončí). Beží ako používateľ `node`, súbory aplikácie patria `root` a nedajú sa meniť.
+- Porty `5433` (DB) a `3001` (BE) sú naviazané iba na `127.0.0.1`.
 - nginx proxuje `/api/*` na `backend:3000` s hlavičkami `X-Forwarded-*` (Express má `trust proxy 1`), statické assety cachuje natrvalo a pre ostatné cesty vracia `index.html` (SPA fallback).
 - Služby štartujú v poradí `db` → `backend` → `frontend`, každá čaká na zelený healthcheck predchádzajúcej.
 - V kontajneri compose prepisuje `DATABASE_URL` na host `db`, lokálny `.env` ukazuje na `localhost:5433`.

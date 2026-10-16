@@ -40,7 +40,7 @@ it('returns 404 in the error contract', async () => {
 
 - jsdom environment, setup in `src/test/setup.ts` (jest-dom matchers, i18n).
 - Render pages through the router with a memory history (`createAppRouter({ history })`) when routing matters.
-- `src/lib/i18n.test.ts` enforces that every `ERROR_CODE` and `VALIDATION_CODE` has `sk` and `en` translations; adding a code without translations fails the test.
+- `src/lib/i18n.test.ts` enforces that every `ERROR_CODE` and `VALIDATION_CODE` has `sk` and `en` translations, that `sk.json` and `en.json` have identical key sets, and that no value is empty.
 
 ## E2E rules
 

@@ -16,7 +16,7 @@ scripts/agents/worktree.sh create fe login      # -> ../locale-app-worktrees/fe-
 scripts/agents/worktree.sh create be login
 ```
 
-The script copies `.env` and runs `pnpm install`. Roles commit to their branch. They do not run the full Docker stack or `pnpm dev` (ports would collide); unit and integration tests are fine.
+The script copies `.env`, runs `pnpm install` and `prisma generate` (lint and typecheck need the generated client) and prints the **base commit** of the branch. Write the base into the task for the role; it is needed for every scope check. Roles commit to their branch. They do not run the full Docker stack or `pnpm dev` (ports would collide); unit and integration tests are fine.
 
 ## 3. Handoff
 
@@ -30,12 +30,14 @@ Each role ends with a short report:
 ## 4. Integration
 
 ```bash
-scripts/agents/check-scope.sh frontend-developer main agent/fe-login
-scripts/agents/check-scope.sh backend-developer main agent/be-login
+scripts/agents/check-scope.sh frontend-developer <base> agent/fe-login
+scripts/agents/check-scope.sh backend-developer <base> agent/be-login
 git merge --no-ff --no-edit agent/fe-login
 git merge --no-ff --no-edit agent/be-login
 pnpm install && pnpm verify && pnpm stack:up
 ```
+
+Use the base printed by `worktree.sh`, not `main`: once `main` moves (another branch merged first) or the branch is merged, `main...branch` no longer shows the branch's own changes. For an already merged branch the base is `$(git merge-base <merge-commit>^1 <branch>)`. An empty diff prints a warning, never treat it as a pass.
 
 Keep git's default merge message (`Merge branch '…'`); commitlint ignores it, while a custom `merge: …` subject is rejected. Lockfile conflicts are resolved by re-running `pnpm install`, never by hand.
 
@@ -45,7 +47,7 @@ The E2E Tester runs smoke tests and Playwright against the stack and checks the 
 
 ## 6. Review
 
-The Code Reviewer reviews `git diff <step-base>...main`. Findings go back to the role that owns the file; repeat 2–6 until no `high` findings are open and `medium` ones are fixed or deferred with a reason.
+The Code Reviewer reviews `git diff <step-base>...main` and re-runs `check-scope.sh` for every role branch with the bases from step 2. Findings go back to the role that owns the file; repeat 2–6 until no `high` findings are open and `medium` ones are fixed or deferred with a reason.
 
 ## 7. Documentation
 

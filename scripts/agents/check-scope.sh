@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Fails when a role's branch changes files outside the role's allowed paths.
 # Usage: scripts/agents/check-scope.sh <role> <base> [head]
+# <base> must be the commit the branch was created from. After a merge use: "$(git merge-base <merge-commit>^1 <branch>)".
 set -euo pipefail
 
 role="${1:-}"
@@ -24,9 +25,24 @@ case "$role" in
 		;;
 esac
 
+for ref in "$base" "$head"; do
+	if ! git rev-parse --verify --quiet "$ref^{commit}" >/dev/null; then
+		echo "check-scope: unknown git ref '$ref'" >&2
+		exit 2
+	fi
+done
+
+# --no-renames lists both the old and the new path, so moving a file out of a forbidden path is caught too.
+# Captured first so that a failing git diff aborts the script (set -e does not see failures in process substitution).
+changed="$(git diff --name-only --no-renames "$base...$head")"
+
+if [[ -z "$changed" ]]; then
+	echo "check-scope: WARNING no changes in $base...$head (wrong base, or the branch is already merged?)" >&2
+	exit 0
+fi
+
 violations=()
 while IFS= read -r file; do
-	[[ -z "$file" ]] && continue
 	ok=false
 	for prefix in "${allowed[@]+"${allowed[@]}"}"; do
 		if [[ "$file" == "$prefix" || "$file" == "$prefix"* && "$prefix" == */ ]]; then
@@ -35,7 +51,7 @@ while IFS= read -r file; do
 		fi
 	done
 	$ok || violations+=("$file")
-done < <(git diff --name-only "$base...$head")
+done <<<"$changed"
 
 if ((${#violations[@]} > 0)); then
 	echo "check-scope: role '$role' changed files outside its allowed paths ($base...$head):" >&2

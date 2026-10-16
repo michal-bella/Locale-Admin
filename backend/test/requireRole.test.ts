@@ -16,7 +16,7 @@ import { loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
 
-// Test-only app: production has no ADMIN-only route until milestone C.
+// Isolated app tests requireRole on its own; the real /api/admin routes are covered in adminUsers.test.ts.
 const createAdminOnlyApp = () => {
 	const app = express()
 	app.use(pinoHttp({ logger: pino({ level: 'silent' }) }))

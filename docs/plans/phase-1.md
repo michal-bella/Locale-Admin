@@ -458,40 +458,40 @@ Mimo rozsahu Fázy 1: organizácie, projekty, editor prekladov, reset hesla, CI 
 
 ### Akceptačné kritériá (Definition of Done)
 
-- [ ] Na čistom stroji `cp .env.example .env && docker compose up` spustí DB, BE aj FE a všetky healthchecky sú zelené
-- [ ] Na čistom stroji `cp .env.example .env && pnpm db:up && pnpm db:migrate && pnpm dev` spustí vývojový režim a admin sa vie prihlásiť. Zmena vo FE sa prejaví cez HMR a zmena v BE reštartne server bez ručného zásahu
-- [ ] Sliding session posúva aj cookie: po posune `expiresAt` príde `Set-Cookie` s novým `Max-Age` (integračný test)
-- [ ] Logout cez FE (axios, bez tela) prejde CSRF kontrolou
-- [ ] Login a logout fungujú aj v Playwright **WebKit** voči `http://localhost:8080`
-- [ ] Spustenie `pnpm test:e2e` pri už bežiacom `pnpm stack:up` (s default rate limitom) neskončí chybami 429
-- [ ] Aplikácia funguje celá cez `http://localhost:8080`: login, `/api/*` cez nginx proxy, refresh na hlbokej route (napr. `/admin/users`) nevráti nginx 404
-- [ ] Admin sa prihlási emailom `michal.bella@goodrequest.com` a heslom z `.env`
-- [ ] Zlé heslo vráti 401 `AUTH_INVALID_CREDENTIALS` a FE zobrazí preklad z `errors.AUTH_INVALID_CREDENTIALS` (nie `message` z BE)
-- [ ] Login s `Michal.Bella@GoodRequest.com` funguje (email je case-insensitive), `lastLoginAt` sa nastaví
-- [ ] Každý `ErrorCode` aj `ValidationCode` má preklad v `sk` aj `en` (unit test)
-- [ ] Dátum v tabuľke sa zobrazuje podľa zvoleného jazyka (SK aj EN)
-- [ ] BE bez `SEED_ADMIN_PASSWORD` pri štarte spadne s jasnou chybou
-- [ ] 429 `RATE_LIMITED` overený integračným testom, E2E testy rate limit nerozbije
-- [ ] Admin vidí zoznam používateľov (E-mail, Vytvorený) a cez modál vytvorí nového. Ten sa objaví v zozname bez refreshu a vie sa prihlásiť
-- [ ] Nevalidný email, heslo kratšie ako 8 znakov (400) a už existujúci email aj s inou veľkosťou písmen (409) zobrazia chybu pri poli
-- [ ] Obsah stránky Používatelia (bez sidebaru) a modál vizuálne zodpovedajú Figme (`28-2`, `28-191`)
+- [x] Na čistom stroji `cp .env.example .env && docker compose up` spustí DB, BE aj FE a všetky healthchecky sú zelené
+- [x] Na čistom stroji `cp .env.example .env && pnpm db:up && pnpm db:migrate && pnpm dev` spustí vývojový režim a admin sa vie prihlásiť. Zmena vo FE sa prejaví cez HMR a zmena v BE reštartne server bez ručného zásahu
+- [x] Sliding session posúva aj cookie: po posune `expiresAt` príde `Set-Cookie` s novým `Max-Age` (integračný test)
+- [x] Logout cez FE (axios, bez tela) prejde CSRF kontrolou
+- [x] Login a logout fungujú aj v Playwright **WebKit** voči `http://localhost:8080`
+- [x] Spustenie `pnpm test:e2e` pri už bežiacom `pnpm stack:up` (s default rate limitom) neskončí chybami 429
+- [x] Aplikácia funguje celá cez `http://localhost:8080`: login, `/api/*` cez nginx proxy, refresh na hlbokej route (napr. `/admin/users`) nevráti nginx 404
+- [x] Admin sa prihlási emailom `michal.bella@goodrequest.com` a heslom z `.env`
+- [x] Zlé heslo vráti 401 `AUTH_INVALID_CREDENTIALS` a FE zobrazí preklad z `errors.AUTH_INVALID_CREDENTIALS` (nie `message` z BE)
+- [x] Login s `Michal.Bella@GoodRequest.com` funguje (email je case-insensitive), `lastLoginAt` sa nastaví
+- [x] Každý `ErrorCode` aj `ValidationCode` má preklad v `sk` aj `en` (unit test)
+- [x] Dátum v tabuľke sa zobrazuje podľa zvoleného jazyka (SK aj EN)
+- [x] BE bez `SEED_ADMIN_PASSWORD` pri štarte spadne s jasnou chybou
+- [x] 429 `RATE_LIMITED` overený integračným testom, E2E testy rate limit nerozbije
+- [x] Admin vidí zoznam používateľov (E-mail, Vytvorený) a cez modál vytvorí nového. Ten sa objaví v zozname bez refreshu a vie sa prihlásiť
+- [x] Nevalidný email, heslo kratšie ako 8 znakov (400) a už existujúci email aj s inou veľkosťou písmen (409) zobrazia chybu pri poli
+- [x] Obsah stránky Používatelia (bez sidebaru) a modál vizuálne zodpovedajú Figme (`28-2`, `28-191`)
   - **Jednorazové manuálne porovnanie**, nie automatický test: agent urobí Playwright screenshot a screenshot z Figmy (`get_screenshot`), porovná ich a rozdiely vypíše v reporte. Finálne potvrdzujem ja. Automatický `toHaveScreenshot` sa nerobí, lebo dáta v zdieľanej DB sa medzi behmi menia.
   - **Povolené rozdiely:** chýbajúci sidebar, horná lišta Fázy 1, placeholder hesla „Min. 8 znakov“ (Figma má 6), iné dáta v tabuľke.
-- [ ] `EDITOR` na `/admin/users` dostane 403 (BE aj FE)
-- [ ] Neprihlásený používateľ na chránenej route je presmerovaný na login (401)
-- [ ] Neexistujúca route zobrazí 404
-- [ ] Po prihlásení ADMIN aj EDITOR skončia na `/`. ADMIN vidí v menu položku Používatelia, EDITOR nie
-- [ ] Prepínač SK/EN zmení texty bez reloadu a voľba prežije refresh (`localStorage`)
-- [ ] Aplikácia používa DM Sans z lokálneho balíka (v Network tabe žiadne požiadavky na Google Fonts)
-- [ ] Session prežije refresh stránky, logout zmaže riadok v `Session` a ďalšia požiadavka s tou istou cookie vráti 401
-- [ ] Session po uplynutí TTL vráti 401 (otestované integračným testom s posunutým `expiresAt`)
-- [ ] Mutácia bez `X-Requested-With` alebo s iným `Content-Type` (napr. `application/x-www-form-urlencoded`) vráti 403 `CSRF_REJECTED` (integračný test aj `api-smoke`)
-- [ ] `pnpm verify` prejde, Playwright E2E prejde voči bežiacemu Docker Compose
-- [ ] Code Reviewer nemá otvorené nálezy `high`, nálezy `medium` sú vyriešené alebo odložené s odôvodnením (stupnica v sekcii 4)
-- [ ] `scripts/agents/check-scope.sh` prejde pre vetvu každej roly, ktorá v kroku pracovala
-- [ ] Žiadne heslá ani secrets v gite: secretlint prejde v `pnpm verify` a commit so zjavným secretom (napr. testovací AWS kľúč) zablokuje `pre-commit` hook
-- [ ] Commit so správou mimo Conventional Commits (napr. `fix stuff`) zablokuje `commit-msg` hook
-- [ ] `docs/` obsahuje všetky stránky zo sekcie 9 s frontmatterom a popisuje skutočný stav kódu
+- [x] `EDITOR` na `/admin/users` dostane 403 (BE aj FE)
+- [x] Neprihlásený používateľ na chránenej route je presmerovaný na login (401)
+- [x] Neexistujúca route zobrazí 404
+- [x] Po prihlásení ADMIN aj EDITOR skončia na `/`. ADMIN vidí v menu položku Používatelia, EDITOR nie
+- [x] Prepínač SK/EN zmení texty bez reloadu a voľba prežije refresh (`localStorage`)
+- [x] Aplikácia používa DM Sans z lokálneho balíka (v Network tabe žiadne požiadavky na Google Fonts)
+- [x] Session prežije refresh stránky, logout zmaže riadok v `Session` a ďalšia požiadavka s tou istou cookie vráti 401
+- [x] Session po uplynutí TTL vráti 401 (otestované integračným testom s posunutým `expiresAt`)
+- [x] Mutácia bez `X-Requested-With` alebo s iným `Content-Type` (napr. `application/x-www-form-urlencoded`) vráti 403 `CSRF_REJECTED` (integračný test aj `api-smoke`)
+- [x] `pnpm verify` prejde, Playwright E2E prejde voči bežiacemu Docker Compose
+- [x] Code Reviewer nemá otvorené nálezy `high`, nálezy `medium` sú vyriešené alebo odložené s odôvodnením (stupnica v sekcii 4)
+- [x] `scripts/agents/check-scope.sh` prejde pre vetvu každej roly, ktorá v kroku pracovala
+- [x] Žiadne heslá ani secrets v gite: secretlint prejde v `pnpm verify` a commit so zjavným secretom (napr. testovací AWS kľúč) zablokuje `pre-commit` hook
+- [x] Commit so správou mimo Conventional Commits (napr. `fix stuff`) zablokuje `commit-msg` hook
+- [x] `docs/` obsahuje všetky stránky zo sekcie 9 s frontmatterom a popisuje skutočný stav kódu
 
 ### Míľniky
 

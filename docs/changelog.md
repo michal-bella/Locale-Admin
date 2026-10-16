@@ -8,6 +8,8 @@ notion_page_id:
 
 ## Fáza 1
 
+Uzavretá 2026-10-16: všetky akceptačné kritériá splnené, vizuálnu zhodu stránky Používatelia a modálu s Figmou potvrdil Michal Bella.
+
 ### Míľnik C: Používatelia (2026-10-16)
 
 - zdieľaný kontrakt: `createUserRequestSchema`, `AdminUser`, `adminUserListResponseSchema`

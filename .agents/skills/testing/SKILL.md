@@ -7,13 +7,13 @@ description: Where unit, integration and E2E tests live in Locale Admin, how to 
 
 Human docs: `docs/testing.md`.
 
-| Kind                  | Where                              | Runner                                          | Command                                |
-| --------------------- | ---------------------------------- | ----------------------------------------------- | -------------------------------------- |
-| Unit (shared)         | `packages/shared/src/**/*.test.ts` | Vitest                                          | `pnpm --filter @locale/shared test`    |
-| Unit (backend)        | `backend/src/**/*.test.ts`         | Vitest                                          | `pnpm --filter backend test`           |
-| Unit (frontend)       | `frontend/src/**/*.test.ts(x)`     | Vite+ (`vp test`, jsdom, Testing Library)       | `pnpm --filter frontend test`          |
-| Integration (backend) | `backend/test/**/*.test.ts`        | Vitest + supertest, real Postgres `locale_test` | `pnpm test:integration`                |
-| E2E / smoke           | `e2e/`                             | Playwright against `http://localhost:8080`      | `pnpm test:e2e` (added in milestone B) |
+| Kind                  | Where                              | Runner                                          | Command                             |
+| --------------------- | ---------------------------------- | ----------------------------------------------- | ----------------------------------- |
+| Unit (shared)         | `packages/shared/src/**/*.test.ts` | Vitest                                          | `pnpm --filter @locale/shared test` |
+| Unit (backend)        | `backend/src/**/*.test.ts`         | Vitest                                          | `pnpm --filter backend test`        |
+| Unit (frontend)       | `frontend/src/**/*.test.ts(x)`     | Vite+ (`vp test`, jsdom, Testing Library)       | `pnpm --filter frontend test`       |
+| Integration (backend) | `backend/test/**/*.test.ts`        | Vitest + supertest, real Postgres `locale_test` | `pnpm test:integration`             |
+| E2E / smoke           | `e2e/`                             | Playwright against `http://localhost:8080`      | `pnpm test:e2e`                     |
 
 `pnpm test` runs all unit tests; `pnpm verify` runs lint, typecheck, secretlint, unit and integration tests.
 
@@ -41,6 +41,16 @@ it('returns 404 in the error contract', async () => {
 - jsdom environment, setup in `src/test/setup.ts` (jest-dom matchers, i18n).
 - Render pages through the router with a memory history (`createAppRouter({ history })`) when routing matters.
 - `src/lib/i18n.test.ts` enforces that every `ERROR_CODE` and `VALIDATION_CODE` has `sk` and `en` translations, that `sk.json` and `en.json` have identical key sets, and that no value is empty.
+
+## E2E (Playwright)
+
+- `pnpm test:e2e` (`scripts/test-e2e.sh`): starts `db`, recreates `backend` and `frontend` with `LOGIN_RATE_LIMIT_MAX=1000`, then runs `playwright test` in `e2e/`. Never run `pnpm --filter e2e test:e2e` against a stack with the default limit (10 logins per 15 min, one run uses 10).
+- First time on a machine: `pnpm --filter e2e exec playwright install chromium webkit`.
+- Projects: `setup` (`tests/auth.setup.ts`: UI login as ADMIN and a fresh EDITOR, saves `e2e/.auth/{admin,editor}.json`) → `chromium`, `webkit` → `teardown` (deletes `e2e-editor-%@example.com` users). ADMIN storage state is the default; use `ANONYMOUS` from `support/auth.ts` for logged-out tests.
+- Until milestone C the EDITOR is inserted directly into the local DB (`support/db.ts`, `pg` + argon2); switch to `POST /api/admin/users` then.
+- A test that logs out must log in on its own (`loginViaUi`), never with the shared storage state, or it kills the session of other tests.
+- Selectors: roles and labels from `frontend/src/locales/sk.json` (e.g. `getByLabel('E-mail')`, `getByRole('button', { name: 'Menu používateľa' })`). In WebKit click the visible SK/EN text of the language switcher, not the hidden radio.
+- Dev mode: `E2E_BASE_URL=http://localhost:5173 pnpm --filter e2e test:e2e`; a step is done only against the stack. Failed tests keep a trace: `pnpm --filter e2e exec playwright show-trace <path>`.
 
 ## E2E rules
 

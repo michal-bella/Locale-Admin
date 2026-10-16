@@ -39,4 +39,4 @@ docs(harness): describe worktree workflow
 - If `pre-commit` fails, fix the cause and commit again; do not amend someone else's commit.
 - Stage files explicitly (`git add <paths>`). Avoid `git add -A` when the worktree contains unrelated changes.
 - AI agents end the message with a `Co-Authored-By:` trailer for the model.
-- Never push. The repo has no remote until the user adds one.
+- Push only when the user asks: `git push origin main`. Never push `agent/*` branches and never force-push.

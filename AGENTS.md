@@ -53,7 +53,7 @@ Run from the repo root. Package manager is **pnpm** only (never npm or yarn).
 7. Verify current library docs (Context7 or official docs) before using an API you have not used in this repo yet.
 8. When something is unclear or contradicts the plan, stop and ask. Do not guess silently.
 9. Update `docs/` in the same step as the code change (skill `docs-update`).
-10. Commits follow Conventional Commits (skill `commit-messages`). Never push; no remote is configured.
+10. Commits follow Conventional Commits (skill `commit-messages`). The remote is `origin` (GitHub `michal-bella/Locale-Admin`). Push `main` only when the user asks; never push agent branches.
 11. Supported OS: macOS and Linux only.
 
 ## Agents and workflow

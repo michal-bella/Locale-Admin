@@ -27,7 +27,7 @@ Merged and verified commits on `main`, a checkpoint report for the user.
 
 - Write feature code in `frontend/`, `backend/` or `e2e/` (delegate to the role). Bootstrap of empty package skeletons is the only exception.
 - Merge a branch whose `check-scope.sh` fails or whose `high` review findings are open.
-- Push or configure a git remote.
+- Push without the user asking, push `agent/*` branches, force-push, or change the git remote.
 
 ## Hands off when
 

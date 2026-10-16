@@ -10,9 +10,12 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 
 ## Endpointy
 
-| Metóda | Cesta         | Popis                                           |
-| ------ | ------------- | ----------------------------------------------- |
-| `GET`  | `/api/health` | stav backendu a databázy, [detail](./health.md) |
+| Metóda | Cesta              | Popis                                            |
+| ------ | ------------------ | ------------------------------------------------ |
+| `GET`  | `/api/health`      | stav backendu a databázy, [detail](./health.md)  |
+| `POST` | `/api/auth/login`  | prihlásenie, session cookie, [detail](./auth.md) |
+| `POST` | `/api/auth/logout` | odhlásenie, [detail](./auth.md)                  |
+| `GET`  | `/api/auth/me`     | prihlásený používateľ, [detail](./auth.md)       |
 
 ## Chybový kontrakt
 
@@ -36,4 +39,4 @@ Každá chyba má tvar `{ error: { code, message, details? } }`.
 | 429  | `RATE_LIMITED`             | prekročený rate limit, s hlavičkou `Retry-After`                  |
 | 500  | `INTERNAL_ERROR`           | neočakávaná chyba, detail je iba v logu                           |
 
-Pre validáciu sa používa iba 400, nie 422. Chyby parsovania tela (413, 415 a ďalšie 4xx z `express.json()`) vracajú svoj HTTP status s kódom `VALIDATION_ERROR` a logujú sa ako `warn`, nie `error`. Kódy `AUTH_*`, `FORBIDDEN`, `CSRF_REJECTED`, `EMAIL_TAKEN` a `RATE_LIMITED` začne backend vracať s autentifikáciou (míľnik B).
+Pre validáciu sa používa iba 400, nie 422. Chyby parsovania tela (413, 415 a ďalšie 4xx z `express.json()`) vracajú svoj HTTP status s kódom `VALIDATION_ERROR` a logujú sa ako `warn`, nie `error`. Kódy `AUTH_*`, `FORBIDDEN`, `CSRF_REJECTED` a `RATE_LIMITED` vracia backend od míľnika B (viď [auth](./auth.md)), `EMAIL_TAKEN` príde so správou používateľov (míľnik C).

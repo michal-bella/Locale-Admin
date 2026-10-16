@@ -6,6 +6,7 @@ import { ERROR_CODE, HEALTH_STATUS, errorResponseSchema, healthResponseSchema } 
 import { createPrismaClient } from '../src/lib/prisma'
 
 import { createTestApp } from './helpers/app'
+import { CSRF_HEADERS } from './helpers/auth'
 
 describe('GET /api/health', () => {
 	it('returns 200 with database status ok', async () => {
@@ -47,6 +48,7 @@ describe('request body over the size limit', () => {
 	it('returns 413 VALIDATION_ERROR in the error contract', async () => {
 		const res = await request(createTestApp())
 			.post('/api/xyz')
+			.set(CSRF_HEADERS)
 			.set('Content-Type', 'application/json')
 			.send(JSON.stringify({ text: 'x'.repeat(101 * 1024) }))
 

@@ -26,16 +26,23 @@ PostgreSQL 17, Prisma 7 s driver adapterom `@prisma/adapter-pg`. Schéma je v `b
 
 ### Session
 
-Server-side session pre prihlásenie (používa sa od míľnika B).
+Server-side session pre prihlásenie. Jeden riadok = jedno prihlásenie v jednom prehliadači. Správanie API je v [API: auth](./api/auth.md).
 
-| Pole         | Typ            | Poznámka                                        |
-| ------------ | -------------- | ----------------------------------------------- |
-| `id`         | UUID           | PK                                              |
-| `userId`     | UUID           | FK na `User`, pri zmazaní usera sa zmaže        |
-| `tokenHash`  | string, unique | SHA-256 hash tokenu z cookie, nie samotný token |
-| `createdAt`  | datetime       | čas prihlásenia                                 |
-| `lastUsedAt` | datetime       | posledná aktivita                               |
-| `expiresAt`  | datetime       | koniec platnosti                                |
+| Pole         | Typ            | Poznámka                                                                                   |
+| ------------ | -------------- | ------------------------------------------------------------------------------------------ |
+| `id`         | UUID           | PK                                                                                         |
+| `userId`     | UUID           | FK na `User`, pri zmazaní usera sa zmaže                                                   |
+| `tokenHash`  | string, unique | SHA-256 (hex) tokenu z cookie `locale_session`; samotný token sa neukladá                  |
+| `createdAt`  | datetime       | čas prihlásenia, od neho sa počíta absolútny limit `SESSION_MAX_AGE_DAYS` (default 30 dní) |
+| `lastUsedAt` | datetime       | posledná zapísaná aktivita; zapisuje sa najviac raz za 5 minút                             |
+| `expiresAt`  | datetime       | `min(lastUsedAt + SESSION_TTL_DAYS, createdAt + SESSION_MAX_AGE_DAYS)`, default TTL 7 dní  |
+
+Životný cyklus:
+
+- **Login** vytvorí riadok (`createdAt = lastUsedAt = teraz`) a zmaže všetky riadky s `expiresAt` v minulosti.
+- **Požiadavka s prihlásením:** ak od `lastUsedAt` prešlo aspoň 5 minút, nastaví sa `lastUsedAt = teraz` a prepočíta `expiresAt`. Inak sa do DB nezapisuje.
+- **Expirácia:** session s `expiresAt` v minulosti alebo staršia ako absolútny limit sa pri použití zmaže (401). Rovnako session neaktívneho usera.
+- **Logout** zmaže riadok aktuálnej session, ostatné session usera ostanú.
 
 Indexy: `userId`, `expiresAt`.
 

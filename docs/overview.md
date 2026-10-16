@@ -18,7 +18,7 @@ Locale Admin je admin aplikácia na správu prekladov pre organizácie a ich pro
 | Globálna rola   | `ADMIN` (spravuje používateľov) alebo `EDITOR`                                  |
 | Rola v projekte | Administrátor, Prekladateľ, Vývojár, Kontrolór. Príde s projektmi v ďalšej fáze |
 
-Registrácia neexistuje. Používateľov zakladá iba admin.
+Registrácia neexistuje. Používateľov zakladá iba admin na stránke **Používatelia** (`/admin/users`): zadá e-mail a heslo, nový používateľ má vždy rolu `EDITOR`.
 
 ## Stav
 

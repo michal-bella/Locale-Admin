@@ -12,17 +12,17 @@ PostgreSQL 17, Prisma 7 s driver adapterom `@prisma/adapter-pg`. Schéma je v `b
 
 ### User
 
-| Pole                     | Typ                | Poznámka                                        |
-| ------------------------ | ------------------ | ----------------------------------------------- |
-| `id`                     | UUID               | PK                                              |
-| `email`                  | string, unique     | uložený normalizovaný (`trim()` + malé písmená) |
-| `passwordHash`           | string             | argon2id, nikdy sa nevracia v API               |
-| `role`                   | enum `ROLE`        | `ADMIN` alebo `EDITOR`, default `EDITOR`        |
-| `firstName`, `lastName`  | string, nullable   | vyplnia sa neskôr na obrazovke Profil           |
-| `isActive`               | boolean            | default `true`, neaktívny user sa neprihlási    |
-| `lastLoginAt`            | datetime, nullable | nastaví sa pri úspešnom logine                  |
-| `passwordChangedAt`      | datetime           | default čas vytvorenia                          |
-| `createdAt`, `updatedAt` | datetime           |                                                 |
+| Pole                     | Typ                | Poznámka                                                                                |
+| ------------------------ | ------------------ | --------------------------------------------------------------------------------------- |
+| `id`                     | UUID               | PK                                                                                      |
+| `email`                  | string, unique     | uložený normalizovaný (`trim()` + malé písmená)                                         |
+| `passwordHash`           | string             | argon2id, nikdy sa nevracia v API                                                       |
+| `role`                   | enum `ROLE`        | `ADMIN` alebo `EDITOR`, default `EDITOR`; `POST /api/admin/users` zakladá vždy `EDITOR` |
+| `firstName`, `lastName`  | string, nullable   | vyplnia sa neskôr na obrazovke Profil                                                   |
+| `isActive`               | boolean            | default `true`, neaktívny user sa neprihlási                                            |
+| `lastLoginAt`            | datetime, nullable | nastaví sa pri úspešnom logine                                                          |
+| `passwordChangedAt`      | datetime           | default čas vytvorenia                                                                  |
+| `createdAt`, `updatedAt` | datetime           |                                                                                         |
 
 ### Session
 

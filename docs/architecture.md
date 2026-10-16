@@ -74,4 +74,5 @@ sequenceDiagram
 
 - **CSRF:** globálny middleware odmietne `POST`/`PUT`/`PATCH`/`DELETE` bez `Content-Type: application/json` a `X-Requested-With: XMLHttpRequest` (403 `CSRF_REJECTED`). Axios inštancia FE obe hlavičky posiela vždy.
 - **Sliding TTL:** 7 dní od poslednej aktivity, najviac 30 dní od loginu. DB a cookie sa posúvajú najviac raz za 5 minút.
+- **Role na BE:** router `/api/admin` má `requireAuth` + `requireRole(ADMIN)` pre všetky svoje endpointy (zatiaľ [správa používateľov](./api/admin-users.md)): neprihlásený dostane 401, `EDITOR` 403 `FORBIDDEN`.
 - **FE guardy:** `beforeLoad` chránených rout načíta `GET /api/auth/me` cez TanStack Query. 401 → `/login`, prihlásený používateľ na `/login` → `/`, stránky iba pre `ADMIN` zobrazia ostatným 403.

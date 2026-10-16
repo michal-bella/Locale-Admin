@@ -1,4 +1,4 @@
-import { SegmentedControl } from '@mantine/core'
+import { SegmentedControl, VisuallyHidden } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 
 import { DEFAULT_LANGUAGE } from '@/lib/constants'
@@ -15,7 +15,16 @@ const LanguageSwitcher = () => {
 			aria-label={t('topBar.language')}
 			value={i18n.resolvedLanguage ?? DEFAULT_LANGUAGE}
 			onChange={(language) => void i18n.changeLanguage(language)}
-			data={Object.values(LANGUAGE).map((language) => ({ value: language, label: t(`topBar.languages.${language}`) }))}
+			// SegmentedControl has no per-item aria-label: the visible code is hidden from screen readers, the full language name is announced instead.
+			data={Object.values(LANGUAGE).map((language) => ({
+				value: language,
+				label: (
+					<>
+						<span aria-hidden='true'>{t(`topBar.languages.${language}.label`)}</span>
+						<VisuallyHidden lang={language}>{t(`topBar.languages.${language}.name`)}</VisuallyHidden>
+					</>
+				),
+			}))}
 		/>
 	)
 }

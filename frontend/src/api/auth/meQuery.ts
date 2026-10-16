@@ -9,6 +9,8 @@ import { QUERY_KEYS } from '@/api/queryKeys'
 export const meQueryOptions = queryOptions({
 	queryKey: QUERY_KEYS.AUTH.ME(),
 	queryFn: async () => (await http.get<AuthUser>('/auth/me')).data,
+	// The guards await this query before rendering; the global retry with backoff would block the page for ~7 s on 5xx or network errors.
+	retry: false,
 	staleTime: Infinity,
 })
 

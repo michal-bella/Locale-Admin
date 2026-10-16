@@ -33,6 +33,12 @@
 		"description": "Na túto stránku nemáte oprávnenie.",
 		"backHome": "Späť na úvod"
 	},
+	"errorPage": {
+		"eyebrow": "Chyba",
+		"title": "Niečo sa pokazilo",
+		"retry": "Skúsiť znova",
+		"backHome": "Späť na úvod"
+	},
 	"usersPage": {
 		"eyebrow": "Správa",
 		"title": "Používatelia",
@@ -41,8 +47,14 @@
 	"topBar": {
 		"language": "Jazyk",
 		"languages": {
-			"sk": "SK",
-			"en": "EN"
+			"sk": {
+				"label": "SK",
+				"name": "Slovenčina"
+			},
+			"en": {
+				"label": "EN",
+				"name": "English"
+			}
 		},
 		"notifications": "Notifikácie",
 		"userMenu": {

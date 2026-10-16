@@ -18,6 +18,7 @@ import { type CreateUserModalProps } from './types'
 const CreateUserModal = ({ opened, onClose }: CreateUserModalProps) => {
 	const { t } = useTranslation()
 	const createUser = useCreateUserMutation()
+	const { isPending } = createUser
 	const {
 		register,
 		handleSubmit,
@@ -35,20 +36,26 @@ const CreateUserModal = ({ opened, onClose }: CreateUserModalProps) => {
 		defaultValues: { email: '', password: '' },
 	})
 
-	const handleClose = () => {
+	const resetAndClose = () => {
 		reset()
 		createUser.reset()
 		onClose()
 	}
 
+	const handleClose = () => {
+		if (!isPending) {
+			resetAndClose()
+		}
+	}
+
 	const onSubmit = handleSubmit((values) => {
-		if (createUser.isPending) {
+		if (isPending) {
 			return
 		}
 		createUser.mutate(values, {
 			onSuccess: (user) => {
 				notifications.show({ color: 'green', message: t('usersPage.createModal.success', { email: user.email }) })
-				handleClose()
+				resetAndClose()
 			},
 			onError: (error) => {
 				const code = getApiErrorCode(error)
@@ -69,7 +76,16 @@ const CreateUserModal = ({ opened, onClose }: CreateUserModalProps) => {
 	})
 
 	return (
-		<Modal.Root opened={opened} onClose={handleClose} centered size={560} radius='xl' shadow='modal'>
+		<Modal.Root
+			opened={opened}
+			onClose={handleClose}
+			closeOnEscape={!isPending}
+			closeOnClickOutside={!isPending}
+			centered
+			size={560}
+			radius='xl'
+			shadow='modal'
+		>
 			<Modal.Overlay color='var(--mantine-color-black)' backgroundOpacity={0.25} blur={2} />
 			<Modal.Content className={classes.content}>
 				<Modal.Header className={classes.header}>
@@ -77,7 +93,12 @@ const CreateUserModal = ({ opened, onClose }: CreateUserModalProps) => {
 						<Modal.Title className={classes.title}>{t('usersPage.createModal.title')}</Modal.Title>
 						<Text size='sm'>{t('usersPage.createModal.description')}</Text>
 					</div>
-					<Modal.CloseButton aria-label={t('usersPage.createModal.close')} icon={<Close aria-hidden />} className={classes.close} />
+					<Modal.CloseButton
+						aria-label={t('usersPage.createModal.close')}
+						icon={<Close aria-hidden />}
+						disabled={isPending}
+						className={classes.close}
+					/>
 				</Modal.Header>
 				<Modal.Body className={classes.body}>
 					<form onSubmit={(event) => void onSubmit(event)} noValidate>
@@ -101,10 +122,10 @@ const CreateUserModal = ({ opened, onClose }: CreateUserModalProps) => {
 							/>
 						</div>
 						<div className={`${classes.footer} flex justify-end gap-2`}>
-							<Button variant='default' onClick={handleClose}>
+							<Button variant='default' onClick={handleClose} disabled={isPending}>
 								{t('usersPage.createModal.cancel')}
 							</Button>
-							<Button type='submit' loading={createUser.isPending}>
+							<Button type='submit' loading={isPending}>
 								{t('usersPage.createModal.submit')}
 							</Button>
 						</div>

@@ -1,8 +1,9 @@
-import { Button, createTheme, type CSSVariablesResolver, Input, InputWrapper, type MantineColorsTuple, rem } from '@mantine/core'
+import { Button, createTheme, type CSSVariablesResolver, Input, InputWrapper, type MantineColorsTuple, Modal, rem } from '@mantine/core'
 
 import buttonClasses from '@/styles/components/Button.module.css'
 import inputClasses from '@/styles/components/Input.module.css'
 import inputWrapperClasses from '@/styles/components/InputWrapper.module.css'
+import modalClasses from '@/styles/components/Modal.module.css'
 
 const FONT_FAMILY = "'DM Sans Variable', ui-sans-serif, system-ui, sans-serif"
 
@@ -54,6 +55,10 @@ export const mantineTheme = createTheme({
 		}),
 		InputWrapper: InputWrapper.extend({
 			classNames: { label: inputWrapperClasses.label, error: inputWrapperClasses.error },
+		}),
+		// Mantine paints modal content and header with --mantine-color-body, which is the page tint here.
+		Modal: Modal.extend({
+			classNames: { content: modalClasses.content, header: modalClasses.header },
 		}),
 	},
 })

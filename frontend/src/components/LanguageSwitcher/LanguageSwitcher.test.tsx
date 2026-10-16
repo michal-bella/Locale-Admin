@@ -27,4 +27,22 @@ describe('LanguageSwitcher', () => {
 		expect(screen.getByRole('radio', { name: 'English' })).not.toBeChecked()
 		expect(screen.getByText('SK')).toHaveAttribute('aria-hidden', 'true')
 	})
+
+	it('renders a decorative flag before the code in each option', async () => {
+		signedInAs(EDITOR_USER)
+		renderApp('/')
+
+		for (const [name, code] of [
+			['Slovenčina', 'SK'],
+			['English', 'EN'],
+		] as const) {
+			const radio = await screen.findByRole<HTMLInputElement>('radio', { name })
+			const flag = radio.labels?.[0]?.querySelector('svg')
+			expect(flag).toHaveAttribute('aria-hidden', 'true')
+			expect(flag?.nextElementSibling).toHaveTextContent(code)
+		}
+		expect(screen.getByRole('radiogroup', { name: 'Jazyk' })).toBeInTheDocument()
+		fireEvent.click(screen.getByText('EN', { exact: true }))
+		expect(await screen.findByRole('radiogroup', { name: 'Language' })).toBeInTheDocument()
+	})
 })

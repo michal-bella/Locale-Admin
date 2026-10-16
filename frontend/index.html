@@ -4,6 +4,15 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Locale</title>
+		<!-- Mantine's ColorSchemeScript for a non-SSR app: sets the scheme before the first paint (no light flash in dark mode). Key = COLOR_SCHEME_STORAGE_KEY, default = DEFAULT_COLOR_SCHEME. -->
+		<script>
+			try {
+				var storedColorScheme = window.localStorage.getItem('mantine-color-scheme-value')
+				var colorScheme = storedColorScheme === 'light' || storedColorScheme === 'dark' || storedColorScheme === 'auto' ? storedColorScheme : 'light'
+				var computedColorScheme = colorScheme !== 'auto' ? colorScheme : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+				document.documentElement.setAttribute('data-mantine-color-scheme', computedColorScheme)
+			} catch (e) {}
+		</script>
 	</head>
 	<body>
 		<div id="root"></div>

@@ -60,7 +60,7 @@ router.get('/', createRequireAuth(prisma, config), requireRole(ROLE.ADMIN), crea
 
 - Never return `passwordHash`, session tokens or their hashes. Map Prisma rows to response DTOs from `@locale/shared`.
 - Passwords: argon2id via `src/lib/password.ts`.
-- `GET` handlers never mutate state (CSRF model relies on it).
+- `GET` handlers never change domain state (CSRF model relies on it). Only `requireAuth` may refresh or delete the caller's own session row (sliding TTL, expiry).
 - No CORS middleware.
 - Logging: pino via `pino-http`. Before adding auth, configure `redact` for `req.headers.cookie` and `res.headers["set-cookie"]`.
 

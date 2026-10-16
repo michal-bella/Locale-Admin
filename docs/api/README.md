@@ -8,8 +8,30 @@ notion_page_id:
 
 Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/shared`.
 
+## Endpointy
+
+| Metóda | Cesta         | Popis                                           |
+| ------ | ------------- | ----------------------------------------------- |
+| `GET`  | `/api/health` | stav backendu a databázy, [detail](./health.md) |
+
 ## Chybový kontrakt
 
-Každá chyba má tvar `{ error: { code, message, details? } }`. Frontend zobrazuje iba preložený `code`, nikdy `message`.
+Každá chyba má tvar `{ error: { code, message, details? } }`.
 
-Endpointy pribudnú v krokoch, v ktorých vzniknú.
+- `code` je stabilný reťazec z enumu `ERROR_CODE` v `packages/shared`.
+- `message` je iba anglický text pre logy a vývojárov. Frontend ho nikdy nezobrazuje, prekladá iba `code`.
+- `details` sa posiela pri validačných chybách: `[{ path: 'email', code: 'INVALID_EMAIL' }]`. Kódy sú z enumu `VALIDATION_CODE` (`REQUIRED`, `INVALID_EMAIL`, `TOO_SHORT`, `TOO_LONG`, `INVALID`). Pri `TOO_SHORT` a `TOO_LONG` je aj `params: { min }` alebo `{ max }`.
+
+| HTTP | `code`                     | Kedy                                                              |
+| ---- | -------------------------- | ----------------------------------------------------------------- |
+| 400  | `VALIDATION_ERROR`         | nevalidné telo požiadavky (zod) alebo poškodený JSON              |
+| 401  | `AUTH_INVALID_CREDENTIALS` | zlý email alebo heslo, neaktívny user                             |
+| 401  | `AUTH_UNAUTHENTICATED`     | chýba alebo expirovala session                                    |
+| 403  | `FORBIDDEN`                | prihlásený bez oprávnenia                                         |
+| 403  | `CSRF_REJECTED`            | mutácia bez `Content-Type: application/json` a `X-Requested-With` |
+| 404  | `NOT_FOUND`                | neexistujúci endpoint alebo záznam                                |
+| 409  | `EMAIL_TAKEN`              | email už existuje                                                 |
+| 429  | `RATE_LIMITED`             | prekročený rate limit, s hlavičkou `Retry-After`                  |
+| 500  | `INTERNAL_ERROR`           | neočakávaná chyba, detail je iba v logu                           |
+
+Pre validáciu sa používa iba 400, nie 422. Kódy `AUTH_*`, `FORBIDDEN`, `CSRF_REJECTED`, `EMAIL_TAKEN` a `RATE_LIMITED` začne backend vracať s autentifikáciou (míľnik B).

@@ -12,6 +12,11 @@ export const TEST_CONFIG: Config = {
 	logLevel: 'silent',
 	databaseUrl: '',
 	appVersion: '0.0.0-test',
+	cookieSecure: false,
+	sessionTtlDays: 7,
+	sessionMaxAgeDays: 30,
+	loginRateLimitMax: 1000,
+	loginRateLimitWindowMs: 900000,
 }
 
 export const createTestApp = ({ config, prisma }: { config?: Partial<Config>; prisma?: PrismaClient } = {}) =>

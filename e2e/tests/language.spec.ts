@@ -6,13 +6,13 @@ test('switches SK/EN without a reload and keeps the choice after a reload', asyn
 	await page.evaluate(() => Object.assign(window, { e2eNoReload: true }))
 
 	const switcher = page.getByRole('radiogroup', { name: 'Jazyk' })
-	await expect(switcher.getByRole('radio', { name: 'SK' })).toBeChecked()
-	// WebKit does not reliably click the visually hidden radio input; click its label instead.
+	await expect(switcher.getByRole('radio', { name: 'Slovenčina' })).toBeChecked()
+	// WebKit does not reliably click the visually hidden radio input; click its visible label text instead.
 	await switcher.getByText('EN', { exact: true }).click()
 
 	await expect(page.getByRole('heading', { level: 1, name: 'Users' })).toBeVisible()
 	await expect(page.getByRole('button', { name: 'User menu' })).toBeVisible()
-	await expect(page.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'EN' })).toBeChecked()
+	await expect(page.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'English' })).toBeChecked()
 	expect(await page.evaluate(() => 'e2eNoReload' in window)).toBe(true)
 	expect(await page.evaluate(() => localStorage.getItem('locale'))).toBe('en')
 
@@ -22,5 +22,6 @@ test('switches SK/EN without a reload and keeps the choice after a reload', asyn
 
 	await page.getByRole('radiogroup', { name: 'Language' }).getByText('SK', { exact: true }).click()
 	await expect(page.getByRole('heading', { level: 1, name: 'Používatelia' })).toBeVisible()
+	await expect(page.getByRole('radiogroup', { name: 'Jazyk' }).getByRole('radio', { name: 'Slovenčina' })).toBeChecked()
 	expect(await page.evaluate(() => localStorage.getItem('locale'))).toBe('sk')
 })

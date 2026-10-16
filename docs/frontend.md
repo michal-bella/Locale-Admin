@@ -52,6 +52,12 @@ TanStack Router s routami v kóde (ADR 0002), jeden súbor na routu v `routes/`.
 
 Chyba v `beforeLoad` alebo v komponente routy bez vlastného `errorComponent` zobrazí `ErrorPage` (`defaultErrorComponent` routera).
 
+### Lazy routy (code splitting)
+
+Komponenty stránok `/login` a `/admin/users` sa načítajú až pri prvej návšteve routy. Route súbor (`loginRoute.ts`, `adminUsersRoute.ts`) drží iba kritickú časť (`path`, `beforeLoad` guard, pri `/admin/users` aj `errorComponent`, aby sa 403 zobrazila bez čakania na chunk stránky) a cez `.lazy(() => import('@/routes/<route>.lazy').then((module) => module.Route))` pripojí súbor `<route>.lazy.ts`, ktorý obsahuje `createLazyRoute('<route id>')({ component })`. Route id je cesta vrátane pathless rodiča (`/_authenticated/admin/users`), typecheck preklep v id zachytí. `HomePage` (prázdna) a stránky 404, 403 a chybová stránka ostávajú v hlavnom chunku.
+
+Výsledok `pnpm --filter frontend build` (2026-10-16): hlavný chunk `index` 498 kB (gzip 160 kB), zdieľaný chunk knižníc 231 kB (gzip 73 kB, načíta sa hneď cez `modulepreload`), lazy chunky: stránka Používatelia 38 kB, formuláre (React Hook Form, resolver) 36 kB, prihlásenie 4 kB. Vite už nevypíše varovanie o chunku nad 500 kB, ale hlavný chunk je tesne pod hranicou a JS načítaný pri štarte je spolu asi 730 kB (pred rozdelením 763 kB). Väčšinu tvoria knižnice (React, Mantine, TanStack, zod), ďalšie zmenšenie by vyžadovalo rozdeliť ich, nie stránky.
+
 ### Guardy
 
 - `_authenticated` je pathless layout route (bez segmentu v URL) s komponentom `AppLayout`. Jej `beforeLoad` zavolá `queryClient.ensureQueryData(meQueryOptions)`. Pri 401 presmeruje na `/login` (bez `?redirect=`), iné chyby (5xx, nedostupný backend) pustí ďalej a zobrazí sa `ErrorPage`. Načítaného používateľa vráti do kontextu ako `context.user` pre podriadené routy.

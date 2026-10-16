@@ -1,7 +1,6 @@
 import { createRoute, redirect } from '@tanstack/react-router'
 
 import { meQueryOptions } from '@/api/auth/meQuery'
-import LoginPage from '@/pages/LoginPage/LoginPage'
 import { rootRoute } from '@/routes/rootRoute'
 
 export const loginRoute = createRoute({
@@ -14,5 +13,4 @@ export const loginRoute = createRoute({
 			redirect({ to: '/', throw: true })
 		}
 	},
-	component: LoginPage,
-})
+}).lazy(() => import('@/routes/loginRoute.lazy').then((module) => module.Route))

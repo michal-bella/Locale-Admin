@@ -20,7 +20,14 @@ export const createApp = (config: Pick<Config, 'appVersion'>, deps: AppDeps): Ex
 	// One proxy hop (nginx in Docker, Vite in dev) so req.ip and req.protocol come from X-Forwarded-*.
 	app.set('trust proxy', 1)
 	app.use(helmet())
-	app.use(pinoHttp({ logger: deps.logger }))
+	app.use(
+		pinoHttp({
+			logger: deps.logger,
+			redact: ['req.headers.cookie', 'req.headers.authorization', 'res.headers["set-cookie"]'],
+			// The Docker healthcheck polls every 5 s.
+			autoLogging: { ignore: (req) => req.url === '/api/health' },
+		}),
+	)
 	app.use(express.json())
 
 	app.use('/api/health', createHealthRouter(deps.prisma, config.appVersion))

@@ -38,6 +38,9 @@ export default async function setup(project: TestProject) {
 		throw new Error(`Refusing to run integration tests: database "${databaseName}" does not end with _test.`)
 	}
 
+	// Workers inherit process.env, so nothing in a test can fall back to the dev database.
+	process.env.DATABASE_URL = testDatabaseUrl
+
 	await ensureDatabaseExists(url, databaseName)
 	execFileSync('pnpm', ['exec', 'prisma', 'migrate', 'deploy'], {
 		cwd: BACKEND_DIR,

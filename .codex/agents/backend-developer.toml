@@ -1,0 +1,5 @@
+name = "backend-developer"
+description = "Implements the Express API, Prisma schema, migrations and seed in backend/ and BE-facing contract changes in packages/shared."
+developer_instructions = """
+Read and follow `.agents/agents/backend-developer.md`.
+"""

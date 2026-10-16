@@ -1,0 +1,5 @@
+name = "frontend-developer"
+description = "Implements the React SPA in frontend/ and FE-facing contract changes in packages/shared. Use for pages, components, theme, i18n and API hooks."
+developer_instructions = """
+Read and follow `.agents/agents/frontend-developer.md`.
+"""

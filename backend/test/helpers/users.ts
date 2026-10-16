@@ -14,6 +14,7 @@ type CreateUserOptions = {
 	isActive?: boolean
 	firstName?: string
 	lastName?: string
+	createdAt?: Date
 }
 
 export const createUser = async ({ role = ROLE.EDITOR, email, password = TEST_PASSWORD, ...rest }: CreateUserOptions = {}) => {

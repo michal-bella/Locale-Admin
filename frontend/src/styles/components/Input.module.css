@@ -1,0 +1,11 @@
+.wrapper[data-variant='default'] {
+	--input-padding: 0.875rem;
+	--input-bd: var(--mantine-color-slate-2);
+	--input-bg: var(--mantine-color-white);
+	--input-color: var(--mantine-color-slate-8);
+	--input-placeholder-color: color-mix(in srgb, var(--mantine-color-slate-8) 50%, transparent);
+}
+
+.input {
+	font-weight: 600;
+}

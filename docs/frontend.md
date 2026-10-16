@@ -23,30 +23,39 @@ Spúšťajú sa z rootu cez `pnpm --filter frontend <skript>`.
 
 ## Štruktúra `src/`
 
-| Priečinok     | Obsah                                                                        |
-| ------------- | ---------------------------------------------------------------------------- |
-| `atoms/`      | malé obaly nad Mantine (`ButtonLink`)                                        |
-| `components/` | zložené komponenty (`Brand`, `CenteredLayout`, `PageIntro`, `Icons/`)        |
-| `pages/`      | obrazovky rout (`HomePage`, `NotFoundPage`)                                  |
-| `routes/`     | strom rout a router (`createAppRouter`)                                      |
-| `api/`        | axios inštancia `http`, `queryClient`, `QUERY_KEYS`, `getApiErrorCode`       |
-| `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n                                   |
-| `locales/`    | preklady `sk.json`, `en.json`                                                |
-| `styles/`     | Mantine theme, globálne CSS s poradím vrstiev, prekrytia Mantine komponentov |
-| `assets/`     | `icons/` (zdrojové SVG z Figmy)                                              |
-| `types/`      | typy iba pre FE (typované i18n kľúče)                                        |
-| `test/`       | `setup.ts` pre unit testy                                                    |
+| Priečinok     | Obsah                                                                                                                                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `atoms/`      | malé obaly nad Mantine (`ButtonLink`)                                                                                                      |
+| `components/` | zložené komponenty (`AppLayout`, `TopBar`, `UserMenu`, `LanguageSwitcher`, `Brand`, `CenteredLayout`, `PageIntro`, `RouteError`, `Icons/`) |
+| `pages/`      | obrazovky rout (`HomePage`, `LoginPage`, `UsersPage`, `ForbiddenPage`, `NotFoundPage`)                                                     |
+| `routes/`     | strom rout, guardy a router (`createAppRouter`)                                                                                            |
+| `api/`        | axios inštancia `http`, `queryClient`, `QUERY_KEYS`, auth hooky (`api/auth/`), 401 interceptor, `getApiErrorCode`, `getApiErrorDetails`    |
+| `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n, `ForbiddenError`                                                                               |
+| `locales/`    | preklady `sk.json`, `en.json`                                                                                                              |
+| `styles/`     | Mantine theme, globálne CSS s poradím vrstiev, prekrytia Mantine komponentov                                                               |
+| `assets/`     | `icons/` (zdrojové SVG z Figmy)                                                                                                            |
+| `types/`      | typy iba pre FE (typované i18n kľúče)                                                                                                      |
+| `test/`       | `setup.ts`, `renderApp` a `mockApi` pre unit testy                                                                                         |
 
 Priečinok komponentu obsahuje `Component.tsx`, `types.ts` (props) a voliteľne `Component.module.css`. Komponenty sa exportujú ako default a importujú plnou cestou (`@/components/Brand/Brand`). Barrel súbor je iba `components/Icons/index.ts`.
 
 ## Routing
 
-TanStack Router s routami v kóde (ADR 0002). Root route má kontext s `queryClient` pre budúce guardy.
+TanStack Router s routami v kóde (ADR 0002), jeden súbor na routu v `routes/`. Root route má kontext s `queryClient`.
 
-| Cesta        | Stránka                                         |
-| ------------ | ----------------------------------------------- |
-| `/`          | `HomePage` (vo Fáze 1 prázdna)                  |
-| neexistujúca | `NotFoundPage` (`notFoundComponent` root route) |
+| Cesta          | Route                                  | Stránka                                         | Prístup                                  |
+| -------------- | -------------------------------------- | ----------------------------------------------- | ---------------------------------------- |
+| `/login`       | `loginRoute`                           | `LoginPage`                                     | iba neprihlásený (prihlásený ide na `/`) |
+| `/`            | `indexRoute` pod `_authenticated`      | `HomePage` (vo Fáze 1 prázdna)                  | prihlásený                               |
+| `/admin/users` | `adminUsersRoute` pod `_authenticated` | `UsersPage` (v míľniku B iba nadpis)            | `ADMIN`, ostatní vidia `ForbiddenPage`   |
+| neexistujúca   | root                                   | `NotFoundPage` (`notFoundComponent` root route) | všetci                                   |
+
+### Guardy
+
+- `_authenticated` je pathless layout route (bez segmentu v URL) s komponentom `AppLayout`. Jej `beforeLoad` zavolá `queryClient.ensureQueryData(meQueryOptions)`. Pri 401 presmeruje na `/login` (bez `?redirect=`), iné chyby pustí ďalej. Načítaného používateľa vráti do kontextu ako `context.user` pre podriadené routy.
+- `/login`: `beforeLoad` skúsi načítať `me`. Ak sa podarí, presmeruje na `/`. Akákoľvek chyba (401, nedostupný backend) znamená, že sa zobrazí formulár.
+- `/admin/users`: `beforeLoad` pre rolu inú ako `ADMIN` vyhodí `ForbiddenError`. `errorComponent` (`RouteError`) pre túto chybu zobrazí `ForbiddenPage` vnútri layoutu a URL ostáva `/admin/users`. Iné chyby zobrazí predvolený komponent routera.
+- Po prihlásení ide `ADMIN` aj `EDITOR` na `/`.
 
 Produkčný server (nginx) musí pre neznáme cesty vrátiť `index.html` (SPA fallback), inak refresh na hlbokej route skončí chybou servera.
 
@@ -55,7 +64,44 @@ Produkčný server (nginx) musí pre neznáme cesty vrátiť `index.html` (SPA f
 - Jediná axios inštancia `api/http.ts`: `baseURL: '/api'`, `withCredentials: true`.
 - Interceptor posiela pri každej požiadavke `X-Requested-With: XMLHttpRequest`. Mutácie (`POST`, `PUT`, `PATCH`, `DELETE`) bez tela pošlú `{}`, aby odišla hlavička `Content-Type: application/json` (ochrana proti CSRF na BE).
 - Query kľúče sú iba v `QUERY_KEYS` (`api/queryKeys.ts`).
-- `getApiErrorCode(error)` vráti `ERROR_CODE` z odpovede podľa `errorResponseSchema` z `@locale/shared`, inak `UNKNOWN`. Text chyby sa zobrazuje iba cez preklad `errors.<CODE>`, nikdy z `message`.
+- `getApiErrorCode(error)` vráti `ERROR_CODE` z odpovede podľa `errorResponseSchema` z `@locale/shared`, inak `UNKNOWN`. Text chyby sa zobrazuje iba cez preklad `errors.<CODE>`, nikdy z `message`. `getApiErrorDetails(error)` vráti `details` z `VALIDATION_ERROR` (inak prázdne pole).
+- `queryClient` neopakuje dotazy, ktoré skončili 401 (ostatné chyby najviac 3-krát).
+
+### Prihlásenie a session
+
+| Hook / funkcia                   | Čo robí                                                                                                                      |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `meQueryOptions`, `useMeQuery`   | `GET /api/auth/me`, kľúč `QUERY_KEYS.AUTH.ME()`, `staleTime: Infinity` (načítajú ho guardy, drží sa do odhlásenia alebo 401) |
+| `useLoginMutation`               | `POST /api/auth/login`, odpoveď (`AuthUser`) uloží do `me` a naviguje na `/`                                                 |
+| `useLogoutMutation`              | `POST /api/auth/logout` bez tela, potom `queryClient.clear()` a navigácia na `/login`                                        |
+| `installUnauthorizedInterceptor` | response interceptor (zapína sa v `main.tsx`): pri 401 zmaže `me` a router ide na `/login`                                   |
+
+Interceptor ignoruje `/auth/login` (zlé heslo je chyba formulára) a `/auth/me` (401 z neho riešia guardy samy, inak by sa navigovalo dvakrát). Session cookie (`locale_session`, httpOnly) FE nečíta, posiela ju prehliadač.
+
+## Layout a horná lišta
+
+Prihlásené stránky majú `AppLayout`: horná lišta `TopBar` a pod ňou `<main>` s obsahom routy. Sidebar, drobčeky a ikona `?` vo Fáze 1 nie sú.
+
+Lišta je nový dizajn zložený z prvkov Figmy (node `28:2`): výška 64 px, biele pozadie s 90 % krytím a `backdrop-filter: blur(8px)`, spodný okraj `slate.2` s 80 % krytím, vodorovný padding 32 px, `position: sticky`.
+
+- vľavo `Brand` (logo „Locale / WORKSPACE“)
+- vpravo:
+    - `LanguageSwitcher`: Mantine `SegmentedControl` SK / EN. Volá `i18n.changeLanguage`, jazyk sa zmení bez reloadu a uloží do `localStorage['locale']`.
+    - zvonček notifikácií: iba statická ikona 18 px v boxe 38 × 38 px, farba `slate.4`, bez akcie a bez ružovej bodky (zatiaľ nie sú notifikácie)
+    - `UserMenu`: Mantine `Menu`. Tlačidlo je avatar 32 px (kruh `slate.9`, iniciály 10 px / 700 biele cez `getInitials` zo `@locale/shared`). V menu je email, položka **Používatelia** (iba `ADMIN`, odkaz na `/admin/users`) a **Odhlásiť**. Chyba pri odhlásení sa ukáže ako notifikácia `errors.<CODE>`.
+
+## Prihlasovacia stránka
+
+Podľa Figmy `5:2861`: `CenteredLayout`, `PageIntro` (Prihlásenie / Vitajte späť / popis), polia E-mail a Heslo, tlačidlo **Prihlásiť sa** so šípkou.
+
+- React Hook Form + `zodResolver(loginRequestSchema)` zo `@locale/shared`. Chybové hlášky zodu sa cez `toValidationCode` prekladajú na `validation.<CODE>` (s `{{min}}` / `{{max}}`).
+- Odpoveď `VALIDATION_ERROR` s `details` sa priradí k poliam (`setError`). Ostatné chyby sa zobrazia nad tlačidlom (Mantine `Alert`) ako `errors.<CODE>`. Pri 429 sa zobrazí `loginPage.form.rateLimited` so sekundami z hlavičky `Retry-After`, ak hlavička chýba, tak `errors.RATE_LIMITED`.
+- Počas odosielania je tlačidlo v stave `loading` (zároveň `disabled`), formulár sa nedá odoslať dvakrát.
+- Heslo je obyčajný `TextInput type="password"` bez prepínača viditeľnosti (Figma ho nemá).
+
+## Stránka 403
+
+`ForbiddenPage` (nie je vo Figme) má rovnaký obsah ako 404: malý ružový nadpis „Chyba 403“, H1 „Prístup zamietnutý“, text a tlačidlo **Späť na úvod** na `/`. Zobrazuje sa vnútri `AppLayout` (logo je už v hornej lište), preto nemá vlastné logo ani pätičku, obsah je na stred so šírkou 380 px.
 
 ## i18n
 
@@ -89,7 +135,9 @@ Figma súbor nemá premenné. Hodnoty sú zo štýlov login screenu (node `5:286
 | `#314158`        | label poľa                         | `slate.7` (`slate-700`)                         |
 | `#62748E`        | základný text, odstavec            | `slate.5` (`slate-500`), `--mantine-color-text` |
 | `#90A1B9`        | „WORKSPACE“, pätička               | `slate.4` (`slate-400`)                         |
-| `#E2E8F0`        | okraj inputu                       | `slate.2` (`slate-200`)                         |
+| `#94A3B8`        | ikona zvončeka (Figma `28:27`)     | `slate.4` (najbližší odtieň)                    |
+| `#E2E8F0`        | okraj inputu, okraj hornej lišty   | `slate.2` (`slate-200`)                         |
+| `#0F172B`        | pozadie avatara v menu             | `slate.9`                                       |
 | `#E83E8C`        | tlačidlo, pozadie loga             | `brand.6` (`primaryColor`)                      |
 | `#D72F7C`        | malý nadpis nad H1 („PRIHLÁSENIE“) | `brand.7`                                       |
 
@@ -105,6 +153,17 @@ Primárna farba `brand` má 10 odtieňov: `#FDEEF5`, `#FBD9E8`, `#F6B0D0`, `#F18
 | drop shadow `0 5 14` `#E83E8C` 30 % | ikona loga        | `shadows.primary-lg`          |
 
 Ostatné radiusy: `xs` 4 px, `sm` 8 px, `xl` 16 px.
+
+### Inputy
+
+Prekrytie `Input` a `InputWrapper` v theme (`styles/components/Input.module.css`, `InputWrapper.module.css`), platí pre všetky textové polia:
+
+| Figma                                          | Theme                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------ |
+| výška 44 px, radius 12 px, padding 14 px       | `--input-height`, `radius.lg`, `--input-padding`             |
+| biele pozadie, okraj `#E2E8F0`                 | `white`, `slate.2`                                           |
+| text 12 px / 600, placeholder `#1D293D` s 50 % | `fontSizes.xs`, `slate.8` (placeholder cez `color-mix` 50 %) |
+| label 12 / 16 / 600 `#314158`, medzera 8 px    | `fontSizes.xs`, `lineHeights.xs`, `slate.7`                  |
 
 ### Typografia
 
@@ -126,7 +185,7 @@ Nie je vo Figme, je navrhnutá podľa login screenu: rovnaké pozadie, logo „L
 
 ## Ikony
 
-1. SVG sa exportuje z Figmy (Figma MCP) do `src/assets/icons/` (napr. `logo.svg`, `arrow-right.svg`).
+1. SVG sa exportuje z Figmy (Figma MCP) do `src/assets/icons/` (`logo.svg`, `arrow-right.svg`, `bell.svg`). Farba ťahu sa v súbore nastaví na `white`, aby ju SVGR nahradil za `currentColor`.
 2. `pnpm --filter frontend generate-icons` cez SVGR (`svgr.config.cjs`) vygeneruje TypeScript komponenty do `src/components/Icons/` a barrel `index.ts`, potom spustí ESLint a Prettier.
 3. Farba `white` z Figmy sa nahradí za `currentColor`, ikona preberá farbu textu. Predvolená veľkosť je veľkosť z Figmy, mení sa cez `width` a `height`, `viewBox` zostáva.
 
@@ -134,7 +193,10 @@ Použitie: `import { Logo } from '@/components/Icons'`.
 
 ## Testy
 
-Unit testy bežia cez `vp test` v jsdom. `src/test/setup.ts` načíta matchery `@testing-library/jest-dom`, i18n a doplní `matchMedia` a `scrollTo`, ktoré jsdom nemá.
+Unit testy bežia cez `vp test` v jsdom. `src/test/setup.ts` načíta matchery `@testing-library/jest-dom`, i18n a doplní `matchMedia`, `ResizeObserver` a `scrollTo`, ktoré jsdom nemá. Po každom teste vyčistí `queryClient`, mock API, `localStorage` a vráti jazyk na `sk`.
+
+- `renderApp(path)` (`test/renderApp.tsx`) vyrenderuje celú aplikáciu (Mantine s `env="test"`, Query, router s memory history) a vráti router.
+- `mockApi(routes)` (`test/mockApi.ts`) nahradí adapter axios inštancie odpoveďami podľa kľúča `METHOD /url` (napr. `GET /auth/me`) a vráti zoznam odoslaných požiadaviek. Skratky `signedInAs(user)` a `signedOut()`, chyby cez `apiError(status, code)`.
 
 ## Inšpirácia
 

@@ -1,0 +1,32 @@
+{
+	"brand": {
+		"name": "Locale",
+		"tagline": "Workspace",
+		"copyright": "© {{year}} Locale"
+	},
+	"notFoundPage": {
+		"eyebrow": "Chyba 404",
+		"title": "Stránka sa nenašla",
+		"description": "Stránka, ktorú hľadáte, neexistuje alebo bola presunutá.",
+		"backHome": "Späť na úvod"
+	},
+	"errors": {
+		"VALIDATION_ERROR": "Skontrolujte vyplnené údaje.",
+		"AUTH_INVALID_CREDENTIALS": "Nesprávny e-mail alebo heslo.",
+		"AUTH_UNAUTHENTICATED": "Vaše prihlásenie vypršalo. Prihláste sa znova.",
+		"FORBIDDEN": "Na túto akciu nemáte oprávnenie.",
+		"CSRF_REJECTED": "Požiadavku sa nepodarilo overiť. Obnovte stránku a skúste to znova.",
+		"NOT_FOUND": "Požadovaný záznam sa nenašiel.",
+		"EMAIL_TAKEN": "Používateľ s týmto e-mailom už existuje.",
+		"RATE_LIMITED": "Príliš veľa pokusov. Skúste to znova neskôr.",
+		"INTERNAL_ERROR": "Nastala neočakávaná chyba. Skúste to znova.",
+		"UNKNOWN": "Nastala neznáma chyba. Skúste to znova."
+	},
+	"validation": {
+		"REQUIRED": "Toto pole je povinné.",
+		"INVALID_EMAIL": "Zadajte platný e-mail.",
+		"TOO_SHORT": "Zadajte aspoň {{min}} znakov.",
+		"TOO_LONG": "Zadajte najviac {{max}} znakov.",
+		"INVALID": "Neplatná hodnota."
+	}
+}

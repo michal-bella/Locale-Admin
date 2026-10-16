@@ -1,0 +1,3 @@
+.root[data-variant='filled'] {
+	box-shadow: var(--mantine-shadow-primary);
+}

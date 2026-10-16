@@ -1,0 +1,11 @@
+/* Mantine sits between Tailwind preflight (base) and utilities, so preflight cannot reset Mantine components. */
+@layer theme, base, mantine, components, utilities;
+
+@import 'tailwindcss';
+@import '@fontsource-variable/dm-sans';
+@import '@mantine/core/styles.layer.css';
+@import '@mantine/notifications/styles.layer.css';
+
+@theme {
+	--font-sans: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+}

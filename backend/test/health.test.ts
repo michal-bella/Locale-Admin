@@ -42,3 +42,15 @@ describe('unknown API route', () => {
 		expect(errorResponseSchema.parse(res.body).error.code).toBe(ERROR_CODE.NOT_FOUND)
 	})
 })
+
+describe('request body over the size limit', () => {
+	it('returns 413 VALIDATION_ERROR in the error contract', async () => {
+		const res = await request(createTestApp())
+			.post('/api/xyz')
+			.set('Content-Type', 'application/json')
+			.send(JSON.stringify({ text: 'x'.repeat(101 * 1024) }))
+
+		expect(res.status).toBe(413)
+		expect(errorResponseSchema.parse(res.body).error.code).toBe(ERROR_CODE.VALIDATION_ERROR)
+	})
+})

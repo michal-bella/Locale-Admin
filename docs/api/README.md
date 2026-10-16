@@ -25,6 +25,8 @@ Každá chyba má tvar `{ error: { code, message, details? } }`.
 | HTTP | `code`                     | Kedy                                                              |
 | ---- | -------------------------- | ----------------------------------------------------------------- |
 | 400  | `VALIDATION_ERROR`         | nevalidné telo požiadavky (zod) alebo poškodený JSON              |
+| 413  | `VALIDATION_ERROR`         | telo požiadavky je väčšie ako 100 KB                              |
+| 415  | `VALIDATION_ERROR`         | nepodporovaný charset alebo `Content-Encoding` tela požiadavky    |
 | 401  | `AUTH_INVALID_CREDENTIALS` | zlý email alebo heslo, neaktívny user                             |
 | 401  | `AUTH_UNAUTHENTICATED`     | chýba alebo expirovala session                                    |
 | 403  | `FORBIDDEN`                | prihlásený bez oprávnenia                                         |
@@ -34,4 +36,4 @@ Každá chyba má tvar `{ error: { code, message, details? } }`.
 | 429  | `RATE_LIMITED`             | prekročený rate limit, s hlavičkou `Retry-After`                  |
 | 500  | `INTERNAL_ERROR`           | neočakávaná chyba, detail je iba v logu                           |
 
-Pre validáciu sa používa iba 400, nie 422. Kódy `AUTH_*`, `FORBIDDEN`, `CSRF_REJECTED`, `EMAIL_TAKEN` a `RATE_LIMITED` začne backend vracať s autentifikáciou (míľnik B).
+Pre validáciu sa používa iba 400, nie 422. Chyby parsovania tela (413, 415 a ďalšie 4xx z `express.json()`) vracajú svoj HTTP status s kódom `VALIDATION_ERROR` a logujú sa ako `warn`, nie `error`. Kódy `AUTH_*`, `FORBIDDEN`, `CSRF_REJECTED`, `EMAIL_TAKEN` a `RATE_LIMITED` začne backend vracať s autentifikáciou (míľnik B).

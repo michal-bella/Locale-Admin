@@ -21,7 +21,9 @@ export default defineConfig([
 		},
 		settings: {
 			// Resolves workspace path aliases such as `@/*` from each package's tsconfig.
-			'import-x/resolver-next': [createTypeScriptImportResolver({ project: ['tsconfig.json', '*/tsconfig.json', 'packages/*/tsconfig.json'] })],
+			'import-x/resolver-next': [
+				createTypeScriptImportResolver({ project: ['tsconfig.json', '*/tsconfig.json', 'packages/*/tsconfig.json'], noWarnOnMultipleProjects: true }),
+			],
 		},
 		rules: {
 			'@typescript-eslint/consistent-type-definitions': ['error', 'type'],

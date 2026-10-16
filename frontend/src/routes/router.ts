@@ -1,13 +1,18 @@
 import { createRouter } from '@tanstack/react-router'
 
 import queryClient from '@/api/queryClient'
+import { adminUsersRoute } from '@/routes/adminUsersRoute'
+import { authenticatedRoute } from '@/routes/authenticatedRoute'
 import { indexRoute } from '@/routes/indexRoute'
+import { loginRoute } from '@/routes/loginRoute'
 import { rootRoute } from '@/routes/rootRoute'
 
-const routeTree = rootRoute.addChildren([indexRoute])
+const routeTree = rootRoute.addChildren([loginRoute, authenticatedRoute.addChildren([indexRoute, adminUsersRoute])])
 
 export const createAppRouter = (options?: Pick<Parameters<typeof createRouter>[0], 'history'>) =>
 	createRouter({ routeTree, context: { queryClient }, ...options })
+
+export type AppRouter = ReturnType<typeof createAppRouter>
 
 export const router = createAppRouter()
 

@@ -10,6 +10,47 @@
 		"description": "The page you are looking for does not exist or has been moved.",
 		"backHome": "Back to home"
 	},
+	"loginPage": {
+		"eyebrow": "Sign in",
+		"title": "Welcome back",
+		"description": "Sign in to your translation workspace.",
+		"form": {
+			"email": {
+				"label": "Email",
+				"placeholder": "name@company.com"
+			},
+			"password": {
+				"label": "Password",
+				"placeholder": "••••••••"
+			},
+			"submit": "Sign in",
+			"rateLimited": "Too many attempts. Try again in {{seconds}} s."
+		}
+	},
+	"forbiddenPage": {
+		"eyebrow": "Error 403",
+		"title": "Access denied",
+		"description": "You do not have permission to view this page.",
+		"backHome": "Back to home"
+	},
+	"usersPage": {
+		"eyebrow": "Administration",
+		"title": "Users",
+		"description": "Accounts that have access to the system."
+	},
+	"topBar": {
+		"language": "Language",
+		"languages": {
+			"sk": "SK",
+			"en": "EN"
+		},
+		"notifications": "Notifications",
+		"userMenu": {
+			"label": "User menu",
+			"users": "Users",
+			"logout": "Sign out"
+		}
+	},
 	"errors": {
 		"VALIDATION_ERROR": "Please check the entered data.",
 		"AUTH_INVALID_CREDENTIALS": "Incorrect email or password.",

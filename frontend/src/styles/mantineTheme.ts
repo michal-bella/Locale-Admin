@@ -1,6 +1,8 @@
-import { Button, createTheme, type CSSVariablesResolver, type MantineColorsTuple, rem } from '@mantine/core'
+import { Button, createTheme, type CSSVariablesResolver, Input, InputWrapper, type MantineColorsTuple, rem } from '@mantine/core'
 
 import buttonClasses from '@/styles/components/Button.module.css'
+import inputClasses from '@/styles/components/Input.module.css'
+import inputWrapperClasses from '@/styles/components/InputWrapper.module.css'
 
 const FONT_FAMILY = "'DM Sans Variable', ui-sans-serif, system-ui, sans-serif"
 
@@ -37,6 +39,15 @@ export const mantineTheme = createTheme({
 			vars: (_theme, props) => ({
 				root: props.size === 'md' ? { '--button-height': rem(40), '--button-padding-x': rem(15), '--button-fz': 'var(--mantine-font-size-xs)' } : {},
 			}),
+		}),
+		Input: Input.extend({
+			classNames: { wrapper: inputClasses.wrapper, input: inputClasses.input },
+			vars: () => ({
+				wrapper: { '--input-height': rem(44), '--input-radius': 'var(--mantine-radius-lg)', '--input-fz': 'var(--mantine-font-size-xs)' },
+			}),
+		}),
+		InputWrapper: InputWrapper.extend({
+			classNames: { label: inputWrapperClasses.label, error: inputWrapperClasses.error },
 		}),
 	},
 })

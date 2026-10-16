@@ -13,6 +13,7 @@
 	},
 	"dependencies": {
 		"@fontsource-variable/dm-sans": "5.3.0",
+		"@hookform/resolvers": "5.9.1",
 		"@locale/shared": "workspace:*",
 		"@mantine/core": "9.6.3",
 		"@mantine/hooks": "9.6.3",
@@ -23,6 +24,7 @@
 		"i18next": "26.4.2",
 		"react": "19.3.0",
 		"react-dom": "19.3.0",
+		"react-hook-form": "7.89.0",
 		"react-i18next": "17.0.15"
 	},
 	"devDependencies": {

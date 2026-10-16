@@ -1,0 +1,17 @@
+.trigger {
+	border-radius: var(--mantine-radius-xl);
+}
+
+.trigger:focus-visible {
+	outline: 2px solid var(--mantine-primary-color-filled);
+	outline-offset: 2px;
+}
+
+.initials {
+	font-size: var(--mantine-font-size-3xs);
+	font-weight: 700;
+}
+
+.email {
+	overflow-wrap: anywhere;
+}

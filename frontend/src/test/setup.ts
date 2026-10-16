@@ -1,14 +1,22 @@
 import '@testing-library/jest-dom/vitest'
-import '@/lib/i18n'
 
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vite-plus/test'
 
-afterEach(() => {
+import queryClient from '@/api/queryClient'
+import { DEFAULT_LANGUAGE } from '@/lib/constants'
+import i18n from '@/lib/i18n'
+import { resetApiMock } from '@/test/mockApi'
+
+afterEach(async () => {
 	cleanup()
+	queryClient.clear()
+	resetApiMock()
+	await i18n.changeLanguage(DEFAULT_LANGUAGE)
+	localStorage.clear()
 })
 
-// jsdom has no matchMedia (read by Mantine) and no scrollTo (called by the router on navigation).
+// jsdom has no matchMedia (read by Mantine), no ResizeObserver (SegmentedControl) and no scrollTo (called by the router on navigation).
 Object.defineProperty(window, 'scrollTo', { writable: true, value: () => undefined })
 
 Object.defineProperty(window, 'matchMedia', {
@@ -23,4 +31,13 @@ Object.defineProperty(window, 'matchMedia', {
 		removeListener: () => undefined,
 		dispatchEvent: () => false,
 	}),
+})
+
+Object.defineProperty(window, 'ResizeObserver', {
+	writable: true,
+	value: class {
+		observe() {}
+		unobserve() {}
+		disconnect() {}
+	},
 })

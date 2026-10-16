@@ -9,6 +9,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import queryClient from '@/api/queryClient'
+import { installUnauthorizedInterceptor } from '@/api/unauthorizedInterceptor'
 import { router } from '@/routes/router'
 import { cssVariablesResolver, mantineTheme } from '@/styles/mantineTheme'
 
@@ -17,6 +18,8 @@ const rootElement = document.getElementById('root')
 if (!rootElement) {
 	throw new Error('Missing #root element')
 }
+
+installUnauthorizedInterceptor({ router, queryClient })
 
 createRoot(rootElement).render(
 	<StrictMode>

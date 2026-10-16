@@ -10,6 +10,47 @@
 		"description": "Stránka, ktorú hľadáte, neexistuje alebo bola presunutá.",
 		"backHome": "Späť na úvod"
 	},
+	"loginPage": {
+		"eyebrow": "Prihlásenie",
+		"title": "Vitajte späť",
+		"description": "Prihláste sa do svojho prekladového workspace.",
+		"form": {
+			"email": {
+				"label": "E-mail",
+				"placeholder": "meno@firma.sk"
+			},
+			"password": {
+				"label": "Heslo",
+				"placeholder": "••••••••"
+			},
+			"submit": "Prihlásiť sa",
+			"rateLimited": "Príliš veľa pokusov. Skúste to znova o {{seconds}} s."
+		}
+	},
+	"forbiddenPage": {
+		"eyebrow": "Chyba 403",
+		"title": "Prístup zamietnutý",
+		"description": "Na túto stránku nemáte oprávnenie.",
+		"backHome": "Späť na úvod"
+	},
+	"usersPage": {
+		"eyebrow": "Správa",
+		"title": "Používatelia",
+		"description": "Účty, ktoré majú prístup do systému."
+	},
+	"topBar": {
+		"language": "Jazyk",
+		"languages": {
+			"sk": "SK",
+			"en": "EN"
+		},
+		"notifications": "Notifikácie",
+		"userMenu": {
+			"label": "Menu používateľa",
+			"users": "Používatelia",
+			"logout": "Odhlásiť"
+		}
+	},
 	"errors": {
 		"VALIDATION_ERROR": "Skontrolujte vyplnené údaje.",
 		"AUTH_INVALID_CREDENTIALS": "Nesprávny e-mail alebo heslo.",

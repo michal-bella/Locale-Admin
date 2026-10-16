@@ -9,13 +9,13 @@ description: Lint, format, typecheck, naming and secrets rules for the Locale Ad
 
 Run from the repo root (Node from `.nvmrc`: `nvm use`; pnpm via corepack).
 
-| Command           | What it does                                                                              |
-| ----------------- | ----------------------------------------------------------------------------------------- |
-| `pnpm lint`       | ESLint over the whole repo + `prettier --check .`                                         |
-| `pnpm lint:fix`   | ESLint `--fix` + `prettier --write .`                                                     |
-| `pnpm typecheck`  | `tsc --noEmit` in every workspace package                                                 |
-| `pnpm secretlint` | scans all files for secrets                                                               |
-| `pnpm verify`     | lint + typecheck + secretlint + unit + integration tests. Must pass before a step is done |
+| Command           | What it does                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------- |
+| `pnpm lint`       | `prisma generate` (type-aware lint needs the Prisma client), ESLint over the whole repo, `prettier --check .` |
+| `pnpm lint:fix`   | ESLint `--fix` + `prettier --write .`                                                                         |
+| `pnpm typecheck`  | `tsc --noEmit` in every workspace package                                                                     |
+| `pnpm secretlint` | scans all files for secrets                                                                                   |
+| `pnpm verify`     | lint + typecheck + secretlint + unit + integration tests. Must pass before a step is done                     |
 
 There is one ESLint config (`eslint.config.js`) and one Prettier config (`prettier.config.js`) in the root. Module-specific rules are separate blocks in the root ESLint config scoped by `files` (e.g. React rules only for `frontend/**`). Always lint from the root.
 

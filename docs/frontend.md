@@ -240,6 +240,7 @@ Prekrytie `Input` a `InputWrapper` v theme (`styles/components/Input.module.css`
 | ---------------------------------------------- | ------------------------------------------------------------ |
 | výška 44 px, radius 12 px, padding 14 px       | `--input-height`, `radius.lg`, `--input-padding`             |
 | biele pozadie, okraj `#E2E8F0`                 | `white`, `slate.2`                                           |
+| okraj poľa s chybou (Figma stav nemá)          | `--mantine-color-error`, aj bez fokusu                       |
 | text 12 px / 600, placeholder `#1D293D` s 50 % | `fontSizes.xs`, `slate.8` (placeholder cez `color-mix` 50 %) |
 | label 12 / 16 / 600 `#314158`, medzera 8 px    | `fontSizes.xs`, `lineHeights.xs`, `slate.7`                  |
 

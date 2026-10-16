@@ -6,6 +6,11 @@
 	--input-placeholder-color: color-mix(in srgb, var(--mantine-color-slate-8) 50%, transparent);
 }
 
+/* The default-variant border above beats Mantine's own [data-error] rule, so restore the error border here. */
+.wrapper[data-variant='default'][data-error] {
+	--input-bd: var(--mantine-color-error);
+}
+
 .input {
 	font-weight: 600;
 }

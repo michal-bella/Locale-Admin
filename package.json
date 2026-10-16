@@ -9,8 +9,8 @@
 	"scripts": {
 		"dev": "pnpm --parallel --filter frontend --filter backend dev",
 		"build": "pnpm -r build",
-		"lint": "eslint . && prettier --check .",
-		"lint:fix": "eslint . --fix && prettier --write .",
+		"lint": "pnpm --filter backend prisma:generate >/dev/null && eslint . && prettier --check .",
+		"lint:fix": "pnpm --filter backend prisma:generate >/dev/null && eslint . --fix && prettier --write .",
 		"typecheck": "pnpm -r typecheck",
 		"secretlint": "secretlint --secretlintignore .secretlintignore \"**/*\"",
 		"test": "pnpm -r --if-present test",

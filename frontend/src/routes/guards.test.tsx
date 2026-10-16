@@ -1,10 +1,10 @@
-import { screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vite-plus/test'
 
 import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { installUnauthorizedInterceptor } from '@/api/unauthorizedInterceptor'
-import { ADMIN_USER, apiError, EDITOR_USER, signedInAs, signedOut } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, mockApi, signedInAs, signedOut } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 describe('route guards', () => {
@@ -41,6 +41,42 @@ describe('route guards', () => {
 		expect(await screen.findByRole('heading', { level: 1, name: 'Používatelia' })).toBeInTheDocument()
 	})
 
+	it('shows the login form on /login at once when /auth/me fails with 500', async () => {
+		const requests = mockApi({ 'GET /auth/me': apiError(500, 'INTERNAL_ERROR') })
+		const router = renderApp('/login')
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Vitajte späť' })).toBeInTheDocument()
+		expect(router.state.location.pathname).toBe('/login')
+		expect(requests.filter((request) => request.url === '/auth/me')).toHaveLength(1)
+	})
+
+	it('shows the translated error page on / when /auth/me fails with 500 and retries on demand', async () => {
+		let backendUp = false
+		const requests = mockApi({
+			'GET /auth/me': () => (backendUp ? { status: 200, data: EDITOR_USER } : apiError(500, 'INTERNAL_ERROR')),
+		})
+		renderApp('/')
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Niečo sa pokazilo' })).toBeInTheDocument()
+		expect(screen.getByText('Nastala neočakávaná chyba. Skúste to znova.')).toBeInTheDocument()
+		expect(screen.getByRole('link', { name: 'Späť na úvod' })).toHaveAttribute('href', '/')
+		expect(screen.queryByText(/English message that must not be shown|Something went wrong/)).not.toBeInTheDocument()
+		expect(requests.filter((request) => request.url === '/auth/me')).toHaveLength(1)
+
+		backendUp = true
+		fireEvent.click(screen.getByRole('button', { name: 'Skúsiť znova' }))
+
+		expect(await screen.findByRole('button', { name: 'Menu používateľa' })).toBeInTheDocument()
+	})
+
+	it('shows errors.UNKNOWN on the error page when the backend is unreachable', async () => {
+		mockApi({ 'GET /auth/me': { status: 502, data: '<html>Bad Gateway</html>' } })
+		renderApp('/')
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Niečo sa pokazilo' })).toBeInTheDocument()
+		expect(screen.getByText('Nastala neznáma chyba. Skúste to znova.')).toBeInTheDocument()
+	})
+
 	it('keeps the 404 page for unknown routes', async () => {
 		signedOut()
 		renderApp('/does-not-exist')
@@ -48,6 +84,8 @@ describe('route guards', () => {
 		expect(await screen.findByRole('heading', { level: 1, name: 'Stránka sa nenašla' })).toBeInTheDocument()
 	})
 })
+
+const PREVIOUS_USER_DATA_KEY = ['test', 'previous-user-data']
 
 describe('401 interceptor', () => {
 	let interceptorId: number | undefined
@@ -58,7 +96,7 @@ describe('401 interceptor', () => {
 		}
 	})
 
-	it('clears the user and goes to /login when a request returns 401 during use', async () => {
+	it('clears the whole cache and goes to /login when a request returns 401 during use', async () => {
 		let sessionValid = true
 		signedInAs(ADMIN_USER, {
 			'GET /auth/me': () => (sessionValid ? { status: 200, data: ADMIN_USER } : apiError(401, 'AUTH_UNAUTHENTICATED')),
@@ -67,11 +105,13 @@ describe('401 interceptor', () => {
 		const router = renderApp('/')
 		interceptorId = installUnauthorizedInterceptor({ router, queryClient })
 		await screen.findByRole('button', { name: 'Menu používateľa' })
+		queryClient.setQueryData(PREVIOUS_USER_DATA_KEY, ['data of the previous user'])
 
 		sessionValid = false
 		await http.get('/health').catch(() => undefined)
 
 		await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
 		expect(await screen.findByRole('heading', { level: 1, name: 'Vitajte späť' })).toBeInTheDocument()
+		expect(queryClient.getQueryData(PREVIOUS_USER_DATA_KEY)).toBeUndefined()
 	})
 })

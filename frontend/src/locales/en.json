@@ -33,6 +33,12 @@
 		"description": "You do not have permission to view this page.",
 		"backHome": "Back to home"
 	},
+	"errorPage": {
+		"eyebrow": "Error",
+		"title": "Something went wrong",
+		"retry": "Try again",
+		"backHome": "Back to home"
+	},
 	"usersPage": {
 		"eyebrow": "Administration",
 		"title": "Users",
@@ -41,8 +47,14 @@
 	"topBar": {
 		"language": "Language",
 		"languages": {
-			"sk": "SK",
-			"en": "EN"
+			"sk": {
+				"label": "SK",
+				"name": "Slovenčina"
+			},
+			"en": {
+				"label": "EN",
+				"name": "English"
+			}
 		},
 		"notifications": "Notifications",
 		"userMenu": {

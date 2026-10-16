@@ -1,8 +1,11 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
 
+import queryClient from '@/api/queryClient'
 import { ADMIN_USER, apiError, EDITOR_USER, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
+
+const PREVIOUS_USER_DATA_KEY = ['test', 'previous-user-data']
 
 const openMenu = async () => fireEvent.click(await screen.findByRole('button', { name: 'Menu používateľa' }))
 
@@ -41,11 +44,13 @@ describe('UserMenu', () => {
 		})
 		const router = renderApp('/')
 		await openMenu()
+		queryClient.setQueryData(PREVIOUS_USER_DATA_KEY, ['data of the signed-out user'])
 
 		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odhlásiť' }))
 
 		await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
 		expect(await screen.findByRole('heading', { level: 1, name: 'Vitajte späť' })).toBeInTheDocument()
 		expect(requests.some((request) => request.method === 'post' && request.url === '/auth/logout')).toBe(true)
+		expect(queryClient.getQueryData(PREVIOUS_USER_DATA_KEY)).toBeUndefined()
 	})
 })

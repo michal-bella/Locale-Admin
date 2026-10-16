@@ -27,7 +27,7 @@ Spúšťajú sa z rootu cez `pnpm --filter frontend <skript>`.
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `atoms/`      | malé obaly nad Mantine (`ButtonLink`)                                                                                                      |
 | `components/` | zložené komponenty (`AppLayout`, `TopBar`, `UserMenu`, `LanguageSwitcher`, `Brand`, `CenteredLayout`, `PageIntro`, `RouteError`, `Icons/`) |
-| `pages/`      | obrazovky rout (`HomePage`, `LoginPage`, `UsersPage`, `ForbiddenPage`, `NotFoundPage`)                                                     |
+| `pages/`      | obrazovky rout (`HomePage`, `LoginPage`, `UsersPage`, `ForbiddenPage`, `NotFoundPage`, `ErrorPage`)                                        |
 | `routes/`     | strom rout, guardy a router (`createAppRouter`)                                                                                            |
 | `api/`        | axios inštancia `http`, `queryClient`, `QUERY_KEYS`, auth hooky (`api/auth/`), 401 interceptor, `getApiErrorCode`, `getApiErrorDetails`    |
 | `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n, `ForbiddenError`                                                                               |
@@ -50,11 +50,13 @@ TanStack Router s routami v kóde (ADR 0002), jeden súbor na routu v `routes/`.
 | `/admin/users` | `adminUsersRoute` pod `_authenticated` | `UsersPage` (v míľniku B iba nadpis)            | `ADMIN`, ostatní vidia `ForbiddenPage`   |
 | neexistujúca   | root                                   | `NotFoundPage` (`notFoundComponent` root route) | všetci                                   |
 
+Chyba v `beforeLoad` alebo v komponente routy bez vlastného `errorComponent` zobrazí `ErrorPage` (`defaultErrorComponent` routera).
+
 ### Guardy
 
-- `_authenticated` je pathless layout route (bez segmentu v URL) s komponentom `AppLayout`. Jej `beforeLoad` zavolá `queryClient.ensureQueryData(meQueryOptions)`. Pri 401 presmeruje na `/login` (bez `?redirect=`), iné chyby pustí ďalej. Načítaného používateľa vráti do kontextu ako `context.user` pre podriadené routy.
+- `_authenticated` je pathless layout route (bez segmentu v URL) s komponentom `AppLayout`. Jej `beforeLoad` zavolá `queryClient.ensureQueryData(meQueryOptions)`. Pri 401 presmeruje na `/login` (bez `?redirect=`), iné chyby (5xx, nedostupný backend) pustí ďalej a zobrazí sa `ErrorPage`. Načítaného používateľa vráti do kontextu ako `context.user` pre podriadené routy.
 - `/login`: `beforeLoad` skúsi načítať `me`. Ak sa podarí, presmeruje na `/`. Akákoľvek chyba (401, nedostupný backend) znamená, že sa zobrazí formulár.
-- `/admin/users`: `beforeLoad` pre rolu inú ako `ADMIN` vyhodí `ForbiddenError`. `errorComponent` (`RouteError`) pre túto chybu zobrazí `ForbiddenPage` vnútri layoutu a URL ostáva `/admin/users`. Iné chyby zobrazí predvolený komponent routera.
+- `/admin/users`: `beforeLoad` pre rolu inú ako `ADMIN` vyhodí `ForbiddenError`. `errorComponent` (`RouteError`) pre túto chybu zobrazí `ForbiddenPage` vnútri layoutu a URL ostáva `/admin/users`. Iné chyby zobrazí `ErrorPage` vnútri layoutu.
 - Po prihlásení ide `ADMIN` aj `EDITOR` na `/`.
 
 Produkčný server (nginx) musí pre neznáme cesty vrátiť `index.html` (SPA fallback), inak refresh na hlbokej route skončí chybou servera.
@@ -65,16 +67,16 @@ Produkčný server (nginx) musí pre neznáme cesty vrátiť `index.html` (SPA f
 - Interceptor posiela pri každej požiadavke `X-Requested-With: XMLHttpRequest`. Mutácie (`POST`, `PUT`, `PATCH`, `DELETE`) bez tela pošlú `{}`, aby odišla hlavička `Content-Type: application/json` (ochrana proti CSRF na BE).
 - Query kľúče sú iba v `QUERY_KEYS` (`api/queryKeys.ts`).
 - `getApiErrorCode(error)` vráti `ERROR_CODE` z odpovede podľa `errorResponseSchema` z `@locale/shared`, inak `UNKNOWN`. Text chyby sa zobrazuje iba cez preklad `errors.<CODE>`, nikdy z `message`. `getApiErrorDetails(error)` vráti `details` z `VALIDATION_ERROR` (inak prázdne pole).
-- `queryClient` neopakuje dotazy, ktoré skončili 401 (ostatné chyby najviac 3-krát).
+- `queryClient` neopakuje dotazy, ktoré skončili 401 (ostatné chyby najviac 3-krát). Výnimkou je `me` (`retry: false`): guardy naň čakajú pred zobrazením stránky a opakovanie s backoffom by pri 5xx alebo výpadku siete blokovalo stránku asi 7 s.
 
 ### Prihlásenie a session
 
-| Hook / funkcia                   | Čo robí                                                                                                                      |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `meQueryOptions`, `useMeQuery`   | `GET /api/auth/me`, kľúč `QUERY_KEYS.AUTH.ME()`, `staleTime: Infinity` (načítajú ho guardy, drží sa do odhlásenia alebo 401) |
-| `useLoginMutation`               | `POST /api/auth/login`, odpoveď (`AuthUser`) uloží do `me` a naviguje na `/`                                                 |
-| `useLogoutMutation`              | `POST /api/auth/logout` bez tela, potom `queryClient.clear()` a navigácia na `/login`                                        |
-| `installUnauthorizedInterceptor` | response interceptor (zapína sa v `main.tsx`): pri 401 zmaže `me` a router ide na `/login`                                   |
+| Hook / funkcia                   | Čo robí                                                                                                                                                                     |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `meQueryOptions`, `useMeQuery`   | `GET /api/auth/me`, kľúč `QUERY_KEYS.AUTH.ME()`, `staleTime: Infinity`, `retry: false` (načítajú ho guardy, drží sa do odhlásenia alebo 401)                                |
+| `useLoginMutation`               | `POST /api/auth/login`, odpoveď (`AuthUser`) uloží do `me` a naviguje na `/`                                                                                                |
+| `useLogoutMutation`              | `POST /api/auth/logout` bez tela, potom `queryClient.clear()` a navigácia na `/login`                                                                                       |
+| `installUnauthorizedInterceptor` | response interceptor (zapína sa v `main.tsx`): pri 401 zavolá `queryClient.clear()` (ako odhlásenie, dáta predošlého používateľa neostanú v cache) a router ide na `/login` |
 
 Interceptor ignoruje `/auth/login` (zlé heslo je chyba formulára) a `/auth/me` (401 z neho riešia guardy samy, inak by sa navigovalo dvakrát). Session cookie (`locale_session`, httpOnly) FE nečíta, posiela ju prehliadač.
 
@@ -86,7 +88,7 @@ Lišta je nový dizajn zložený z prvkov Figmy (node `28:2`): výška 64 px, bi
 
 - vľavo `Brand` (logo „Locale / WORKSPACE“)
 - vpravo:
-    - `LanguageSwitcher`: Mantine `SegmentedControl` SK / EN. Volá `i18n.changeLanguage`, jazyk sa zmení bez reloadu a uloží do `localStorage['locale']`.
+    - `LanguageSwitcher`: Mantine `SegmentedControl` SK / EN. Volá `i18n.changeLanguage`, jazyk sa zmení bez reloadu a uloží do `localStorage['locale']`. Viditeľný text je skratka (pre čítačky skrytá cez `aria-hidden`), prístupné meno je názov jazyka v danom jazyku (`VisuallyHidden` s `lang`): rádio **Slovenčina** a **English** v oboch jazykoch UI (kľúče `topBar.languages.<jazyk>.label` a `.name`).
     - zvonček notifikácií: iba statická ikona 18 px v boxe 38 × 38 px, farba `slate.4`, bez akcie a bez ružovej bodky (zatiaľ nie sú notifikácie)
     - `UserMenu`: Mantine `Menu`. Tlačidlo je avatar 32 px (kruh `slate.9`, iniciály 10 px / 700 biele cez `getInitials` zo `@locale/shared`). V menu je email, položka **Používatelia** (iba `ADMIN`, odkaz na `/admin/users`) a **Odhlásiť**. Chyba pri odhlásení sa ukáže ako notifikácia `errors.<CODE>`.
 
@@ -103,12 +105,20 @@ Podľa Figmy `5:2861`: `CenteredLayout`, `PageIntro` (Prihlásenie / Vitajte sp�
 
 `ForbiddenPage` (nie je vo Figme) má rovnaký obsah ako 404: malý ružový nadpis „Chyba 403“, H1 „Prístup zamietnutý“, text a tlačidlo **Späť na úvod** na `/`. Zobrazuje sa vnútri `AppLayout` (logo je už v hornej lište), preto nemá vlastné logo ani pätičku, obsah je na stred so šírkou 380 px.
 
+## Chybová stránka
+
+`ErrorPage` (nie je vo Figme) má rovnakú štruktúru ako 404 a 403: malý ružový nadpis „Chyba“, H1 „Niečo sa pokazilo“ a ako popis preklad `errors.<CODE>` z `getApiErrorCode` (pri odpovedi mimo kontraktu, napr. nedostupný backend, `errors.UNKNOWN`). Správa z BE ani text chyby axiosu sa nezobrazujú. Pod textom je primárne tlačidlo **Skúsiť znova** (`router.invalidate()`, znova spustí `beforeLoad` a loadery) a sekundárne **Späť na úvod** na `/`.
+
+- Ako `defaultErrorComponent` routera sa zobrazí v `CenteredLayout` (logo a pätička), lebo chyba `_authenticated` sa renderuje mimo `AppLayout`.
+- V `RouteError` (chyby iné ako `ForbiddenError` na `/admin/users`) sa zobrazí s `inAppLayout`, bez vlastného loga a pätičky ako 403.
+
 ## i18n
 
 - react-i18next, jazyky `sk` (predvolený aj záložný) a `en`, kľúče v objektovej štruktúre (`notFoundPage.title`).
 - Zvolený jazyk sa číta z `localStorage` (kľúč `locale`). Ak `localStorage` nie je dostupný alebo hodnota nie je platná, použije sa `sk`. Pri zmene jazyka sa hodnota uloží a aktualizuje sa `<html lang>`.
 - Chyby API: `errors.<ERROR_CODE>` a `errors.UNKNOWN`. Validácia: `validation.<VALIDATION_CODE>`, pri `TOO_SHORT` a `TOO_LONG` s parametrami `{{min}}` a `{{max}}`.
 - Unit test `lib/i18n.test.ts` overí, že každý `ERROR_CODE` a `VALIDATION_CODE` z `@locale/shared` má preklad v `sk` aj `en`, že `sk.json` a `en.json` majú rovnakú sadu kľúčov (chyba vypíše chýbajúce kľúče pre každý jazyk) a že žiadna hodnota nie je prázdny reťazec.
+- Unit test `lib/i18nStorage.test.ts` načíta `lib/i18n` vždy nanovo (`vi.resetModules`) a overí, že uložený `en` sa použije, neplatná hodnota a výnimka z `getItem` vrátia `sk` a výnimka zo `setItem` nezhodí zmenu jazyka.
 - Kľúče sú typované podľa `sk.json` (`types/i18next.d.ts`), preklep v kľúči zachytí `typecheck`. Kľúč chýbajúci v `en.json` typecheck nezachytí (spadol by na `sk`), preto ho stráži test vyššie.
 
 ## Štýly

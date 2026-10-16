@@ -1,5 +1,5 @@
 ---
-title: Fáza 1 – implementačný plán míľnika A
+title: "Fáza 1 – implementačný plán míľnika A"
 updated: 2026-10-16
 notion_page_id:
 ---

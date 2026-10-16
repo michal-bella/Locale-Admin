@@ -1,5 +1,5 @@
 ---
-title: 0003: TypeScript 6.0
+title: "0003: TypeScript 6.0"
 updated: 2026-10-16
 notion_page_id:
 ---

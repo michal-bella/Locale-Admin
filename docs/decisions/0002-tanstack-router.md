@@ -1,5 +1,5 @@
 ---
-title: 0002: TanStack Router
+title: "0002: TanStack Router"
 updated: 2026-10-16
 notion_page_id:
 ---

@@ -1,5 +1,5 @@
 ---
-title: Rozhodnutia (ADR)
+title: "Rozhodnutia (ADR)"
 updated: 2026-10-16
 notion_page_id:
 ---

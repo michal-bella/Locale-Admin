@@ -22,4 +22,14 @@ export const ADMIN_EMAIL = 'michal.bella@goodrequest.com'
 
 export const getAdminPassword = () => requireEnv('SEED_ADMIN_PASSWORD')
 
-export const getDatabaseUrl = () => requireEnv('DATABASE_URL')
+const LOCAL_DB_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
+
+/** The suite writes to and deletes from this DB, so it refuses anything but a local one. */
+export const getDatabaseUrl = () => {
+	const url = requireEnv('DATABASE_URL')
+	const { hostname } = new URL(url)
+	if (!LOCAL_DB_HOSTS.has(hostname)) {
+		throw new Error(`DATABASE_URL host "${hostname}" is not local: E2E only runs against localhost, 127.0.0.1 or ::1`)
+	}
+	return url
+}

@@ -5,6 +5,8 @@
 source "$(dirname "$0")/lib.sh"
 require_env_file
 
-LOGIN_RATE_LIMIT_MAX=1000 docker compose up -d --build --wait --force-recreate backend frontend
+# db is started separately so --force-recreate (with --no-deps) never restarts Postgres.
+docker compose up -d --wait db
+LOGIN_RATE_LIMIT_MAX=1000 docker compose up -d --build --wait --force-recreate --no-deps backend frontend
 
 pnpm --filter e2e test:e2e "$@"

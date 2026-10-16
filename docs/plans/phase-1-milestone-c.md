@@ -36,7 +36,7 @@ Míľnik C **nepridáva žiadnu novú závislosť**. Všetko potrebné už je v 
 - `routes/adminUsers.routes.ts`, `controllers/adminUsers.controller.ts`, `services/adminUsers.service.ts`, router `/api/admin` s `requireAuth` + `requireRole(ADMIN)`.
 - Integračné testy: zoznam (ADMIN 200, poradie od najnovšieho, bez `passwordHash`), vytvorenie (201, rola `EDITOR` aj keď telo pošle `ADMIN`, normalizovaný email, nový user sa vie prihlásiť), 400 s `details` (zlý email, krátke heslo s `params.min`, chýbajúce polia), 409 aj pre inú veľkosť písmen, 401 bez session pre GET aj POST, 403 pre EDITORa pre GET aj POST, CSRF na POST.
 - `docs/api/admin-users.md`, `docs/api/README.md`.
-- **Overenie:** `pnpm --filter backend lint|typecheck|test|test:integration`, `check-scope.sh backend-developer`.
+- **Overenie:** root `pnpm lint`, `pnpm --filter backend typecheck|test|test:integration`, `check-scope.sh backend-developer`.
 
 ### C3. Frontend (Frontend Developer, worktree `agent/fe-users`, paralelne s C2)
 
@@ -45,7 +45,7 @@ Míľnik C **nepridáva žiadnu novú závislosť**. Všetko potrebné už je v 
 - Code splitting stránok podľa rozhodnutia.
 - Unit testy: tabuľka a stavy, dátum v SK aj EN, modál (validácia, 400 a 409 pri poli, úspech zatvorí a invaliduje).
 - `docs/frontend.md`.
-- **Overenie:** `pnpm --filter frontend lint|typecheck|test`, build bez varovania o veľkosti chunku, `check-scope.sh frontend-developer`.
+- **Overenie:** root `pnpm lint`, `pnpm --filter frontend typecheck|test`, build bez varovania o veľkosti chunku, `check-scope.sh frontend-developer`.
 
 ### C4. Integrácia (orchestrátor)
 

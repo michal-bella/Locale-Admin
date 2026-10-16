@@ -10,7 +10,7 @@ Written from how the Používatelia page (`/admin/users`) was built (milestone C
 ## 1. Route (lazy page, eager guard)
 
 - `src/routes/<name>Route.ts`: `createRoute({ getParentRoute: () => authenticatedRoute, path, beforeLoad, errorComponent })` and `.lazy(() => import('@/routes/<name>Route.lazy').then((m) => m.Route))`.
-- `src/routes/<name>Route.lazy.ts`: `createLazyRoute('<route id>')({ component: Page })`. The id includes the pathless parent: `/_authenticated/admin/users`. A wrong id fails at runtime.
+- `src/routes/<name>Route.lazy.ts`: `createLazyRoute('<route id>')({ component: Page })`. The id includes the pathless parent: `/_authenticated/admin/users`. A wrong id fails `typecheck` (the tree is registered in `router.ts`).
 - Keep `beforeLoad` and `errorComponent` in the eager file, so a role guard (`throw new ForbiddenError()` → `RouteError` → 403 page) renders without loading the page chunk.
 - Add the route to the tree in `src/routes/router.ts`. A link in the top-bar menu goes to `components/UserMenu` (role-filtered there).
 

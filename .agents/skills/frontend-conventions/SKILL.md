@@ -59,8 +59,8 @@ React Hook Form + `zodResolver(schemaFromShared)`. Map BE `details` to fields wi
 
 ## Tests
 
-- Lint has no per-package script: run root `pnpm lint`.
-
 - Render the whole app with `renderApp` (`src/test/renderApp.tsx`) and mock the API with `src/test/mockApi.ts` (`signedInAs(user)`, `signedOut()`, `apiError(...)`).
 
 Vite+ test runner (`import { describe, it, expect } from 'vite-plus/test'`), jsdom, Testing Library. Render through the router with `createAppRouter({ history: createMemoryHistory({ initialEntries: ['/x'] }) })` when routing matters.
+
+Checks: root `pnpm lint` (there is no per-package lint script), `pnpm --filter frontend typecheck`, `pnpm --filter frontend test`, `pnpm --filter frontend build`.

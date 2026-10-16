@@ -24,16 +24,62 @@ curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://localhost:8080/a
 
 Every error body must match `{ error: { code, message, details? } }` with a `code` from `ERROR_CODE`.
 
-## Mutations
+## Auth (milestone B)
 
-All `POST`/`PUT`/`PATCH`/`DELETE` requests must send both headers (CSRF rule, enforced from milestone B):
+Admin credentials: `michal.bella@goodrequest.com` and `SEED_ADMIN_PASSWORD` from `.env`. Build the body from `.env` so the password is never typed or printed:
 
 ```bash
-curl -s -X POST $BASE/<endpoint> \
-  -H 'Content-Type: application/json' \
-  -H 'X-Requested-With: XMLHttpRequest' \
-  -c /tmp/locale.cookies -b /tmp/locale.cookies \
-  -d '{"key":"value"}'
+BASE=http://localhost:8080/api
+JAR=$(mktemp)
+H=(-H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest')
+LOGIN=$(python3 -c 'import json,sys; print(json.dumps({"email": "Michal.Bella@GoodRequest.com", "password": sys.argv[1]}))' "$(grep '^SEED_ADMIN_PASSWORD=' .env | cut -d= -f2-)")
+
+curl -s -w '\n%{http_code}\n' -c $JAR -X POST $BASE/auth/login "${H[@]}" -d "$LOGIN"
+# 200 {"id":"…","email":"michal.bella@goodrequest.com","role":"ADMIN","firstName":null,"lastName":null}
+# (email is case-insensitive; Set-Cookie: locale_session=…; Max-Age=604799; Path=/; Expires=…; HttpOnly; SameSite=Lax)
+
+curl -s -w '\n%{http_code}\n' -b $JAR $BASE/auth/me
+# 200 same AuthUser
+
+curl -s -o /dev/null -w '%{http_code}\n' -b $JAR -X POST $BASE/auth/logout "${H[@]}" -d '{}'
+# 204
+
+curl -s -w '\n%{http_code}\n' -b $JAR $BASE/auth/me
+# 401 AUTH_UNAUTHENTICATED (the jar still holds the old token: the session row is gone)
 ```
 
-Auth, 401/403/409/429 and CSRF checks are added here in milestone B.
+## Error checks
+
+```bash
+curl -s -w '\n%{http_code}\n' $BASE/auth/me
+# 401 AUTH_UNAUTHENTICATED
+
+curl -s -w '\n%{http_code}\n' -X POST $BASE/auth/login "${H[@]}" -d '{"email":"michal.bella@goodrequest.com","password":"wrong-password"}'
+# 401 AUTH_INVALID_CREDENTIALS
+
+curl -s -w '\n%{http_code}\n' -X POST $BASE/auth/login "${H[@]}" -d '{"email":"nope","password":""}'
+# 400 VALIDATION_ERROR, details [{"path":"email","code":"INVALID_EMAIL"},{"path":"password","code":"REQUIRED"}]
+
+curl -s -w '\n%{http_code}\n' -X POST $BASE/auth/logout -H 'Content-Type: application/json' -d '{}'
+# 403 CSRF_REJECTED (missing X-Requested-With)
+
+curl -s -w '\n%{http_code}\n' -X POST $BASE/auth/login -H 'X-Requested-With: XMLHttpRequest' --data-urlencode 'email=a@b.sk'
+# 403 CSRF_REJECTED (application/x-www-form-urlencoded)
+```
+
+`403 FORBIDDEN` (role check) has no production endpoint until `GET /api/admin/users` (milestone C); it is covered by `backend/test/requireRole.test.ts`.
+
+### 429 rate limit
+
+Destructive for the next 15 minutes of logins from your IP, so only run it on purpose. With the default `LOGIN_RATE_LIMIT_MAX=10`:
+
+```bash
+for i in $(seq 1 11); do curl -s -o /dev/null -D - -X POST $BASE/auth/login "${H[@]}" -d '{"email":"x@example.com","password":"x"}' | grep -iE '^(HTTP|retry-after)'; done
+# 10x HTTP/1.1 401, then HTTP/1.1 429 + Retry-After: <seconds>
+```
+
+The limit lives in memory: `docker compose up -d --force-recreate backend` resets it.
+
+## Mutations
+
+All `POST`/`PUT`/`PATCH`/`DELETE` requests must send `Content-Type: application/json` and `X-Requested-With: XMLHttpRequest` (otherwise 403 `CSRF_REJECTED`), with `-d '{}'` when there is no body.

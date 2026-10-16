@@ -39,20 +39,24 @@ docker compose exec db psql -U locale -d locale          # interactive
 docker compose exec -T db psql -U locale -d locale_test -c '\dt'
 ```
 
+Sessions of a user: `select "userId", "createdAt", "lastUsedAt", "expiresAt" from "Session";` (only the token hash is stored).
+
 Prisma model names are quoted PascalCase tables (`"User"`, `"Session"`), columns camelCase (`"passwordHash"`). Insert ad-hoc data through the app or seed helpers where possible; raw SQL inserts must provide `id` (UUID, `gen_random_uuid()`), `"updatedAt"` and an argon2 hash for `"passwordHash"`.
 
 ## Troubleshooting
 
-| Symptom                                                       | Fix                                                                                                          |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `Missing .env`                                                | `cp .env.example .env`                                                                                       |
-| port 5433 / 3000 / 5173 / 8080 in use                         | `lsof -i :<port>`; change `DB_PORT` (and both DB URLs) in `.env` or stop the other process                   |
-| `stack:up` hangs at backend                                   | `pnpm stack:logs backend`: ENV validation error names the variable; migration or DB connection errors follow |
-| BE exits `Invalid environment variables: SEED_ADMIN_PASSWORD` | set it in `.env` (min. 8 chars)                                                                              |
-| deep link like `/admin/users` returns nginx 404               | check `try_files … /index.html` in `docker/nginx/default.conf`                                               |
-| `/api/*` returns 502 via `:8080`                              | backend container not healthy: `docker compose ps`, logs                                                     |
-| integration tests: database `locale_test` missing             | `globalSetup` creates it; check `TEST_DATABASE_URL` ends with `_test`                                        |
-| Prisma warns about OpenSSL in Docker                          | runtime image must `apt-get install openssl` (see `docker/backend.Dockerfile`)                               |
+| Symptom                                                             | Fix                                                                                                                                                      |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Missing .env`                                                      | `cp .env.example .env`                                                                                                                                   |
+| port 5433 / 3000 / 5173 / 8080 in use                               | `lsof -i :<port>`; change `DB_PORT` (and both DB URLs) in `.env` or stop the other process                                                               |
+| `stack:up` hangs at backend                                         | `pnpm stack:logs backend`: ENV validation error names the variable; migration or DB connection errors follow                                             |
+| BE exits `Invalid environment variables: SEED_ADMIN_PASSWORD`       | set it in `.env` (min. 8 chars)                                                                                                                          |
+| deep link like `/admin/users` returns nginx 404                     | check `try_files … /index.html` in `docker/nginx/default.conf`                                                                                           |
+| `/api/*` returns 502 via `:8080`                                    | backend container not healthy: `docker compose ps`, logs                                                                                                 |
+| integration tests: database `locale_test` missing                   | `globalSetup` creates it; check `TEST_DATABASE_URL` ends with `_test`                                                                                    |
+| Prisma warns about OpenSSL in Docker                                | runtime image must `apt-get install openssl` (see `docker/backend.Dockerfile`)                                                                           |
+| login succeeds (200) but the next request is 401 / back on `/login` | the browser dropped the cookie: over http `COOKIE_SECURE` must be `false` in `.env` (Safari, WebKit drop `Secure` cookies on http)                       |
+| login returns 429 `RATE_LIMITED`                                    | wait `Retry-After` seconds or `docker compose up -d --force-recreate backend` (in-memory limiter); `pnpm test:e2e` runs with `LOGIN_RATE_LIMIT_MAX=1000` |
 
 ## Agent worktrees
 

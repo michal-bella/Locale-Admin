@@ -44,6 +44,18 @@ Mount new routers in `src/app.ts` under `/api/<area>` **before** `app.use('/api'
 - Unknown errors become 500 `INTERNAL_ERROR`; the stack is logged, never returned.
 - Express 5 forwards rejected promises from async handlers to the error middleware; no try/catch wrappers needed.
 
+## Auth
+
+- Protect a route with `createRequireAuth(prisma, config)` and, for roles, `requireRole(ROLE.ADMIN)` (`src/middleware/auth.middleware.ts`). Read the user with `getAuth(req)`; it is an `AuthUser` from `@locale/shared`.
+
+```ts
+router.get('/', createRequireAuth(prisma, config), requireRole(ROLE.ADMIN), createListUsersController(prisma))
+```
+
+- Session logic lives in `services/session.service.ts` (token + SHA-256 hash, sliding TTL, `SESSION_TOUCH_INTERVAL_MS` = 5 min, absolute limit); cookie helpers in `lib/sessionCookie.ts` (`locale_session`). Never set the cookie by hand.
+- The global CSRF middleware (`middleware/csrf.middleware.ts`) runs before `express.json()`; new mutations need nothing extra. Integration tests send `CSRF_HEADERS` and log in with `loginAs(app, { email, password })` from `test/helpers/auth.ts`.
+- The login rate limiter is created per router (`middleware/rateLimit.middleware.ts`), so every `createTestApp` has its own in-memory store. `TEST_CONFIG.loginRateLimitMax` is high; override it per test.
+
 ## Security rules
 
 - Never return `passwordHash`, session tokens or their hashes. Map Prisma rows to response DTOs from `@locale/shared`.

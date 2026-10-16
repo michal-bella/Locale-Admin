@@ -47,12 +47,17 @@ src/pages/NotFoundPage/NotFoundPage.test.tsx
 
 - One file per route in `src/routes/` (`indexRoute.ts`), added to the tree in `src/routes/router.ts`.
 - Unknown routes render `NotFoundPage` via `notFoundComponent` on the root route.
-- Auth guards (milestone B) go into `beforeLoad` using `context.queryClient.ensureQueryData`.
+- Protected pages are children of the pathless layout route `authenticatedRoute` (`_authenticated`, renders `AppLayout` with the top bar). Its `beforeLoad` calls `context.queryClient.ensureQueryData(meQueryOptions)`, redirects to `/login` on 401 and passes `context.user` to children.
+- Role-only pages throw `ForbiddenError` (`lib/forbiddenError.ts`) from `beforeLoad`; the route's `errorComponent` (`components/RouteError`) renders `ForbiddenPage` and keeps the URL (see `adminUsersRoute.ts`).
+- `/login` redirects a signed-in user to `/`. No `?redirect=` in phase 1.
+- Auth hooks: `meQueryOptions` / `useMeQuery`, `useLoginMutation`, `useLogoutMutation` in `src/api/auth/`. A 401 on any request other than `/auth/login` and `/auth/me` clears `me` and navigates to `/login` (`api/unauthorizedInterceptor.ts`); the guards handle `/auth/me` themselves.
 
 ## Forms
 
 React Hook Form + `zodResolver(schemaFromShared)`. Map BE `details` to fields with ``setError(path, { message: t(`validation.${code}`, params) })``.
 
 ## Tests
+
+- Render the whole app with `renderApp` (`src/test/renderApp.tsx`) and mock the API with `src/test/mockApi.ts` (`signedInAs(user)`, `signedOut()`, `apiError(...)`).
 
 Vite+ test runner (`import { describe, it, expect } from 'vite-plus/test'`), jsdom, Testing Library. Render through the router with `createAppRouter({ history: createMemoryHistory({ initialEntries: ['/x'] }) })` when routing matters.

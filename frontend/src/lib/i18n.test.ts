@@ -6,6 +6,33 @@ import { UNKNOWN_ERROR_CODE } from '@/lib/constants'
 import { LANGUAGE } from '@/lib/enum'
 import { resources } from '@/lib/i18n'
 
+const flatten = (value: unknown, prefix = ''): Record<string, unknown> =>
+	typeof value === 'object' && value !== null
+		? Object.fromEntries(Object.entries(value).flatMap(([key, child]) => Object.entries(flatten(child, prefix ? `${prefix}.${key}` : key))))
+		: { [prefix]: value }
+
+const flatTranslations = Object.fromEntries(Object.values(LANGUAGE).map((language) => [language, flatten(resources[language].translation)])) as Record<
+	LANGUAGE,
+	Record<string, unknown>
+>
+
+describe('translation key parity', () => {
+	it('has the same keys in every language', () => {
+		const allKeys = new Set(Object.values(flatTranslations).flatMap((translation) => Object.keys(translation)))
+		const missing = Object.fromEntries(
+			Object.values(LANGUAGE).map((language) => [language, [...allKeys].filter((key) => !(key in flatTranslations[language])).sort()]),
+		)
+		expect(missing).toEqual(Object.fromEntries(Object.values(LANGUAGE).map((language) => [language, []])))
+	})
+
+	it.each(Object.values(LANGUAGE))('has no empty string values (%s)', (language) => {
+		const empty = Object.entries(flatTranslations[language])
+			.filter(([, value]) => value === '')
+			.map(([key]) => key)
+		expect(empty).toEqual([])
+	})
+})
+
 describe.each(Object.values(LANGUAGE))('translations (%s)', (language) => {
 	const { translation } = resources[language]
 

@@ -12,14 +12,14 @@ React SPA na Vite+ (`vp dev`, `vp build`, `vp test`) s Mantine 9, Tailwind 4, Ta
 
 Spúšťajú sa z rootu cez `pnpm --filter frontend <skript>`.
 
-| Skript           | Čo robí                                                                     |
-| ---------------- | --------------------------------------------------------------------------- |
-| `dev`            | dev server na `http://localhost:5173`, `/api` proxuje na `localhost:3000`   |
-| `build`          | produkčný build do `frontend/dist`                                          |
-| `preview`        | servíruje `dist` na `http://localhost:4173` (s rovnakou `/api` proxy)       |
-| `test`           | unit testy (Vitest cez Vite+, prostredie jsdom), súbory `src/**/*.test.tsx` |
-| `typecheck`      | `tsc --noEmit`                                                              |
-| `generate-icons` | vygeneruje React komponenty ikon zo SVG (viď Ikony)                         |
+| Skript           | Čo robí                                                                          |
+| ---------------- | -------------------------------------------------------------------------------- |
+| `dev`            | dev server na `http://localhost:5173`, `/api` proxuje na `localhost:3000`        |
+| `build`          | produkčný build do `frontend/dist`                                               |
+| `preview`        | servíruje `dist` na `http://localhost:4173` (s rovnakou `/api` proxy)            |
+| `test`           | unit testy (Vitest cez Vite+, prostredie jsdom), súbory `src/**/*.test.{ts,tsx}` |
+| `typecheck`      | `tsc --noEmit`                                                                   |
+| `generate-icons` | vygeneruje React komponenty ikon zo SVG (viď Ikony)                              |
 
 ## Štruktúra `src/`
 
@@ -28,13 +28,14 @@ Spúšťajú sa z rootu cez `pnpm --filter frontend <skript>`.
 | `atoms/`      | malé obaly nad Mantine (`ButtonLink`)                                        |
 | `components/` | zložené komponenty (`Brand`, `CenteredLayout`, `PageIntro`, `Icons/`)        |
 | `pages/`      | obrazovky rout (`HomePage`, `NotFoundPage`)                                  |
-| `routes/`     | strom rout a router                                                          |
+| `routes/`     | strom rout a router (`createAppRouter`)                                      |
 | `api/`        | axios inštancia `http`, `queryClient`, `QUERY_KEYS`, `getApiErrorCode`       |
 | `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n                                   |
 | `locales/`    | preklady `sk.json`, `en.json`                                                |
 | `styles/`     | Mantine theme, globálne CSS s poradím vrstiev, prekrytia Mantine komponentov |
 | `assets/`     | `icons/` (zdrojové SVG z Figmy)                                              |
 | `types/`      | typy iba pre FE (typované i18n kľúče)                                        |
+| `test/`       | `setup.ts` pre unit testy                                                    |
 
 Priečinok komponentu obsahuje `Component.tsx`, `types.ts` (props) a voliteľne `Component.module.css`. Komponenty sa exportujú ako default a importujú plnou cestou (`@/components/Brand/Brand`). Barrel súbor je iba `components/Icons/index.ts`.
 
@@ -61,8 +62,8 @@ Produkčný server (nginx) musí pre neznáme cesty vrátiť `index.html` (SPA f
 - react-i18next, jazyky `sk` (predvolený aj záložný) a `en`, kľúče v objektovej štruktúre (`notFoundPage.title`).
 - Zvolený jazyk sa číta z `localStorage` (kľúč `locale`). Ak `localStorage` nie je dostupný alebo hodnota nie je platná, použije sa `sk`. Pri zmene jazyka sa hodnota uloží a aktualizuje sa `<html lang>`.
 - Chyby API: `errors.<ERROR_CODE>` a `errors.UNKNOWN`. Validácia: `validation.<VALIDATION_CODE>`, pri `TOO_SHORT` a `TOO_LONG` s parametrami `{{min}}` a `{{max}}`.
-- Unit test `lib/i18n.test.ts` overí, že každý `ERROR_CODE` a `VALIDATION_CODE` z `@locale/shared` má preklad v `sk` aj `en`.
-- Kľúče sú typované podľa `sk.json` (`types/i18next.d.ts`), preklep v kľúči zachytí `typecheck`.
+- Unit test `lib/i18n.test.ts` overí, že každý `ERROR_CODE` a `VALIDATION_CODE` z `@locale/shared` má preklad v `sk` aj `en`, že `sk.json` a `en.json` majú rovnakú sadu kľúčov (chyba vypíše chýbajúce kľúče pre každý jazyk) a že žiadna hodnota nie je prázdny reťazec.
+- Kľúče sú typované podľa `sk.json` (`types/i18next.d.ts`), preklep v kľúči zachytí `typecheck`. Kľúč chýbajúci v `en.json` typecheck nezachytí (spadol by na `sk`), preto ho stráži test vyššie.
 
 ## Štýly
 

@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import tanstackQuery from '@tanstack/eslint-plugin-query'
 import { defineConfig, globalIgnores } from 'eslint/config'
 import prettierConfig from 'eslint-config-prettier/flat'
+import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript'
 import { importX } from 'eslint-plugin-import-x'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
@@ -17,6 +18,10 @@ export default defineConfig([
 		extends: [js.configs.recommended, tseslint.configs.recommendedTypeChecked, importX.flatConfigs.recommended, importX.flatConfigs.typescript],
 		languageOptions: {
 			parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+		},
+		settings: {
+			// Resolves workspace path aliases such as `@/*` from each package's tsconfig.
+			'import-x/resolver-next': [createTypeScriptImportResolver({ project: ['tsconfig.json', '*/tsconfig.json', 'packages/*/tsconfig.json'] })],
 		},
 		rules: {
 			'@typescript-eslint/consistent-type-definitions': ['error', 'type'],

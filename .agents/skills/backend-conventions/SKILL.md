@@ -46,7 +46,7 @@ Mount new routers in `src/app.ts` under `/api/<area>` **before** `app.use('/api'
 
 ## Auth
 
-- Protect a route with `createRequireAuth(prisma, config)` and, for roles, `requireRole(ROLE.ADMIN)` (`src/middleware/auth.middleware.ts`). Read the user with `getAuth(req)`; it is an `AuthUser` from `@locale/shared`.
+- Protect a route with `createRequireAuth(prisma, config)` and, for roles, `requireRole(ROLE.ADMIN)` (`src/middleware/auth.middleware.ts`). Read the user with `getAuth(req).user` (an `AuthUser` from `@locale/shared`); `getAuth(req).sessionId` is the current session.
 
 ```ts
 router.get('/', createRequireAuth(prisma, config), requireRole(ROLE.ADMIN), createListUsersController(prisma))

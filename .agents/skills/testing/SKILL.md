@@ -44,7 +44,7 @@ it('returns 404 in the error contract', async () => {
 
 ## E2E (Playwright)
 
-- `pnpm test:e2e` (`scripts/test-e2e.sh`): starts `db`, recreates `backend` and `frontend` with `LOGIN_RATE_LIMIT_MAX=1000`, then runs `playwright test` in `e2e/`. Never run `pnpm --filter e2e test:e2e` against a stack with the default limit (10 logins per 15 min, one run uses 10).
+- `pnpm test:e2e` (`scripts/test-e2e.sh`): starts `db`, recreates `backend` and `frontend` with `LOGIN_RATE_LIMIT_MAX=1000`, then runs `playwright test` in `e2e/`. Prefer it over `pnpm --filter e2e test:e2e`: with the default limit (10 logins per 15 min) a direct run uses all 10 attempts, so a second direct run within 15 minutes fails with 429.
 - First time on a machine: `pnpm --filter e2e exec playwright install chromium webkit`.
 - Projects: `setup` (`tests/auth.setup.ts`: UI login as ADMIN and a fresh EDITOR, saves `e2e/.auth/{admin,editor}.json`) → `chromium`, `webkit` → `teardown` (deletes `e2e-editor-%@example.com` users). ADMIN storage state is the default; use `ANONYMOUS` from `support/auth.ts` for logged-out tests.
 - Until milestone C the EDITOR is inserted directly into the local DB (`support/db.ts`, `pg` + argon2); switch to `POST /api/admin/users` then.

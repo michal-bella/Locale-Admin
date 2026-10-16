@@ -50,7 +50,7 @@ src/pages/NotFoundPage/NotFoundPage.test.tsx
 - Protected pages are children of the pathless layout route `authenticatedRoute` (`_authenticated`, renders `AppLayout` with the top bar). Its `beforeLoad` calls `context.queryClient.ensureQueryData(meQueryOptions)`, redirects to `/login` on 401 and passes `context.user` to children.
 - Role-only pages throw `ForbiddenError` (`lib/forbiddenError.ts`) from `beforeLoad`; the route's `errorComponent` (`components/RouteError`) renders `ForbiddenPage` and keeps the URL (see `adminUsersRoute.ts`).
 - `/login` redirects a signed-in user to `/`. No `?redirect=` in phase 1.
-- Auth hooks: `meQueryOptions` / `useMeQuery`, `useLoginMutation`, `useLogoutMutation` in `src/api/auth/`. A 401 on any request other than `/auth/login` and `/auth/me` clears `me` and navigates to `/login` (`api/unauthorizedInterceptor.ts`); the guards handle `/auth/me` themselves.
+- Auth hooks: `meQueryOptions` / `useMeQuery`, `useLoginMutation`, `useLogoutMutation` in `src/api/auth/`. A 401 on any request other than `/auth/login` and `/auth/me` clears the whole query cache (`queryClient.clear()`, like logout) and navigates to `/login` (`api/unauthorizedInterceptor.ts`); the guards handle `/auth/me` themselves.
 
 ## Forms
 

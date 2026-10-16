@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next'
 
 import { DEFAULT_LANGUAGE, LOCALE_STORAGE_KEY } from '@/lib/constants'
 import { LANGUAGE } from '@/lib/enum'
+import { isLanguage } from '@/lib/utils'
 import en from '@/locales/en.json'
 import sk from '@/locales/sk.json'
 
@@ -10,8 +11,6 @@ export const resources = {
 	[LANGUAGE.SK]: { translation: sk },
 	[LANGUAGE.EN]: { translation: en },
 } as const
-
-const isLanguage = (value: unknown): value is LANGUAGE => Object.values<unknown>(LANGUAGE).includes(value)
 
 // localStorage throws in some private modes and when storage is blocked.
 const readStoredLanguage = (): LANGUAGE => {

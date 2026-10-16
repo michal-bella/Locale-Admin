@@ -64,7 +64,7 @@ pnpm test:e2e tests/login.spec.ts      # iba jeden súbor (argumenty idú do Pla
 pnpm test:e2e --project=webkit         # iba jeden prehliadač
 ```
 
-`pnpm test:e2e` (skript `scripts/test-e2e.sh`) najprv znova vytvorí kontajnery `backend` a `frontend` (`docker compose up -d --build --wait --force-recreate`) s `LOGIN_RATE_LIMIT_MAX=1000`, aby testy neskončili na 429, a potom spustí `pnpm --filter e2e test:e2e` (`playwright test`). Stack po testoch beží ďalej s limitom 1000; `pnpm stack:up` vráti hodnoty z `.env`.
+`pnpm test:e2e` (skript `scripts/test-e2e.sh`) najprv spustí Postgres, ak nebeží (`docker compose up -d --wait db`, bežiaci kontajner nereštartuje), potom znova vytvorí kontajnery `backend` a `frontend` (`docker compose up -d --build --wait --force-recreate --no-deps`) s `LOGIN_RATE_LIMIT_MAX=1000`, aby testy neskončili na 429, a potom spustí `pnpm --filter e2e test:e2e` (`playwright test`). Stack po testoch beží ďalej s limitom 1000; `pnpm stack:up` vráti hodnoty z `.env`.
 
 Testy sa dajú pustiť aj priamo (`pnpm --filter e2e test:e2e`) proti už bežiacemu stacku. Jeden beh urobí približne 10 pokusov o prihlásenie, takže pri predvolenom limite 10 za 15 minút ďalší beh skončí na 429; vtedy použite `pnpm test:e2e`.
 
@@ -79,6 +79,7 @@ Krok je hotový, až keď testy prejdú voči stacku na `:8080`. Pri chybe ostan
 ### Setup projekt a storageState
 
 - Projekt `setup` (`tests/auth.setup.ts`) sa spustí pred projektmi `chromium` a `webkit`. Prihlási sa cez UI raz za každú rolu a uloží cookies a `localStorage` do `e2e/.auth/admin.json` a `e2e/.auth/editor.json` (v `.gitignore`).
+- Projekt `teardown` (`tests/auth.teardown.ts`) je naviazaný na `setup` a spustí sa po dobehnutí všetkých testov, aj keď niektorý zlyhal. Zmaže z DB všetkých EDITORov s emailom `e2e-editor-%@example.com` (ich session sa zmažú kaskádou). Pri behu s filtrom (`--project`, cesta k súboru) beží tiež.
 - Testy štandardne bežia ako ADMIN. Iná rola cez `test.use({ storageState: STORAGE_STATE.EDITOR })`, neprihlásený cez `test.use({ storageState: ANONYMOUS })` (`e2e/support/auth.ts`).
 - Test, ktorý sa odhlasuje, sa musí prihlásiť sám (vlastný kontext bez `storageState`). Logout by inak zmazal zdieľanú session a ostatné testy by dostali 401.
 
@@ -86,15 +87,15 @@ Krok je hotový, až keď testy prejdú voči stacku na `:8080`. Pri chybe ostan
 
 - ADMIN je používateľ zo seedu, heslo `SEED_ADMIN_PASSWORD` z `.env`. `.env` načíta `e2e/support/env.ts` (`process.loadEnvFile`); premenné nastavené v shelli majú prednosť.
 - EDITOR: vytváranie používateľov cez API príde až v míľniku C, preto ho testy zakladajú priamo v lokálnej DB (`DATABASE_URL`) cez `pg` a hash `argon2id` (`createEditor()` v `e2e/support/db.ts`). Email je unikátny (`e2e-editor-<timestamp>-<náhodný suffix>@example.com`), heslo sa generuje v kóde. Od míľnika C sa prepne na `POST /api/admin/users`.
-- Testy nepredpokladajú prázdnu DB (DB zdieľa aj dev mód) a vytvorení EDITORi v DB ostávajú.
+- Testy nepredpokladajú prázdnu DB (DB zdieľa aj dev mód) a po sebe upracú iba svojich testovacích EDITORov (viď `teardown`).
 - Kontroly v DB (zmazaný riadok `Session` po logoute, `lastLoginAt`) čítajú tú istú lokálnu DB cez `pg`.
 
 ### Čo testy pokrývajú (míľnik B)
 
-| Súbor               | Čo overuje                                                                                                                                                  |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `login.spec.ts`     | login a logout cez UI, zmazaná session a 401 so starou cookie, session po refreshi, preklad zlého hesla, email bez ohľadu na veľkosť písmen a `lastLoginAt` |
-| `routing.spec.ts`   | presmerovania neprihláseného a prihláseného, menu podľa roly, 403 pre EDITORa na `/admin/users`, refresh na `/admin/users`, 404                             |
-| `language.spec.ts`  | prepínač SK/EN bez reloadu, voľba v `localStorage['locale']` prežije refresh                                                                                |
-| `fonts.spec.ts`     | žiadne požiadavky na Google Fonts, fonty sa načítajú z vlastnej domény                                                                                      |
-| `api-smoke.spec.ts` | `GET /api/health`, CSRF: POST bez `X-Requested-With` a s `application/x-www-form-urlencoded` vráti 403 `CSRF_REJECTED`                                      |
+| Súbor               | Čo overuje                                                                                                                                                                  |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `login.spec.ts`     | login a logout cez UI, zmazaná session a 401 so starou cookie, session po refreshi, preklad zlého hesla, email bez ohľadu na veľkosť písmen a `lastLoginAt`                 |
+| `routing.spec.ts`   | presmerovania neprihláseného a prihláseného, menu podľa roly, 403 pre EDITORa na `/admin/users`, refresh na `/admin/users`, 404                                             |
+| `language.spec.ts`  | prepínač SK/EN bez reloadu, voľba v `localStorage['locale']` prežije refresh                                                                                                |
+| `fonts.spec.ts`     | žiadne požiadavky na Google Fonts, fonty sa načítajú z vlastnej domény                                                                                                      |
+| `api-smoke.spec.ts` | iba v projekte `chromium` (nezávisí od prehliadača): `GET /api/health`, CSRF: POST bez `X-Requested-With` a s `application/x-www-form-urlencoded` vráti 403 `CSRF_REJECTED` |

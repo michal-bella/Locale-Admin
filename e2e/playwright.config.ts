@@ -18,8 +18,16 @@ export default defineConfig({
 		navigationTimeout: 15_000,
 	},
 	projects: [
-		{ name: 'setup', testMatch: /.*\.setup\.ts/ },
+		// Teardown runs after all projects depending on setup have finished, also when tests fail.
+		{ name: 'setup', testMatch: /.*\.setup\.ts/, teardown: 'teardown' },
+		{ name: 'teardown', testMatch: /.*\.teardown\.ts/ },
 		{ name: 'chromium', use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE.ADMIN }, dependencies: ['setup'] },
-		{ name: 'webkit', use: { ...devices['Desktop Safari'], storageState: STORAGE_STATE.ADMIN }, dependencies: ['setup'] },
+		{
+			name: 'webkit',
+			use: { ...devices['Desktop Safari'], storageState: STORAGE_STATE.ADMIN },
+			dependencies: ['setup'],
+			// Browser-independent API checks run only in chromium.
+			testIgnore: /api-smoke\.spec\.ts/,
+		},
 	],
 })

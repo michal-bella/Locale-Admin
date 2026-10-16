@@ -33,6 +33,12 @@ services:
       # Inside Docker the DB host is "db", not the localhost URL from .env.
       DATABASE_URL: postgresql://${POSTGRES_USER:-locale}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-locale}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?Set SEED_ADMIN_PASSWORD in .env (cp .env.example .env)}
+      # The local stack runs on http://localhost:8080, so Secure cookies would be dropped (Safari, WebKit).
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-7}
+      SESSION_MAX_AGE_DAYS: ${SESSION_MAX_AGE_DAYS:-30}
+      LOGIN_RATE_LIMIT_MAX: ${LOGIN_RATE_LIMIT_MAX:-10}
+      LOGIN_RATE_LIMIT_WINDOW_MS: ${LOGIN_RATE_LIMIT_WINDOW_MS:-900000}
     # init: true runs a tiny init as PID 1 that forwards signals and reaps zombies.
     init: true
     ports:

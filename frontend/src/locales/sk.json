@@ -42,7 +42,32 @@
 	"usersPage": {
 		"eyebrow": "Správa",
 		"title": "Používatelia",
-		"description": "Účty, ktoré majú prístup do systému."
+		"description": "Účty, ktoré majú prístup do systému.",
+		"createButton": "Vytvoriť používateľa",
+		"table": {
+			"label": "Zoznam používateľov",
+			"email": "E-mail",
+			"createdAt": "Vytvorený",
+			"empty": "Zatiaľ tu nie sú žiadni používatelia.",
+			"loadError": "Zoznam používateľov sa nepodarilo načítať.",
+			"retry": "Skúsiť znova"
+		},
+		"createModal": {
+			"title": "Nový používateľ",
+			"description": "Zadajte e-mail a heslo pre nový účet.",
+			"close": "Zavrieť",
+			"email": {
+				"label": "E-mail",
+				"placeholder": "meno@firma.sk"
+			},
+			"password": {
+				"label": "Heslo",
+				"placeholder": "Min. {{min}} znakov"
+			},
+			"cancel": "Zrušiť",
+			"submit": "Vytvoriť používateľa",
+			"success": "Používateľ {{email}} bol vytvorený."
+		}
 	},
 	"topBar": {
 		"language": "Jazyk",

@@ -1,0 +1,38 @@
+.content {
+	border: 1px solid var(--mantine-color-slate-2);
+}
+
+.header {
+	align-items: flex-start;
+	padding: 1.25rem 1.5rem;
+	border-bottom: 1px solid var(--mantine-color-slate-1);
+}
+
+.title {
+	font-size: var(--mantine-font-size-lg);
+	font-weight: 700;
+	line-height: 1.5556;
+	letter-spacing: -0.02em;
+	color: var(--mantine-color-slate-9);
+}
+
+.close {
+	width: 2.125rem;
+	height: 2.125rem;
+	border-radius: var(--mantine-radius-sm);
+	color: var(--mantine-color-slate-4);
+}
+
+.body {
+	padding: 0;
+}
+
+.fields {
+	padding: 1.25rem 1.5rem;
+}
+
+.footer {
+	padding: 1rem 1.5rem;
+	border-top: 1px solid var(--mantine-color-slate-1);
+	background-color: color-mix(in srgb, var(--mantine-color-slate-0) 60%, transparent);
+}

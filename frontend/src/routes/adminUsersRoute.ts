@@ -4,7 +4,6 @@ import { ROLE } from '@locale/shared'
 
 import RouteError from '@/components/RouteError/RouteError'
 import { ForbiddenError } from '@/lib/forbiddenError'
-import UsersPage from '@/pages/UsersPage/UsersPage'
 import { authenticatedRoute } from '@/routes/authenticatedRoute'
 
 export const adminUsersRoute = createRoute({
@@ -15,6 +14,6 @@ export const adminUsersRoute = createRoute({
 			throw new ForbiddenError()
 		}
 	},
-	component: UsersPage,
+	// Stays eager: the 403 page must render from the guard without waiting for the page chunk.
 	errorComponent: RouteError,
-})
+}).lazy(() => import('@/routes/adminUsersRoute.lazy').then((module) => module.Route))

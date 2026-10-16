@@ -1,0 +1,32 @@
+{
+	"brand": {
+		"name": "Locale",
+		"tagline": "Workspace",
+		"copyright": "© {{year}} Locale"
+	},
+	"notFoundPage": {
+		"eyebrow": "Error 404",
+		"title": "Page not found",
+		"description": "The page you are looking for does not exist or has been moved.",
+		"backHome": "Back to home"
+	},
+	"errors": {
+		"VALIDATION_ERROR": "Please check the entered data.",
+		"AUTH_INVALID_CREDENTIALS": "Incorrect email or password.",
+		"AUTH_UNAUTHENTICATED": "Your session has expired. Please sign in again.",
+		"FORBIDDEN": "You do not have permission for this action.",
+		"CSRF_REJECTED": "The request could not be verified. Refresh the page and try again.",
+		"NOT_FOUND": "The requested record was not found.",
+		"EMAIL_TAKEN": "A user with this email already exists.",
+		"RATE_LIMITED": "Too many attempts. Please try again later.",
+		"INTERNAL_ERROR": "An unexpected error occurred. Please try again.",
+		"UNKNOWN": "An unknown error occurred. Please try again."
+	},
+	"validation": {
+		"REQUIRED": "This field is required.",
+		"INVALID_EMAIL": "Enter a valid email.",
+		"TOO_SHORT": "Enter at least {{min}} characters.",
+		"TOO_LONG": "Enter at most {{max}} characters.",
+		"INVALID": "Invalid value."
+	}
+}

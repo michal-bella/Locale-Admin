@@ -39,3 +39,15 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
 }
+
+/// At most one row has `isBase = true`: partial unique index `Language_isBase_key` in the `add_language` migration (Prisma cannot express it).
+model Language {
+  id          String   @id @default(uuid()) @db.Uuid
+  tag         String   @unique
+  englishName String
+  nativeName  String
+  flagCode    String
+  isBase      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

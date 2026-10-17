@@ -5,7 +5,7 @@ import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 
 import { ROLE } from '../src/generated/prisma/enums'
-import { SEED_ADMIN_EMAIL, seedAdmin } from '../src/services/seed.service'
+import { SEED_ADMIN_EMAIL, seedAdmin, seedLanguages } from '../src/services/seed.service'
 
 import { getTestDatabaseUrl, getTestPrisma } from './helpers/db'
 
@@ -29,12 +29,44 @@ describe('seedAdmin', () => {
 	})
 })
 
+describe('seedLanguages', () => {
+	it('creates sk as the base and en once and changes nothing on the second run', async () => {
+		const prisma = getTestPrisma()
+
+		await seedLanguages(prisma)
+		const created = await prisma.language.findMany({ orderBy: { tag: 'asc' } })
+		expect(created).toMatchObject([
+			{ tag: 'en', englishName: 'English', nativeName: 'English', flagCode: 'gb', isBase: false },
+			{ tag: 'sk', englishName: 'Slovak', nativeName: 'slovenčina', flagCode: 'sk', isBase: true },
+		])
+
+		await prisma.language.update({ where: { tag: 'en' }, data: { englishName: 'English (UK)' } })
+		await seedLanguages(prisma)
+		const after = await prisma.language.findMany({ orderBy: { tag: 'asc' } })
+		expect(after).toHaveLength(2)
+		expect(after[0]?.englishName).toBe('English (UK)')
+		expect(after[1]).toEqual(created[1])
+	})
+
+	it('adds a missing sk as not base when another language is the base', async () => {
+		const prisma = getTestPrisma()
+		await prisma.language.create({ data: { tag: 'ru', englishName: 'Russian', nativeName: 'русский', flagCode: 'ru', isBase: true } })
+
+		await seedLanguages(prisma)
+
+		const bases = await prisma.language.findMany({ where: { isBase: true } })
+		expect(bases.map(({ tag }) => tag)).toEqual(['ru'])
+		await expect(prisma.language.count()).resolves.toBe(3)
+	})
+})
+
 describe('seed script', () => {
 	it('creates the admin with a valid SEED_ADMIN_PASSWORD', async () => {
 		const { stdout } = await runSeedScript({ DATABASE_URL: getTestDatabaseUrl(), SEED_ADMIN_PASSWORD: 'ValidPassword1' })
 
 		expect(stdout).toContain('created')
 		await expect(getTestPrisma().user.count()).resolves.toBe(1)
+		await expect(getTestPrisma().language.count()).resolves.toBe(2)
 	})
 
 	it.each([

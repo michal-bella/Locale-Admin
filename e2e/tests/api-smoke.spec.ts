@@ -125,3 +125,38 @@ test.describe('EDITOR /api/admin/users', () => {
 		await admin.dispose()
 	})
 })
+
+test.describe('/api/profile', () => {
+	test.use({ storageState: ANONYMOUS })
+
+	test('PATCH saves trimmed names and ignores email and role in the body', async ({ request, playwright, baseURL }) => {
+		const editor = await createEditor(playwright.request, baseURL)
+		const login = await request.post('/api/auth/login', { data: { email: editor.email, password: editor.password }, headers: MUTATION_HEADERS })
+		expect(login.status()).toBe(200)
+
+		const update = await request.patch('/api/profile', {
+			data: { firstName: '  Jana ', lastName: 'Kováčová', email: 'changed@example.com', role: 'ADMIN' },
+			headers: MUTATION_HEADERS,
+		})
+		expect(update.status()).toBe(200)
+		const expected = { id: editor.id, email: editor.email, role: 'EDITOR', firstName: 'Jana', lastName: 'Kováčová', passwordChangedAt: expect.any(String) }
+		expect(await update.json()).toEqual(expected)
+		expect(await (await request.get('/api/profile')).json()).toEqual(expected)
+
+		const invalid = await request.patch('/api/profile', { data: { firstName: ' ', lastName: 'a'.repeat(101) }, headers: MUTATION_HEADERS })
+		expect(invalid.status()).toBe(400)
+		const error = await readApiError(invalid)
+		expect(error.code).toBe('VALIDATION_ERROR')
+		expect(error.details).toEqual(
+			expect.arrayContaining([
+				{ path: 'firstName', code: 'REQUIRED' },
+				{ path: 'lastName', code: 'TOO_LONG', params: { max: 100 } },
+			]),
+		)
+
+		const withoutCsrfHeader = await request.patch('/api/profile', { data: { firstName: 'X', lastName: 'Y' } })
+		expect(withoutCsrfHeader.status()).toBe(403)
+		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
+		expect(await (await request.get('/api/profile')).json()).toEqual(expected)
+	})
+})

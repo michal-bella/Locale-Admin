@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test'
 import { MUTATION_HEADERS, readApiError } from '../support/api'
 import { ANONYMOUS, expectLoggedInHome, loginViaUi, STORAGE_STATE } from '../support/auth'
 import { ADMIN_EMAIL } from '../support/env'
+import { getSidebar, openUserMenu } from '../support/layout'
 import { createEditor, type TestUser } from '../support/users'
 
 type Profile = { id: string; email: string; role: 'ADMIN' | 'EDITOR'; firstName: string | null; lastName: string | null; passwordChangedAt: string }
@@ -11,8 +12,7 @@ const PROFILE_HEADING = { level: 1, name: 'Môj profil' } as const
 
 const openProfileFromMenu = async (page: Page) => {
 	await page.goto('/')
-	await page.getByRole('button', { name: 'Menu používateľa' }).click()
-	const item = page.getByRole('menuitem', { name: 'Môj profil' })
+	const item = (await openUserMenu(page)).getByRole('menuitem', { name: 'Môj profil' })
 	await expect(item).toHaveAttribute('href', '/profile')
 	await item.click()
 	await expect(page).toHaveURL('/profile')
@@ -47,18 +47,19 @@ test.describe('EDITOR with a dedicated user', () => {
 		await expectLoggedInHome(page)
 	})
 
-	test('changes the name from the menu, the top bar updates without a reload and the name persists', async ({ page }) => {
+	test('changes the name from the menu, the sidebar updates without a reload and the name persists', async ({ page }) => {
 		await openProfileFromMenu(page)
 		await page.evaluate(() => Object.assign(window, { e2eNoReload: true }))
 
-		const userMenu = page.getByRole('button', { name: 'Menu používateľa' })
+		const sidebar = getSidebar(page)
 		const firstName = page.getByLabel('Meno', { exact: true })
 		const lastName = page.getByLabel('Priezvisko', { exact: true })
 		const save = page.getByRole('button', { name: 'Uložiť profil' })
 
-		await expect(userMenu).toHaveText(editor.email.slice(0, 2).toUpperCase())
+		await expect(sidebar.getByText(editor.email.slice(0, 2).toUpperCase(), { exact: true })).toBeVisible()
+		await expect(sidebar.getByText(editor.email, { exact: true })).toBeVisible()
 		await expect(page.getByRole('heading', { level: 2, name: editor.email })).toBeVisible()
-		await expect(page.getByText('Editor', { exact: true })).toBeVisible()
+		await expect(page.getByRole('main').getByText('Editor', { exact: true })).toBeVisible()
 		await expect(firstName).toHaveValue('')
 		await expect(lastName).toHaveValue('')
 		await expect(save).toBeDisabled()
@@ -71,7 +72,9 @@ test.describe('EDITOR with a dedicated user', () => {
 		expect((await patch).status()).toBe(200)
 
 		await expect(page.getByText('Profil bol uložený.')).toBeVisible()
-		await expect(userMenu).toHaveText('ĽŠ')
+		await expect(sidebar.getByText('ĽŠ', { exact: true })).toBeVisible()
+		await expect(sidebar.getByText('Ľubomír Šťastný', { exact: true })).toBeVisible()
+		await expect(sidebar.getByText(editor.email, { exact: true })).toHaveCount(0)
 		await expect(page.getByRole('heading', { level: 2, name: 'Ľubomír Šťastný' })).toBeVisible()
 		await expect(firstName).toHaveValue('Ľubomír')
 		await expect(save).toBeDisabled()
@@ -81,7 +84,7 @@ test.describe('EDITOR with a dedicated user', () => {
 		await expect(page.getByRole('heading', PROFILE_HEADING)).toBeVisible()
 		await expect(page.getByLabel('Meno', { exact: true })).toHaveValue('Ľubomír')
 		await expect(page.getByLabel('Priezvisko', { exact: true })).toHaveValue('Šťastný')
-		await expect(page.getByRole('button', { name: 'Menu používateľa' })).toHaveText('ĽŠ')
+		await expect(getSidebar(page).getByText('ĽŠ', { exact: true })).toBeVisible()
 		expect(await getProfile(page)).toMatchObject({ email: editor.email, role: 'EDITOR', firstName: 'Ľubomír', lastName: 'Šťastný' })
 	})
 
@@ -169,7 +172,7 @@ test.describe('ADMIN', () => {
 	test('opens the profile from the menu', async ({ page }) => {
 		await openProfileFromMenu(page)
 		await expect(page.getByLabel('E-mailová adresa', { exact: true })).toHaveValue(ADMIN_EMAIL)
-		await expect(page.getByText('Administrátor', { exact: true })).toBeVisible()
+		await expect(page.getByRole('main').getByText('Administrátor', { exact: true })).toBeVisible()
 		await expect(page.getByRole('button', { name: 'Uložiť profil' })).toBeDisabled()
 		expect(await getProfile(page)).toMatchObject({ email: ADMIN_EMAIL, role: 'ADMIN' })
 	})

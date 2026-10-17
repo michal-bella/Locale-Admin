@@ -13,6 +13,7 @@ import {
 	restoreBaseLanguage,
 	TEST_LANGUAGE,
 } from '../support/languages'
+import { getMainNavigation, openUserMenu } from '../support/layout'
 
 const PAGE_HEADING = { level: 1, name: 'Jazyky' } as const
 const EDITED_FLAG = { code: 'bg', label: /\(BG\)$/ } as const
@@ -105,10 +106,9 @@ test.describe('ADMIN', () => {
 		}
 	})
 
-	test('opens Jazyky from the user menu and sees sk as the base language and en', async ({ page }) => {
+	test('opens Jazyky from the sidebar and sees sk, en and the current base language with the badge', async ({ page }) => {
 		await page.goto('/')
-		await page.getByRole('button', { name: 'Menu používateľa' }).click()
-		const item = page.getByRole('menuitem', { name: 'Jazyky' })
+		const item = getMainNavigation(page).getByRole('link', { name: 'Jazyky' })
 		await expect(item).toHaveAttribute('href', '/languages')
 		await item.click()
 		await expect(page).toHaveURL('/languages')
@@ -116,9 +116,9 @@ test.describe('ADMIN', () => {
 		await expect(getTable(page)).toHaveAttribute('aria-busy', 'false')
 
 		await expect(getRow(page, 'sk')).toContainText('Slovak')
-		await expect(getBaseBadge(page, 'sk')).toBeVisible()
 		await expect(getRow(page, 'en')).toContainText('English')
-		await expect(getBaseBadge(page, 'en')).toHaveCount(0)
+		// The DB is shared with dev mode, so the base language is whatever beforeAll found (sk after a fresh seed).
+		await expect(getBaseBadge(page, base.tag)).toBeVisible()
 		await expect(getTable(page).getByText('Základný', { exact: true })).toHaveCount(1)
 		await expect(getRow(page, testLanguage.tag)).toHaveCount(0)
 	})
@@ -278,11 +278,13 @@ test.describe('ADMIN', () => {
 test.describe('EDITOR', () => {
 	test.use({ storageState: STORAGE_STATE.EDITOR })
 
-	test('does not see the Jazyky menu item', async ({ page }) => {
+	test('does not see the Jazyky link in the sidebar or the user menu', async ({ page }) => {
 		await page.goto('/')
-		await page.getByRole('button', { name: 'Menu používateľa' }).click()
-		await expect(page.getByRole('menuitem', { name: 'Odhlásiť' })).toBeVisible()
-		await expect(page.getByRole('menuitem', { name: 'Jazyky' })).toHaveCount(0)
+		await expect(getMainNavigation(page)).toBeAttached()
+		await expect(page.getByRole('link', { name: 'Jazyky' })).toHaveCount(0)
+		const menu = await openUserMenu(page)
+		await expect(menu.getByRole('menuitem', { name: 'Odhlásiť sa', exact: true })).toBeVisible()
+		await expect(menu.getByRole('menuitem', { name: 'Jazyky' })).toHaveCount(0)
 	})
 
 	test('/languages shows the 403 page and the API returns 403', async ({ page }) => {

@@ -7,7 +7,7 @@ import { ROLE } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import Brand from '@/components/Brand/Brand'
-import { Globe, Users } from '@/components/Icons'
+import { Globe, Settings, Users } from '@/components/Icons'
 import UserMenu from '@/components/UserMenu/UserMenu'
 
 import classes from './Sidebar.module.css'
@@ -34,7 +34,7 @@ const NavItem = ({ to, icon: Icon, label, onNavigate }: NavItemProps) => (
 	</li>
 )
 
-/** Sidebar of Figma 3:1656 with only the pages that exist: Jazyky and, under SPRÁVA, Používatelia (both ADMIN only), user block at the bottom. */
+/** Sidebar of Figma 3:1656 with only the pages that exist: Jazyky and, under SPRÁVA, Používatelia and Nastavenia projektu (all ADMIN only), user block at the bottom. */
 const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 	const { t } = useTranslation()
 	const { data: user } = useMeQuery()
@@ -61,6 +61,7 @@ const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 						</p>
 						<ul aria-labelledby={adminLabelId} className={classes.list}>
 							<NavItem to='/admin/users' icon={Users} label={t('sidebar.users')} onNavigate={onClose} />
+							<NavItem to='/project-settings' icon={Settings} label={t('sidebar.projectSettings')} onNavigate={onClose} />
 						</ul>
 					</>
 				)}

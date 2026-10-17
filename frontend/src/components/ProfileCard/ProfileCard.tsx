@@ -11,12 +11,20 @@ import { type ProfileCardProps } from './types'
 /** Header card of the profile page (Figma 3:1805): avatar with initials, name and global role. Photo upload is not in the MVP. */
 const ProfileCard = ({ profile }: ProfileCardProps) => {
 	const { t } = useTranslation()
-	const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim()
+	const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ')
 
 	return (
 		<section className={classes.card}>
 			<div className={classes.cover}>
-				<Avatar size={88} radius='xl' color='slate.9' variant='filled' className={classes.avatar} classNames={{ placeholder: classes.initials }}>
+				<Avatar
+					aria-hidden
+					size={88}
+					radius='xl'
+					color='slate.9'
+					variant='filled'
+					className={classes.avatar}
+					classNames={{ placeholder: classes.initials }}
+				>
 					{getInitials(profile)}
 				</Avatar>
 			</div>

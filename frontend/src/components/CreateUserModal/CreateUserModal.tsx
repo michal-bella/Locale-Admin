@@ -61,13 +61,13 @@ const CreateUserModal = ({ opened, onClose }: CreateUserModalProps) => {
 				const code = getApiErrorCode(error)
 				const details = getApiErrorDetails(error)
 				if (code === ERROR_CODE.VALIDATION_ERROR && details.length > 0) {
-					details.forEach(({ path, code: issueCode, params }) =>
-						setError(path as keyof CreateUserRequest, { message: t(`validation.${issueCode}`, params) }),
+					details.forEach(({ path, code: issueCode, params }, index) =>
+						setError(path as keyof CreateUserRequest, { message: t(`validation.${issueCode}`, params) }, { shouldFocus: index === 0 }),
 					)
 					return
 				}
 				if (code === ERROR_CODE.EMAIL_TAKEN) {
-					setError('email', { message: t('errors.EMAIL_TAKEN') })
+					setError('email', { message: t('errors.EMAIL_TAKEN') }, { shouldFocus: true })
 					return
 				}
 				notifications.show({ color: 'red', message: t(`errors.${code}`) })

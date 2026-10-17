@@ -45,7 +45,10 @@ const openModal = async () => {
 const fillAndSubmit = (dialog: HTMLElement, email: string, password: string) => {
 	fireEvent.change(within(dialog).getByLabelText('E-mail'), { target: { value: email } })
 	fireEvent.change(within(dialog).getByLabelText('Heslo'), { target: { value: password } })
-	fireEvent.click(within(dialog).getByRole('button', { name: 'Vytvoriť používateľa' }))
+	const submit = within(dialog).getByRole('button', { name: 'Vytvoriť používateľa' })
+	// fireEvent.click does not move focus like a real click or Enter does.
+	submit.focus()
+	fireEvent.click(submit)
 }
 
 /** POST /admin/users never resolves; returns the list of POST requests sent. */
@@ -171,6 +174,7 @@ describe('CreateUserModal', () => {
 
 		expect(await within(dialog).findByText('Zadajte platný e-mail.')).toBeInTheDocument()
 		expect(within(dialog).getByText('Zadajte aspoň 8 znakov.')).toBeInTheDocument()
+		expect(within(dialog).getByLabelText('E-mail')).toHaveFocus()
 	})
 
 	it('shows 409 EMAIL_TAKEN at the email field and keeps the modal open', async () => {
@@ -185,6 +189,7 @@ describe('CreateUserModal', () => {
 
 		expect(await within(dialog).findByText('Používateľ s týmto e-mailom už existuje.')).toBeInTheDocument()
 		expect(within(dialog).getByLabelText('E-mail')).toHaveAttribute('aria-invalid', 'true')
+		expect(within(dialog).getByLabelText('E-mail')).toHaveFocus()
 		expect(screen.getByRole('dialog')).toBeInTheDocument()
 	})
 

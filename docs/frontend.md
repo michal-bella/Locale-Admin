@@ -446,6 +446,7 @@ Pravidlá v kóde:
 
 - `document.title` je „{{page}} – Locale“ (kľúč `documentTitle`). Nastavuje ho `PageIntro` z nadpisu stránky cez hook `hooks/useDocumentTitle.ts`, takže sa mení s navigáciou aj s jazykom UI. Prázdna domovská stránka má vizuálne skrytý `h1` **Domov** (`homePage.title`) a rovnaký titulok.
 - Notifikácie renderuje `AppNotifications` (`main.tsx`): Mantine `Notifications` s preloženým prístupným menom krížika (`notification.close`, Mantine ho bez `closeButtonProps` nemá). Notifikácia aj `Alert` majú `role="alert"`.
+- Chyba z API pri poli (`400` `details`, `409 EMAIL_TAKEN`, `409 LANGUAGE_TAKEN`) presunie fokus na prvé chybné pole (`setError(..., { shouldFocus: true })`, v **Pridať jazyk** na select), aby čítačka prečítala chybu. Chyby z klientskej validácie fokusuje React Hook Form sám (`shouldFocusError`).
 - Theme má `respectReducedMotion: true`, pri `prefers-reduced-motion` Mantine vypne prechody.
 
 Čo automatické kontroly nezachytia (poradie fokusu, návrat fokusu po modáli, zrozumiteľnosť textov, oznamovanie stavov), kontroluje `accessibility-reviewer` ručne podľa svojho checklistu.

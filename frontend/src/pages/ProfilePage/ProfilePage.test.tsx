@@ -126,6 +126,7 @@ describe('ProfilePage', () => {
 
 		expect(await screen.findByText('Zadajte najviac 100 znakov.')).toBeInTheDocument()
 		expect(screen.getByLabelText('Priezvisko')).toHaveAttribute('aria-invalid', 'true')
+		expect(screen.getByLabelText('Priezvisko')).toHaveFocus()
 	})
 
 	it('shows other save errors as a notification', async () => {

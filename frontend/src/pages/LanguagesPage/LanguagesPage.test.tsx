@@ -243,10 +243,12 @@ describe('AddLanguageModal', () => {
 		const input = within(dialog).getByLabelText('Jazyk', { selector: 'input' })
 		const submit = within(dialog).getByRole('button', { name: 'Pridať' })
 		await pickOption(input, 'Russian – русский – ru')
+		submit.focus()
 		fireEvent.click(submit)
 
 		expect(await within(dialog).findByText('Tento jazyk je už pridaný.')).toBeInTheDocument()
 		expect(input).toHaveAttribute('aria-invalid', 'true')
+		expect(input).toHaveFocus()
 		expect(input).toHaveValue('')
 		expect(submit).toBeDisabled()
 		expect(show).not.toHaveBeenCalledWith(expect.objectContaining({ color: 'red' }))
@@ -315,6 +317,7 @@ describe('LanguageSettingsModal', () => {
 
 		expect(await within(dialog).findByText('Zadajte najviac 100 znakov.')).toBeInTheDocument()
 		expect(within(dialog).getByLabelText('Pôvodný názov')).toHaveAttribute('aria-invalid', 'true')
+		expect(within(dialog).getByLabelText('Pôvodný názov')).toHaveFocus()
 	})
 
 	it('saves trimmed names and the flag, closes and notifies', async () => {

@@ -51,6 +51,7 @@ it('returns 404 in the error contract', async () => {
 - `getDatabaseUrl()` (`support/env.ts`) only accepts `localhost`, `127.0.0.1` or `::1`, so a shell override can never point the teardown at a remote DB.
 - A test that logs out must log in on its own (`loginViaUi`), never with the shared storage state, or it kills the session of other tests.
 - Selectors: roles and labels from `frontend/src/locales/sk.json` (e.g. `getByLabel('E-mail')`, `getByRole('button', { name: 'Menu používateľa' })`). In WebKit click the visible SK/EN text of the language switcher, not the hidden radio.
+- Accessibility: `tests/accessibility.spec.ts` runs `@axe-core/playwright` (WCAG 2.2 AA tags) per screen in light and dark scheme. A new screen gets an entry in `SCREENS` with a `ready` wait for loaded data. `color-contrast` runs only in `test.fixme` tests until the design tokens meet AA (`docs/testing.md`).
 - Dev mode: `E2E_BASE_URL=http://localhost:5173 pnpm --filter e2e test:e2e`; a step is done only against the stack. Failed tests keep a trace: `pnpm --filter e2e exec playwright show-trace <path>`.
 
 ## E2E rules

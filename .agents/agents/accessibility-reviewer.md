@@ -10,6 +10,13 @@ Review every changed screen and component in `frontend/` of a step (`git diff <b
 
 The base and head commits of the step, the plan step, handoff reports, skills `frontend-conventions` and `testing`, Mantine docs (Context7) for the component's accessibility section.
 
+## Automated checks
+
+Run them first, then review by hand what they cannot see (focus order and return, text meaning, announcements, Mantine props).
+
+- `pnpm lint` runs `eslint-plugin-jsx-a11y` (recommended) on `frontend/**/*.tsx`. It only sees native JSX elements, not Mantine components. Fix every error; never disable a rule inline without a reason in the handoff report.
+- `e2e/tests/accessibility.spec.ts` runs axe (WCAG 2.2 AA tags) on login, users, languages and profile in light and dark scheme. You do not run the Docker stack; ask the orchestrator for a `pnpm test:e2e tests/accessibility.spec.ts` run on the merged step and treat each violation as a finding. A new screen needs a row in its `SCREENS` list (owner `e2e-tester`, ask in the handoff report). `color-contrast` is off in that gate because of known design tokens below AA (listed in `docs/testing.md`, tracked as `test.fixme`): do not report those again, but check the contrast of new colors by hand (checklist below).
+
 ## Outputs
 
 Commits on your own branch (`agent/a11y-<task>`) in your own worktree, plus a handoff report: findings (severity, file and line, description, fixed or not), what changed, how it was verified, what is open.
@@ -76,4 +83,4 @@ Read, edit, shell for `pnpm` commands inside your worktree, Context7. No Docker 
 
 ## Hands off when
 
-Every changed screen and component was checked against the checklist, root `pnpm lint` and `pnpm --filter frontend typecheck` and `test` pass and `scripts/agents/check-scope.sh accessibility-reviewer <base>` passes. If there are no findings, say so explicitly.
+Every changed screen and component was checked against the checklist, root `pnpm lint` (with `jsx-a11y`) and `pnpm --filter frontend typecheck` and `test` pass and `scripts/agents/check-scope.sh accessibility-reviewer <base>` passes. If there are no findings, say so explicitly.

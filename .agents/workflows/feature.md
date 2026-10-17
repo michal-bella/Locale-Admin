@@ -47,7 +47,7 @@ The E2E Tester runs smoke tests and Playwright against the stack and checks the 
 
 ## 6. Accessibility
 
-When the step changes `frontend/`, the Accessibility Reviewer works in its own worktree created from the integrated `main` (`scripts/agents/worktree.sh create a11y <task>`). It checks the step's frontend diff against its checklist, fixes the gaps on `agent/a11y-<task>` and hands off. The orchestrator runs `check-scope.sh accessibility-reviewer <base> agent/a11y-<task>`, merges and re-runs `pnpm verify`. Findings it could not fix go to the Frontend Developer or the orchestrator.
+When the step changes `frontend/`, the Accessibility Reviewer works in its own worktree created from the integrated `main` (`scripts/agents/worktree.sh create a11y <task>`). It checks the step's frontend diff against its checklist, fixes the gaps on `agent/a11y-<task>` and hands off. Before the review the orchestrator runs `pnpm test:e2e tests/accessibility.spec.ts` on the integrated step and passes the axe violations to the reviewer. After the handoff it runs `check-scope.sh accessibility-reviewer <base> agent/a11y-<task>`, merges and re-runs `pnpm verify` and the axe spec. Findings it could not fix go to the Frontend Developer or the orchestrator.
 
 ## 7. Review
 

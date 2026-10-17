@@ -61,7 +61,14 @@ const UsersTable = () => {
 			<Table.Tr key={user.id} className={classes.tr}>
 				<Table.Td className={classes.td}>
 					<div className='flex items-center gap-3'>
-						<Avatar size={32} radius='xl' color='var(--app-color-avatar-muted)' variant='filled' classNames={{ placeholder: classes.initials }}>
+						<Avatar
+							aria-hidden
+							size={32}
+							radius='xl'
+							color='var(--app-color-avatar-muted)'
+							variant='filled'
+							classNames={{ placeholder: classes.initials }}
+						>
 							{getInitials({ email: user.email, firstName: null, lastName: null })}
 						</Avatar>
 						<Text size='sm' fw={500} c='var(--app-color-text-strong)' className={classes.email}>

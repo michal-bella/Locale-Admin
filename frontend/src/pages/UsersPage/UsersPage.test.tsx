@@ -85,6 +85,8 @@ describe('UsersPage table', () => {
 		expect(rows).toHaveLength(2)
 		const [martinRow, janaRow] = rows as [HTMLElement, HTMLElement]
 		expect(within(martinRow).getByText('MA')).toBeInTheDocument()
+		// Decorative: the email next to it is the row's name for screen readers.
+		expect(within(martinRow).getByRole('cell', { name: MARTIN.email })).toBeInTheDocument()
 		expect(within(martinRow).getByText('12. 10. 2026')).toBeInTheDocument()
 		expect(within(janaRow).getByText('JA')).toBeInTheDocument()
 		expect(within(janaRow).getByText(JANA.email)).toBeInTheDocument()

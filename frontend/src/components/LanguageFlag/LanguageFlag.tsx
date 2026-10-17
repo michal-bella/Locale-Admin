@@ -1,34 +1,34 @@
-import { AT, BG, CZ, GB, HR, HU, RO, RU, SK } from 'country-flag-icons/react/3x2'
-
 import { type LanguageFlagCode } from '@locale/shared'
+
+import At from '@/components/Flags/At'
+import Bg from '@/components/Flags/Bg'
+import Cz from '@/components/Flags/Cz'
+import Gb from '@/components/Flags/Gb'
+import Hr from '@/components/Flags/Hr'
+import Hu from '@/components/Flags/Hu'
+import Ro from '@/components/Flags/Ro'
+import Ru from '@/components/Flags/Ru'
+import Sk from '@/components/Flags/Sk'
 
 import classes from './LanguageFlag.module.css'
 import { type LanguageFlagProps } from './types'
 
 const FLAGS = {
-	at: AT,
-	bg: BG,
-	cz: CZ,
-	gb: GB,
-	hr: HR,
-	hu: HU,
-	ro: RO,
-	ru: RU,
-	sk: SK,
+	at: At,
+	bg: Bg,
+	cz: Cz,
+	gb: Gb,
+	hr: Hr,
+	hu: Hu,
+	ro: Ro,
+	ru: Ru,
+	sk: Sk,
 } as const satisfies Record<LanguageFlagCode, unknown>
 
-/** Decorative flag of a language; the language name is always shown next to it. */
-const LanguageFlag = ({ code, variant }: LanguageFlagProps) => {
+/** Decorative round flag of a language; the language name is always shown next to it. */
+const LanguageFlag = ({ code, size }: LanguageFlagProps) => {
 	const Flag = FLAGS[code]
-	return (
-		<Flag
-			aria-hidden='true'
-			data-flag={code}
-			className={classes[variant]}
-			// Crops the 3:2 flag to the circle instead of letterboxing it.
-			preserveAspectRatio={variant === 'round' ? 'xMidYMid slice' : undefined}
-		/>
-	)
+	return <Flag aria-hidden='true' data-flag={code} className={classes[size]} />
 }
 
 export default LanguageFlag

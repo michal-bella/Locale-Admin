@@ -66,6 +66,7 @@ const ProjectBasicsSection = ({ register, control, errors, languages, savedColor
 						name='primaryColor'
 						render={({ field }) => (
 							<ColorInput
+								ref={field.ref}
 								id={colorId}
 								className={classes.colorInput}
 								format='hex'
@@ -97,6 +98,7 @@ const ProjectBasicsSection = ({ register, control, errors, languages, savedColor
 						const selected = languages.find(({ id }) => id === field.value)
 						return (
 							<Select
+								ref={field.ref}
 								id={baseLanguageId}
 								className={classes.select}
 								data={languageOptions}

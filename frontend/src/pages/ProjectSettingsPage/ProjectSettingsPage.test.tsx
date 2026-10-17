@@ -156,6 +156,33 @@ describe('ProjectSettingsPage', () => {
 		expect(patchesOf(requests)).toHaveLength(0)
 	})
 
+	it('focuses Primárna farba when only the color is invalid', async () => {
+		const requests = signedInAs(ADMIN_USER, loaded())
+		await renderSettings()
+
+		change('Primárna farba', 'red')
+		fireEvent.click(getSaveButton())
+
+		expect(await screen.findByText('Neplatná hodnota.')).toBeInTheDocument()
+		await waitFor(() => expect(screen.getByLabelText('Primárna farba')).toHaveFocus())
+		expect(patchesOf(requests)).toHaveLength(0)
+	})
+
+	it('maps a 400 for the base language to the select and focuses it', async () => {
+		signedInAs(ADMIN_USER, {
+			...loaded(),
+			'PATCH /admin/project': apiError(400, 'VALIDATION_ERROR', { details: [{ path: 'baseLanguageId', code: 'INVALID' }] }),
+		})
+		await renderSettings()
+
+		change('Názov projektu', 'B2C iOS')
+		fireEvent.click(getSaveButton())
+
+		expect(await screen.findByText('Neplatná hodnota.')).toBeInTheDocument()
+		expect(screen.getByLabelText('Základný jazyk')).toHaveAttribute('aria-invalid', 'true')
+		await waitFor(() => expect(screen.getByLabelText('Základný jazyk')).toHaveFocus())
+	})
+
 	it('saves the whole form, notifies and refetches the settings and the languages', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		const saved: ProjectSettings = { ...SETTINGS, name: 'B2C iOS', slug: 'b2c-ios', primaryColor: '#1D4ED8', protectVariables: false }

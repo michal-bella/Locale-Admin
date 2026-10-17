@@ -218,9 +218,12 @@ describe('ProfilePage', () => {
 		expect(screen.queryByText('English message that must not be shown')).not.toBeInTheDocument()
 
 		backendUp = true
-		fireEvent.click(screen.getByRole('button', { name: 'Skúsiť znova' }))
+		const retry = screen.getByRole('button', { name: 'Skúsiť znova' })
+		retry.focus()
+		fireEvent.click(retry)
 
 		expect(await screen.findByLabelText('Meno')).toHaveValue('Martin')
+		await waitFor(() => expect(screen.getByLabelText('Meno')).toHaveFocus())
 	})
 
 	it('switches the UI language from the language select without saving', async () => {

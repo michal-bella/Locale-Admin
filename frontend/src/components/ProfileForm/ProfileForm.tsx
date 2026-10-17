@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -19,7 +20,7 @@ import { type ProfileFormProps } from './types'
 const toFormValues = ({ firstName, lastName }: Profile): UpdateProfileRequest => ({ firstName: firstName ?? '', lastName: lastName ?? '' })
 
 /** Profile page body (Figma 3:1762). "Uložiť profil" saves only the first and last name. */
-const ProfileForm = ({ profile }: ProfileFormProps) => {
+const ProfileForm = ({ profile, focusFirstField = false }: ProfileFormProps) => {
 	const { t } = useTranslation()
 	const updateProfile = useUpdateProfileMutation()
 	const { isPending } = updateProfile
@@ -27,6 +28,7 @@ const ProfileForm = ({ profile }: ProfileFormProps) => {
 		register,
 		handleSubmit,
 		setError,
+		setFocus,
 		reset,
 		formState: { errors, isDirty },
 	} = useForm({
@@ -39,6 +41,12 @@ const ProfileForm = ({ profile }: ProfileFormProps) => {
 		}),
 		defaultValues: toFormValues(profile),
 	})
+
+	useEffect(() => {
+		if (focusFirstField) {
+			setFocus('firstName')
+		}
+	}, [focusFirstField, setFocus])
 
 	const onSubmit = handleSubmit((values) => {
 		if (isPending) {

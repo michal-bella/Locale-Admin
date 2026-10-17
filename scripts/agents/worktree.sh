@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Creates or removes a git worktree for an agent role.
-# Usage: scripts/agents/worktree.sh create|remove <fe|be|e2e> <task>
+# Usage: scripts/agents/worktree.sh create|remove <fe|be|e2e|a11y> <task>
 set -euo pipefail
 
 action="${1:-}"
@@ -8,7 +8,7 @@ kind="${2:-}"
 task="${3:-}"
 
 if [[ -z "$action" || -z "$kind" || -z "$task" ]]; then
-	echo "Usage: $0 create|remove <fe|be|e2e> <task>" >&2
+	echo "Usage: $0 create|remove <fe|be|e2e|a11y> <task>" >&2
 	exit 2
 fi
 

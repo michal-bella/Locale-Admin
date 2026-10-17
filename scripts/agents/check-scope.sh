@@ -10,7 +10,7 @@ head="${3:-HEAD}"
 
 if [[ -z "$role" || -z "$base" ]]; then
 	echo "Usage: $0 <role> <base> [head]" >&2
-	echo "Roles: frontend-developer backend-developer e2e-tester code-reviewer" >&2
+	echo "Roles: frontend-developer backend-developer e2e-tester accessibility-reviewer code-reviewer" >&2
 	exit 2
 fi
 
@@ -18,6 +18,7 @@ case "$role" in
 	frontend-developer) allowed=('frontend/' 'packages/shared/' 'docs/' 'pnpm-lock.yaml') ;;
 	backend-developer) allowed=('backend/' 'packages/shared/' 'docs/' 'pnpm-lock.yaml') ;;
 	e2e-tester) allowed=('e2e/' 'docs/testing.md' 'pnpm-lock.yaml') ;;
+	accessibility-reviewer) allowed=('frontend/' 'docs/frontend.md' 'pnpm-lock.yaml') ;;
 	code-reviewer) allowed=() ;;
 	*)
 		echo "Unknown role: $role" >&2

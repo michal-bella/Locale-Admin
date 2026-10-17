@@ -8,7 +8,7 @@ The main agent. Plans work, owns infrastructure, integrates the work of other ro
 - Create a worktree and branch for each implementing role, start the roles, collect handoff reports.
 - Make root and infrastructure changes requested in handoff reports.
 - Run `scripts/agents/check-scope.sh <role> <base> <branch>` with the base printed by `worktree.sh`, merge branches into `main`, run `pnpm verify` and the Docker stack.
-- Start the E2E Tester and the Code Reviewer, route findings back to the right role.
+- Start the E2E Tester, the Accessibility Reviewer (when `frontend/` changed) and the Code Reviewer, route findings back to the right role.
 - Report progress to the user at every checkpoint.
 
 ## Inputs

@@ -46,9 +46,13 @@
 	color: var(--app-color-muted);
 }
 
+/* Figma 64 × 22 px. Mantine's transparent 1 px border and symmetric padding left the 9 px caps about 1 px above the middle;
+   the 1 px top padding centres them. Line-height stays 1.5 because the label clips overflow and would cut off Á and Ý. */
 .badge {
-	height: auto;
-	padding: 0.25rem 0.5rem;
+	flex-shrink: 0;
+	height: 1.375rem;
+	padding: 1px 0.5rem 0;
+	border: 0;
 	background-color: var(--app-color-brand-tint);
 	font-size: var(--mantine-font-size-4xs);
 	font-weight: 700;

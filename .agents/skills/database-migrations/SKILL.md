@@ -28,6 +28,7 @@ Never edit an applied migration; add a new one. Production-like environments (Do
 
 - Idempotent: creates the admin `michal.bella@goodrequest.com` (role `ADMIN`) with `SEED_ADMIN_PASSWORD` if missing; never changes an existing admin.
 - Languages: creates `sk` (base) and `en` from `SUPPORTED_LANGUAGES` only when the `Language` table is empty, so languages an admin deleted do not come back on restart.
+- Project: creates `B2B Admin` / `b2b-admin` with the seeded admin as its only member, only when the `Project` table is empty.
 - `SEED_ADMIN_PASSWORD` is validated with `passwordSchema` from `@locale/shared`; missing or invalid → exit 1 with a clear message (value never printed).
 - Run: `pnpm db:seed` (dev), automatically in `pnpm db:migrate` / `pnpm db:reset`, and in the backend container on every start (`node dist/seed.js`).
 

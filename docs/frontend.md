@@ -148,7 +148,7 @@ Prihlásené stránky majú `AppLayout` postavený na Mantine `AppShell` s `layo
 `Sidebar` podľa Figmy `3:1656` (v kontexte obrazovky `3:812`), iba so stránkami, ktoré existujú:
 
 - šírka 236 px vrátane pravého okraja `--app-color-border` s 80 % krytím, padding 16 px, pozadie `--app-color-surface`. Element je `<aside>` (`AppShell.Navbar` s `component="aside"`).
-- hore `Brand` (logo „Locale / WORKSPACE“)
+- hore `Brand` (logo „Locale / WORKSPACE“) ako odkaz `Link` na `/` s prístupným menom „Locale – domovská stránka“. Vzhľad loga sa nemení (bez podčiarknutia a zmeny farby), pri fokuse z klávesnice má obrys. Na úzkej obrazovke klik na logo zavrie otvorený sidebar ako položky navigácie. `Brand` v `CenteredLayout` (login, chybové stránky) odkazom nie je.
 - `<nav aria-label="Hlavná navigácia">` (odsadená 24 px od loga): položka **Jazyky** (`/languages`, ikona `Globe`), oddeľovač (`--app-color-border-subtle`, okraje 16 px), nadpis sekcie **SPRÁVA** (10 / 15 / 700, veľké písmená, rozostup 0,14 em, `--app-color-muted`) a zoznam s položkou **Používatelia** (`/admin/users`, ikona `Users` z položky Členovia, zoznam má `aria-labelledby` na nadpis sekcie). Obe položky vidí iba `ADMIN`. `EDITOR` má prázdnu navigáciu bez nadpisu SPRÁVA.
 - položka: odkaz TanStack Router `Link`, výška 44 px, padding 10 / 12 px, medzera 12 px, radius `lg`, text 16 / 24 `--mantine-color-text`, ikona 18 px `--app-color-muted`, medzi položkami 4 px. Hover `--app-color-surface-muted` (vo Figme nie je).
 - aktívna položka podľa aktuálnej routy: `Link` jej sám nastaví `aria-current="page"` a `data-status="active"`. Pozadie `--app-color-brand-tint`, text `--app-color-eyebrow`, ikona a bodka 6 px vpravo `brand.6`.

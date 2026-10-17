@@ -1,0 +1,48 @@
+.grid {
+	grid-template-columns: 11.25rem minmax(0, 1fr);
+}
+
+.label {
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	line-height: var(--mantine-line-height-xs);
+	color: var(--app-color-text-secondary);
+}
+
+.hint {
+	font-size: var(--mantine-font-size-3xs);
+	line-height: 1.5;
+	color: var(--app-color-muted);
+}
+
+.colorInput {
+	width: 11.75rem;
+}
+
+.preview {
+	padding: 0.5rem 0.75rem;
+	border-radius: var(--mantine-radius-sm);
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	line-height: var(--mantine-line-height-xs);
+	white-space: nowrap;
+}
+
+/* The preview sits on the user's color, so its text is black or white in both schemes. */
+.preview[data-tone='dark'] {
+	color: var(--mantine-color-black);
+}
+
+.preview[data-tone='light'] {
+	color: var(--mantine-color-white);
+}
+
+.select {
+	max-width: 18.75rem;
+}
+
+.link {
+	color: var(--app-color-eyebrow);
+	font-weight: 600;
+	text-decoration: underline;
+}

@@ -186,6 +186,44 @@
 			"success": "Jazyk {{name}} bol odstránený."
 		}
 	},
+	"projectSettingsPage": {
+		"eyebrow": "Konfigurácia",
+		"title": "Nastavenia projektu",
+		"description": "Základné údaje, identita organizácie a pravidlá prekladov.",
+		"loadError": "Nastavenia projektu sa nepodarilo načítať.",
+		"retry": "Skúsiť znova",
+		"basics": {
+			"title": "Základné údaje",
+			"description": "Informácie viditeľné pre všetkých členov projektu.",
+			"name": "Názov projektu",
+			"slug": {
+				"label": "Slug projektu",
+				"description": "Používa sa pri pomenovaní exportovaných súborov."
+			},
+			"primaryColor": {
+				"label": "Primárna farba",
+				"preview": "Ukážka"
+			},
+			"baseLanguage": {
+				"label": "Základný jazyk",
+				"placeholder": "Vyberte jazyk",
+				"empty": "Zatiaľ nemáte žiadne jazyky.",
+				"emptyLink": "Pridať jazyk"
+			}
+		},
+		"variables": {
+			"title": "Ochrana dynamických segmentov",
+			"description": "Premenné budú pri editácii automaticky rozpoznané a uzamknuté.",
+			"protect": {
+				"label": "Chrániť výrazy {{example}}",
+				"description": "Používateľ môže upraviť text, nie názov ani zátvorky premennej."
+			}
+		},
+		"leave": "Opustiť projekt",
+		"leaveTooltip": "Bude dostupné spolu so správou členov",
+		"save": "Uložiť zmeny",
+		"saveSuccess": "Nastavenia projektu boli uložené."
+	},
 	"topBar": {
 		"language": "Jazyk",
 		"languages": {
@@ -209,6 +247,7 @@
 		"languages": "Jazyky",
 		"admin": "Správa",
 		"users": "Používatelia",
+		"projectSettings": "Nastavenia projektu",
 		"openNavigation": "Otvoriť navigáciu",
 		"closeNavigation": "Zavrieť navigáciu",
 		"home": "Locale – domovská stránka",

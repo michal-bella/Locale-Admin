@@ -8,4 +8,5 @@ export const QUERY_KEYS = {
 	},
 	PROFILE: () => ['profile'] as const,
 	LANGUAGES: () => ['languages'] as const,
+	PROJECT_SETTINGS: () => ['projectSettings'] as const,
 } as const

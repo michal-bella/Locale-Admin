@@ -153,6 +153,8 @@
 		"CSRF_REJECTED": "The request could not be verified. Refresh the page and try again.",
 		"NOT_FOUND": "The requested record was not found.",
 		"EMAIL_TAKEN": "A user with this email already exists.",
+		"LANGUAGE_TAKEN": "This language has already been added.",
+		"LANGUAGE_IS_BASE": "The base language cannot be deleted. Set another base language first.",
 		"RATE_LIMITED": "Too many attempts. Please try again later.",
 		"INTERNAL_ERROR": "An unexpected error occurred. Please try again.",
 		"UNKNOWN": "An unknown error occurred. Please try again."

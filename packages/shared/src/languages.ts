@@ -27,6 +27,8 @@ export const LANGUAGE_NAME_MAX_LENGTH = 100
 
 export const languageNameSchema = z.string().trim().min(1).max(LANGUAGE_NAME_MAX_LENGTH)
 
+export type LanguageName = z.infer<typeof languageNameSchema>
+
 /** One language in `GET /api/admin/languages` and the body of `POST` and `PATCH`. */
 export const languageSchema = z.object({
 	id: z.uuid(),

@@ -132,7 +132,7 @@ Tagy sú bez regiónu okrem `de-AT` (rovnako ako na screenshote). Vlajka je ISO 
 - Nastaví `ru` ako základný → odznak sa presunie. Vráti základný späť na `sk`.
 - Odstráni `ru`: Zrušiť v potvrdení → riadok ostane, Odstrániť → riadok zmizne. Odstrániť pri základnom jazyku je disabled.
 - EDITOR nevidí položku v menu, `/languages` → stránka 403, `/api/admin/languages` → 403. Neprihlásený → `/login`.
-- Testy pracujú iba s `ru` (seed `sk`/`en` nemenia, okrem dočasnej zmeny základného jazyka, ktorú vrátia) a bežia sériovo (`test.describe.configure({ mode: 'serial' })`), lebo katalóg je zdieľaný.
+- Každý prehliadač má vlastný tag (`chromium` → `ru`, `webkit` → `hu`, API smoke → `ro`), seed `sk`/`en` nemenia (okrem dočasnej zmeny základného jazyka, ktorú vrátia). Základný jazyk je iba jeden, preto testy jazykov držia Postgres advisory lock a v rámci projektu bežia sériovo.
 - **Overenie:** `pnpm test:e2e` (Chromium + WebKit), `check-scope.sh e2e-tester`.
 
 ### L6. Review a vizuálne porovnanie

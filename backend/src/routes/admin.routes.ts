@@ -6,11 +6,13 @@ import { type Config } from '../config/env'
 import { type PrismaClient } from '../lib/prisma'
 import { createRequireAuth, requireRole } from '../middleware/auth.middleware'
 
+import { createAdminLanguagesRouter } from './adminLanguages.routes'
 import { createAdminUsersRouter } from './adminUsers.routes'
 
 export const createAdminRouter = (prisma: PrismaClient, config: Config): Router => {
 	const router = Router()
 	router.use(createRequireAuth(prisma, config), requireRole(ROLE.ADMIN))
 	router.use('/users', createAdminUsersRouter(prisma))
+	router.use('/languages', createAdminLanguagesRouter(prisma))
 	return router
 }

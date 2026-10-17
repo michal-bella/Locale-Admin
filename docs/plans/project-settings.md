@@ -6,7 +6,7 @@ notion_page_id:
 
 # Nastavenia projektu – implementačný plán (MVP)
 
-Obrazovka **Nastavenia projektu** podľa Figmy ([node `3-1557`](https://www.figma.com/design/8mjlOXj1MXEqGwkWlf83mZ/Admin-system-for-translations?node-id=3-1557&m=dev)), doplnená podľa screenshotu z iného systému o **Základný jazyk** a tlačidlo **Opustiť projekt**. Stránku vidí a mení iba ADMIN. Postup podľa `.agents/workflows/feature.md` rovnako ako Jazyky: kontrakt na vetve `feature/project-settings` (z `feature/languages`, lebo základný jazyk stavia na jazykoch), potom BE a FE paralelne vo vlastných worktree, E2E, review. Po každom kroku checkpoint (feedback loop, `docs/`, commit, krátky report).
+Obrazovka **Nastavenia projektu** podľa Figmy ([node `3-1557`](https://www.figma.com/design/8mjlOXj1MXEqGwkWlf83mZ/Admin-system-for-translations?node-id=3-1557&m=dev)), doplnená podľa screenshotu z iného systému o **Základný jazyk** a tlačidlo **Opustiť projekt**. Stránku vidí a mení iba ADMIN. Postup podľa `.agents/workflows/feature.md` rovnako ako Jazyky: kontrakt na vetve `feature/project-settings` (z `main`, ktorý už obsahuje jazyky aj sidebar), potom BE a FE paralelne vo vlastných worktree, E2E, review. Po každom kroku checkpoint (feedback loop, `docs/`, commit, krátky report).
 
 ## Predpoklady
 
@@ -27,12 +27,14 @@ Obrazovka **Nastavenia projektu** podľa Figmy ([node `3-1557`](https://www.figm
 | Tlačidlo **Uložiť zmeny**                                                                   | áno, jedno uloženie celého formulára                                                        |
 | Tlačidlo **Opustiť projekt** (zo screenshotu)                                               | áno, **disabled** s tooltipom „Bude dostupné spolu so správou členov“                       |
 | Popis (markdown), avatar projektu, záložka Advanced zo screenshotu                          | **nie**                                                                                     |
-| Sidebar (navigácia, prepínač projektu, box Chránené premenné), drobčeky, ikony `?` a zvonček | **nie** (layout Fázy 1 bez sidebaru)                                                        |
+| Položka **Nastavenia projektu** v sidebari (sekcia SPRÁVA)                                  | áno, pod Používateľmi, iba pre ADMIN                                                        |
+| Prepínač projektu a box Chránené premenné v sidebari, položka Členovia, drobčeky, ikony `?` a zvonček | **nie**                                                                       |
 
 ## Rozhodnutia
 
 - **Route:** `/project-settings`, pod `authenticatedRoute` s `requireRole(ROLE.ADMIN)`. Lazy stránka podľa skillu `add-page`.
-- **Vstup:** nová položka **Nastavenia projektu** v `UserMenu` pod položkou Jazyky, iba pre ADMIN.
+- **Vstup:** nová `NavItem` **Nastavenia projektu** v `Sidebar` v sekcii SPRÁVA pod Používateľmi (poradie ako vo Figme `3:1656`, kde je nad ňou Členovia), iba pre ADMIN. Ikona ozubeného kolesa z Figmy cez `generate-icons` do `components/Icons/`.
+- **Layout:** v `AppLayout`, obsah najviac 980 px a padding 32 px ako stránka Profil (Figma `SettingsPage` má 980 px), sekcie pod sebou s medzerou 20 px.
 - **Dátový model** (`backend/prisma/schema.prisma`, migrácia `add_project`):
 
   ```prisma
@@ -105,11 +107,11 @@ Obrazovka **Nastavenia projektu** podľa Figmy ([node `3-1557`](https://www.figm
 
 ### P3. Frontend (Frontend Developer, worktree `agent/fe-project-settings`, paralelne s P2)
 
-- Route `/project-settings` (`projectSettingsRoute.ts` + `.lazy.ts`) s ADMIN guardom, položka v `UserMenu`.
+- Route `/project-settings` (`projectSettingsRoute.ts` + `.lazy.ts`) s ADMIN guardom, `NavItem` v `Sidebar` (sekcia SPRÁVA) + kľúč `sidebar.projectSettings`.
 - `api/projectSettings/`, `QUERY_KEYS.PROJECT_SETTINGS`.
 - Komponenty z rozhodnutí, hodnoty z `get_design_context` `3:1557` (skill `figma-to-code`), preklady `sk` aj `en`.
-- Unit testy: predvyplnenie všetkých polí, loading, chyba + retry, validácia (prázdny názov, zlý slug, zlá farba), Uložiť disabled bez zmeny, uloženie → notifikácia a invalidácia jazykov, `400` pri poli, zmena základného jazyka v selecte, prázdny zoznam jazykov → select disabled, Opustiť projekt disabled s tooltipom, štítok Ukážka mení farbu, položka v menu iba pre ADMIN.
-- `docs/frontend.md` (route, stránka, stavy).
+- Unit testy: predvyplnenie všetkých polí, loading, chyba + retry, validácia (prázdny názov, zlý slug, zlá farba), Uložiť disabled bez zmeny, uloženie → notifikácia a invalidácia jazykov, `400` pri poli, zmena základného jazyka v selecte, prázdny zoznam jazykov → select disabled, Opustiť projekt disabled s tooltipom, štítok Ukážka mení farbu, položka v sidebari iba pre ADMIN a označená ako aktívna na `/project-settings` (doplniť `Sidebar.test.tsx`).
+- `docs/frontend.md` (route, stránka, stavy, nová položka v sekcii Sidebar).
 - **Overenie:** root `pnpm lint`, `pnpm --filter frontend typecheck|test|build` (bez varovania o chunku), `check-scope.sh frontend-developer`.
 
 ### P4. Integrácia (orchestrátor, `feature/project-settings`)
@@ -118,12 +120,12 @@ Obrazovka **Nastavenia projektu** podľa Figmy ([node `3-1557`](https://www.figm
 
 ### P5. E2E (E2E Tester, worktree `agent/e2e-project-settings`)
 
-- ADMIN otvorí Nastavenia projektu z menu, vidí predvyplnené hodnoty zo seedu.
+- ADMIN otvorí Nastavenia projektu zo sidebaru, vidí predvyplnené hodnoty zo seedu.
 - Zmení názov, slug, farbu a prepínač → uložené aj po reloade. Na konci vráti hodnoty zo seedu.
 - Zmení základný jazyk na `en` → na `/languages` má odznak ZÁKLADNÝ `en`. Vráti na `sk`.
 - Neplatný slug a farba → chyba pri poli, Uložiť nič nepošle.
 - Opustiť projekt je disabled.
-- EDITOR nevidí položku v menu, `/project-settings` → stránka 403, `/api/admin/project` → 403. Neprihlásený → `/login`.
+- EDITOR nevidí položku v sidebari, `/project-settings` → stránka 403, `/api/admin/project` → 403. Neprihlásený → `/login`.
 - Testy bežia sériovo, lebo projekt aj základný jazyk sú zdieľané s testami Jazykov.
 - **Overenie:** `pnpm test:e2e` (Chromium + WebKit), `check-scope.sh e2e-tester`.
 
@@ -137,7 +139,7 @@ Obrazovka **Nastavenia projektu** podľa Figmy ([node `3-1557`](https://www.figm
 
 ## Akceptačné kritériá
 
-1. ADMIN otvorí **Nastavenia projektu** z menu používateľa na `/project-settings` a vidí názov, slug, primárnu farbu s ukážkou, základný jazyk a prepínač ochrany premenných.
+1. ADMIN otvorí **Nastavenia projektu** zo sidebaru (sekcia SPRÁVA) na `/project-settings` a vidí názov, slug, primárnu farbu s ukážkou, základný jazyk a prepínač ochrany premenných.
 2. ADMIN zmení a uloží všetky polia jedným tlačidlom **Uložiť zmeny**. Hodnoty ostanú po reloade.
 3. Zmena základného jazyka sa prejaví na stránke Jazyky. V systéme je vždy práve jeden základný jazyk.
 4. Neplatný názov, slug alebo farbu odmietne FE aj BE.

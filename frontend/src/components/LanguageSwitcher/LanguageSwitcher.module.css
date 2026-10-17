@@ -1,0 +1,9 @@
+/* The ring keeps the white parts of the flags visible on the light segmented control. */
+.flag {
+	display: block;
+	flex-shrink: 0;
+	width: 1rem;
+	height: auto;
+	border-radius: 2px;
+	box-shadow: 0 0 0 1px var(--app-color-border);
+}

@@ -13,7 +13,7 @@ const CenteredLayout = ({ children }: CenteredLayoutProps) => {
 		<div className='flex min-h-dvh flex-col items-center justify-between gap-12 px-6 py-12'>
 			<Brand />
 			<main className='w-full max-w-[380px]'>{children}</main>
-			<Text component='footer' fz='2xs' c='slate.4' lh={1.5}>
+			<Text component='footer' fz='2xs' c='var(--app-color-muted)' lh={1.5}>
 				{t('brand.copyright', { year: new Date().getFullYear() })}
 			</Text>
 		</div>

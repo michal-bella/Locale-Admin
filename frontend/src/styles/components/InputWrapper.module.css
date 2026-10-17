@@ -3,7 +3,7 @@
 	font-size: var(--mantine-font-size-xs);
 	font-weight: 600;
 	line-height: var(--mantine-line-height-xs);
-	color: var(--mantine-color-slate-7);
+	color: var(--app-color-label);
 }
 
 .error {

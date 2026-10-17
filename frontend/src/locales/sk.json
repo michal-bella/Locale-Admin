@@ -81,6 +81,10 @@
 				"name": "English"
 			}
 		},
+		"theme": {
+			"toDark": "Prepnúť na tmavý režim",
+			"toLight": "Prepnúť na svetlý režim"
+		},
 		"notifications": "Notifikácie",
 		"userMenu": {
 			"label": "Menu používateľa",

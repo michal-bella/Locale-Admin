@@ -1,20 +1,20 @@
 .card {
 	overflow: hidden;
-	border: 1px solid var(--mantine-color-slate-2);
+	border: 1px solid var(--app-color-border);
 	border-radius: var(--mantine-radius-xl);
-	background-color: var(--mantine-color-white);
+	background-color: var(--app-color-surface);
 }
 
 .th {
 	padding: 0.75rem 1.25rem;
-	border-bottom: 1px solid var(--mantine-color-slate-2);
-	background-color: var(--mantine-color-slate-0);
+	border-bottom: 1px solid var(--app-color-border);
+	background-color: var(--app-color-surface-muted);
 	font-size: var(--mantine-font-size-3xs);
 	font-weight: 700;
 	line-height: 1.5;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
-	color: var(--mantine-color-slate-4);
+	color: var(--app-color-muted);
 }
 
 .createdColumn {
@@ -23,7 +23,7 @@
 
 .td {
 	padding: 0.875rem 1.25rem;
-	border-bottom: 1px solid var(--mantine-color-slate-1);
+	border-bottom: 1px solid var(--app-color-border-subtle);
 }
 
 .tr:last-child .td {
@@ -33,7 +33,7 @@
 .initials {
 	font-size: var(--mantine-font-size-3xs);
 	font-weight: 700;
-	color: var(--mantine-color-slate-6);
+	color: var(--app-color-text-secondary);
 }
 
 .email {

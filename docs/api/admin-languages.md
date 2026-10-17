@@ -23,6 +23,7 @@ Celý router `/api/admin` je za `requireAuth` a `requireRole(ROLE.ADMIN)`: bez s
 - Prvý pridaný jazyk sa automaticky stane základným.
 - Základný jazyk sa mení cez `PATCH` s `isBase: true` pri inom jazyku. Starý jazyk stratí príznak v tej istej transakcii. Vypnúť príznak (`isBase: false`) sa nedá.
 - Základný jazyk sa nedá odstrániť (409 `LANGUAGE_IS_BASE`). Najprv treba nastaviť iný základný jazyk.
+- Vytvorenie jazyka, zmena základného jazyka a odstránenie bežia v transakcii s advisory zámkom (`pg_advisory_xact_lock`), takže súbežné požiadavky sa vykonajú postupne. Dve súbežné prvé `POST` vytvoria práve jeden základný jazyk, súbežný `PATCH` s `isBase: true` nikdy neskončí 500 a `DELETE` nevráti 204, ak sa jazyk medzitým stal základným (vráti 409 `LANGUAGE_IS_BASE`).
 
 ## Odpoveď `Language`
 

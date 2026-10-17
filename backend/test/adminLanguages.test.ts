@@ -162,6 +162,17 @@ describe('POST /api/admin/languages', () => {
 		expectErrorCode(responses.find(({ status }) => status === 409) as request.Response, 409, ERROR_CODE.LANGUAGE_TAKEN)
 	})
 
+	it('makes exactly one of two concurrent first languages the base', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+
+		const responses = await Promise.all([postLanguage(app, cookie, { tag: 'sk' }), postLanguage(app, cookie, { tag: 'en' })])
+
+		expect(responses.map(({ status }) => status)).toEqual([201, 201])
+		expect(responses.map(({ body }) => languageSchema.parse(body).isBase).sort()).toEqual([false, true])
+		expect(await getTestPrisma().language.count({ where: { isBase: true } })).toBe(1)
+	})
+
 	it('returns 401 AUTH_UNAUTHENTICATED without a session', async () => {
 		const res = await request(createTestApp()).post('/api/admin/languages').set(CSRF_HEADERS).send({ tag: 'sk' })
 
@@ -247,6 +258,24 @@ describe('PATCH /api/admin/languages/:id', () => {
 
 		const list = languagesResponseSchema.parse((await request(app).get('/api/admin/languages').set('Cookie', cookie)).body)
 		expect(list.map(({ tag }) => tag)).toEqual(['ru', 'sk'])
+	})
+
+	it('keeps exactly one base for two concurrent isBase: true requests', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		await createLanguageRow('sk', { isBase: true })
+		const ru = await createLanguageRow('ru')
+		const en = await createLanguageRow('en')
+
+		const responses = await Promise.all([
+			patchLanguage(app, cookie, ru.id, { ...UPDATE_BODY, isBase: true }),
+			patchLanguage(app, cookie, en.id, { englishName: 'English', nativeName: 'English', flagCode: 'gb', isBase: true }),
+		])
+
+		expect(responses.map(({ status }) => status)).toEqual([200, 200])
+		const bases = await getTestPrisma().language.findMany({ where: { isBase: true } })
+		expect(bases).toHaveLength(1)
+		expect([ru.id, en.id]).toContain(bases[0]?.id)
 	})
 
 	it('keeps the base when the base language is saved with isBase: true', async () => {
@@ -362,6 +391,29 @@ describe('DELETE /api/admin/languages/:id', () => {
 		expect(res.text).toBe('')
 		expect(await getTestPrisma().language.findUnique({ where: { id: ru.id } })).toBeNull()
 		expect(await getTestPrisma().language.count()).toBe(1)
+	})
+
+	it('never answers 204 when a concurrent request makes the language the base', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		await createLanguageRow('sk', { isBase: true })
+		const ru = await createLanguageRow('ru')
+
+		const [patchRes, deleteRes] = await Promise.all([
+			patchLanguage(app, cookie, ru.id, { ...UPDATE_BODY, isBase: true }),
+			deleteLanguage(app, cookie, ru.id),
+		])
+
+		const stored = await getTestPrisma().language.findUnique({ where: { id: ru.id } })
+		if (deleteRes.status === 204) {
+			expect(stored).toBeNull()
+			expectErrorCode(patchRes, 404, ERROR_CODE.NOT_FOUND)
+		} else {
+			expectErrorCode(deleteRes, 409, ERROR_CODE.LANGUAGE_IS_BASE)
+			expect(patchRes.status).toBe(200)
+			expect(stored?.isBase).toBe(true)
+		}
+		expect(await getTestPrisma().language.count({ where: { isBase: true } })).toBe(1)
 	})
 
 	it('returns 409 LANGUAGE_IS_BASE for the base language', async () => {

@@ -62,6 +62,8 @@ Jazyk, do ktorého sa prekladá. Kým neexistujú projekty, je to jeden globáln
 
 Indexy: unikátny `tag` a čiastočný unikátny index `Language_isBase_key` na `isBase` s podmienkou `WHERE "isBase"`. Ten zaručí, že základný jazyk je najviac jeden. Prisma ho v `schema.prisma` nevie vyjadriť, je ručne pridaný v migrácii `add_language` (a `prisma migrate dev` ho nemaže).
 
+Zápisy, ktoré čítajú alebo presúvajú príznak `isBase` (vytvorenie, `PATCH` s `isBase: true`, odstránenie), berú v transakcii advisory zámok `pg_advisory_xact_lock` s konštantným kľúčom (`BASE_LANGUAGE_LOCK_KEY` v `adminLanguages.service.ts`). Pri READ COMMITTED by inak súbežné požiadavky narazili na index `Language_isBase_key`.
+
 ```mermaid
 erDiagram
     User ||--o{ Session : "má"

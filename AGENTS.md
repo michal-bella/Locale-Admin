@@ -6,13 +6,14 @@ Current plan: [`docs/plans/phase-1.md`](docs/plans/phase-1.md). Human documentat
 
 ## Domain
 
-| Term         | Meaning                                                                                            |
-| ------------ | -------------------------------------------------------------------------------------------------- |
-| Organization | A customer. Has many projects.                                                                     |
-| Project      | One translation sheet (e.g. B2B admin, B2C iOS, B2C Android, web URLs).                            |
-| Editor       | A person who edits translations in projects.                                                       |
-| Global role  | `ADMIN` (manages users) or `EDITOR`. Stored on `User.role`.                                        |
-| Project role | Administrator, Translator, Developer, Reviewer. Per project, comes with projects (not in phase 1). |
+| Term         | Meaning                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Organization | A customer. Has many projects.                                                                                           |
+| Project      | One translation sheet (e.g. B2B admin, B2C iOS, B2C Android, web URLs).                                                  |
+| Editor       | A person who edits translations in projects.                                                                             |
+| Global role  | `ADMIN` (manages users and languages) or `EDITOR`. Stored on `User.role`.                                                |
+| Language     | Translation language from a fixed catalog (`SUPPORTED_LANGUAGES`). Exactly one is the base. Global until projects exist. |
+| Project role | Administrator, Translator, Developer, Reviewer. Per project, comes with projects (not in phase 1).                       |
 
 There is no self-registration. Only an `ADMIN` creates users.
 

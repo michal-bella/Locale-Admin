@@ -7,12 +7,13 @@ description: How to read the Locale Admin Figma design with the Figma MCP, map i
 
 File: `https://www.figma.com/design/8mjlOXj1MXEqGwkWlf83mZ/Admin-system-for-translations` (file key `8mjlOXj1MXEqGwkWlf83mZ`). Node ids in URLs use `-` (`5-2861`), MCP tools take `:` (`5:2861`).
 
-| Screen                                                                                                          | Node                                    |
-| --------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Login                                                                                                           | `5:2861`                                |
-| Users list                                                                                                      | `28:2`                                  |
-| New user modal                                                                                                  | `28:191`                                |
-| Other screens (Translations, Overview, Languages, Activity, Members, Project Settings, Profile, Import, Export) | `get_metadata` on page `0:1` lists them |
+| Screen                                                                                               | Node                                    |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Login                                                                                                | `5:2861`                                |
+| Users list                                                                                           | `28:2`                                  |
+| New user modal                                                                                       | `28:191`                                |
+| Languages                                                                                            | `3:812`                                 |
+| Other screens (Translations, Overview, Activity, Members, Project Settings, Profile, Import, Export) | `get_metadata` on page `0:1` lists them |
 
 If the Figma MCP is unavailable, stop and ask the user for screenshots.
 

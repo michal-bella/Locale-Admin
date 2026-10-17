@@ -8,6 +8,15 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Nastavenia projektu (MVP, 2026-10-17)
+
+- zdieľaný kontrakt: `ProjectSettings`, `updateProjectSettingsRequestSchema` (názov, slug `a-z0-9` s pomlčkami, farba `#RRGGBB` uložená veľkými písmenami, ochrana premenných, základný jazyk)
+- databáza: tabuľky `Project` a `ProjectMember`, seed jedného projektu `B2B Admin` / `b2b-admin` so seedovaným adminom ako členom iba do prázdnej tabuľky ([Databáza](./database.md))
+- backend: `GET` a `PATCH /api/admin/project` iba pre ADMIN; zmena základného jazyka v tej istej transakcii cez spoločnú funkciu `setBaseLanguage` ([API](./api/admin-project.md))
+- frontend: stránka `/project-settings` podľa Figmy doplnená o Základný jazyk a disabled tlačidlo Opustiť projekt, položka Nastavenia projektu v sekcii SPRÁVA sidebaru
+- E2E: testy stránky (uloženie, základný jazyk, validácia, EDITOR 403, odhlásený), sidebar a axe s novou stránkou
+- plán: [project-settings.md](./plans/project-settings.md)
+
 ### Jazyky (MVP, 2026-10-17)
 
 - zdieľaný kontrakt: katalóg 9 podporovaných jazykov (`SUPPORTED_LANGUAGES`: bg, cs, de-AT, en, hr, hu, ro, ru, sk), `Language`, `createLanguageRequestSchema`, `updateLanguageRequestSchema`, nové chybové kódy `LANGUAGE_TAKEN` a `LANGUAGE_IS_BASE`

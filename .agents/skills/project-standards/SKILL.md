@@ -17,7 +17,7 @@ Run from the repo root (Node from `.nvmrc`: `nvm use`; pnpm via corepack).
 | `pnpm secretlint` | scans all files for secrets                                                                                   |
 | `pnpm verify`     | lint + typecheck + secretlint + unit + integration tests. Must pass before a step is done                     |
 
-There is one ESLint config (`eslint.config.js`) and one Prettier config (`prettier.config.js`) in the root. Module-specific rules are separate blocks in the root ESLint config scoped by `files` (e.g. React rules only for `frontend/**`). Always lint from the root.
+There is one ESLint config (`eslint.config.js`) and one Prettier config (`prettier.config.js`) in the root. Module-specific rules are separate blocks in the root ESLint config scoped by `files` (e.g. React rules only for `frontend/**`). Always lint from the root. ESLint and Prettier skip `.claude/worktrees/` (Claude Code worktrees nested in the repo, each linted from its own root); Prettier also skips the local `.claude/launch.json`.
 
 ## Formatting
 

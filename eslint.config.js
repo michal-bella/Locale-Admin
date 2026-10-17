@@ -11,7 +11,16 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig([
-	globalIgnores(['**/node_modules/', '**/dist/', '**/build/', '**/coverage/', 'backend/src/generated/', 'e2e/test-results/', 'e2e/playwright-report/']),
+	globalIgnores([
+		'**/node_modules/',
+		'**/dist/',
+		'**/build/',
+		'**/coverage/',
+		'backend/src/generated/',
+		'e2e/test-results/',
+		'e2e/playwright-report/',
+		'.claude/worktrees/',
+	]),
 
 	// Base for every TypeScript and JavaScript file in the repo.
 	{

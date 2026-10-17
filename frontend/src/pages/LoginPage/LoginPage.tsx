@@ -48,8 +48,8 @@ const LoginPage = () => {
 				const code = getApiErrorCode(error)
 				const details = getApiErrorDetails(error)
 				if (code === ERROR_CODE.VALIDATION_ERROR && details.length > 0) {
-					details.forEach(({ path, code: issueCode, params }) =>
-						setError(path as keyof LoginRequest, { message: t(`validation.${issueCode}`, params) }),
+					details.forEach(({ path, code: issueCode, params }, index) =>
+						setError(path as keyof LoginRequest, { message: t(`validation.${issueCode}`, params) }, { shouldFocus: index === 0 }),
 					)
 					return
 				}

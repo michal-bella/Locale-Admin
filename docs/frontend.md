@@ -141,7 +141,7 @@ Po každej úspešnej mutácii sa invaliduje celý zoznam `QUERY_KEYS.LANGUAGES(
 
 Prihlásené stránky majú `AppLayout` postavený na Mantine `AppShell` s `layout="alt"`: sidebar je fixný vľavo na celú výšku okna, horná lišta (64 px) a obsah sú vpravo od neho. Obsah routy je v `AppShell.Main` (`<main>`) a scrolluje celá stránka, sidebar a lišta ostávajú na mieste. Drobčeky a ikona `?` z Figmy zatiaľ nie sú.
 
-**Úzke obrazovky (pod `md`, 62em):** sidebar je skrytý mimo obrazovky a otvára sa tlačidlom `Burger` vľavo v hornej lište (**Otvoriť navigáciu**, `aria-expanded`, `aria-controls` na sidebar). Otvorený sidebar má celú šírku obrazovky a vlastný `Burger` (**Zavrieť navigáciu**). Zatvorí sa aj po kliknutí na položku navigácie alebo **Môj profil**. Zatvorený sidebar má okrem posunu Mantine aj `visibility: hidden` (`data-collapsed`), aby jeho odkazy neboli v poradí tabulátora.
+**Úzke obrazovky (pod `md`, 62em):** sidebar je skrytý mimo obrazovky a otvára sa tlačidlom `Burger` vľavo v hornej lište (**Otvoriť navigáciu**, `aria-expanded`, `aria-controls` na sidebar). Otvorený sidebar má celú šírku obrazovky a vlastný `Burger` (**Zavrieť navigáciu**). Zatvorí sa aj po kliknutí na položku navigácie alebo **Môj profil**. Zatvorený sidebar má okrem posunu Mantine aj `visibility: hidden` (`data-collapsed`), aby jeho odkazy neboli v poradí tabulátora. Pri zatvorení sa fokus presunie na **Otvoriť navigáciu** v hornej lište, inak by ostal na skrytom prvku sidebaru.
 
 ### Sidebar
 
@@ -186,7 +186,7 @@ Podľa Figmy `5:2861`: `CenteredLayout`, `PageIntro` (Prihlásenie / Vitajte sp�
 Podľa Figmy `28:2` bez drobčekov, vnútri `AppLayout` na route `/admin/users` (iba `ADMIN`, položka **Používatelia** v sekcii SPRÁVA sidebaru). Obsah má šírku najviac 1200 px a padding 32 px.
 
 - Hlavička: `PageIntro` s `titleSize="h2"` (malý ružový nadpis „Správa“, H1 „Používatelia“ vo veľkosti 28 px, popis) a vpravo dole primárne tlačidlo **Vytvoriť používateľa** s ikonou `Plus`, ktoré otvorí modál.
-- `UsersTable`: Mantine `Table` v karte (biela, okraj `slate.2`, radius `xl`). Hlavička tabuľky na pozadí `slate.0`, texty 10 px / 700 veľkými písmenami `slate.4`. Stĺpce **E-mail** (avatar 32 px s iniciálami z emailu cez `getInitials({ email, firstName: null, lastName: null })`, pozadie `slate.1`, text `slate.6`) a **Vytvorený** (šírka 180 px, dátum cez `formatDate`). Riadky oddeľuje okraj `slate.1`. Poradie je z API (najnovší hore).
+- `UsersTable`: Mantine `Table` v karte (biela, okraj `slate.2`, radius `xl`). Hlavička tabuľky na pozadí `slate.0`, texty 10 px / 700 veľkými písmenami `slate.4`. Stĺpce **E-mail** (avatar 32 px s iniciálami z emailu cez `getInitials({ email, firstName: null, lastName: null })`, pozadie `slate.1`, text `slate.6`, `aria-hidden`, lebo vedľa je celý email) a **Vytvorený** (šírka 180 px, dátum cez `formatDate`). Riadky oddeľuje okraj `slate.1`. Poradie je z API (najnovší hore).
 - Stavy, ktoré nie sú vo Figme: načítavanie (3 riadky Mantine `Skeleton`, tabuľka má `aria-busy`), prázdny zoznam (text v tabuľke) a chyba (text „Zoznam používateľov sa nepodarilo načítať.“, preklad `errors.<CODE>` a tlačidlo **Skúsiť znova**, ktoré zavolá `refetch`).
 
 ### Formátovanie dátumu
@@ -245,6 +245,7 @@ Modály nie sú vo Figme, majú rovnaký rám ako **Nový používateľ** (`AppM
 - **Nastavenia jazyka** (`LanguageSettingsModal`, z menu **Upraviť**): React Hook Form + `zodResolver(updateLanguageRequestSchema)`, predvyplnené z riadku. Polia **Anglický názov**, **Pôvodný názov**, **Vlajka** (`Select` z `LANGUAGE_FLAG_CODES`, názov krajiny cez `Intl.DisplayNames` v jazyku UI, napr. „Slovensko (SK)“, s náhľadom vlajky) a **Tag** (disabled, popis „Tag sa nedá zmeniť.“ je pod poľom, aby boli **Vlajka** a **Tag** v jednom riadku zarovnané). Prepínač **Základný jazyk** sa dá iba zapnúť (pošle `isBase: true`), pri základnom jazyku je zapnutý a disabled. Päta: **Odstrániť jazyk** vľavo (disabled pri základnom jazyku), **Zrušiť**, **Uložiť** (disabled, kým sa formulár nezmení). Úspech → zelená notifikácia „Jazyk {{name}} bol uložený.“ a zatvorenie. `400` → `setError` pri poliach podľa `details`, `404` → červená notifikácia, zatvorenie a nové načítanie zoznamu, iné → červená notifikácia.
 - **Odstrániť jazyk** (`ConfirmDeleteModal`, šírka 440 px): každé odstránenie (z menu riadku aj z Nastavení) ide cez potvrdenie „Naozaj chcete odstrániť jazyk {{name}} ({{tag}})?“ s tlačidlami **Zrušiť** a červeným **Odstrániť** (`loading`). Úspech → zelená notifikácia „Jazyk {{name}} bol odstránený.“ a zatvoria sa oba modály. `404` zatvorí oba modály s červenou notifikáciou, iné chyby (`409 LANGUAGE_IS_BASE`) ukážu červenú notifikáciu a potvrdenie ostane otvorené. Pri `409 LANGUAGE_IS_BASE` sa zoznam načíta znova, takže riadok dostane odznak **Základný** a **Odstrániť** v jeho menu je disabled.
 - Potvrdenie sa otvára nad Nastaveniami (`zIndex` o 1 vyšší). Mantine počúva `Esc` na `window`, takže kým je potvrdenie otvorené, Nastavenia majú vypnuté `Esc`, klik mimo a focus trap (`inBackground`), inak by `Esc` zavrel oba modály. `Modal.Stack` sa nepoužil, lebo funguje iba s `Modal`, nie s `Modal.Root`.
+- Fokus po zatvorení: Mantine vracia fokus na prvok, ktorý mal fokus pri otvorení modálu, čo je pri otvorení z menu riadku už zatvorená položka menu. `LanguagesPage` si preto pamätá tlačidlo, ktoré modál otvorilo (`⋯` riadku, **Pridať jazyk** v hlavičke alebo v prázdnom stave), a po zatvorení vráti fokus naň. Ak tlačidlo zmizlo alebo je disabled (riadok sa odstránil, prázdny stav po pridaní jazyka, pridaný posledný jazyk z katalógu), fokus dostane tabuľka (`tabIndex={-1}`, prístupné meno „Zoznam jazykov“). Po odstránení jazyka ide fokus vždy na tabuľku. Potvrdenie otvorené z Nastavení vracia fokus do Nastavení (Mantine).
 
 ## Stránka Môj profil
 
@@ -440,6 +441,14 @@ Cieľ sú základy WCAG 2.2 úrovne AA. Kontroluje ich rola `accessibility-revie
 
 - **ESLint** `eslint-plugin-jsx-a11y` (config `recommended`) pre `frontend/**/*.tsx`, beží v `pnpm lint` a teda aj v `pnpm verify`. Vidí iba natívne JSX elementy (`img`, `a`, `div` s `onClick`, `autoFocus` …), Mantine komponenty (`Button`, `ActionIcon`, `Modal`) nekontroluje. Posledná verzia pluginu (6.10.2) deklaruje ako peer ESLint najviac 9; s ESLint 10 pravidlá fungujú, `pnpm install` iba vypíše varovanie o peer závislosti.
 - **axe** (`@axe-core/playwright`) v E2E teste `e2e/tests/accessibility.spec.ts` skenuje vyrenderované obrazovky v svetlej aj tmavej schéme, viď [Testovanie](./testing.md#prístupnosť-axe).
+
+Pravidlá v kóde:
+
+- `document.title` je „{{page}} – Locale“ (kľúč `documentTitle`). Nastavuje ho `PageIntro` z nadpisu stránky cez hook `hooks/useDocumentTitle.ts`, takže sa mení s navigáciou aj s jazykom UI. Prázdna domovská stránka má vizuálne skrytý `h1` **Domov** (`homePage.title`) a rovnaký titulok.
+- Notifikácie renderuje `AppNotifications` (`main.tsx`): Mantine `Notifications` s preloženým prístupným menom krížika (`notification.close`, Mantine ho bez `closeButtonProps` nemá). Notifikácia aj `Alert` majú `role="alert"`.
+- Chyba z API pri poli (`400` `details`, `409 EMAIL_TAKEN`, `409 LANGUAGE_TAKEN`) presunie fokus na prvé chybné pole (`setError(..., { shouldFocus: true })`, v **Pridať jazyk** na select), aby čítačka prečítala chybu. Chyby z klientskej validácie fokusuje React Hook Form sám (`shouldFocusError`).
+- Po úspešnom **Skúsiť znova** v tabuľke používateľov alebo jazykov dostane fokus tabuľka (`tabIndex={-1}`), lebo tlačidlo nahradia riadky.
+- Theme má `respectReducedMotion: true`, pri `prefers-reduced-motion` Mantine vypne prechody.
 
 Čo automatické kontroly nezachytia (poradie fokusu, návrat fokusu po modáli, zrozumiteľnosť textov, oznamovanie stavov), kontroluje `accessibility-reviewer` ručne podľa svojho checklistu.
 

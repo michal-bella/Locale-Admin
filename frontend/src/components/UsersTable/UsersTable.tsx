@@ -1,5 +1,5 @@
 import { Avatar, Button, Skeleton, Table, Text } from '@mantine/core'
-import { type ReactNode } from 'react'
+import { type ReactNode, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { getInitials } from '@locale/shared'
@@ -16,6 +16,15 @@ const SKELETON_ROWS = 3
 const UsersTable = () => {
 	const { t, i18n } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useAdminUsersQuery()
+	const tableRef = useRef<HTMLTableElement>(null)
+
+	// A successful retry replaces the focused retry button with the rows.
+	const retry = async () => {
+		const { isSuccess } = await refetch()
+		if (isSuccess) {
+			tableRef.current?.focus()
+		}
+	}
 
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr className={classes.tr}>
@@ -48,7 +57,7 @@ const UsersTable = () => {
 						{t('usersPage.table.loadError')}
 					</Text>
 					<Text size='xs'>{t(`errors.${getApiErrorCode(error)}`)}</Text>
-					<Button variant='default' mt='md' loading={isRefetching} onClick={() => void refetch()}>
+					<Button variant='default' mt='md' loading={isRefetching} onClick={() => void retry()}>
 						{t('usersPage.table.retry')}
 					</Button>
 				</div>,
@@ -61,7 +70,14 @@ const UsersTable = () => {
 			<Table.Tr key={user.id} className={classes.tr}>
 				<Table.Td className={classes.td}>
 					<div className='flex items-center gap-3'>
-						<Avatar size={32} radius='xl' color='var(--app-color-avatar-muted)' variant='filled' classNames={{ placeholder: classes.initials }}>
+						<Avatar
+							aria-hidden
+							size={32}
+							radius='xl'
+							color='var(--app-color-avatar-muted)'
+							variant='filled'
+							classNames={{ placeholder: classes.initials }}
+						>
 							{getInitials({ email: user.email, firstName: null, lastName: null })}
 						</Avatar>
 						<Text size='sm' fw={500} c='var(--app-color-text-strong)' className={classes.email}>
@@ -78,7 +94,7 @@ const UsersTable = () => {
 
 	return (
 		<div className={classes.card}>
-			<Table aria-label={t('usersPage.table.label')} aria-busy={isPending} withRowBorders={false}>
+			<Table ref={tableRef} tabIndex={-1} aria-label={t('usersPage.table.label')} aria-busy={isPending} withRowBorders={false}>
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('usersPage.table.email')}</Table.Th>

@@ -2,7 +2,6 @@ import '@/styles/global.css'
 import '@/lib/i18n'
 
 import { MantineProvider } from '@mantine/core'
-import { Notifications } from '@mantine/notifications'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
@@ -10,6 +9,7 @@ import { createRoot } from 'react-dom/client'
 
 import queryClient from '@/api/queryClient'
 import { installUnauthorizedInterceptor } from '@/api/unauthorizedInterceptor'
+import AppNotifications from '@/components/AppNotifications/AppNotifications'
 import { DEFAULT_COLOR_SCHEME } from '@/lib/constants'
 import { router } from '@/routes/router'
 import { colorSchemeManager, cssVariablesResolver, mantineTheme } from '@/styles/mantineTheme'
@@ -30,7 +30,7 @@ createRoot(rootElement).render(
 			colorSchemeManager={colorSchemeManager}
 			defaultColorScheme={DEFAULT_COLOR_SCHEME}
 		>
-			<Notifications />
+			<AppNotifications />
 			<QueryClientProvider client={queryClient}>
 				<RouterProvider router={router} />
 			</QueryClientProvider>

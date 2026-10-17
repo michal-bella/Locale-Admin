@@ -45,7 +45,10 @@ const openModal = async () => {
 const fillAndSubmit = (dialog: HTMLElement, email: string, password: string) => {
 	fireEvent.change(within(dialog).getByLabelText('E-mail'), { target: { value: email } })
 	fireEvent.change(within(dialog).getByLabelText('Heslo'), { target: { value: password } })
-	fireEvent.click(within(dialog).getByRole('button', { name: 'Vytvoriť používateľa' }))
+	const submit = within(dialog).getByRole('button', { name: 'Vytvoriť používateľa' })
+	// fireEvent.click does not move focus like a real click or Enter does.
+	submit.focus()
+	fireEvent.click(submit)
 }
 
 /** POST /admin/users never resolves; returns the list of POST requests sent. */
@@ -85,6 +88,8 @@ describe('UsersPage table', () => {
 		expect(rows).toHaveLength(2)
 		const [martinRow, janaRow] = rows as [HTMLElement, HTMLElement]
 		expect(within(martinRow).getByText('MA')).toBeInTheDocument()
+		// Decorative: the email next to it is the row's name for screen readers.
+		expect(within(martinRow).getByRole('cell', { name: MARTIN.email })).toBeInTheDocument()
 		expect(within(martinRow).getByText('12. 10. 2026')).toBeInTheDocument()
 		expect(within(janaRow).getByText('JA')).toBeInTheDocument()
 		expect(within(janaRow).getByText(JANA.email)).toBeInTheDocument()
@@ -132,9 +137,12 @@ describe('UsersPage table', () => {
 		expect(screen.queryByText('English message that must not be shown')).not.toBeInTheDocument()
 
 		backendUp = true
-		fireEvent.click(screen.getByRole('button', { name: 'Skúsiť znova' }))
+		const retry = screen.getByRole('button', { name: 'Skúsiť znova' })
+		retry.focus()
+		fireEvent.click(retry)
 
 		expect(await screen.findByText(JANA.email)).toBeInTheDocument()
+		await waitFor(() => expect(getTable()).toHaveFocus())
 	})
 })
 
@@ -169,6 +177,7 @@ describe('CreateUserModal', () => {
 
 		expect(await within(dialog).findByText('Zadajte platný e-mail.')).toBeInTheDocument()
 		expect(within(dialog).getByText('Zadajte aspoň 8 znakov.')).toBeInTheDocument()
+		expect(within(dialog).getByLabelText('E-mail')).toHaveFocus()
 	})
 
 	it('shows 409 EMAIL_TAKEN at the email field and keeps the modal open', async () => {
@@ -183,6 +192,7 @@ describe('CreateUserModal', () => {
 
 		expect(await within(dialog).findByText('Používateľ s týmto e-mailom už existuje.')).toBeInTheDocument()
 		expect(within(dialog).getByLabelText('E-mail')).toHaveAttribute('aria-invalid', 'true')
+		expect(within(dialog).getByLabelText('E-mail')).toHaveFocus()
 		expect(screen.getByRole('dialog')).toBeInTheDocument()
 	})
 

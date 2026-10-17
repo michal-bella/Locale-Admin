@@ -4,9 +4,16 @@
 		"tagline": "Workspace",
 		"copyright": "© {{year}} Locale"
 	},
+	"documentTitle": "{{page}} – Locale",
+	"notification": {
+		"close": "Close notification"
+	},
 	"roles": {
 		"ADMIN": "Administrator",
 		"EDITOR": "Editor"
+	},
+	"homePage": {
+		"title": "Home"
 	},
 	"notFoundPage": {
 		"eyebrow": "Error 404",

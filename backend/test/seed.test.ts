@@ -5,9 +5,10 @@ import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 
 import { ROLE } from '../src/generated/prisma/enums'
-import { SEED_ADMIN_EMAIL, seedAdmin, seedLanguages } from '../src/services/seed.service'
+import { SEED_ADMIN_EMAIL, SEED_PROJECT, seedAdmin, seedLanguages, seedProject } from '../src/services/seed.service'
 
 import { getTestDatabaseUrl, getTestPrisma } from './helpers/db'
+import { createUser } from './helpers/users'
 
 const BACKEND_DIR = fileURLToPath(new URL('..', import.meta.url))
 
@@ -54,6 +55,34 @@ describe('seedLanguages', () => {
 	})
 })
 
+describe('seedProject', () => {
+	it('creates the project with only the seeded admin as a member and changes nothing on the second run', async () => {
+		const prisma = getTestPrisma()
+		await seedAdmin(prisma, 'FirstPassword1')
+		await createUser({ role: ROLE.ADMIN })
+		const admin = await prisma.user.findUniqueOrThrow({ where: { email: SEED_ADMIN_EMAIL } })
+
+		await expect(seedProject(prisma)).resolves.toBe('created')
+		const created = await prisma.project.findMany({ include: { members: true } })
+		expect(created).toMatchObject([{ ...SEED_PROJECT, primaryColor: '#E83E8C', protectVariables: true, members: [{ userId: admin.id }] }])
+		expect(created[0]?.members).toHaveLength(1)
+
+		await expect(seedProject(prisma)).resolves.toBe('exists')
+		await expect(prisma.project.findMany({ include: { members: true } })).resolves.toEqual(created)
+	})
+
+	it('changes nothing when the table already has a project', async () => {
+		const prisma = getTestPrisma()
+		await seedAdmin(prisma, 'FirstPassword1')
+		const project = await prisma.project.create({ data: { name: 'Renamed', slug: 'renamed' } })
+
+		await expect(seedProject(prisma)).resolves.toBe('exists')
+
+		await expect(prisma.project.findMany()).resolves.toEqual([project])
+		await expect(prisma.projectMember.count()).resolves.toBe(0)
+	})
+})
+
 describe('seed script', () => {
 	it('creates the admin with a valid SEED_ADMIN_PASSWORD', async () => {
 		const { stdout } = await runSeedScript({ DATABASE_URL: getTestDatabaseUrl(), SEED_ADMIN_PASSWORD: 'ValidPassword1' })
@@ -61,6 +90,8 @@ describe('seed script', () => {
 		expect(stdout).toContain('created')
 		await expect(getTestPrisma().user.count()).resolves.toBe(1)
 		await expect(getTestPrisma().language.count()).resolves.toBe(2)
+		await expect(getTestPrisma().project.count()).resolves.toBe(1)
+		await expect(getTestPrisma().projectMember.count()).resolves.toBe(1)
 	})
 
 	it.each([

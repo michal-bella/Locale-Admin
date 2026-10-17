@@ -186,6 +186,44 @@
 			"success": "Language {{name}} has been deleted."
 		}
 	},
+	"projectSettingsPage": {
+		"eyebrow": "Configuration",
+		"title": "Project settings",
+		"description": "Basic details, organization identity and translation rules.",
+		"loadError": "Project settings could not be loaded.",
+		"retry": "Try again",
+		"basics": {
+			"title": "Basic details",
+			"description": "Information visible to all project members.",
+			"name": "Project name",
+			"slug": {
+				"label": "Project slug",
+				"description": "Used to name exported files."
+			},
+			"primaryColor": {
+				"label": "Primary color",
+				"preview": "Preview"
+			},
+			"baseLanguage": {
+				"label": "Base language",
+				"placeholder": "Select a language",
+				"empty": "You have no languages yet.",
+				"emptyLink": "Add a language"
+			}
+		},
+		"variables": {
+			"title": "Dynamic segment protection",
+			"description": "Variables are detected and locked automatically while editing.",
+			"protect": {
+				"label": "Protect {{example}} expressions",
+				"description": "Users can edit the text, not the variable name or its braces."
+			}
+		},
+		"leave": "Leave project",
+		"leaveTooltip": "Available together with member management",
+		"save": "Save changes",
+		"saveSuccess": "Project settings were saved."
+	},
 	"topBar": {
 		"language": "Language",
 		"languages": {
@@ -209,6 +247,7 @@
 		"languages": "Languages",
 		"admin": "Administration",
 		"users": "Users",
+		"projectSettings": "Project settings",
 		"openNavigation": "Open navigation",
 		"closeNavigation": "Close navigation",
 		"home": "Locale – home page",

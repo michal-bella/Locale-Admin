@@ -31,6 +31,11 @@ const SCREENS: Screen[] = [
 		path: '/profile',
 		ready: (page) => expect(page.getByRole('heading', { level: 1, name: 'Môj profil' })).toBeVisible(),
 	},
+	{
+		name: 'project settings',
+		path: '/project-settings',
+		ready: (page) => expect(page.getByRole('button', { name: 'Uložiť zmeny' })).toBeVisible(),
+	},
 ]
 
 const openScreen = async (page: Page, screen: Screen, colorScheme: (typeof COLOR_SCHEMES)[number]) => {

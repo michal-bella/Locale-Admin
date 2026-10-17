@@ -1,0 +1,25 @@
+.box {
+	padding: 1rem;
+	border-radius: var(--mantine-radius-lg);
+	background-color: var(--app-color-surface-muted);
+}
+
+.switchBody {
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.switchLabel {
+	padding-inline: 0;
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	line-height: var(--mantine-line-height-xs);
+	color: var(--app-color-label);
+}
+
+.switchDescription {
+	padding-inline: 0;
+	padding-top: 0.25rem;
+	font-size: var(--mantine-font-size-3xs);
+	color: var(--app-color-muted);
+}

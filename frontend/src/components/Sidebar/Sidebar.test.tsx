@@ -7,14 +7,16 @@ import { renderApp } from '@/test/renderApp'
 const findNavigation = async () => within(await screen.findByRole('navigation', { name: 'Hlavná navigácia' }))
 
 describe('Sidebar', () => {
-	it('shows Jazyky and, under SPRÁVA, Používatelia to an ADMIN', async () => {
+	it('shows Jazyky and, under SPRÁVA, Používatelia and Nastavenia projektu to an ADMIN', async () => {
 		signedInAs(ADMIN_USER)
 		renderApp('/')
 		const navigation = await findNavigation()
 
 		expect(navigation.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('href', '/languages')
-		expect(navigation.getByRole('list', { name: 'Správa' })).toBeInTheDocument()
-		expect(within(navigation.getByRole('list', { name: 'Správa' })).getByRole('link', { name: 'Používatelia' })).toHaveAttribute('href', '/admin/users')
+		const admin = within(navigation.getByRole('list', { name: 'Správa' }))
+		expect(admin.getAllByRole('link').map((link) => link.textContent)).toEqual(['Používatelia', 'Nastavenia projektu'])
+		expect(admin.getByRole('link', { name: 'Používatelia' })).toHaveAttribute('href', '/admin/users')
+		expect(admin.getByRole('link', { name: 'Nastavenia projektu' })).toHaveAttribute('href', '/project-settings')
 		expect(within(screen.getByRole('complementary')).getByText('Locale')).toBeInTheDocument()
 	})
 
@@ -39,6 +41,16 @@ describe('Sidebar', () => {
 
 		await waitFor(() => expect(router.state.location.pathname).toBe('/admin/users'))
 		await waitFor(() => expect(navigation.getByRole('link', { name: 'Používatelia' })).toHaveAttribute('aria-current', 'page'))
+		expect(navigation.getByRole('link', { name: 'Jazyky' })).not.toHaveAttribute('aria-current')
+	})
+
+	it('marks Nastavenia projektu as the current page on /project-settings', async () => {
+		signedInAs(ADMIN_USER)
+		renderApp('/project-settings')
+		const navigation = await findNavigation()
+
+		await waitFor(() => expect(navigation.getByRole('link', { name: 'Nastavenia projektu' })).toHaveAttribute('aria-current', 'page'))
+		expect(navigation.getByRole('link', { name: 'Používatelia' })).not.toHaveAttribute('aria-current')
 		expect(navigation.getByRole('link', { name: 'Jazyky' })).not.toHaveAttribute('aria-current')
 	})
 

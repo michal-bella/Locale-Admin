@@ -10,20 +10,22 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 
 ## Endpointy
 
-| Metóda   | Cesta                      | Popis                                                                          |
-| -------- | -------------------------- | ------------------------------------------------------------------------------ |
-| `GET`    | `/api/health`              | stav backendu a databázy, [detail](./health.md)                                |
-| `POST`   | `/api/auth/login`          | prihlásenie, session cookie, [detail](./auth.md)                               |
-| `POST`   | `/api/auth/logout`         | odhlásenie, [detail](./auth.md)                                                |
-| `GET`    | `/api/auth/me`             | prihlásený používateľ, [detail](./auth.md)                                     |
-| `GET`    | `/api/admin/users`         | zoznam používateľov (ADMIN), [detail](./admin-users.md)                        |
-| `POST`   | `/api/admin/users`         | vytvorenie používateľa (ADMIN), [detail](./admin-users.md)                     |
-| `GET`    | `/api/admin/languages`     | zoznam jazykov (ADMIN), [detail](./admin-languages.md)                         |
-| `POST`   | `/api/admin/languages`     | pridanie jazyka z katalógu (ADMIN), [detail](./admin-languages.md)             |
-| `PATCH`  | `/api/admin/languages/:id` | úprava jazyka, zmena základného jazyka (ADMIN), [detail](./admin-languages.md) |
-| `DELETE` | `/api/admin/languages/:id` | odstránenie jazyka (ADMIN), [detail](./admin-languages.md)                     |
-| `GET`    | `/api/profile`             | profil prihláseného používateľa, [detail](./profile.md)                        |
-| `PATCH`  | `/api/profile`             | úprava mena a priezviska, [detail](./profile.md)                               |
+| Metóda   | Cesta                      | Popis                                                                                 |
+| -------- | -------------------------- | ------------------------------------------------------------------------------------- |
+| `GET`    | `/api/health`              | stav backendu a databázy, [detail](./health.md)                                       |
+| `POST`   | `/api/auth/login`          | prihlásenie, session cookie, [detail](./auth.md)                                      |
+| `POST`   | `/api/auth/logout`         | odhlásenie, [detail](./auth.md)                                                       |
+| `GET`    | `/api/auth/me`             | prihlásený používateľ, [detail](./auth.md)                                            |
+| `GET`    | `/api/admin/users`         | zoznam používateľov (ADMIN), [detail](./admin-users.md)                               |
+| `POST`   | `/api/admin/users`         | vytvorenie používateľa (ADMIN), [detail](./admin-users.md)                            |
+| `GET`    | `/api/admin/languages`     | zoznam jazykov (ADMIN), [detail](./admin-languages.md)                                |
+| `POST`   | `/api/admin/languages`     | pridanie jazyka z katalógu (ADMIN), [detail](./admin-languages.md)                    |
+| `PATCH`  | `/api/admin/languages/:id` | úprava jazyka, zmena základného jazyka (ADMIN), [detail](./admin-languages.md)        |
+| `DELETE` | `/api/admin/languages/:id` | odstránenie jazyka (ADMIN), [detail](./admin-languages.md)                            |
+| `GET`    | `/api/admin/project`       | nastavenia projektu (ADMIN), [detail](./admin-project.md)                             |
+| `PATCH`  | `/api/admin/project`       | uloženie nastavení projektu a základného jazyka (ADMIN), [detail](./admin-project.md) |
+| `GET`    | `/api/profile`             | profil prihláseného používateľa, [detail](./profile.md)                               |
+| `PATCH`  | `/api/profile`             | úprava mena a priezviska, [detail](./profile.md)                                      |
 
 ## Chybový kontrakt
 

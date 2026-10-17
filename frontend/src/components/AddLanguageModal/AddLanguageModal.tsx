@@ -68,6 +68,11 @@ const AddLanguageModal = ({ opened, onClose, languages }: AddLanguageModalProps)
 						setFieldError(t(`validation.${issue.code}`, issue.params))
 						return
 					}
+					if (code === ERROR_CODE.LANGUAGE_TAKEN) {
+						setTag(null)
+						setFieldError(t('errors.LANGUAGE_TAKEN'))
+						return
+					}
 					notifications.show({ color: 'red', message: t(`errors.${code}`) })
 				},
 			},

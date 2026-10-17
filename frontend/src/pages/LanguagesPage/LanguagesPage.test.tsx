@@ -101,6 +101,7 @@ describe('LanguagesPage table', () => {
 		expect(screen.getByRole('heading', { level: 1, name: 'Jazyky' })).toBeInTheDocument()
 		expect(screen.getByText('Nastavte zdrojový jazyk a spravujte cieľové jazyky projektu.')).toBeInTheDocument()
 		expect(within(getTable()).getByRole('columnheader', { name: 'Jazyk' })).toBeInTheDocument()
+		expect(within(getTable()).getByRole('columnheader', { name: 'Akcie' })).toBeInTheDocument()
 		expect(within(getTable()).getAllByRole('row').slice(1)).toHaveLength(2)
 
 		const slovakRow = getRow('Slovak')
@@ -225,22 +226,39 @@ describe('AddLanguageModal', () => {
 		expect(screen.getByRole('button', { name: 'Pridať jazyk' })).toBeDisabled()
 	})
 
-	it('shows 409 LANGUAGE_TAKEN as a notification, keeps the modal open and refetches the list', async () => {
+	it('shows 409 LANGUAGE_TAKEN at the field, clears the selection and refetches the list', async () => {
 		const show = vi.spyOn(notifications, 'show')
+		let languages = [SLOVAK]
 		const requests = signedInAs(ADMIN_USER, {
-			'GET /admin/languages': languagesResponse([SLOVAK]),
-			'POST /admin/languages': apiError(409, 'LANGUAGE_TAKEN'),
+			'GET /admin/languages': () => languagesResponse(languages),
+			'POST /admin/languages': () => {
+				languages = [SLOVAK, RUSSIAN]
+				return apiError(409, 'LANGUAGE_TAKEN')
+			},
 		})
 		renderApp('/languages')
 		await screen.findByText('Slovak')
 		const dialog = await openAddModal()
 
-		await pickOption(within(dialog).getByLabelText('Jazyk', { selector: 'input' }), 'Russian – русский – ru')
-		fireEvent.click(within(dialog).getByRole('button', { name: 'Pridať' }))
+		const input = within(dialog).getByLabelText('Jazyk', { selector: 'input' })
+		const submit = within(dialog).getByRole('button', { name: 'Pridať' })
+		await pickOption(input, 'Russian – русский – ru')
+		fireEvent.click(submit)
 
-		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Tento jazyk je už pridaný.' })))
+		expect(await within(dialog).findByText('Tento jazyk je už pridaný.')).toBeInTheDocument()
+		expect(input).toHaveAttribute('aria-invalid', 'true')
+		expect(input).toHaveValue('')
+		expect(submit).toBeDisabled()
+		expect(show).not.toHaveBeenCalledWith(expect.objectContaining({ color: 'red' }))
 		expect(screen.getByRole('dialog', { name: 'Pridať jazyk' })).toBeInTheDocument()
 		await waitFor(() => expect(requests.filter((request) => request.method === 'get' && request.url === '/admin/languages')).toHaveLength(2))
+
+		fireEvent.click(input)
+		await waitFor(() => expect(screen.getByRole('option', { name: 'Russian – русский – ru' })).toHaveAttribute('data-combobox-disabled', 'true'))
+		fireEvent.click(screen.getByRole('option', { name: 'English – English – en' }))
+		expect(within(dialog).queryByText('Tento jazyk je už pridaný.')).not.toBeInTheDocument()
+		expect(input).not.toHaveAttribute('aria-invalid')
+		expect(submit).toBeEnabled()
 	})
 })
 
@@ -432,11 +450,19 @@ describe('Deleting a language', () => {
 		await waitFor(() => expect(within(getTable()).queryByText('English')).not.toBeInTheDocument())
 	})
 
-	it('shows 409 LANGUAGE_IS_BASE as a notification', async () => {
+	it('shows 409 LANGUAGE_IS_BASE as a notification and refetches the list', async () => {
 		const show = vi.spyOn(notifications, 'show')
-		signedInAs(ADMIN_USER, {
-			'GET /admin/languages': languagesResponse([SLOVAK, ENGLISH]),
-			[`DELETE /admin/languages/${ENGLISH.id}`]: apiError(409, 'LANGUAGE_IS_BASE'),
+		let languages = [SLOVAK, ENGLISH]
+		const requests = signedInAs(ADMIN_USER, {
+			'GET /admin/languages': () => languagesResponse(languages),
+			[`DELETE /admin/languages/${ENGLISH.id}`]: () => {
+				// Another admin made English the base language in the meantime.
+				languages = [
+					{ ...ENGLISH, isBase: true },
+					{ ...SLOVAK, isBase: false },
+				]
+				return apiError(409, 'LANGUAGE_IS_BASE')
+			},
 		})
 		renderApp('/languages')
 
@@ -450,6 +476,9 @@ describe('Deleting a language', () => {
 				expect.objectContaining({ color: 'red', message: 'Základný jazyk nie je možné odstrániť. Najprv nastavte iný základný jazyk.' }),
 			),
 		)
-		expect(getRow('English')).toBeInTheDocument()
+		expect(screen.getByRole('dialog', { name: 'Odstrániť jazyk' })).toBeInTheDocument()
+		await waitFor(() => expect(requests.filter((request) => request.method === 'get' && request.url === '/admin/languages')).toHaveLength(2))
+		await waitFor(() => expect(within(getRow('English')).getByText('Základný')).toBeInTheDocument())
+		expect(within(getRow('Slovak')).queryByText('Základný')).not.toBeInTheDocument()
 	})
 })

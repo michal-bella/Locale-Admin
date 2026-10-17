@@ -131,6 +131,7 @@
 			"language": "Jazyk",
 			"base": "Základný",
 			"actions": "Akcie pre jazyk {{name}}",
+			"actionsColumn": "Akcie",
 			"edit": "Upraviť",
 			"delete": "Odstrániť",
 			"empty": "Zatiaľ nemáte žiadne jazyky.",

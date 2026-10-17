@@ -58,7 +58,7 @@ Run from the repo root. Package manager is **pnpm** only (never npm or yarn).
 
 ## Agents and workflow
 
-Roles are defined in [`.agents/agents/`](.agents/agents/): `orchestrator`, `frontend-developer`, `backend-developer`, `e2e-tester`, `code-reviewer`. Feature flow: [`.agents/workflows/feature.md`](.agents/workflows/feature.md).
+Roles are defined in [`.agents/agents/`](.agents/agents/): `orchestrator`, `frontend-developer`, `backend-developer`, `e2e-tester`, `accessibility-reviewer`, `code-reviewer`. Feature flow: [`.agents/workflows/feature.md`](.agents/workflows/feature.md).
 
 ## Skills
 

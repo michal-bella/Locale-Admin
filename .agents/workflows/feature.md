@@ -45,14 +45,18 @@ Keep git's default merge message (`Merge branch '…'`); commitlint ignores it, 
 
 The E2E Tester runs smoke tests and Playwright against the stack and checks the acceptance criteria of the step.
 
-## 6. Review
+## 6. Accessibility
 
-The Code Reviewer reviews `git diff <step-base>...main` and re-runs `check-scope.sh` for every role branch with the bases from step 2. Findings go back to the role that owns the file; repeat 2–6 until no `high` findings are open and `medium` ones are fixed or deferred with a reason.
+When the step changes `frontend/`, the Accessibility Reviewer works in its own worktree created from the integrated `main` (`scripts/agents/worktree.sh create a11y <task>`). It checks the step's frontend diff against its checklist, fixes the gaps on `agent/a11y-<task>` and hands off. The orchestrator runs `check-scope.sh accessibility-reviewer <base> agent/a11y-<task>`, merges and re-runs `pnpm verify`. Findings it could not fix go to the Frontend Developer or the orchestrator.
 
-## 7. Documentation
+## 7. Review
+
+The Code Reviewer reviews `git diff <step-base>...main` and re-runs `check-scope.sh` for every role branch with the bases from step 2. Findings go back to the role that owns the file; repeat 2–7 until no `high` findings are open and `medium` ones are fixed or deferred with a reason.
+
+## 8. Documentation
 
 The role that made a change updates the matching `docs/` page in the same branch. The Code Reviewer checks that `docs/` matches the code.
 
-## 8. Checkpoint
+## 9. Checkpoint
 
 The orchestrator removes the worktrees (`scripts/agents/worktree.sh remove fe login`), adds an entry to `docs/changelog.md` and reports to the user.

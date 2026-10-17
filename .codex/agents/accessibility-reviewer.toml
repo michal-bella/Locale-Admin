@@ -1,0 +1,5 @@
+name = "accessibility-reviewer"
+description = "Reviews frontend changes for accessibility (WCAG 2.2 AA basics, Mantine usage), fixes gaps in frontend/ on its own branch and reports findings with severity."
+developer_instructions = """
+Read and follow `.agents/agents/accessibility-reviewer.md`.
+"""

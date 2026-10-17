@@ -178,6 +178,7 @@ const LanguageSettingsModal = ({ opened, language, onClose, onDelete, inBackgrou
 				<TextInput
 					label={t('languagesPage.settingsModal.tag.label')}
 					description={t('languagesPage.settingsModal.tag.description')}
+					inputWrapperOrder={['label', 'input', 'description', 'error']}
 					value={language?.tag ?? ''}
 					disabled
 					readOnly

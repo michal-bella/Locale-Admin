@@ -1,19 +1,18 @@
-/* The ring keeps the white parts of the flags visible on light surfaces (same as LanguageSwitcher). */
-.round {
+/* The ring keeps the light parts of the flags visible on light surfaces (same as LanguageSwitcher). */
+.lg,
+.sm {
 	display: block;
 	flex-shrink: 0;
-	width: 2.5rem;
-	height: 2.5rem;
-	overflow: hidden;
 	border-radius: 50%;
 	box-shadow: 0 0 0 1px var(--app-color-border);
 }
 
-.rect {
-	display: block;
-	flex-shrink: 0;
+.lg {
+	width: 2.5rem;
+	height: 2.5rem;
+}
+
+.sm {
 	width: 1.25rem;
-	height: auto;
-	border-radius: 2px;
-	box-shadow: 0 0 0 1px var(--app-color-border);
+	height: 1.25rem;
 }

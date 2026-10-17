@@ -9,7 +9,8 @@
 		"preview": "vp preview",
 		"test": "vp test run",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
-		"generate-icons": "svgr --config-file svgr.config.cjs --out-dir src/components/Icons src/assets/icons && eslint --fix src/components/Icons && prettier --write src/components/Icons"
+		"generate-icons": "svgr --config-file svgr.config.cjs --out-dir src/components/Icons src/assets/icons && eslint --fix src/components/Icons && prettier --write src/components/Icons",
+		"generate-flags": "svgr --config-file svgr.flags.config.cjs --no-index --out-dir src/components/Flags src/assets/flags && eslint --fix src/components/Flags && prettier --write src/components/Flags"
 	},
 	"dependencies": {
 		"@fontsource-variable/dm-sans": "5.3.0",

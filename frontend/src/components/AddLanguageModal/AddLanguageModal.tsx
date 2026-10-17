@@ -20,7 +20,7 @@ const renderOption: SelectProps['renderOption'] = ({ option }) => {
 	const language = findSupportedLanguage(option.value)
 	return (
 		<span className='flex items-center gap-2'>
-			{language && <LanguageFlag code={language.flagCode} variant='rect' />}
+			{language && <LanguageFlag code={language.flagCode} size='sm' />}
 			{option.label}
 		</span>
 	)
@@ -117,7 +117,7 @@ const AddLanguageModal = ({ opened, onClose, languages }: AddLanguageModalProps)
 					disabled: addedTags.has(language.tag),
 				}))}
 				renderOption={renderOption}
-				leftSection={selected && <LanguageFlag code={selected.flagCode} variant='rect' />}
+				leftSection={selected && <LanguageFlag code={selected.flagCode} size='sm' />}
 				rightSection={<ChevronDown aria-hidden />}
 				rightSectionPointerEvents='none'
 			/>

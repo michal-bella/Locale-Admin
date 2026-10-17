@@ -65,7 +65,7 @@ const LanguagesTable = ({ onAdd, onEdit, onDelete }: LanguagesTableProps) => {
 			<Table.Tr key={language.id} className={classes.tr}>
 				<Table.Td className={classes.td}>
 					<div className='flex items-center gap-3'>
-						<LanguageFlag code={language.flagCode} variant='round' />
+						<LanguageFlag code={language.flagCode} size='lg' />
 						<div className='flex flex-col'>
 							<Text size='sm' fw={600} c='var(--app-color-text-strong)' className={classes.name}>
 								{language.englishName}

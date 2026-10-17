@@ -45,9 +45,14 @@ const UserMenu = () => {
 					{t('topBar.userMenu.profile')}
 				</Menu.Item>
 				{user.role === ROLE.ADMIN && (
-					<Menu.Item component={Link} to='/admin/users'>
-						{t('topBar.userMenu.users')}
-					</Menu.Item>
+					<>
+						<Menu.Item component={Link} to='/admin/users'>
+							{t('topBar.userMenu.users')}
+						</Menu.Item>
+						<Menu.Item component={Link} to='/languages'>
+							{t('topBar.userMenu.languages')}
+						</Menu.Item>
+					</>
 				)}
 				<Menu.Item onClick={handleLogout} disabled={logout.isPending}>
 					{t('topBar.userMenu.logout')}

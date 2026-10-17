@@ -121,6 +121,63 @@
 		"save": "Uložiť profil",
 		"saveSuccess": "Profil bol uložený."
 	},
+	"languagesPage": {
+		"eyebrow": "Lokalizácia",
+		"title": "Jazyky",
+		"description": "Nastavte zdrojový jazyk a spravujte cieľové jazyky projektu.",
+		"addButton": "Pridať jazyk",
+		"table": {
+			"label": "Zoznam jazykov",
+			"language": "Jazyk",
+			"base": "Základný",
+			"actions": "Akcie pre jazyk {{name}}",
+			"edit": "Upraviť",
+			"delete": "Odstrániť",
+			"empty": "Zatiaľ nemáte žiadne jazyky.",
+			"loadError": "Zoznam jazykov sa nepodarilo načítať.",
+			"retry": "Skúsiť znova"
+		},
+		"addModal": {
+			"title": "Pridať jazyk",
+			"description": "Vyberte jazyk zo zoznamu podporovaných jazykov.",
+			"close": "Zavrieť",
+			"language": {
+				"label": "Jazyk",
+				"placeholder": "Vyhľadajte jazyk",
+				"nothingFound": "Žiadny jazyk sa nenašiel."
+			},
+			"cancel": "Zrušiť",
+			"submit": "Pridať",
+			"success": "Jazyk {{name}} bol pridaný."
+		},
+		"settingsModal": {
+			"title": "Nastavenia jazyka",
+			"close": "Zavrieť",
+			"englishName": "Anglický názov",
+			"nativeName": "Pôvodný názov",
+			"flag": "Vlajka",
+			"tag": {
+				"label": "Tag",
+				"description": "Tag sa nedá zmeniť."
+			},
+			"isBase": {
+				"label": "Základný jazyk",
+				"description": "Zdrojový jazyk, z ktorého sa prekladá. Základný je vždy práve jeden jazyk."
+			},
+			"delete": "Odstrániť jazyk",
+			"cancel": "Zrušiť",
+			"submit": "Uložiť",
+			"success": "Jazyk {{name}} bol uložený."
+		},
+		"deleteModal": {
+			"title": "Odstrániť jazyk",
+			"close": "Zavrieť",
+			"message": "Naozaj chcete odstrániť jazyk {{name}} ({{tag}})?",
+			"cancel": "Zrušiť",
+			"confirm": "Odstrániť",
+			"success": "Jazyk {{name}} bol odstránený."
+		}
+	},
 	"topBar": {
 		"language": "Jazyk",
 		"languages": {
@@ -142,6 +199,7 @@
 			"label": "Menu používateľa",
 			"profile": "Môj profil",
 			"users": "Používatelia",
+			"languages": "Jazyky",
 			"logout": "Odhlásiť"
 		}
 	},

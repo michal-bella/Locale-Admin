@@ -83,7 +83,7 @@ Tagy sú bez regiónu okrem `de-AT` (rovnako ako na screenshote). Vlajka je ISO 
   - `DELETE /api/admin/languages/:id` → `204`. `404 NOT_FOUND`, `409 LANGUAGE_IS_BASE`.
   - Neplatné `:id` (nie UUID) → `404 NOT_FOUND`, nie `500`.
   - `401 AUTH_UNAUTHENTICATED`, `403 FORBIDDEN` (EDITOR), `403 CSRF_REJECTED` pre zápisy rieši existujúci middleware.
-- **Seed:** vytvorí `sk` (základný) a `en`, aby lokálne a v E2E nebola stránka prázdna. Idempotentne (`upsert` podľa `tag`).
+- **Seed:** vytvorí `sk` (základný) a `en`, aby lokálne a v E2E nebola stránka prázdna. Iba keď je tabuľka `Language` prázdna, aby sa jazyky zmazané adminom po reštarte backendu nevracali.
 - **Vlajky:** existujúca knižnica `country-flag-icons` (už ju používa `LanguageSwitcher` cez `country-flag-icons/react/3x2`), named importy iba 9 použitých vlajok. Vo Figme vlajky nie sú, takže export cez SVGR nedáva zmysel. Okrúhla vlajka v tabuľke (namiesto textového odznaku `SK` z Figmy), obdĺžniková v selecte vlajky.
 - **FE:**
   - `api/languages/` (`languagesQuery`, `useCreateLanguageMutation`, `useUpdateLanguageMutation`, `useDeleteLanguageMutation`), `QUERY_KEYS.LANGUAGES()`. Po každej úspešnej mutácii `invalidateQueries(LANGUAGES)` (zmena základného jazyka mení dva riadky naraz), zelená notifikácia.
@@ -162,3 +162,4 @@ Návrh plánu bol schválený, otvorené otázky sa riešia odporúčaným varia
 4. **Seed** vytvorí `sk` (základný) a `en`.
 5. V tabuľke sa zobrazuje **okrúhla vlajka**, nie textový odznak z Figmy.
 6. **Tagy** sú bez regiónu okrem `de-AT`.
+7. **Seed** pridá `sk` a `en` iba do prázdnej tabuľky `Language` (doplnené po L2, keď sa ukázalo, že `upsert` by po reštarte vrátil zmazané jazyky).

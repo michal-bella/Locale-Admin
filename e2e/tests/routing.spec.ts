@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { ANONYMOUS, expectLoggedInHome, STORAGE_STATE } from '../support/auth'
+import { getMainNavigation, openUserMenu } from '../support/layout'
 
 test.describe('anonymous', () => {
 	test.use({ storageState: ANONYMOUS })
@@ -28,12 +29,11 @@ test.describe('ADMIN', () => {
 		await expectLoggedInHome(page)
 	})
 
-	test('sees the top bar and the Používatelia menu item', async ({ page }) => {
+	test('sees the top bar and the Používatelia sidebar link', async ({ page }) => {
 		await page.goto('/')
 		await expect(page.getByRole('img', { name: 'Notifikácie' })).toBeVisible()
 		await expect(page.getByRole('radiogroup', { name: 'Jazyk' })).toBeVisible()
-		await page.getByRole('button', { name: 'Menu používateľa' }).click()
-		const users = page.getByRole('menuitem', { name: 'Používatelia' })
+		const users = getMainNavigation(page).getByRole('link', { name: 'Používatelia' })
 		await expect(users).toHaveAttribute('href', '/admin/users')
 		await users.click()
 		await expect(page).toHaveURL('/admin/users')
@@ -60,11 +60,13 @@ test.describe('EDITOR', () => {
 		await expectLoggedInHome(page)
 	})
 
-	test('does not see the Používatelia menu item', async ({ page }) => {
+	test('does not see the Používatelia link in the sidebar or the user menu', async ({ page }) => {
 		await page.goto('/')
-		await page.getByRole('button', { name: 'Menu používateľa' }).click()
-		await expect(page.getByRole('menuitem', { name: 'Odhlásiť' })).toBeVisible()
-		await expect(page.getByRole('menuitem', { name: 'Používatelia' })).toHaveCount(0)
+		await expect(getMainNavigation(page)).toBeAttached()
+		await expect(page.getByRole('link', { name: 'Používatelia' })).toHaveCount(0)
+		const menu = await openUserMenu(page)
+		await expect(menu.getByRole('menuitem', { name: 'Odhlásiť sa', exact: true })).toBeVisible()
+		await expect(menu.getByRole('menuitem', { name: 'Používatelia' })).toHaveCount(0)
 	})
 
 	test('/admin/users shows the 403 page', async ({ page }) => {

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
 
 import queryClient from '@/api/queryClient'
@@ -7,32 +7,41 @@ import { renderApp } from '@/test/renderApp'
 
 const PREVIOUS_USER_DATA_KEY = ['test', 'previous-user-data']
 
+const getSidebar = async () => within(await screen.findByRole('complementary'))
+
 const openMenu = async () => fireEvent.click(await screen.findByRole('button', { name: 'Menu používateľa' }))
 
 describe('UserMenu', () => {
-	it('shows initials, email and the users link for an ADMIN', async () => {
+	it('shows initials, full name and role of an ADMIN in the sidebar', async () => {
 		signedInAs(ADMIN_USER)
 		renderApp('/')
+		const sidebar = await getSidebar()
 
-		expect(await screen.findByText('MK')).toBeInTheDocument()
-		await openMenu()
-
-		expect(await screen.findByText(ADMIN_USER.email)).toBeInTheDocument()
-		expect(screen.getByRole('menuitem', { name: 'Môj profil' })).toHaveAttribute('href', '/profile')
-		expect(screen.getByRole('menuitem', { name: 'Používatelia' })).toHaveAttribute('href', '/admin/users')
-		expect(screen.getByRole('menuitem', { name: 'Odhlásiť' })).toBeInTheDocument()
+		expect(await sidebar.findByText('MK')).toBeInTheDocument()
+		expect(sidebar.getByText('Martin Kováč')).toBeInTheDocument()
+		expect(sidebar.getByText('Administrátor')).toBeInTheDocument()
+		expect(sidebar.getByRole('button', { name: 'Menu používateľa' })).toBeInTheDocument()
 	})
 
-	it('hides the users link for an EDITOR, keeps the profile link and uses email initials', async () => {
+	it('shows the email instead of a missing name and the EDITOR role', async () => {
 		signedInAs(EDITOR_USER)
 		renderApp('/')
+		const sidebar = await getSidebar()
 
-		expect(await screen.findByText('JA')).toBeInTheDocument()
+		expect(await sidebar.findByText('JA')).toBeInTheDocument()
+		expect(sidebar.getByText(EDITOR_USER.email)).toBeInTheDocument()
+		expect(sidebar.getByText('Editor')).toBeInTheDocument()
+	})
+
+	it('has only the profile link and logout in the menu', async () => {
+		signedInAs(ADMIN_USER)
+		renderApp('/')
 		await openMenu()
 
-		expect(await screen.findByRole('menuitem', { name: 'Odhlásiť' })).toBeInTheDocument()
-		expect(screen.getByRole('menuitem', { name: 'Môj profil' })).toHaveAttribute('href', '/profile')
-		expect(screen.queryByRole('menuitem', { name: 'Používatelia' })).not.toBeInTheDocument()
+		const menu = within(await screen.findByRole('menu'))
+		expect(menu.getByText(ADMIN_USER.email)).toBeInTheDocument()
+		expect(menu.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Môj profil', 'Odhlásiť sa'])
+		expect(menu.getByRole('menuitem', { name: 'Môj profil' })).toHaveAttribute('href', '/profile')
 	})
 
 	it('logs out and goes to /login', async () => {
@@ -48,7 +57,7 @@ describe('UserMenu', () => {
 		await openMenu()
 		queryClient.setQueryData(PREVIOUS_USER_DATA_KEY, ['data of the signed-out user'])
 
-		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odhlásiť' }))
+		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odhlásiť sa' }))
 
 		await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
 		expect(await screen.findByRole('heading', { level: 1, name: 'Vitajte späť' })).toBeInTheDocument()

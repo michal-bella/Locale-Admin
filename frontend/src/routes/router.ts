@@ -5,11 +5,12 @@ import ErrorPage from '@/pages/ErrorPage/ErrorPage'
 import { adminUsersRoute } from '@/routes/adminUsersRoute'
 import { authenticatedRoute } from '@/routes/authenticatedRoute'
 import { indexRoute } from '@/routes/indexRoute'
+import { languagesRoute } from '@/routes/languagesRoute'
 import { loginRoute } from '@/routes/loginRoute'
 import { profileRoute } from '@/routes/profileRoute'
 import { rootRoute } from '@/routes/rootRoute'
 
-const routeTree = rootRoute.addChildren([loginRoute, authenticatedRoute.addChildren([indexRoute, profileRoute, adminUsersRoute])])
+const routeTree = rootRoute.addChildren([loginRoute, authenticatedRoute.addChildren([indexRoute, profileRoute, adminUsersRoute, languagesRoute])])
 
 export const createAppRouter = (options?: Pick<Parameters<typeof createRouter>[0], 'history'>) =>
 	createRouter({

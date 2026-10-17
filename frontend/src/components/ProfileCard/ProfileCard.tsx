@@ -34,7 +34,7 @@ const ProfileCard = ({ profile }: ProfileCardProps) => {
 						{fullName || profile.email}
 					</Text>
 					<Text size='xs' c='var(--app-color-muted)'>
-						{t(`profilePage.roles.${profile.role}`)}
+						{t(`roles.${profile.role}`)}
 					</Text>
 				</div>
 				<Button variant='default' leftSection={<Upload aria-hidden />} disabled>

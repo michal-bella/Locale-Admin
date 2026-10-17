@@ -1,15 +1,21 @@
-.trigger {
-	border-radius: var(--mantine-radius-xl);
-}
-
-.trigger:focus-visible {
-	outline: 2px solid var(--mantine-primary-color-filled);
-	outline-offset: 2px;
+.root {
+	margin-top: 0.75rem;
+	padding: 0.5rem;
+	border-radius: var(--mantine-radius-lg);
 }
 
 .initials {
 	font-size: var(--mantine-font-size-3xs);
 	font-weight: 700;
+}
+
+.trigger {
+	flex-shrink: 0;
+	color: var(--app-color-muted);
+}
+
+.trigger:hover {
+	background-color: var(--app-color-surface-muted);
 }
 
 .email {

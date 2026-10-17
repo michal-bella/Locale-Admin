@@ -4,6 +4,10 @@
 		"tagline": "Workspace",
 		"copyright": "© {{year}} Locale"
 	},
+	"roles": {
+		"ADMIN": "Administrátor",
+		"EDITOR": "Editor"
+	},
 	"notFoundPage": {
 		"eyebrow": "Chyba 404",
 		"title": "Stránka sa nenašla",
@@ -75,10 +79,6 @@
 		"description": "Spravujte svoje osobné údaje, preferencie a zabezpečenie účtu.",
 		"loadError": "Profil sa nepodarilo načítať.",
 		"retry": "Skúsiť znova",
-		"roles": {
-			"ADMIN": "Administrátor",
-			"EDITOR": "Editor"
-		},
 		"card": {
 			"changePhoto": "Zmeniť fotografiu"
 		},
@@ -121,6 +121,64 @@
 		"save": "Uložiť profil",
 		"saveSuccess": "Profil bol uložený."
 	},
+	"languagesPage": {
+		"eyebrow": "Lokalizácia",
+		"title": "Jazyky",
+		"description": "Nastavte zdrojový jazyk a spravujte cieľové jazyky projektu.",
+		"addButton": "Pridať jazyk",
+		"table": {
+			"label": "Zoznam jazykov",
+			"language": "Jazyk",
+			"base": "Základný",
+			"actions": "Akcie pre jazyk {{name}}",
+			"actionsColumn": "Akcie",
+			"edit": "Upraviť",
+			"delete": "Odstrániť",
+			"empty": "Zatiaľ nemáte žiadne jazyky.",
+			"loadError": "Zoznam jazykov sa nepodarilo načítať.",
+			"retry": "Skúsiť znova"
+		},
+		"addModal": {
+			"title": "Pridať jazyk",
+			"description": "Vyberte jazyk zo zoznamu podporovaných jazykov.",
+			"close": "Zavrieť",
+			"language": {
+				"label": "Jazyk",
+				"placeholder": "Vyhľadajte jazyk",
+				"nothingFound": "Žiadny jazyk sa nenašiel."
+			},
+			"cancel": "Zrušiť",
+			"submit": "Pridať",
+			"success": "Jazyk {{name}} bol pridaný."
+		},
+		"settingsModal": {
+			"title": "Nastavenia jazyka",
+			"close": "Zavrieť",
+			"englishName": "Anglický názov",
+			"nativeName": "Pôvodný názov",
+			"flag": "Vlajka",
+			"tag": {
+				"label": "Tag",
+				"description": "Tag sa nedá zmeniť."
+			},
+			"isBase": {
+				"label": "Základný jazyk",
+				"description": "Zdrojový jazyk, z ktorého sa prekladá. Základný je vždy práve jeden jazyk."
+			},
+			"delete": "Odstrániť jazyk",
+			"cancel": "Zrušiť",
+			"submit": "Uložiť",
+			"success": "Jazyk {{name}} bol uložený."
+		},
+		"deleteModal": {
+			"title": "Odstrániť jazyk",
+			"close": "Zavrieť",
+			"message": "Naozaj chcete odstrániť jazyk {{name}} ({{tag}})?",
+			"cancel": "Zrušiť",
+			"confirm": "Odstrániť",
+			"success": "Jazyk {{name}} bol odstránený."
+		}
+	},
 	"topBar": {
 		"language": "Jazyk",
 		"languages": {
@@ -137,12 +195,19 @@
 			"toDark": "Prepnúť na tmavý režim",
 			"toLight": "Prepnúť na svetlý režim"
 		},
-		"notifications": "Notifikácie",
+		"notifications": "Notifikácie"
+	},
+	"sidebar": {
+		"label": "Hlavná navigácia",
+		"languages": "Jazyky",
+		"admin": "Správa",
+		"users": "Používatelia",
+		"openNavigation": "Otvoriť navigáciu",
+		"closeNavigation": "Zavrieť navigáciu",
 		"userMenu": {
 			"label": "Menu používateľa",
 			"profile": "Môj profil",
-			"users": "Používatelia",
-			"logout": "Odhlásiť"
+			"logout": "Odhlásiť sa"
 		}
 	},
 	"errors": {
@@ -153,6 +218,8 @@
 		"CSRF_REJECTED": "Požiadavku sa nepodarilo overiť. Obnovte stránku a skúste to znova.",
 		"NOT_FOUND": "Požadovaný záznam sa nenašiel.",
 		"EMAIL_TAKEN": "Používateľ s týmto e-mailom už existuje.",
+		"LANGUAGE_TAKEN": "Tento jazyk je už pridaný.",
+		"LANGUAGE_IS_BASE": "Základný jazyk nie je možné odstrániť. Najprv nastavte iný základný jazyk.",
 		"RATE_LIMITED": "Príliš veľa pokusov. Skúste to znova neskôr.",
 		"INTERNAL_ERROR": "Nastala neočakávaná chyba. Skúste to znova.",
 		"UNKNOWN": "Nastala neznáma chyba. Skúste to znova."

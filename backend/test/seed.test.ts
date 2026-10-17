@@ -5,7 +5,7 @@ import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 
 import { ROLE } from '../src/generated/prisma/enums'
-import { SEED_ADMIN_EMAIL, seedAdmin } from '../src/services/seed.service'
+import { SEED_ADMIN_EMAIL, seedAdmin, seedLanguages } from '../src/services/seed.service'
 
 import { getTestDatabaseUrl, getTestPrisma } from './helpers/db'
 
@@ -29,12 +29,38 @@ describe('seedAdmin', () => {
 	})
 })
 
+describe('seedLanguages', () => {
+	it('creates sk as the base and en in an empty table and changes nothing on the second run', async () => {
+		const prisma = getTestPrisma()
+
+		await expect(seedLanguages(prisma)).resolves.toBe('created')
+		const created = await prisma.language.findMany({ orderBy: { tag: 'asc' } })
+		expect(created).toMatchObject([
+			{ tag: 'en', englishName: 'English', nativeName: 'English', flagCode: 'gb', isBase: false },
+			{ tag: 'sk', englishName: 'Slovak', nativeName: 'slovenčina', flagCode: 'sk', isBase: true },
+		])
+
+		await expect(seedLanguages(prisma)).resolves.toBe('exists')
+		await expect(prisma.language.findMany({ orderBy: { tag: 'asc' } })).resolves.toEqual(created)
+	})
+
+	it('changes nothing when the table already has a language', async () => {
+		const prisma = getTestPrisma()
+		const ru = await prisma.language.create({ data: { tag: 'ru', englishName: 'Russian', nativeName: 'русский', flagCode: 'ru', isBase: true } })
+
+		await expect(seedLanguages(prisma)).resolves.toBe('exists')
+
+		await expect(prisma.language.findMany()).resolves.toEqual([ru])
+	})
+})
+
 describe('seed script', () => {
 	it('creates the admin with a valid SEED_ADMIN_PASSWORD', async () => {
 		const { stdout } = await runSeedScript({ DATABASE_URL: getTestDatabaseUrl(), SEED_ADMIN_PASSWORD: 'ValidPassword1' })
 
 		expect(stdout).toContain('created')
 		await expect(getTestPrisma().user.count()).resolves.toBe(1)
+		await expect(getTestPrisma().language.count()).resolves.toBe(2)
 	})
 
 	it.each([

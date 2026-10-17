@@ -1,0 +1,18 @@
+/* The ring keeps the light parts of the flags visible on light surfaces (same as LanguageSwitcher). */
+.lg,
+.sm {
+	display: block;
+	flex-shrink: 0;
+	border-radius: 50%;
+	box-shadow: 0 0 0 1px var(--app-color-border);
+}
+
+.lg {
+	width: 2.5rem;
+	height: 2.5rem;
+}
+
+.sm {
+	width: 1.25rem;
+	height: 1.25rem;
+}

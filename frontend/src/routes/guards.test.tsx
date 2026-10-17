@@ -34,6 +34,15 @@ describe('route guards', () => {
 		expect(router.state.location.pathname).toBe('/admin/users')
 	})
 
+	it('shows the 403 page to an EDITOR on /languages without requesting the list', async () => {
+		const requests = signedInAs(EDITOR_USER)
+		const router = renderApp('/languages')
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeInTheDocument()
+		expect(router.state.location.pathname).toBe('/languages')
+		expect(requests.some((request) => request.url === '/admin/languages')).toBe(false)
+	})
+
 	it('shows the users page to an ADMIN', async () => {
 		signedInAs(ADMIN_USER)
 		renderApp('/admin/users')

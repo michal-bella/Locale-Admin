@@ -4,6 +4,10 @@
 		"tagline": "Workspace",
 		"copyright": "© {{year}} Locale"
 	},
+	"roles": {
+		"ADMIN": "Administrator",
+		"EDITOR": "Editor"
+	},
 	"notFoundPage": {
 		"eyebrow": "Error 404",
 		"title": "Page not found",
@@ -75,10 +79,6 @@
 		"description": "Manage your personal details, preferences and account security.",
 		"loadError": "The profile could not be loaded.",
 		"retry": "Try again",
-		"roles": {
-			"ADMIN": "Administrator",
-			"EDITOR": "Editor"
-		},
 		"card": {
 			"changePhoto": "Change photo"
 		},
@@ -121,6 +121,64 @@
 		"save": "Save profile",
 		"saveSuccess": "Profile saved."
 	},
+	"languagesPage": {
+		"eyebrow": "Localization",
+		"title": "Languages",
+		"description": "Set the source language and manage the target languages of the project.",
+		"addButton": "Add language",
+		"table": {
+			"label": "Language list",
+			"language": "Language",
+			"base": "Base",
+			"actions": "Actions for language {{name}}",
+			"actionsColumn": "Actions",
+			"edit": "Edit",
+			"delete": "Delete",
+			"empty": "You have no languages yet.",
+			"loadError": "The language list could not be loaded.",
+			"retry": "Try again"
+		},
+		"addModal": {
+			"title": "Add language",
+			"description": "Pick a language from the list of supported languages.",
+			"close": "Close",
+			"language": {
+				"label": "Language",
+				"placeholder": "Search for a language",
+				"nothingFound": "No language found."
+			},
+			"cancel": "Cancel",
+			"submit": "Add",
+			"success": "Language {{name}} has been added."
+		},
+		"settingsModal": {
+			"title": "Language settings",
+			"close": "Close",
+			"englishName": "English name",
+			"nativeName": "Native name",
+			"flag": "Flag",
+			"tag": {
+				"label": "Tag",
+				"description": "The tag cannot be changed."
+			},
+			"isBase": {
+				"label": "Base language",
+				"description": "The source language translations are made from. There is always exactly one base language."
+			},
+			"delete": "Delete language",
+			"cancel": "Cancel",
+			"submit": "Save",
+			"success": "Language {{name}} has been saved."
+		},
+		"deleteModal": {
+			"title": "Delete language",
+			"close": "Close",
+			"message": "Do you really want to delete the language {{name}} ({{tag}})?",
+			"cancel": "Cancel",
+			"confirm": "Delete",
+			"success": "Language {{name}} has been deleted."
+		}
+	},
 	"topBar": {
 		"language": "Language",
 		"languages": {
@@ -137,11 +195,18 @@
 			"toDark": "Switch to dark mode",
 			"toLight": "Switch to light mode"
 		},
-		"notifications": "Notifications",
+		"notifications": "Notifications"
+	},
+	"sidebar": {
+		"label": "Main navigation",
+		"languages": "Languages",
+		"admin": "Administration",
+		"users": "Users",
+		"openNavigation": "Open navigation",
+		"closeNavigation": "Close navigation",
 		"userMenu": {
 			"label": "User menu",
 			"profile": "My profile",
-			"users": "Users",
 			"logout": "Sign out"
 		}
 	},
@@ -153,6 +218,8 @@
 		"CSRF_REJECTED": "The request could not be verified. Refresh the page and try again.",
 		"NOT_FOUND": "The requested record was not found.",
 		"EMAIL_TAKEN": "A user with this email already exists.",
+		"LANGUAGE_TAKEN": "This language has already been added.",
+		"LANGUAGE_IS_BASE": "The base language cannot be deleted. Set another base language first.",
 		"RATE_LIMITED": "Too many attempts. Please try again later.",
 		"INTERNAL_ERROR": "An unexpected error occurred. Please try again.",
 		"UNKNOWN": "An unknown error occurred. Please try again."

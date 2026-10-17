@@ -47,6 +47,20 @@ const BASE_LANGUAGE_LOCK_KEY = 4_815_162_342
  */
 const lockBaseLanguage = (tx: Prisma.TransactionClient) => tx.$executeRaw`SELECT pg_advisory_xact_lock(${BASE_LANGUAGE_LOCK_KEY})`
 
+/** Makes the language the only base inside the caller's transaction. Returns `false` when the language does not exist. */
+export const setBaseLanguage = async (tx: Prisma.TransactionClient, languageId: string): Promise<boolean> => {
+	await lockBaseLanguage(tx)
+	const language = await tx.language.findUnique({ where: { id: languageId }, select: { isBase: true } })
+	if (!language) {
+		return false
+	}
+	if (!language.isBase) {
+		await tx.language.updateMany({ where: { isBase: true }, data: { isBase: false } })
+		await tx.language.update({ where: { id: languageId }, data: { isBase: true } })
+	}
+	return true
+}
+
 export const getSupportedLanguage = (tag: LanguageTag): SupportedLanguage => {
 	const language = SUPPORTED_LANGUAGES.find((supported) => supported.tag === tag)
 	if (!language) {
@@ -85,11 +99,10 @@ export const createLanguage = async (prisma: PrismaClient, { tag }: CreateLangua
 export const updateLanguage = async (prisma: PrismaClient, id: string, { isBase, ...names }: UpdateLanguageRequest): Promise<Language> => {
 	try {
 		const language = await prisma.$transaction(async (tx) => {
-			if (isBase) {
-				await lockBaseLanguage(tx)
-				await tx.language.updateMany({ where: { isBase: true, NOT: { id } }, data: { isBase: false } })
+			if (isBase && !(await setBaseLanguage(tx, id))) {
+				throw notFound()
 			}
-			return tx.language.update({ where: { id }, data: { ...names, ...(isBase && { isBase }) }, select: LANGUAGE_SELECT })
+			return tx.language.update({ where: { id }, data: names, select: LANGUAGE_SELECT })
 		})
 		return toLanguage(language)
 	} catch (err) {

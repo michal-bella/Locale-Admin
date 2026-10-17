@@ -39,3 +39,16 @@ export const seedLanguages = async (prisma: PrismaClient): Promise<SeedLanguages
 	})
 	return 'created'
 }
+
+export const SEED_PROJECT = { name: 'B2B Admin', slug: 'b2b-admin' } as const
+
+export type SeedProjectResult = 'created' | 'exists'
+
+/** Seeds only an empty table, so an ADMIN's changes stay after a restart. Run after `seedAdmin`: the admin becomes the only member. */
+export const seedProject = async (prisma: PrismaClient): Promise<SeedProjectResult> => {
+	if ((await prisma.project.count()) > 0) {
+		return 'exists'
+	}
+	await prisma.project.create({ data: { ...SEED_PROJECT, members: { create: { user: { connect: { email: SEED_ADMIN_EMAIL } } } } } })
+	return 'created'
+}

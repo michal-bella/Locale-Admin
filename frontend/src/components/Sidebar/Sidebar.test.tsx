@@ -75,4 +75,25 @@ describe('Sidebar', () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe('/'))
 		expect(sidebar).toHaveAttribute('data-collapsed')
 	})
+
+	it('moves focus to the top-bar burger when the narrow-screen sidebar closes, since the closed sidebar is hidden', async () => {
+		signedInAs(ADMIN_USER, { 'GET /admin/languages': { status: 200, data: [] } })
+		const router = renderApp('/')
+		const openButton = await screen.findByRole('button', { name: 'Otvoriť navigáciu' })
+		const sidebar = screen.getByRole('complementary')
+
+		fireEvent.click(openButton)
+		const closeButton = within(sidebar).getByRole('button', { name: 'Zavrieť navigáciu' })
+		closeButton.focus()
+		fireEvent.click(closeButton)
+		expect(openButton).toHaveFocus()
+
+		fireEvent.click(openButton)
+		const link = within(sidebar).getByRole('link', { name: 'Jazyky' })
+		link.focus()
+		fireEvent.click(link)
+		await waitFor(() => expect(router.state.location.pathname).toBe('/languages'))
+		expect(sidebar).toHaveAttribute('data-collapsed')
+		expect(openButton).toHaveFocus()
+	})
 })

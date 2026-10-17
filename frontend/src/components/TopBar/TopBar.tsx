@@ -9,12 +9,13 @@ import classes from './TopBar.module.css'
 import { type TopBarProps } from './types'
 
 /** Top bar of Figma 3:817 without breadcrumbs and the help icon. The bell is static until notifications exist. */
-const TopBar = ({ navbarId, navOpened, onToggleNav }: TopBarProps) => {
+const TopBar = ({ navbarId, navOpened, onToggleNav, burgerRef }: TopBarProps) => {
 	const { t } = useTranslation()
 
 	return (
 		<AppShell.Header withBorder={false} className={`${classes.root} flex items-center gap-2 px-8`}>
 			<Burger
+				ref={burgerRef}
 				hiddenFrom='md'
 				size='sm'
 				opened={navOpened}

@@ -141,7 +141,7 @@ Po každej úspešnej mutácii sa invaliduje celý zoznam `QUERY_KEYS.LANGUAGES(
 
 Prihlásené stránky majú `AppLayout` postavený na Mantine `AppShell` s `layout="alt"`: sidebar je fixný vľavo na celú výšku okna, horná lišta (64 px) a obsah sú vpravo od neho. Obsah routy je v `AppShell.Main` (`<main>`) a scrolluje celá stránka, sidebar a lišta ostávajú na mieste. Drobčeky a ikona `?` z Figmy zatiaľ nie sú.
 
-**Úzke obrazovky (pod `md`, 62em):** sidebar je skrytý mimo obrazovky a otvára sa tlačidlom `Burger` vľavo v hornej lište (**Otvoriť navigáciu**, `aria-expanded`, `aria-controls` na sidebar). Otvorený sidebar má celú šírku obrazovky a vlastný `Burger` (**Zavrieť navigáciu**). Zatvorí sa aj po kliknutí na položku navigácie alebo **Môj profil**. Zatvorený sidebar má okrem posunu Mantine aj `visibility: hidden` (`data-collapsed`), aby jeho odkazy neboli v poradí tabulátora.
+**Úzke obrazovky (pod `md`, 62em):** sidebar je skrytý mimo obrazovky a otvára sa tlačidlom `Burger` vľavo v hornej lište (**Otvoriť navigáciu**, `aria-expanded`, `aria-controls` na sidebar). Otvorený sidebar má celú šírku obrazovky a vlastný `Burger` (**Zavrieť navigáciu**). Zatvorí sa aj po kliknutí na položku navigácie alebo **Môj profil**. Zatvorený sidebar má okrem posunu Mantine aj `visibility: hidden` (`data-collapsed`), aby jeho odkazy neboli v poradí tabulátora. Pri zatvorení sa fokus presunie na **Otvoriť navigáciu** v hornej lište, inak by ostal na skrytom prvku sidebaru.
 
 ### Sidebar
 

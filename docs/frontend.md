@@ -434,6 +434,15 @@ Unit testy bežia cez `vp test` v jsdom. `src/test/setup.ts` načíta matchery `
 - `renderApp(path)` (`test/renderApp.tsx`) vyrenderuje celú aplikáciu (Mantine s `env="test"`, Query, router s memory history) a vráti router.
 - `mockApi(routes)` (`test/mockApi.ts`) nahradí adapter axios inštancie odpoveďami podľa kľúča `METHOD /url` (napr. `GET /auth/me`) a vráti zoznam odoslaných požiadaviek. Skratky `signedInAs(user)` a `signedOut()`, chyby cez `apiError(status, code)`.
 
+## Prístupnosť
+
+Cieľ sú základy WCAG 2.2 úrovne AA. Kontroluje ich rola `accessibility-reviewer` (`.agents/agents/accessibility-reviewer.md`) a dve automatické kontroly:
+
+- **ESLint** `eslint-plugin-jsx-a11y` (config `recommended`) pre `frontend/**/*.tsx`, beží v `pnpm lint` a teda aj v `pnpm verify`. Vidí iba natívne JSX elementy (`img`, `a`, `div` s `onClick`, `autoFocus` …), Mantine komponenty (`Button`, `ActionIcon`, `Modal`) nekontroluje. Posledná verzia pluginu (6.10.2) deklaruje ako peer ESLint najviac 9; s ESLint 10 pravidlá fungujú, `pnpm install` iba vypíše varovanie o peer závislosti.
+- **axe** (`@axe-core/playwright`) v E2E teste `e2e/tests/accessibility.spec.ts` skenuje vyrenderované obrazovky v svetlej aj tmavej schéme, viď [Testovanie](./testing.md#prístupnosť-axe).
+
+Čo automatické kontroly nezachytia (poradie fokusu, návrat fokusu po modáli, zrozumiteľnosť textov, oznamovanie stavov), kontroluje `accessibility-reviewer` ručne podľa svojho checklistu.
+
 ## Inšpirácia
 
 Štruktúra a štýl kódu vychádzajú z FE projektu Notino Landing (atoms, components, pages, Mantine theme, query keys, SVGR ikony). Nové repo na ňom nie je závislé.

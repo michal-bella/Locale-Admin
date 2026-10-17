@@ -4,6 +4,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import prettierConfig from 'eslint-config-prettier/flat'
 import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript'
 import { importX } from 'eslint-plugin-import-x'
+import jsxA11y from 'eslint-plugin-jsx-a11y'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import globals from 'globals'
@@ -67,6 +68,10 @@ export default defineConfig([
 		files: ['frontend/**/*.{ts,tsx}'],
 		extends: [reactHooks.configs.flat['recommended-latest'], reactRefresh.configs.vite, tanstackQuery.configs['flat/recommended']],
 		languageOptions: { globals: globals.browser },
+	},
+	{
+		files: ['frontend/**/*.tsx'],
+		extends: [jsxA11y.flatConfigs.recommended],
 	},
 
 	prettierConfig,

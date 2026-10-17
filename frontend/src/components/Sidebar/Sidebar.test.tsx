@@ -59,4 +59,20 @@ describe('Sidebar', () => {
 		fireEvent.click(within(sidebar).getByRole('button', { name: 'Zavrieť navigáciu' }))
 		expect(sidebar).toHaveAttribute('data-collapsed')
 	})
+
+	it('links the logo to the home page and closes the sidebar on narrow screens', async () => {
+		signedInAs(ADMIN_USER, { 'GET /admin/languages': { status: 200, data: [] } })
+		const router = renderApp('/languages')
+		fireEvent.click(await screen.findByRole('button', { name: 'Otvoriť navigáciu' }))
+		const sidebar = screen.getByRole('complementary')
+		const home = within(sidebar).getByRole('link', { name: 'Locale – domovská stránka' })
+
+		expect(home).toHaveAttribute('href', '/')
+		expect(sidebar).not.toHaveAttribute('data-collapsed')
+
+		fireEvent.click(home)
+
+		await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+		expect(sidebar).toHaveAttribute('data-collapsed')
+	})
 })

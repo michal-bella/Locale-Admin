@@ -20,7 +20,7 @@ const ProfileCard = ({ profile }: ProfileCardProps) => {
 					aria-hidden
 					size={88}
 					radius='xl'
-					color='slate.9'
+					color='var(--app-color-avatar)'
 					variant='filled'
 					className={classes.avatar}
 					classNames={{ placeholder: classes.initials }}
@@ -30,10 +30,10 @@ const ProfileCard = ({ profile }: ProfileCardProps) => {
 			</div>
 			<div className={`${classes.body} flex flex-wrap items-start justify-between gap-4`}>
 				<div className='flex flex-col gap-1'>
-					<Text component='h2' fz='lg' fw={700} c='slate.9' className={classes.name}>
+					<Text component='h2' fz='lg' fw={700} c='var(--app-color-title)' className={classes.name}>
 						{fullName || profile.email}
 					</Text>
-					<Text size='xs' c='slate.4'>
+					<Text size='xs' c='var(--app-color-muted)'>
 						{t(`profilePage.roles.${profile.role}`)}
 					</Text>
 				</div>

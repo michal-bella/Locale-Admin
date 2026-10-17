@@ -1,12 +1,12 @@
 .card {
-	border: 1px solid var(--mantine-color-slate-2);
+	border: 1px solid var(--app-color-border);
 	border-radius: var(--mantine-radius-xl);
-	background-color: var(--mantine-color-white);
+	background-color: var(--app-color-surface);
 }
 
 .header {
 	padding: 1.25rem;
-	border-bottom: 1px solid var(--mantine-color-slate-1);
+	border-bottom: 1px solid var(--app-color-border-subtle);
 }
 
 .body {

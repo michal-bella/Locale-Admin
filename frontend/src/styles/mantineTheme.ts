@@ -101,12 +101,16 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
 		'--app-color-eyebrow': 'var(--mantine-color-brand-7)',
 		'--app-color-avatar': 'var(--mantine-color-slate-9)',
 		'--app-color-avatar-muted': 'var(--mantine-color-slate-1)',
+		'--app-color-brand-tint': 'var(--mantine-color-brand-0)',
 	},
 	dark: {
 		'--mantine-color-body': 'var(--mantine-color-black)',
 		'--mantine-color-text': 'var(--mantine-color-slate-4)',
 		// Mantine's dark default (red-8) is below 4.5:1 on slate-900 surfaces.
 		'--mantine-color-error': 'var(--mantine-color-red-6)',
+		// Mantine's dark default (dark-6) equals slate-900 here, so disabled buttons and switch tracks would vanish on cards.
+		'--mantine-color-disabled': 'var(--mantine-color-dark-5)',
+		'--mantine-color-disabled-color': 'var(--mantine-color-dark-2)',
 		'--app-color-surface': 'var(--mantine-color-slate-9)',
 		'--app-color-surface-muted': 'var(--mantine-color-dark-7)',
 		'--app-color-border': 'var(--mantine-color-slate-7)',
@@ -121,5 +125,6 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
 		'--app-color-eyebrow': 'var(--mantine-color-brand-4)',
 		'--app-color-avatar': 'var(--mantine-color-slate-7)',
 		'--app-color-avatar-muted': 'var(--mantine-color-slate-8)',
+		'--app-color-brand-tint': 'color-mix(in srgb, var(--mantine-color-brand-9) 30%, var(--mantine-color-slate-9))',
 	},
 })

@@ -4,6 +4,10 @@
 		"tagline": "Workspace",
 		"copyright": "© {{year}} Locale"
 	},
+	"roles": {
+		"ADMIN": "Administrátor",
+		"EDITOR": "Editor"
+	},
 	"notFoundPage": {
 		"eyebrow": "Chyba 404",
 		"title": "Stránka sa nenašla",
@@ -75,10 +79,6 @@
 		"description": "Spravujte svoje osobné údaje, preferencie a zabezpečenie účtu.",
 		"loadError": "Profil sa nepodarilo načítať.",
 		"retry": "Skúsiť znova",
-		"roles": {
-			"ADMIN": "Administrátor",
-			"EDITOR": "Editor"
-		},
 		"card": {
 			"changePhoto": "Zmeniť fotografiu"
 		},
@@ -195,13 +195,19 @@
 			"toDark": "Prepnúť na tmavý režim",
 			"toLight": "Prepnúť na svetlý režim"
 		},
-		"notifications": "Notifikácie",
+		"notifications": "Notifikácie"
+	},
+	"sidebar": {
+		"label": "Hlavná navigácia",
+		"languages": "Jazyky",
+		"admin": "Správa",
+		"users": "Používatelia",
+		"openNavigation": "Otvoriť navigáciu",
+		"closeNavigation": "Zavrieť navigáciu",
 		"userMenu": {
 			"label": "Menu používateľa",
 			"profile": "Môj profil",
-			"users": "Používatelia",
-			"languages": "Jazyky",
-			"logout": "Odhlásiť"
+			"logout": "Odhlásiť sa"
 		}
 	},
 	"errors": {

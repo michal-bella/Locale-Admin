@@ -1,7 +1,7 @@
 .state {
 	padding: 2.5rem 1.25rem;
-	border: 1px solid var(--mantine-color-slate-2);
+	border: 1px solid var(--app-color-border);
 	border-radius: var(--mantine-radius-xl);
-	background-color: var(--mantine-color-white);
+	background-color: var(--app-color-surface);
 	text-align: center;
 }

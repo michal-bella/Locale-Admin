@@ -18,11 +18,11 @@ const SecuritySection = ({ passwordChangedAt }: SecuritySectionProps) => {
 			<div className='flex flex-col gap-1.5'>
 				<div className='flex items-center gap-2'>
 					<Shield aria-hidden className={classes.icon} />
-					<Text component='h2' id={titleId} size='sm' fw={700} c='slate.9'>
+					<Text component='h2' id={titleId} size='sm' fw={700} c='var(--app-color-title)'>
 						{t('profilePage.security.title')}
 					</Text>
 				</div>
-				<Text size='xs' c='slate.4'>
+				<Text size='xs' c='var(--app-color-muted)'>
 					{t('profilePage.security.passwordChanged', { relative: formatRelativeTime(passwordChangedAt, i18n.language) })}
 				</Text>
 			</div>

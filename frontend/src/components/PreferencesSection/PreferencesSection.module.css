@@ -6,7 +6,7 @@
 	font-size: var(--mantine-font-size-xs);
 	font-weight: 600;
 	line-height: var(--mantine-line-height-xs);
-	color: var(--mantine-color-slate-6);
+	color: var(--app-color-text-secondary);
 }
 
 .select {
@@ -27,11 +27,11 @@
 	font-size: var(--mantine-font-size-xs);
 	font-weight: 600;
 	line-height: var(--mantine-line-height-xs);
-	color: var(--mantine-color-slate-7);
+	color: var(--app-color-label);
 }
 
 .switchDescription {
 	padding-inline: 0;
 	font-size: var(--mantine-font-size-3xs);
-	color: var(--mantine-color-slate-4);
+	color: var(--app-color-muted);
 }

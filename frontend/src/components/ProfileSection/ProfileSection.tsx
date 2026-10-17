@@ -11,10 +11,10 @@ const ProfileSection = ({ title, description, children }: ProfileSectionProps) =
 	return (
 		<section aria-labelledby={titleId} className={classes.card}>
 			<div className={`${classes.header} flex flex-col gap-1`}>
-				<Text component='h2' id={titleId} size='sm' fw={700} c='slate.9'>
+				<Text component='h2' id={titleId} size='sm' fw={700} c='var(--app-color-title)'>
 					{title}
 				</Text>
-				<Text size='xs' c='slate.4'>
+				<Text size='xs' c='var(--app-color-muted)'>
 					{description}
 				</Text>
 			</div>

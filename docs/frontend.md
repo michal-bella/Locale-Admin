@@ -176,14 +176,14 @@ Správanie:
 Podľa Figmy `3:1762` bez sidebaru, drobčekov a ikony `?`, vnútri `AppLayout` na route `/profile` (ADMIN aj EDITOR). Obsah má šírku najviac 980 px a padding 32 px, karty sú pod sebou s medzerou 20 px. MVP ukladá iba meno a priezvisko, ostatné prvky sú zobrazené ako Mantine `disabled` (bez tooltipu a vysvetľujúceho textu).
 
 - Hlavička: `PageIntro` s `titleSize="h2"` (Používateľský účet / Môj profil / popis).
-- `ProfileCard`: hlavička 112 px s ružovým gradientom (`brand.0` → `slate.0`), avatar 88 px (`slate.9`, okraj 4 px biely, radius `xl`, iniciály 20 px / 700 cez `getInitials`, `aria-hidden`, lebo hneď za ním je nadpis s celým menom), meno 18 / 28 / 700 (bez mena sa zobrazí email) a globálna rola (`Administrátor` / `Editor`, kľúče `profilePage.roles.<ROLE>`). Tlačidlo **Zmeniť fotografiu** s ikonou `Upload` je disabled. Karta zobrazuje uložené údaje, nie rozpísaný formulár.
+- `ProfileCard`: hlavička 112 px s ružovým gradientom (`--app-color-brand-tint` → `--app-color-surface-muted`, svetlá `brand.0` → `slate.0`, tmavá stlmená ružová → `dark.7`), avatar 88 px (`--app-color-avatar`, okraj 4 px `--app-color-surface`, radius `xl`, iniciály 20 px / 700 cez `getInitials`, `aria-hidden`, lebo hneď za ním je nadpis s celým menom), meno 18 / 28 / 700 (bez mena sa zobrazí email) a globálna rola (`Administrátor` / `Editor`, kľúče `profilePage.roles.<ROLE>`). Tlačidlo **Zmeniť fotografiu** s ikonou `Upload` je disabled. Karta zobrazuje uložené údaje, nie rozpísaný formulár.
 - **Osobné údaje** (`PersonalDetailsSection` v karte `ProfileSection`): **Meno** a **Priezvisko** sú editovateľné, **E-mailová adresa** je disabled s emailom používateľa, **Pracovná pozícia** je disabled a prázdna s placeholderom „Napr. Product manager“ (pole v DB neexistuje). Dve stĺpce od šírky `sm`.
 - **Preferencie** (`PreferencesSection`): **Jazyk rozhrania** je Mantine `Select` (Slovenčina / English, kľúče `topBar.languages.<jazyk>.name`, šípka `ChevronDown` z Figmy). Zmena volá `i18n.changeLanguage` rovnako ako `LanguageSwitcher` v hornej lište, jazyk sa prepne hneď a uloží do `localStorage`, nie cez **Uložiť profil**. **E-mailové oznámenia**: tri disabled `Switch` (všetky vypnuté) s popisom, skupina má `role="group"` s nadpisom ako menom. Mantine dáva popis do `<label>`, takže je súčasťou prístupného mena prepínača.
 - **Heslo a zabezpečenie** (`SecuritySection`): ikona `Shield`, text „Heslo bolo naposledy zmenené {{relative}}.“ z `passwordChangedAt` cez `formatRelativeTime`, tlačidlo **Zmeniť heslo** je disabled.
 - **Uložiť profil** vpravo dole: React Hook Form + `zodResolver(updateProfileRequestSchema)` zo `@locale/shared` (chyby cez `toValidationCode` → `validation.<CODE>`), polia predvyplnené z profilu (`null` → prázdny reťazec). Tlačidlo je disabled, kým sa formulár nezmení (`isDirty`), počas requestu je `loading` a druhé odoslanie sa ignoruje. Úspech → zelená notifikácia „Profil bol uložený.“ a `reset` na uložené hodnoty. `400 VALIDATION_ERROR` → `setError` pri poliach podľa `details`, iná chyba → červená notifikácia `errors.<CODE>`.
 - Stavy mimo Figmy: načítavanie (4 Mantine `Skeleton` vo výške kariet, kontajner má `aria-busy`) a chyba načítania (text „Profil sa nepodarilo načítať.“, preklad `errors.<CODE>` a tlačidlo **Skúsiť znova**, ktoré zavolá `refetch`).
 
-Odchýlky od Figmy: polia a select majú výšku 44 px a text 12 px / 600 z theme (Figma 40 px, select 16 px), prepínače majú Mantine veľkosť `md` (46 × 24 px, Figma 44 × 24 px), disabled prvky majú vzhľad Mantine `disabled`, pri role chýba „· Organizácia1“ (organizácie ešte nie sú).
+Odchýlky od Figmy: polia a select majú výšku 44 px a text 12 px / 600 z theme (Figma 40 px, select 16 px), prepínače majú Mantine veľkosť `md` (46 × 24 px, Figma 44 × 24 px), disabled prvky majú vzhľad Mantine `disabled`, pri role chýba „· Organizácia1“ (organizácie ešte nie sú). Tmavá schéma nie je vo Figme, farby stránky idú cez premenné `--app-color-*` (viď Farebné schémy).
 
 ### Relatívny čas
 
@@ -231,26 +231,29 @@ Svetlá (predvolená, podľa Figmy) a tmavá schéma cez vstavanú podporu Manti
 
 Komponenty a CSS moduly nepoužívajú priamo `slate.N`, `black` ani `white`, ale premenné `--app-color-*` z `cssVariablesResolver` v `styles/mantineTheme.ts`. Svetlé hodnoty sú presne farby z Figmy.
 
-| Premenná                     | Kde                                                                        | Svetlá                | Tmavá                   |
-| ---------------------------- | -------------------------------------------------------------------------- | --------------------- | ----------------------- |
-| `--mantine-color-body`       | pozadie stránky                                                            | `#F7F8FB`             | `#020618` (`slate-950`) |
-| `--mantine-color-text`       | základný text, odstavec                                                    | `slate.5`             | `slate.4`               |
-| `--app-color-surface`        | karta tabuľky, modál, horná lišta (90 %), input                            | `white`               | `slate.9`               |
-| `--app-color-surface-muted`  | hlavička tabuľky, päta modálu (60 %)                                       | `slate.0`             | `#0B1222` (`dark.7`)    |
-| `--app-color-border`         | okraj inputu, karty, modálu, lišty, sekundárneho tlačidla, prstenec vlajky | `slate.2`             | `slate.7`               |
-| `--app-color-border-subtle`  | okraj riadkov tabuľky, oddeľovače v modáli                                 | `slate.1`             | `slate.8`               |
-| `--app-color-heading`        | H1                                                                         | `black` (`slate-950`) | `slate.0`               |
-| `--app-color-title`          | „Locale“ v logu, nadpis modálu                                             | `slate.9`             | `slate.1`               |
-| `--app-color-text-strong`    | text v inpute (placeholder 50 %), emaily, titulok chyby tabuľky            | `slate.8`             | `slate.2`               |
-| `--app-color-label`          | label poľa                                                                 | `slate.7`             | `slate.3`               |
-| `--app-color-text-secondary` | text sekundárneho tlačidla, iniciály v tabuľke                             | `slate.6`             | `slate.3`               |
-| `--app-color-muted`          | „WORKSPACE“, pätička, hlavička tabuľky, zvonček, prepínač schémy, krížik   | `slate.4`             | `slate.5`               |
-| `--app-color-eyebrow`        | malý nadpis nad H1                                                         | `brand.7`             | `brand.4`               |
-| `--app-color-avatar`         | avatar v menu používateľa (iniciály biele)                                 | `slate.9`             | `slate.7`               |
-| `--app-color-avatar-muted`   | avatar v tabuľke                                                           | `slate.1`             | `slate.8`               |
-| `--mantine-color-error`      | okraj a text chyby poľa                                                    | `red.6` (Mantine)     | `red.6`                 |
+| Premenná                         | Kde                                                                                                            | Svetlá                | Tmavá                                    |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------- | ---------------------------------------- |
+| `--mantine-color-body`           | pozadie stránky                                                                                                | `#F7F8FB`             | `#020618` (`slate-950`)                  |
+| `--mantine-color-text`           | základný text, odstavec                                                                                        | `slate.5`             | `slate.4`                                |
+| `--app-color-surface`            | karta tabuľky, modál, horná lišta (90 %), input, karty profilu, okraj avatara profilu                          | `white`               | `slate.9`                                |
+| `--app-color-surface-muted`      | hlavička tabuľky, päta modálu (60 %), koniec gradientu karty profilu                                           | `slate.0`             | `#0B1222` (`dark.7`)                     |
+| `--app-color-border`             | okraj inputu, karty, modálu, lišty, sekundárneho tlačidla, prstenec vlajky                                     | `slate.2`             | `slate.7`                                |
+| `--app-color-border-subtle`      | okraj riadkov tabuľky, oddeľovače v modáli, oddeľovač hlavičky sekcie profilu                                  | `slate.1`             | `slate.8`                                |
+| `--app-color-heading`            | H1                                                                                                             | `black` (`slate-950`) | `slate.0`                                |
+| `--app-color-title`              | „Locale“ v logu, nadpis modálu, meno a nadpisy sekcií profilu                                                  | `slate.9`             | `slate.1`                                |
+| `--app-color-text-strong`        | text v inpute (placeholder 50 %), emaily, titulok chyby tabuľky a profilu                                      | `slate.8`             | `slate.2`                                |
+| `--app-color-label`              | label poľa, label prepínača v profile                                                                          | `slate.7`             | `slate.3`                                |
+| `--app-color-text-secondary`     | text sekundárneho tlačidla, iniciály v tabuľke, labely v Preferenciách                                         | `slate.6`             | `slate.3`                                |
+| `--app-color-muted`              | „WORKSPACE“, pätička, hlavička tabuľky, zvonček, prepínač schémy, krížik, popisy a rola v profile, ikona štítu | `slate.4`             | `slate.5`                                |
+| `--app-color-eyebrow`            | malý nadpis nad H1                                                                                             | `brand.7`             | `brand.4`                                |
+| `--app-color-avatar`             | avatar v menu používateľa a v karte profilu (iniciály biele)                                                   | `slate.9`             | `slate.7`                                |
+| `--app-color-avatar-muted`       | avatar v tabuľke                                                                                               | `slate.1`             | `slate.8`                                |
+| `--app-color-brand-tint`         | začiatok gradientu karty profilu (stred cez `color-mix` 60 % s `--app-color-surface-muted`)                    | `brand.0`             | `brand.9` 30 % + `slate.9` (`color-mix`) |
+| `--mantine-color-error`          | okraj a text chyby poľa                                                                                        | `red.6` (Mantine)     | `red.6`                                  |
+| `--mantine-color-disabled`       | pozadie disabled tlačidla, inputu a dráhy prepínača                                                            | `gray.2` (Mantine)    | `dark.5` (`slate-800`)                   |
+| `--mantine-color-disabled-color` | text disabled tlačidla a inputu                                                                                | `gray.5` (Mantine)    | `dark.2` (`slate-400`)                   |
 
-- Primárna `brand` sa nemení. Ružový malý nadpis má v tmavej `brand.4` (kontrast asi 6,5 : 1 na `slate-950`, `brand.7` by mal iba 4,4 : 1). Chyba poľa je v tmavej `red.6`, lebo predvolená `red.8` z Mantine má na `slate.9` menej ako 4,5 : 1.
+- Primárna `brand` sa nemení. Ružový malý nadpis má v tmavej `brand.4` (kontrast asi 6,5 : 1 na `slate-950`, `brand.7` by mal iba 4,4 : 1). Chyba poľa je v tmavej `red.6`, lebo predvolená `red.8` z Mantine má na `slate.9` menej ako 4,5 : 1. Disabled prvky majú v tmavej `dark.5` a `dark.2`: predvolené `dark.6` z Mantine je tu `slate-900`, teda rovnaké ako pozadie karty, a disabled tlačidlá a dráhy prepínačov by na karte zanikli. Svetlá schéma ostáva na predvolených hodnotách Mantine.
 - Ikona loga má farbu `--mantine-primary-color-contrast` (biela v oboch schémach).
 - Mantine vlastné komponenty (`SegmentedControl`, `Menu`, `Notification`, `Skeleton`, `Alert`, sekundárne tlačidlo) farbia tmavú schému paletou `dark`. Tá je v theme nahradená odtieňmi `slate`: `#E2E8F0`, `#CAD5E2`, `#90A1B9`, `#62748E`, `#314158`, `#1D293D`, `#0F172B`, `#0B1222`, `#070E1D`, `#020618` (napr. `dark.4` okraje = `slate-700`, `dark.6` pozadie dropdownu a sekundárneho tlačidla = `slate-900`). Svetlá schéma paletu `dark` nepoužíva.
 

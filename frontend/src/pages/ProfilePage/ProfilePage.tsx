@@ -29,7 +29,7 @@ const ProfilePage = () => {
 		if (isError) {
 			return (
 				<div className={`${classes.state} flex flex-col items-center gap-1`}>
-					<Text size='sm' fw={600} c='slate.8'>
+					<Text size='sm' fw={600} c='var(--app-color-text-strong)'>
 						{t('profilePage.loadError')}
 					</Text>
 					<Text size='xs'>{t(`errors.${getApiErrorCode(error)}`)}</Text>

@@ -32,17 +32,22 @@ const expectUserBlock = async (page: Page, role: string) => {
 test.describe('ADMIN', () => {
 	test.use({ storageState: STORAGE_STATE.ADMIN })
 
-	test('sees Jazyky and, under Správa, Používatelia; the link of the current page has aria-current', async ({ page }) => {
+	test('sees Jazyky and, under Správa, Používatelia and Nastavenia projektu; the link of the current page has aria-current', async ({ page }) => {
 		await page.goto('/')
 		const navigation = getMainNavigation(page)
 		const languages = navigation.getByRole('link', { name: 'Jazyky' })
-		const users = navigation.getByRole('list', { name: 'Správa' }).getByRole('link', { name: 'Používatelia' })
+		const admin = navigation.getByRole('list', { name: 'Správa' })
+		const users = admin.getByRole('link', { name: 'Používatelia' })
+		const projectSettings = admin.getByRole('link', { name: 'Nastavenia projektu' })
 
-		await expect(navigation.getByRole('link')).toHaveCount(2)
+		await expect(navigation.getByRole('link')).toHaveCount(3)
+		await expect(admin.getByRole('link')).toHaveText(['Používatelia', 'Nastavenia projektu'])
 		await expect(languages).toHaveAttribute('href', '/languages')
 		await expect(users).toHaveAttribute('href', '/admin/users')
+		await expect(projectSettings).toHaveAttribute('href', '/project-settings')
 		await expect(languages).not.toHaveAttribute('aria-current')
 		await expect(users).not.toHaveAttribute('aria-current')
+		await expect(projectSettings).not.toHaveAttribute('aria-current')
 
 		await languages.click()
 		await expect(page).toHaveURL('/languages')
@@ -55,6 +60,12 @@ test.describe('ADMIN', () => {
 		await expect(page.getByRole('heading', { level: 1, name: 'Používatelia' })).toBeVisible()
 		await expect(users).toHaveAttribute('aria-current', 'page')
 		await expect(languages).not.toHaveAttribute('aria-current')
+
+		await projectSettings.click()
+		await expect(page).toHaveURL('/project-settings')
+		await expect(page.getByRole('heading', { level: 1, name: 'Nastavenia projektu' })).toBeVisible()
+		await expect(projectSettings).toHaveAttribute('aria-current', 'page')
+		await expect(users).not.toHaveAttribute('aria-current')
 	})
 
 	test('user block shows initials, name and role; its menu has only Môj profil and Odhlásiť sa', async ({ page }) => {

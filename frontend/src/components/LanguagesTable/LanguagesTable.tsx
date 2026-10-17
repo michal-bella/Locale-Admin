@@ -1,4 +1,5 @@
 import { ActionIcon, Badge, Button, Menu, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
+import { useMergedRef } from '@mantine/hooks'
 import { type ReactNode, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -48,6 +49,16 @@ const RowActions = ({ language, onEdit, onDelete }: RowActionsProps) => {
 const LanguagesTable = ({ onAdd, onEdit, onDelete, ref }: LanguagesTableProps) => {
 	const { t } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useLanguagesQuery()
+	const tableRef = useRef<HTMLTableElement>(null)
+	const mergedRef = useMergedRef(tableRef, ref)
+
+	// A successful retry replaces the focused retry button with the rows.
+	const retry = async () => {
+		const { isSuccess } = await refetch()
+		if (isSuccess) {
+			tableRef.current?.focus()
+		}
+	}
 
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr className={classes.tr}>
@@ -77,7 +88,7 @@ const LanguagesTable = ({ onAdd, onEdit, onDelete, ref }: LanguagesTableProps) =
 						{t('languagesPage.table.loadError')}
 					</Text>
 					<Text size='xs'>{t(`errors.${getApiErrorCode(error)}`)}</Text>
-					<Button variant='default' mt='md' loading={isRefetching} onClick={() => void refetch()}>
+					<Button variant='default' mt='md' loading={isRefetching} onClick={() => void retry()}>
 						{t('languagesPage.table.retry')}
 					</Button>
 				</div>,
@@ -122,7 +133,7 @@ const LanguagesTable = ({ onAdd, onEdit, onDelete, ref }: LanguagesTableProps) =
 
 	return (
 		<div className={classes.card}>
-			<Table ref={ref} tabIndex={-1} aria-label={t('languagesPage.table.label')} aria-busy={isPending} withRowBorders={false}>
+			<Table ref={mergedRef} tabIndex={-1} aria-label={t('languagesPage.table.label')} aria-busy={isPending} withRowBorders={false}>
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('languagesPage.table.language')}</Table.Th>

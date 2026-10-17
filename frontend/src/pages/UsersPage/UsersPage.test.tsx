@@ -137,9 +137,12 @@ describe('UsersPage table', () => {
 		expect(screen.queryByText('English message that must not be shown')).not.toBeInTheDocument()
 
 		backendUp = true
-		fireEvent.click(screen.getByRole('button', { name: 'Skúsiť znova' }))
+		const retry = screen.getByRole('button', { name: 'Skúsiť znova' })
+		retry.focus()
+		fireEvent.click(retry)
 
 		expect(await screen.findByText(JANA.email)).toBeInTheDocument()
+		await waitFor(() => expect(getTable()).toHaveFocus())
 	})
 })
 

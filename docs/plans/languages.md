@@ -163,3 +163,15 @@ Návrh plánu bol schválený, otvorené otázky sa riešia odporúčaným varia
 5. V tabuľke sa zobrazuje **okrúhla vlajka**, nie textový odznak z Figmy.
 6. **Tagy** sú bez regiónu okrem `de-AT`.
 7. **Seed** pridá `sk` a `en` iba do prázdnej tabuľky `Language` (doplnené po L2, keď sa ukázalo, že `upsert` by po reštarte vrátil zmazané jazyky).
+
+## Doplnenie: sidebar, vlajky, odznak (2026-10-17)
+
+Po review používateľ rozšíril úlohu:
+
+- **Sidebar** podľa Figmy ([node `3-1656`](https://www.figma.com/design/8mjlOXj1MXEqGwkWlf83mZ/Admin-system-for-translations?node-id=3-1656&m=dev)), iba s existujúcimi stránkami:
+  - hore logo Locale, pod ním položka **Jazyky** (`/languages`), v sekcii **SPRÁVA** položka **Používatelia** (`/admin/users`, ikona z položky Členovia). Obe iba pre ADMIN, EDITOR vidí sidebar bez položiek.
+  - dole meno, rola a menu `⋯` (Môj profil, Odhlásiť sa). Položky Používatelia a Jazyky sa z menu používateľa odstránia.
+  - horná lišta: prepínač SK/EN, prepínač témy a zvonček, bez loga a avatara.
+  - vynechané (ešte neexistuje): prepínač organizácie/projektu, Prehľad, Preklady, Aktivita, Členovia, Nastavenia projektu, box Chránené premenné, drobčeky.
+- **Vlajky** v stránke Jazyky sú SVG z [HatScripts/circle-flags](https://github.com/HatScripts/circle-flags) (MIT, licencia priložená v repe), navrhnuté ako kruhové. `country-flag-icons` ostáva pre obdĺžnikové vlajky v prepínači jazyka.
+- **Odznak ZÁKLADNÝ:** text vertikálne vycentrovaný.

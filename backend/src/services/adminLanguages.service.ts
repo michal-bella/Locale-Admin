@@ -38,6 +38,15 @@ const isPrismaError = (err: unknown, code: string): boolean => err instanceof Pr
 
 const notFound = () => new AppError(404, ERROR_CODE.NOT_FOUND, 'Language not found')
 
+/** Arbitrary app-wide key for `pg_advisory_xact_lock`; every write that reads or moves the base flag takes it. */
+const BASE_LANGUAGE_LOCK_KEY = 4_815_162_342
+
+/**
+ * Serializes base-affecting writes. Without it the partial unique index `Language_isBase_key` fails under
+ * concurrent requests at READ COMMITTED (e.g. two first-ever POSTs both reading `count() === 0`).
+ */
+const lockBaseLanguage = (tx: Prisma.TransactionClient) => tx.$executeRaw`SELECT pg_advisory_xact_lock(${BASE_LANGUAGE_LOCK_KEY})`
+
 export const getSupportedLanguage = (tag: LanguageTag): SupportedLanguage => {
 	const language = SUPPORTED_LANGUAGES.find((supported) => supported.tag === tag)
 	if (!language) {
@@ -51,12 +60,18 @@ export const listLanguages = async (prisma: PrismaClient): Promise<Language[]> =
 	return languages.map(toLanguage)
 }
 
-/** The first language becomes the base. No pre-check for the tag: the unique constraint (P2002) also covers concurrent requests. */
+/**
+ * The first language becomes the base. No pre-check for the tag: the unique constraint (P2002) also covers concurrent requests.
+ * The base lock guarantees that P2002 can only come from the tag, never from `Language_isBase_key`.
+ */
 export const createLanguage = async (prisma: PrismaClient, { tag }: CreateLanguageRequest): Promise<Language> => {
 	const { englishName, nativeName, flagCode } = getSupportedLanguage(tag)
-	const isBase = (await prisma.language.count()) === 0
 	try {
-		const language = await prisma.language.create({ data: { tag, englishName, nativeName, flagCode, isBase }, select: LANGUAGE_SELECT })
+		const language = await prisma.$transaction(async (tx) => {
+			await lockBaseLanguage(tx)
+			const isBase = (await tx.language.count()) === 0
+			return tx.language.create({ data: { tag, englishName, nativeName, flagCode, isBase }, select: LANGUAGE_SELECT })
+		})
 		return toLanguage(language)
 	} catch (err) {
 		if (isPrismaError(err, 'P2002')) {
@@ -71,6 +86,7 @@ export const updateLanguage = async (prisma: PrismaClient, id: string, { isBase,
 	try {
 		const language = await prisma.$transaction(async (tx) => {
 			if (isBase) {
+				await lockBaseLanguage(tx)
 				await tx.language.updateMany({ where: { isBase: true, NOT: { id } }, data: { isBase: false } })
 			}
 			return tx.language.update({ where: { id }, data: { ...names, ...(isBase && { isBase }) }, select: LANGUAGE_SELECT })
@@ -85,12 +101,15 @@ export const updateLanguage = async (prisma: PrismaClient, id: string, { isBase,
 }
 
 export const deleteLanguage = async (prisma: PrismaClient, id: string): Promise<void> => {
-	const language = await prisma.language.findUnique({ where: { id }, select: { isBase: true } })
-	if (!language) {
-		throw notFound()
-	}
-	if (language.isBase) {
-		throw new AppError(409, ERROR_CODE.LANGUAGE_IS_BASE, 'The base language cannot be deleted')
-	}
-	await prisma.language.deleteMany({ where: { id, isBase: false } })
+	await prisma.$transaction(async (tx) => {
+		await lockBaseLanguage(tx)
+		const language = await tx.language.findUnique({ where: { id }, select: { isBase: true } })
+		if (!language) {
+			throw notFound()
+		}
+		if (language.isBase) {
+			throw new AppError(409, ERROR_CODE.LANGUAGE_IS_BASE, 'The base language cannot be deleted')
+		}
+		await tx.language.delete({ where: { id } })
+	})
 }

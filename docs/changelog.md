@@ -13,7 +13,8 @@ notion_page_id:
 - zdieľaný kontrakt: katalóg 9 podporovaných jazykov (`SUPPORTED_LANGUAGES`: bg, cs, de-AT, en, hr, hu, ro, ru, sk), `Language`, `createLanguageRequestSchema`, `updateLanguageRequestSchema`, nové chybové kódy `LANGUAGE_TAKEN` a `LANGUAGE_IS_BASE`
 - databáza: tabuľka `Language` s čiastočným unikátnym indexom (najviac jeden základný jazyk), seed `sk` (základný) a `en` iba do prázdnej tabuľky ([Databáza](./database.md))
 - backend: `GET`, `POST`, `PATCH`, `DELETE /api/admin/languages` iba pre ADMIN; prvý jazyk je základný, zmena základného jazyka v jednej transakcii, základný jazyk sa nedá odstrániť ([API](./api/admin-languages.md))
-- frontend: stránka `/languages` podľa Figmy (bez stĺpcov štatistík prekladov), položka Jazyky v menu používateľa pre ADMIN, modaly Pridať jazyk, Nastavenia jazyka a potvrdenie odstránenia, okrúhle vlajky cez `country-flag-icons`
+- frontend: stránka `/languages` podľa Figmy (bez stĺpcov štatistík prekladov), modaly Pridať jazyk, Nastavenia jazyka a potvrdenie odstránenia, kruhové vlajky z [circle-flags](https://github.com/HatScripts/circle-flags) (MIT)
+- frontend: sidebar podľa Figmy (logo, Jazyky a Používatelia pre ADMIN, dole meno, rola a menu Môj profil / Odhlásiť sa), na úzkych obrazovkách cez burger; horná lišta už iba SK/EN, téma a zvonček
 - E2E: testy stránky Jazyky (pridanie, úprava, základný jazyk, odstránenie s potvrdením, EDITOR 403, odhlásený) a API smoke pre `/api/admin/languages`
 - plán: [languages.md](./plans/languages.md)
 

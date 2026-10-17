@@ -21,7 +21,9 @@ const ADMIN_PROFILE = profileOf(ADMIN_USER)
 
 const getSaveButton = () => screen.getByRole('button', { name: 'Uložiť profil' })
 
-const getTopBarAvatar = () => screen.getByRole('button', { name: 'Menu používateľa' })
+const getMain = () => within(screen.getByRole('main'))
+
+const getSidebar = () => within(screen.getByRole('complementary'))
 
 const renderProfile = async () => {
 	renderApp('/profile')
@@ -51,7 +53,7 @@ describe('ProfilePage', () => {
 		expect(screen.getByLabelText('Meno')).toHaveValue('Martin')
 		expect(screen.getByLabelText('Priezvisko')).toHaveValue('Kováč')
 		expect(screen.getByRole('heading', { level: 2, name: 'Martin Kováč' })).toBeInTheDocument()
-		expect(screen.getByText('Administrátor')).toBeInTheDocument()
+		expect(getMain().getByText('Administrátor')).toBeInTheDocument()
 		expect(screen.getByText('Heslo bolo naposledy zmenené pred 3 mesiacmi.')).toBeInTheDocument()
 	})
 
@@ -62,7 +64,7 @@ describe('ProfilePage', () => {
 		expect(screen.getByLabelText('Meno')).toHaveValue('')
 		expect(screen.getByLabelText('Priezvisko')).toHaveValue('')
 		expect(screen.getByRole('heading', { level: 2, name: EDITOR_USER.email })).toBeInTheDocument()
-		expect(screen.getByText('Editor')).toBeInTheDocument()
+		expect(getMain().getByText('Editor')).toBeInTheDocument()
 	})
 
 	it('shows the controls outside the MVP as disabled', async () => {
@@ -143,20 +145,22 @@ describe('ProfilePage', () => {
 		expect(screen.getByLabelText('Meno')).toHaveValue('Peter')
 	})
 
-	it('saves the trimmed names, notifies and updates the card and the top-bar initials', async () => {
+	it('saves the trimmed names, notifies and updates the card and the sidebar user block', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		const requests = signedInAs(ADMIN_USER, {
 			'GET /profile': { status: 200, data: ADMIN_PROFILE },
 			'PATCH /profile': { status: 200, data: { ...ADMIN_PROFILE, firstName: 'Peter', lastName: 'Novák' } },
 		})
 		await renderProfile()
-		expect(within(getTopBarAvatar()).getByText('MK')).toBeInTheDocument()
+		expect(getSidebar().getByText('MK')).toBeInTheDocument()
+		expect(getSidebar().getByText('Martin Kováč')).toBeInTheDocument()
 
 		fillNames('  Peter ', 'Novák  ')
 		fireEvent.click(getSaveButton())
 
 		expect(await screen.findByRole('heading', { level: 2, name: 'Peter Novák' })).toBeInTheDocument()
-		expect(within(getTopBarAvatar()).getByText('PN')).toBeInTheDocument()
+		expect(getSidebar().getByText('PN')).toBeInTheDocument()
+		expect(getSidebar().getByText('Peter Novák')).toBeInTheDocument()
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Profil bol uložený.' }))
 		const patches = requests.filter((request) => request.method === 'patch' && request.url === '/profile')
 		expect(patches).toHaveLength(1)
@@ -239,7 +243,7 @@ describe('ProfilePage', () => {
 		renderApp('/profile')
 
 		expect(await screen.findByText('Password was last changed 3 months ago.')).toBeInTheDocument()
-		expect(screen.getByText('Administrator')).toBeInTheDocument()
+		expect(getMain().getByText('Administrator')).toBeInTheDocument()
 	})
 
 	it('opens from the user menu', async () => {

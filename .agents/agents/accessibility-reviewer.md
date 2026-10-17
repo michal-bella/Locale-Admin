@@ -29,14 +29,14 @@ Fix `high` and `medium` findings yourself. Report a finding without fixing it on
 - Every `ActionIcon`, `CloseButton`, `Burger` and icon-only `Button` has a translated `aria-label`. Decorative icons next to text are `aria-hidden`.
 - Every input has a visible `label` prop (Mantine wires `htmlFor`, `aria-describedby` and `aria-invalid`). Placeholder is never the only label.
 - `Modal` and `Drawer` have a `title` (it becomes `aria-labelledby`); without one they need `aria-label`. Close buttons get `closeButtonProps={{ 'aria-label': t(...) }}`.
-- Images have `alt` (empty `alt=''` when decorative). Flags from `country-flag-icons` next to a language name are decorative.
+- Images have `alt` (empty `alt=''` when decorative). `LanguageFlag` next to a language name is decorative.
 - Links and buttons have text that makes sense out of context (no bare "here", "more"). Link to a route is a link, an action is a button; never `onClick` on a `div` or `span`.
 - All texts, including `aria-label`, go through `t()` and exist in `sk.json` and `en.json`.
 
 **Structure**
 
 - One `h1` per page (`PageIntro`), headings do not skip levels.
-- Landmarks: `TopBar` renders `header`, `AppLayout` and `CenteredLayout` render `main`; navigation links sit in a `nav`. A page does not add a second `main`.
+- Landmarks: `AppLayout` (Mantine `AppShell`) renders `header` (`TopBar`), `aside` with a labelled `nav` (`Sidebar`) and `main`; `CenteredLayout` renders `main`. The `Burger` toggling the sidebar has `aria-label`, `aria-expanded` and `aria-controls`. A page does not add a second `main`.
 - `Table` has a header row (`Table.Thead`) and, when the page heading does not describe it, a `Table.Caption` or `aria-label`.
 - `<html lang>` follows the active language (`lib/i18n.ts` already does it, do not break it). Each route sets a translated `document.title`.
 

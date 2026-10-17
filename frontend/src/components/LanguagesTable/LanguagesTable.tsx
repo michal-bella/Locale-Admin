@@ -1,4 +1,4 @@
-import { ActionIcon, Badge, Button, Menu, Skeleton, Table, Text } from '@mantine/core'
+import { ActionIcon, Badge, Button, Menu, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -65,7 +65,7 @@ const LanguagesTable = ({ onAdd, onEdit, onDelete }: LanguagesTableProps) => {
 			<Table.Tr key={language.id} className={classes.tr}>
 				<Table.Td className={classes.td}>
 					<div className='flex items-center gap-3'>
-						<LanguageFlag code={language.flagCode} variant='round' />
+						<LanguageFlag code={language.flagCode} size='lg' />
 						<div className='flex flex-col'>
 							<Text size='sm' fw={600} c='var(--app-color-text-strong)' className={classes.name}>
 								{language.englishName}
@@ -112,7 +112,9 @@ const LanguagesTable = ({ onAdd, onEdit, onDelete }: LanguagesTableProps) => {
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('languagesPage.table.language')}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.actionsColumn}`} />
+						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
+							<VisuallyHidden>{t('languagesPage.table.actionsColumn')}</VisuallyHidden>
+						</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>{renderBody()}</Table.Tbody>

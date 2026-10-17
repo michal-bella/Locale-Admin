@@ -35,7 +35,7 @@ const renderFlagOption: SelectProps['renderOption'] = ({ option }) => {
 	const code = findFlagCode(option.value)
 	return (
 		<span className='flex items-center gap-2'>
-			{code && <LanguageFlag code={code} variant='rect' />}
+			{code && <LanguageFlag code={code} size='sm' />}
 			{option.label}
 		</span>
 	)
@@ -169,7 +169,7 @@ const LanguageSettingsModal = ({ opened, language, onClose, onDelete, inBackgrou
 							allowDeselect={false}
 							error={errors.flagCode?.message}
 							renderOption={renderFlagOption}
-							leftSection={<LanguageFlag code={field.value} variant='rect' />}
+							leftSection={<LanguageFlag code={field.value} size='sm' />}
 							rightSection={<ChevronDown aria-hidden />}
 							rightSectionPointerEvents='none'
 						/>
@@ -178,6 +178,7 @@ const LanguageSettingsModal = ({ opened, language, onClose, onDelete, inBackgrou
 				<TextInput
 					label={t('languagesPage.settingsModal.tag.label')}
 					description={t('languagesPage.settingsModal.tag.description')}
+					inputWrapperOrder={['label', 'input', 'description', 'error']}
 					value={language?.tag ?? ''}
 					disabled
 					readOnly

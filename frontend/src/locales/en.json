@@ -4,6 +4,10 @@
 		"tagline": "Workspace",
 		"copyright": "© {{year}} Locale"
 	},
+	"roles": {
+		"ADMIN": "Administrator",
+		"EDITOR": "Editor"
+	},
 	"notFoundPage": {
 		"eyebrow": "Error 404",
 		"title": "Page not found",
@@ -75,10 +79,6 @@
 		"description": "Manage your personal details, preferences and account security.",
 		"loadError": "The profile could not be loaded.",
 		"retry": "Try again",
-		"roles": {
-			"ADMIN": "Administrator",
-			"EDITOR": "Editor"
-		},
 		"card": {
 			"changePhoto": "Change photo"
 		},
@@ -131,6 +131,7 @@
 			"language": "Language",
 			"base": "Base",
 			"actions": "Actions for language {{name}}",
+			"actionsColumn": "Actions",
 			"edit": "Edit",
 			"delete": "Delete",
 			"empty": "You have no languages yet.",
@@ -194,12 +195,19 @@
 			"toDark": "Switch to dark mode",
 			"toLight": "Switch to light mode"
 		},
-		"notifications": "Notifications",
+		"notifications": "Notifications"
+	},
+	"sidebar": {
+		"label": "Main navigation",
+		"languages": "Languages",
+		"admin": "Administration",
+		"users": "Users",
+		"openNavigation": "Open navigation",
+		"closeNavigation": "Close navigation",
+		"home": "Locale – home page",
 		"userMenu": {
 			"label": "User menu",
 			"profile": "My profile",
-			"users": "Users",
-			"languages": "Languages",
 			"logout": "Sign out"
 		}
 	},

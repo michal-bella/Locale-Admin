@@ -74,9 +74,9 @@ Výsledok `pnpm --filter frontend build` (2026-10-16, minifikované / gzip):
 | lazy: stránka Používatelia                       | 11 kB                   | 6 kB                |
 | lazy: prihlásenie                                | 4 kB                    | 2 kB                |
 
-Žiadny chunk nie je nad 500 kB a build nehlási kruhové závislosti medzi chunkmi.
+Žiadny chunk nie je nad 500 kB a build nehlási kruhové závislosti medzi chunkmi. JS pri štarte je po rozdelení o 1 % väčší, lebo Mantine komponenty, ktoré používali iba lazy stránky, sú teraz v chunku `mantine`. Lazy chunky sa o to zmenšili.
 
-Po pridaní stránky Môj profil (2026-10-17): lazy chunk stránky má 7 kB / 3 kB. Chunk `mantine` narástol na 258 kB / 78 kB (predtým 231 kB / 71 kB), lebo `Select` (Combobox) a `Switch` patria do skupiny `@mantine/*`. Kód aplikácie pri štarte rolldown rozdelil na `index` (19 kB) a zdieľaný chunk `queryKeys` (56 kB), spolu 75 kB / 28 kB. JS pri štarte je spolu 794 kB / 251 kB. JS pri štarte je o 1 % väčší, lebo Mantine komponenty, ktoré používali iba lazy stránky, sú teraz v chunku `mantine`. Lazy chunky sa o to zmenšili.
+Po pridaní stránky Môj profil (2026-10-17): lazy chunk stránky má 7 kB / 3 kB. Chunk `mantine` narástol na 258 kB / 78 kB (predtým 231 kB / 71 kB), lebo `Select` (Combobox) a `Switch` patria do skupiny `@mantine/*`. Kód aplikácie pri štarte rolldown rozdelil na `index` (19 kB) a zdieľaný chunk `queryKeys` (56 kB), spolu 75 kB / 28 kB. JS pri štarte je spolu 794 kB / 251 kB, teda o 31 kB / 10 kB (asi 4 %) viac ako pred stránkou. Je to vedome prijaté, hoci `Select` a `Switch` zatiaľ používa iba lazy stránka profilu. Ak bude JS pri štarte rásť ďalej, skupina `mantine` sa zúži na komponenty používané pri štarte.
 
 ### Guardy
 

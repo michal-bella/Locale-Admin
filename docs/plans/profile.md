@@ -72,7 +72,7 @@ Mimo rozsahu: zmena emailu, pracovnej pozície, fotografie, hesla, notifikácií
 
 - Route `/profile` (`profileRoute.ts` + `profileRoute.lazy.ts`), položka v `UserMenu`.
 - `api/profile/`, `QUERY_KEYS.PROFILE`.
-- `ProfilePage` + komponenty (`ProfileCard`, `PersonalDetailsForm`, `PreferencesSection`, `SecuritySection`), ikony cez `generate-icons`, helper relatívneho času v `lib/`, preklady `sk` aj `en`.
+- `ProfilePage` + komponenty (`ProfileCard`, `ProfileForm` s formulárom pre všetky karty, `ProfileSection`, `PersonalDetailsSection`, `PreferencesSection`, `SecuritySection`), ikony cez `generate-icons`, helper relatívneho času v `lib/`, preklady `sk` aj `en`.
 - Unit testy: predvyplnenie, disabled polia a prepínače (email, pozícia, notifikácie, Zmeniť fotografiu, Zmeniť heslo), klientská validácia, `400` pri poli, úspech → notifikácia a nové iniciály v top bare, Uložiť disabled bez zmeny, loading a chyba + retry, relatívny čas v SK aj EN, položka v menu pre ADMIN aj EDITOR.
 - `docs/frontend.md` (route, stránka, stavy).
 - **Overenie:** root `pnpm lint`, `pnpm --filter frontend typecheck|test|build` (bez varovania o chunku), `check-scope.sh frontend-developer`.

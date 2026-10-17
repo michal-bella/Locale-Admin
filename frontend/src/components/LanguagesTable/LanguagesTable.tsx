@@ -1,4 +1,4 @@
-import { ActionIcon, Badge, Button, Menu, Skeleton, Table, Text } from '@mantine/core'
+import { ActionIcon, Badge, Button, Menu, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -112,7 +112,9 @@ const LanguagesTable = ({ onAdd, onEdit, onDelete }: LanguagesTableProps) => {
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('languagesPage.table.language')}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.actionsColumn}`} />
+						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
+							<VisuallyHidden>{t('languagesPage.table.actionsColumn')}</VisuallyHidden>
+						</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>{renderBody()}</Table.Tbody>

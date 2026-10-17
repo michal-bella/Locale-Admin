@@ -15,7 +15,9 @@ export const useDeleteLanguageMutation = () => {
 		},
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.LANGUAGES() }),
 		onError: (error) => {
-			if (getApiErrorCode(error) === ERROR_CODE.NOT_FOUND) {
+			const code = getApiErrorCode(error)
+			// LANGUAGE_IS_BASE: another admin may have made it the base language meanwhile.
+			if (code === ERROR_CODE.NOT_FOUND || code === ERROR_CODE.LANGUAGE_IS_BASE) {
 				void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.LANGUAGES() })
 			}
 		},

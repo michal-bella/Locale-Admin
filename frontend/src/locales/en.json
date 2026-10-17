@@ -131,6 +131,7 @@
 			"language": "Language",
 			"base": "Base",
 			"actions": "Actions for language {{name}}",
+			"actionsColumn": "Actions",
 			"edit": "Edit",
 			"delete": "Delete",
 			"empty": "You have no languages yet.",

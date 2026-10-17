@@ -51,6 +51,7 @@ describe('LoginPage', () => {
 		await fillAndSubmit('admin@firma.sk', 'secret')
 
 		expect(await screen.findByText('Zadajte najviac 128 znakov.')).toBeInTheDocument()
+		expect(screen.getByLabelText('Heslo')).toHaveFocus()
 	})
 
 	it('navigates to / after a successful login', async () => {

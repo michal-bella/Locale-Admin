@@ -4,9 +4,16 @@
 		"tagline": "Workspace",
 		"copyright": "© {{year}} Locale"
 	},
+	"documentTitle": "{{page}} – Locale",
+	"notification": {
+		"close": "Zavrieť notifikáciu"
+	},
 	"roles": {
 		"ADMIN": "Administrátor",
 		"EDITOR": "Editor"
+	},
+	"homePage": {
+		"title": "Domov"
 	},
 	"notFoundPage": {
 		"eyebrow": "Chyba 404",

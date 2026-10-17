@@ -37,6 +37,7 @@ export const mantineTheme = createTheme({
 	black: '#020618',
 	white: '#ffffff',
 	fontFamily: FONT_FAMILY,
+	respectReducedMotion: true,
 	fontSizes: { '4xs': rem(9), '3xs': rem(10), '2xs': rem(11), xs: rem(12), sm: rem(14), md: rem(16), lg: rem(18), xl: rem(20) },
 	lineHeights: { xs: '1.3333', sm: '1.4286', md: '1.5' },
 	headings: {

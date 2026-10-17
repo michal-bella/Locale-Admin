@@ -1,6 +1,6 @@
 import { Button, Select, type SelectProps } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ERROR_CODE, SUPPORTED_LANGUAGES } from '@locale/shared'
@@ -33,6 +33,7 @@ const AddLanguageModal = ({ opened, onClose, languages }: AddLanguageModalProps)
 	const { isPending } = createLanguage
 	const [tag, setTag] = useState<string | null>(null)
 	const [fieldError, setFieldError] = useState<string>()
+	const inputRef = useRef<HTMLInputElement>(null)
 	const selected = findSupportedLanguage(tag)
 	const addedTags = new Set(languages.map((language) => language.tag))
 
@@ -66,11 +67,13 @@ const AddLanguageModal = ({ opened, onClose, languages }: AddLanguageModalProps)
 					const issue = getApiErrorDetails(error)[0]
 					if (code === ERROR_CODE.VALIDATION_ERROR && issue) {
 						setFieldError(t(`validation.${issue.code}`, issue.params))
+						inputRef.current?.focus()
 						return
 					}
 					if (code === ERROR_CODE.LANGUAGE_TAKEN) {
 						setTag(null)
 						setFieldError(t('errors.LANGUAGE_TAKEN'))
+						inputRef.current?.focus()
 						return
 					}
 					notifications.show({ color: 'red', message: t(`errors.${code}`) })
@@ -100,6 +103,7 @@ const AddLanguageModal = ({ opened, onClose, languages }: AddLanguageModalProps)
 			}
 		>
 			<Select
+				ref={inputRef}
 				data-autofocus
 				searchable
 				label={t('languagesPage.addModal.language.label')}

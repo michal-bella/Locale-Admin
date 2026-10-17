@@ -1,0 +1,37 @@
+.grid {
+	grid-template-columns: 11.25rem minmax(0, 1fr);
+}
+
+.label {
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	line-height: var(--mantine-line-height-xs);
+	color: var(--mantine-color-slate-6);
+}
+
+.select {
+	max-width: 18.75rem;
+}
+
+.switches {
+	max-width: 32.5rem;
+}
+
+.switchBody {
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.switchLabel {
+	padding-inline: 0;
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	line-height: var(--mantine-line-height-xs);
+	color: var(--mantine-color-slate-7);
+}
+
+.switchDescription {
+	padding-inline: 0;
+	font-size: var(--mantine-font-size-3xs);
+	color: var(--mantine-color-slate-4);
+}

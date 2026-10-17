@@ -69,6 +69,58 @@
 			"success": "Používateľ {{email}} bol vytvorený."
 		}
 	},
+	"profilePage": {
+		"eyebrow": "Používateľský účet",
+		"title": "Môj profil",
+		"description": "Spravujte svoje osobné údaje, preferencie a zabezpečenie účtu.",
+		"loadError": "Profil sa nepodarilo načítať.",
+		"retry": "Skúsiť znova",
+		"roles": {
+			"ADMIN": "Administrátor",
+			"EDITOR": "Editor"
+		},
+		"card": {
+			"changePhoto": "Zmeniť fotografiu"
+		},
+		"personal": {
+			"title": "Osobné údaje",
+			"description": "Tieto informácie uvidia ostatní členovia organizácie.",
+			"firstName": "Meno",
+			"lastName": "Priezvisko",
+			"email": "E-mailová adresa",
+			"position": {
+				"label": "Pracovná pozícia",
+				"placeholder": "Napr. Product manager"
+			}
+		},
+		"preferences": {
+			"title": "Preferencie",
+			"description": "Prispôsobte si jazyk a oznámenia aplikácie.",
+			"language": "Jazyk rozhrania",
+			"notifications": {
+				"title": "E-mailové oznámenia",
+				"mentions": {
+					"label": "Zmienky a komentáre",
+					"description": "Keď vás niekto označí pri preklade."
+				},
+				"review": {
+					"label": "Preklady na kontrolu",
+					"description": "Súhrn nových prekladov čakajúcich na kontrolu."
+				},
+				"importsExports": {
+					"label": "Importy a exporty",
+					"description": "Potvrdenia o dokončení importu alebo exportu."
+				}
+			}
+		},
+		"security": {
+			"title": "Heslo a zabezpečenie",
+			"passwordChanged": "Heslo bolo naposledy zmenené {{relative}}.",
+			"changePassword": "Zmeniť heslo"
+		},
+		"save": "Uložiť profil",
+		"saveSuccess": "Profil bol uložený."
+	},
 	"topBar": {
 		"language": "Jazyk",
 		"languages": {
@@ -88,6 +140,7 @@
 		"notifications": "Notifikácie",
 		"userMenu": {
 			"label": "Menu používateľa",
+			"profile": "Môj profil",
 			"users": "Používatelia",
 			"logout": "Odhlásiť"
 		}

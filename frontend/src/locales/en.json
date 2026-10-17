@@ -69,6 +69,58 @@
 			"success": "User {{email}} has been created."
 		}
 	},
+	"profilePage": {
+		"eyebrow": "User account",
+		"title": "My profile",
+		"description": "Manage your personal details, preferences and account security.",
+		"loadError": "The profile could not be loaded.",
+		"retry": "Try again",
+		"roles": {
+			"ADMIN": "Administrator",
+			"EDITOR": "Editor"
+		},
+		"card": {
+			"changePhoto": "Change photo"
+		},
+		"personal": {
+			"title": "Personal details",
+			"description": "Other members of the organization will see this information.",
+			"firstName": "First name",
+			"lastName": "Last name",
+			"email": "Email address",
+			"position": {
+				"label": "Job title",
+				"placeholder": "E.g. Product manager"
+			}
+		},
+		"preferences": {
+			"title": "Preferences",
+			"description": "Customize the app language and notifications.",
+			"language": "Interface language",
+			"notifications": {
+				"title": "Email notifications",
+				"mentions": {
+					"label": "Mentions and comments",
+					"description": "When someone mentions you in a translation."
+				},
+				"review": {
+					"label": "Translations to review",
+					"description": "Summary of new translations waiting for review."
+				},
+				"importsExports": {
+					"label": "Imports and exports",
+					"description": "Confirmations when an import or export finishes."
+				}
+			}
+		},
+		"security": {
+			"title": "Password and security",
+			"passwordChanged": "Password was last changed {{relative}}.",
+			"changePassword": "Change password"
+		},
+		"save": "Save profile",
+		"saveSuccess": "Profile saved."
+	},
 	"topBar": {
 		"language": "Language",
 		"languages": {
@@ -88,6 +140,7 @@
 		"notifications": "Notifications",
 		"userMenu": {
 			"label": "User menu",
+			"profile": "My profile",
 			"users": "Users",
 			"logout": "Sign out"
 		}

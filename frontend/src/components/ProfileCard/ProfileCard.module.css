@@ -1,0 +1,42 @@
+.card {
+	overflow: hidden;
+	border: 1px solid var(--mantine-color-slate-2);
+	border-radius: var(--mantine-radius-xl);
+	background-color: var(--mantine-color-white);
+}
+
+/* Figma gradient #FFF1F7 → #FDF2F8 → #F8FAFC mapped to the theme (brand.0 → slate.0). */
+.cover {
+	position: relative;
+	height: 7rem;
+	background-image: linear-gradient(
+		168deg,
+		var(--mantine-color-brand-0) 8%,
+		color-mix(in srgb, var(--mantine-color-brand-0) 60%, var(--mantine-color-slate-0)) 46%,
+		var(--mantine-color-slate-0) 92%
+	);
+}
+
+.avatar {
+	position: absolute;
+	top: 4.25rem;
+	left: 1.5rem;
+	border: 4px solid var(--mantine-color-white);
+	box-shadow: var(--mantine-shadow-xs);
+}
+
+.initials {
+	font-size: var(--mantine-font-size-xl);
+	font-weight: 700;
+	line-height: 1.4;
+}
+
+.body {
+	padding: 3.5rem 1.5rem 1.5rem;
+}
+
+.name {
+	line-height: 1.5556;
+	letter-spacing: -0.02em;
+	overflow-wrap: anywhere;
+}

@@ -16,8 +16,11 @@ afterEach(async () => {
 	localStorage.clear()
 })
 
-// jsdom has no matchMedia (read by Mantine), no ResizeObserver (SegmentedControl) and no scrollTo (called by the router on navigation).
+// jsdom has no matchMedia (read by Mantine), no ResizeObserver (SegmentedControl), no scrollTo (called by the router on navigation)
+// and no scrollIntoView (called by the Select dropdown on the selected option).
 Object.defineProperty(window, 'scrollTo', { writable: true, value: () => undefined })
+
+Object.defineProperty(Element.prototype, 'scrollIntoView', { writable: true, value: () => undefined })
 
 Object.defineProperty(window, 'matchMedia', {
 	writable: true,

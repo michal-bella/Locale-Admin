@@ -6,4 +6,5 @@ export const QUERY_KEYS = {
 	ADMIN: {
 		USERS: () => ['admin', 'users'] as const,
 	},
+	PROFILE: () => ['profile'] as const,
 } as const

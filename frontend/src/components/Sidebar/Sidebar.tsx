@@ -44,7 +44,9 @@ const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 	return (
 		<AppShell.Navbar id={id} component='aside' withBorder={false} mod={{ collapsed: !opened }} className={classes.root}>
 			<div className='flex items-center justify-between'>
-				<Brand />
+				<Link to='/' activeOptions={{ exact: true }} aria-label={t('sidebar.home')} className={classes.brandLink} onClick={onClose}>
+					<Brand />
+				</Link>
 				<Burger hiddenFrom='md' size='sm' opened={opened} onClick={onClose} aria-label={t('sidebar.closeNavigation')} />
 			</div>
 			<nav aria-label={t('sidebar.label')} className={classes.nav}>

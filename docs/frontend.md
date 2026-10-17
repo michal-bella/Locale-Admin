@@ -442,6 +442,12 @@ Cieľ sú základy WCAG 2.2 úrovne AA. Kontroluje ich rola `accessibility-revie
 - **ESLint** `eslint-plugin-jsx-a11y` (config `recommended`) pre `frontend/**/*.tsx`, beží v `pnpm lint` a teda aj v `pnpm verify`. Vidí iba natívne JSX elementy (`img`, `a`, `div` s `onClick`, `autoFocus` …), Mantine komponenty (`Button`, `ActionIcon`, `Modal`) nekontroluje. Posledná verzia pluginu (6.10.2) deklaruje ako peer ESLint najviac 9; s ESLint 10 pravidlá fungujú, `pnpm install` iba vypíše varovanie o peer závislosti.
 - **axe** (`@axe-core/playwright`) v E2E teste `e2e/tests/accessibility.spec.ts` skenuje vyrenderované obrazovky v svetlej aj tmavej schéme, viď [Testovanie](./testing.md#prístupnosť-axe).
 
+Pravidlá v kóde:
+
+- `document.title` je „{{page}} – Locale“ (kľúč `documentTitle`). Nastavuje ho `PageIntro` z nadpisu stránky cez hook `hooks/useDocumentTitle.ts`, takže sa mení s navigáciou aj s jazykom UI. Prázdna domovská stránka má vizuálne skrytý `h1` **Domov** (`homePage.title`) a rovnaký titulok.
+- Notifikácie renderuje `AppNotifications` (`main.tsx`): Mantine `Notifications` s preloženým prístupným menom krížika (`notification.close`, Mantine ho bez `closeButtonProps` nemá). Notifikácia aj `Alert` majú `role="alert"`.
+- Theme má `respectReducedMotion: true`, pri `prefers-reduced-motion` Mantine vypne prechody.
+
 Čo automatické kontroly nezachytia (poradie fokusu, návrat fokusu po modáli, zrozumiteľnosť textov, oznamovanie stavov), kontroluje `accessibility-reviewer` ručne podľa svojho checklistu.
 
 ## Inšpirácia

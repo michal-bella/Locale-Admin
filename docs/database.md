@@ -62,11 +62,40 @@ Jazyk, do ktorého sa prekladá. Kým neexistujú projekty, je to jeden globáln
 
 Indexy: unikátny `tag` a čiastočný unikátny index `Language_isBase_key` na `isBase` s podmienkou `WHERE "isBase"`. Ten zaručí, že základný jazyk je najviac jeden. Prisma ho v `schema.prisma` nevie vyjadriť, je ručne pridaný v migrácii `add_language` (a `prisma migrate dev` ho nemaže).
 
-Zápisy, ktoré čítajú alebo presúvajú príznak `isBase` (vytvorenie, `PATCH` s `isBase: true`, odstránenie), berú v transakcii advisory zámok `pg_advisory_xact_lock` s konštantným kľúčom (`BASE_LANGUAGE_LOCK_KEY` v `adminLanguages.service.ts`). Pri READ COMMITTED by inak súbežné požiadavky narazili na index `Language_isBase_key`.
+Zápisy, ktoré čítajú alebo presúvajú príznak `isBase` (vytvorenie, `PATCH` s `isBase: true`, odstránenie, uloženie nastavení projektu cez `setBaseLanguage`), berú v transakcii advisory zámok `pg_advisory_xact_lock` s konštantným kľúčom (`BASE_LANGUAGE_LOCK_KEY` v `adminLanguages.service.ts`). Pri READ COMMITTED by inak súbežné požiadavky narazili na index `Language_isBase_key`.
+
+### Project
+
+Projekt (jeden prekladový hárok). Zatiaľ existuje jediný projekt, ktorý vytvorí seed, a API ho číta ako singleton (najstarší riadok). Správanie API je v [API: nastavenia projektu](./api/admin-project.md).
+
+| Pole                     | Typ            | Poznámka                                                              |
+| ------------------------ | -------------- | --------------------------------------------------------------------- |
+| `id`                     | UUID           | PK                                                                    |
+| `name`                   | string         | názov projektu, 1 až 100 znakov                                       |
+| `slug`                   | string, unique | malé písmená, číslice a pomlčky (`b2b-admin`), 1 až 50 znakov         |
+| `primaryColor`           | string         | `#RRGGBB` veľkými písmenami, default `#E83E8C`; zatiaľ sa iba ukladá  |
+| `protectVariables`       | boolean        | default `true`, chrániť výrazy `{{ variable }}`; zatiaľ sa iba ukladá |
+| `createdAt`, `updatedAt` | datetime       |                                                                       |
+
+Projekt nemá vlastný základný jazyk, používa globálny `Language.isBase`.
+
+### ProjectMember
+
+Členstvo používateľa v projekte. Zatiaľ ho iba naplní seed, API ho nepoužíva. Stavať naň budú obrazovka Členovia a akcia Opustiť projekt.
+
+| Pole        | Typ      | Poznámka                                       |
+| ----------- | -------- | ---------------------------------------------- |
+| `projectId` | UUID     | FK na `Project`, pri zmazaní projektu sa zmaže |
+| `userId`    | UUID     | FK na `User`, pri zmazaní usera sa zmaže       |
+| `createdAt` | datetime | čas pridania do projektu                       |
+
+PK je dvojica (`projectId`, `userId`), index na `userId`. Používateľ má spätnú reláciu `projectMemberships`.
 
 ```mermaid
 erDiagram
     User ||--o{ Session : "má"
+    User ||--o{ ProjectMember : "je členom"
+    Project ||--o{ ProjectMember : "má"
     User {
         uuid id PK
         string email UK
@@ -98,6 +127,20 @@ erDiagram
         datetime createdAt
         datetime updatedAt
     }
+    Project {
+        uuid id PK
+        string name
+        string slug UK
+        string primaryColor
+        boolean protectVariables
+        datetime createdAt
+        datetime updatedAt
+    }
+    ProjectMember {
+        uuid projectId PK, FK
+        uuid userId PK, FK
+        datetime createdAt
+    }
 ```
 
 ## Migrácie
@@ -116,11 +159,12 @@ V produkčnom stacku backend pri štarte spustí `prisma migrate deploy`, potom 
 
 ## Seed
 
-Seed (`backend/prisma/seed.ts`) vytvorí admina `michal.bella@goodrequest.com` s rolou `ADMIN` a jazyky `sk` (základný) a `en`.
+Seed (`backend/prisma/seed.ts`) vytvorí admina `michal.bella@goodrequest.com` s rolou `ADMIN`, jazyky `sk` (základný) a `en` a projekt `B2B Admin`.
 
 - Heslo je z ENV `SEED_ADMIN_PASSWORD` a musí spĺňať pravidlá hesla z `packages/shared` (8 až 128 znakov). Ak chýba alebo je nevalidné, seed skončí s chybou a nič nevytvorí.
 - Seed je idempotentný: ak admin s týmto emailom existuje, nemení nič (ani heslo, ani rolu). Zmena `SEED_ADMIN_PASSWORD` v `.env` existujúceho admina neovplyvní. Lokálne sa admin obnoví cez `pnpm db:reset`.
 - Jazyky `sk` (základný) a `en` s názvami a vlajkou z katalógu seed vytvorí iba do prázdnej tabuľky `Language`. Ak v nej je aspoň jeden jazyk, nemení nič. Seed beží pri každom štarte backend kontajnera, takže jazyk, ktorý ADMIN odstránil, sa po reštarte neobjaví. Lokálne sa jazyky obnovia cez `pnpm db:reset`.
+- Projekt `B2B Admin` so slugom `b2b-admin` (farba a ochrana premenných z defaultov) seed vytvorí iba do prázdnej tabuľky `Project` a jeho jediným členom urobí seedovaného admina. Ak projekt existuje, nemení nič, takže zmeny ADMIN-a v nastaveniach projektu ostanú aj po reštarte.
 
 ## Test databáza
 

@@ -1,4 +1,5 @@
 import { Button, Skeleton, Text } from '@mantine/core'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -15,6 +16,12 @@ const SKELETON_HEIGHTS = [242, 248, 290, 84]
 const ProfilePage = () => {
 	const { t } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useProfileQuery()
+	const [retrySucceeded, setRetrySucceeded] = useState(false)
+
+	const retry = async () => {
+		const { isSuccess } = await refetch()
+		setRetrySucceeded(isSuccess)
+	}
 
 	const renderContent = () => {
 		if (isPending) {
@@ -33,13 +40,13 @@ const ProfilePage = () => {
 						{t('profilePage.loadError')}
 					</Text>
 					<Text size='xs'>{t(`errors.${getApiErrorCode(error)}`)}</Text>
-					<Button variant='default' mt='md' loading={isRefetching} onClick={() => void refetch()}>
+					<Button variant='default' mt='md' loading={isRefetching} onClick={() => void retry()}>
 						{t('profilePage.retry')}
 					</Button>
 				</div>
 			)
 		}
-		return <ProfileForm profile={data} />
+		return <ProfileForm profile={data} focusFirstField={retrySucceeded} />
 	}
 
 	return (

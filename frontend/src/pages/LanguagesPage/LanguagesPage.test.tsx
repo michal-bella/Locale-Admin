@@ -569,4 +569,33 @@ describe('Focus after a modal closes', () => {
 		expect(await within(getTable()).findByText('Russian')).toBeInTheDocument()
 		expect(getTable()).toHaveFocus()
 	})
+
+	it('moves focus to the table when a 404 save closes the settings of a row that is gone', async () => {
+		let languages = [SLOVAK, ENGLISH]
+		signedInAs(ADMIN_USER, {
+			'GET /admin/languages': () => languagesResponse(languages),
+			[`PATCH /admin/languages/${ENGLISH.id}`]: () => {
+				// Another admin deleted English in the meantime.
+				languages = [SLOVAK]
+				return apiError(404, 'NOT_FOUND')
+			},
+		})
+		const adapter = http.defaults.adapter as AxiosAdapter
+		// A real refetch takes longer than the deferred focus restore.
+		http.defaults.adapter = async (config) => {
+			if (config.method === 'get' && config.url === '/admin/languages' && languages.length === 1) {
+				await new Promise((resolve) => setTimeout(resolve, 50))
+			}
+			return adapter(config)
+		}
+		renderApp('/languages')
+
+		const settings = await openFromRowMenu('English', 'Upraviť', 'Nastavenia jazyka')
+		fireEvent.change(within(settings).getByLabelText('Anglický názov'), { target: { value: 'English (UK)' } })
+		press(within(settings).getByRole('button', { name: 'Uložiť' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(within(getTable()).queryByText('English')).not.toBeInTheDocument()
+		await waitFor(() => expect(getTable()).toHaveFocus())
+	})
 })

@@ -1,6 +1,6 @@
 ---
 title: 'Databáza'
-updated: 2026-10-16
+updated: 2026-10-17
 notion_page_id:
 ---
 
@@ -18,7 +18,7 @@ PostgreSQL 17, Prisma 7 s driver adapterom `@prisma/adapter-pg`. Schéma je v `b
 | `email`                  | string, unique     | uložený normalizovaný (`trim()` + malé písmená)                                         |
 | `passwordHash`           | string             | argon2id, nikdy sa nevracia v API                                                       |
 | `role`                   | enum `ROLE`        | `ADMIN` alebo `EDITOR`, default `EDITOR`; `POST /api/admin/users` zakladá vždy `EDITOR` |
-| `firstName`, `lastName`  | string, nullable   | vyplnia sa neskôr na obrazovke Profil                                                   |
+| `firstName`, `lastName`  | string, nullable   | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                  |
 | `isActive`               | boolean            | default `true`, neaktívny user sa neprihlási                                            |
 | `lastLoginAt`            | datetime, nullable | nastaví sa pri úspešnom logine                                                          |
 | `passwordChangedAt`      | datetime           | default čas vytvorenia                                                                  |

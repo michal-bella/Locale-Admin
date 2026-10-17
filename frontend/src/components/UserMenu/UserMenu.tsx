@@ -41,6 +41,9 @@ const UserMenu = () => {
 					</Text>
 				</Menu.Label>
 				<Menu.Divider />
+				<Menu.Item component={Link} to='/profile'>
+					{t('topBar.userMenu.profile')}
+				</Menu.Item>
 				{user.role === ROLE.ADMIN && (
 					<Menu.Item component={Link} to='/admin/users'>
 						{t('topBar.userMenu.users')}

@@ -1,10 +1,20 @@
 ---
 title: 'Changelog'
-updated: 2026-10-16
+updated: 2026-10-17
 notion_page_id:
 ---
 
 # Changelog
+
+## Po fáze 1
+
+### Môj profil (MVP, 2026-10-17)
+
+- zdieľaný kontrakt: `updateProfileRequestSchema` (meno a priezvisko povinné, max. 100 znakov, orezané), `Profile` s `passwordChangedAt`
+- backend: `GET /api/profile` a `PATCH /api/profile` pre ADMIN aj EDITOR, mení iba meno a priezvisko prihláseného používateľa ([API](./api/profile.md))
+- frontend: stránka `/profile` podľa Figmy, položka Môj profil v menu používateľa, úprava mena a priezviska (iniciály v hornej lište sa zmenia hneď), funkčný výber jazyka rozhrania; email, pracovná pozícia, fotografia, notifikácie a zmena hesla sú zatiaľ disabled
+- E2E: testy stránky profilu (uloženie, validácia, disabled prvky, jazyk, obe role, 401) a API smoke pre `/api/profile`
+- plán: [profile.md](./plans/profile.md)
 
 ## Fáza 1
 

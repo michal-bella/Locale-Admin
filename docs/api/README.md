@@ -1,6 +1,6 @@
 ---
 title: 'API'
-updated: 2026-10-16
+updated: 2026-10-17
 notion_page_id:
 ---
 
@@ -10,14 +10,16 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 
 ## Endpointy
 
-| Metóda | Cesta              | Popis                                                      |
-| ------ | ------------------ | ---------------------------------------------------------- |
-| `GET`  | `/api/health`      | stav backendu a databázy, [detail](./health.md)            |
-| `POST` | `/api/auth/login`  | prihlásenie, session cookie, [detail](./auth.md)           |
-| `POST` | `/api/auth/logout` | odhlásenie, [detail](./auth.md)                            |
-| `GET`  | `/api/auth/me`     | prihlásený používateľ, [detail](./auth.md)                 |
-| `GET`  | `/api/admin/users` | zoznam používateľov (ADMIN), [detail](./admin-users.md)    |
-| `POST` | `/api/admin/users` | vytvorenie používateľa (ADMIN), [detail](./admin-users.md) |
+| Metóda  | Cesta              | Popis                                                      |
+| ------- | ------------------ | ---------------------------------------------------------- |
+| `GET`   | `/api/health`      | stav backendu a databázy, [detail](./health.md)            |
+| `POST`  | `/api/auth/login`  | prihlásenie, session cookie, [detail](./auth.md)           |
+| `POST`  | `/api/auth/logout` | odhlásenie, [detail](./auth.md)                            |
+| `GET`   | `/api/auth/me`     | prihlásený používateľ, [detail](./auth.md)                 |
+| `GET`   | `/api/admin/users` | zoznam používateľov (ADMIN), [detail](./admin-users.md)    |
+| `POST`  | `/api/admin/users` | vytvorenie používateľa (ADMIN), [detail](./admin-users.md) |
+| `GET`   | `/api/profile`     | profil prihláseného používateľa, [detail](./profile.md)    |
+| `PATCH` | `/api/profile`     | úprava mena a priezviska, [detail](./profile.md)           |
 
 ## Chybový kontrakt
 

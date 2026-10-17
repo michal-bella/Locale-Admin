@@ -18,11 +18,12 @@ describe('UserMenu', () => {
 		await openMenu()
 
 		expect(await screen.findByText(ADMIN_USER.email)).toBeInTheDocument()
+		expect(screen.getByRole('menuitem', { name: 'Môj profil' })).toHaveAttribute('href', '/profile')
 		expect(screen.getByRole('menuitem', { name: 'Používatelia' })).toHaveAttribute('href', '/admin/users')
 		expect(screen.getByRole('menuitem', { name: 'Odhlásiť' })).toBeInTheDocument()
 	})
 
-	it('hides the users link for an EDITOR and uses email initials', async () => {
+	it('hides the users link for an EDITOR, keeps the profile link and uses email initials', async () => {
 		signedInAs(EDITOR_USER)
 		renderApp('/')
 
@@ -30,6 +31,7 @@ describe('UserMenu', () => {
 		await openMenu()
 
 		expect(await screen.findByRole('menuitem', { name: 'Odhlásiť' })).toBeInTheDocument()
+		expect(screen.getByRole('menuitem', { name: 'Môj profil' })).toHaveAttribute('href', '/profile')
 		expect(screen.queryByRole('menuitem', { name: 'Používatelia' })).not.toBeInTheDocument()
 	})
 

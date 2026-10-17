@@ -1,0 +1,14 @@
+.card {
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-xl);
+	background-color: var(--app-color-surface);
+}
+
+.header {
+	padding: 1.25rem;
+	border-bottom: 1px solid var(--app-color-border-subtle);
+}
+
+.body {
+	padding: 1.25rem;
+}

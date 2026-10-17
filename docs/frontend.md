@@ -1,6 +1,6 @@
 ---
 title: 'Frontend'
-updated: 2026-10-16
+updated: 2026-10-17
 notion_page_id:
 ---
 
@@ -23,19 +23,19 @@ Spúšťajú sa z rootu cez `pnpm --filter frontend <skript>`.
 
 ## Štruktúra `src/`
 
-| Priečinok     | Obsah                                                                                                                                                                                        |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `atoms/`      | malé obaly nad Mantine (`ButtonLink`)                                                                                                                                                        |
-| `components/` | zložené komponenty (`AppLayout`, `TopBar`, `UserMenu`, `LanguageSwitcher`, `ThemeSwitcher`, `Brand`, `CenteredLayout`, `PageIntro`, `RouteError`, `UsersTable`, `CreateUserModal`, `Icons/`) |
-| `pages/`      | obrazovky rout (`HomePage`, `LoginPage`, `UsersPage`, `ForbiddenPage`, `NotFoundPage`, `ErrorPage`)                                                                                          |
-| `routes/`     | strom rout, guardy a router (`createAppRouter`)                                                                                                                                              |
-| `api/`        | axios inštancia `http`, `queryClient`, `QUERY_KEYS`, auth hooky (`api/auth/`), hooky správy používateľov (`api/adminUsers/`), 401 interceptor, `getApiErrorCode`, `getApiErrorDetails`       |
-| `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n, `ForbiddenError`, `formatDate`, `utils.ts` (`isLanguage`)                                                                                        |
-| `locales/`    | preklady `sk.json`, `en.json`                                                                                                                                                                |
-| `styles/`     | Mantine theme, globálne CSS s poradím vrstiev, prekrytia Mantine komponentov                                                                                                                 |
-| `assets/`     | `icons/` (zdrojové SVG z Figmy)                                                                                                                                                              |
-| `types/`      | typy iba pre FE (typované i18n kľúče)                                                                                                                                                        |
-| `test/`       | `setup.ts`, `renderApp` a `mockApi` pre unit testy                                                                                                                                           |
+| Priečinok     | Obsah                                                                                                                                                                                                                                                                                                                                |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `atoms/`      | malé obaly nad Mantine (`ButtonLink`)                                                                                                                                                                                                                                                                                                |
+| `components/` | zložené komponenty (`AppLayout`, `TopBar`, `UserMenu`, `LanguageSwitcher`, `ThemeSwitcher`, `Brand`, `CenteredLayout`, `PageIntro`, `RouteError`, `UsersTable`, `CreateUserModal`, komponenty profilu (`ProfileForm`, `ProfileCard`, `ProfileSection`, `PersonalDetailsSection`, `PreferencesSection`, `SecuritySection`), `Icons/`) |
+| `pages/`      | obrazovky rout (`HomePage`, `LoginPage`, `UsersPage`, `ProfilePage`, `ForbiddenPage`, `NotFoundPage`, `ErrorPage`)                                                                                                                                                                                                                   |
+| `routes/`     | strom rout, guardy a router (`createAppRouter`)                                                                                                                                                                                                                                                                                      |
+| `api/`        | axios inštancia `http`, `queryClient`, `QUERY_KEYS`, auth hooky (`api/auth/`), hooky správy používateľov (`api/adminUsers/`), hooky profilu (`api/profile/`), 401 interceptor, `getApiErrorCode`, `getApiErrorDetails`                                                                                                               |
+| `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n, `ForbiddenError`, `formatDate`, `formatRelativeTime`, `utils.ts` (`isLanguage`)                                                                                                                                                                                                          |
+| `locales/`    | preklady `sk.json`, `en.json`                                                                                                                                                                                                                                                                                                        |
+| `styles/`     | Mantine theme, globálne CSS s poradím vrstiev, prekrytia Mantine komponentov                                                                                                                                                                                                                                                         |
+| `assets/`     | `icons/` (zdrojové SVG z Figmy)                                                                                                                                                                                                                                                                                                      |
+| `types/`      | typy iba pre FE (typované i18n kľúče)                                                                                                                                                                                                                                                                                                |
+| `test/`       | `setup.ts`, `renderApp` a `mockApi` pre unit testy                                                                                                                                                                                                                                                                                   |
 
 Priečinok komponentu obsahuje `Component.tsx`, `types.ts` (props) a voliteľne `Component.module.css`. Komponenty sa exportujú ako default a importujú plnou cestou (`@/components/Brand/Brand`). Barrel súbor je iba `components/Icons/index.ts`.
 
@@ -47,6 +47,7 @@ TanStack Router s routami v kóde (ADR 0002), jeden súbor na routu v `routes/`.
 | -------------- | -------------------------------------- | ----------------------------------------------- | ---------------------------------------- |
 | `/login`       | `loginRoute`                           | `LoginPage`                                     | iba neprihlásený (prihlásený ide na `/`) |
 | `/`            | `indexRoute` pod `_authenticated`      | `HomePage` (vo Fáze 1 prázdna)                  | prihlásený                               |
+| `/profile`     | `profileRoute` pod `_authenticated`    | `ProfilePage` (Môj profil)                      | prihlásený (`ADMIN` aj `EDITOR`)         |
 | `/admin/users` | `adminUsersRoute` pod `_authenticated` | `UsersPage` (zoznam a vytvorenie používateľa)   | `ADMIN`, ostatní vidia `ForbiddenPage`   |
 | neexistujúca   | root                                   | `NotFoundPage` (`notFoundComponent` root route) | všetci                                   |
 
@@ -54,7 +55,7 @@ Chyba v `beforeLoad` alebo v komponente routy bez vlastného `errorComponent` zo
 
 ### Lazy routy (code splitting)
 
-Komponenty stránok `/login` a `/admin/users` sa načítajú až pri prvej návšteve routy. Route súbor (`loginRoute.ts`, `adminUsersRoute.ts`) drží iba kritickú časť (`path`, `beforeLoad` guard, pri `/admin/users` aj `errorComponent`, aby sa 403 zobrazila bez čakania na chunk stránky) a cez `.lazy(() => import('@/routes/<route>.lazy').then((module) => module.Route))` pripojí súbor `<route>.lazy.ts`, ktorý obsahuje `createLazyRoute('<route id>')({ component })`. Route id je cesta vrátane pathless rodiča (`/_authenticated/admin/users`), typecheck preklep v id zachytí. `HomePage` (prázdna) a stránky 404, 403 a chybová stránka ostávajú v hlavnom chunku.
+Komponenty stránok `/login`, `/profile` a `/admin/users` sa načítajú až pri prvej návšteve routy. Route súbor (`loginRoute.ts`, `adminUsersRoute.ts`) drží iba kritickú časť (`path`, `beforeLoad` guard, pri `/admin/users` aj `errorComponent`, aby sa 403 zobrazila bez čakania na chunk stránky) a cez `.lazy(() => import('@/routes/<route>.lazy').then((module) => module.Route))` pripojí súbor `<route>.lazy.ts`, ktorý obsahuje `createLazyRoute('<route id>')({ component })`. Route id je cesta vrátane pathless rodiča (`/_authenticated/admin/users`), typecheck preklep v id zachytí. `HomePage` (prázdna) a stránky 404, 403 a chybová stránka ostávajú v hlavnom chunku.
 
 Knižnice sú v samostatných chunkoch cez `build.rolldownOptions.output.codeSplitting.groups` vo `vite.config.ts`: `react` (react, react-dom, scheduler), `mantine` (`@mantine/*`), `tanstack` (`@tanstack/*`) a `i18n-zod` (i18next, react-i18next, zod). Menia sa iba pri aktualizácii závislostí, takže ich prehliadač drží v cache aj po novom release aplikácie. Ostatné knižnice delí rolldown automaticky, takže tie, ktoré používajú iba lazy stránky (React Hook Form, resolver), ostávajú v lazy chunkoch. `chunkSizeWarningLimit` sa nemení.
 
@@ -73,7 +74,9 @@ Výsledok `pnpm --filter frontend build` (2026-10-16, minifikované / gzip):
 | lazy: stránka Používatelia                       | 11 kB                   | 6 kB                |
 | lazy: prihlásenie                                | 4 kB                    | 2 kB                |
 
-Žiadny chunk nie je nad 500 kB a build nehlási kruhové závislosti medzi chunkmi. JS pri štarte je o 1 % väčší, lebo Mantine komponenty, ktoré používali iba lazy stránky, sú teraz v chunku `mantine`. Lazy chunky sa o to zmenšili.
+Žiadny chunk nie je nad 500 kB a build nehlási kruhové závislosti medzi chunkmi. JS pri štarte je po rozdelení o 1 % väčší, lebo Mantine komponenty, ktoré používali iba lazy stránky, sú teraz v chunku `mantine`. Lazy chunky sa o to zmenšili.
+
+Po pridaní stránky Môj profil (2026-10-17): lazy chunk stránky má 7 kB / 3 kB. Chunk `mantine` narástol na 258 kB / 78 kB (predtým 231 kB / 71 kB), lebo `Select` (Combobox) a `Switch` patria do skupiny `@mantine/*`. Kód aplikácie pri štarte rolldown rozdelil na `index` (19 kB) a zdieľaný chunk `queryKeys` (56 kB), spolu 75 kB / 28 kB. JS pri štarte je spolu 794 kB / 251 kB, teda o 31 kB / 10 kB (asi 4 %) viac ako pred stránkou. Je to vedome prijaté, hoci `Select` a `Switch` zatiaľ používa iba lazy stránka profilu. Ak bude JS pri štarte rásť ďalej, skupina `mantine` sa zúži na komponenty používané pri štarte.
 
 ### Guardy
 
@@ -110,6 +113,13 @@ Interceptor ignoruje `/auth/login` (zlé heslo je chyba formulára) a `/auth/me`
 | `adminUsersQueryOptions`, `useAdminUsersQuery` | `GET /api/admin/users` (`AdminUserListResponse`), kľúč `QUERY_KEYS.ADMIN.USERS()`, globálny `retry` (3 pokusy, nie pri 401)                                        |
 | `useCreateUserMutation`                        | `POST /api/admin/users` (`CreateUserRequest` → `AdminUser`). Po úspechu `invalidateQueries(QUERY_KEYS.ADMIN.USERS())` a čaká na nové načítanie, kým mutácia skončí |
 
+### Profil
+
+| Hook                                     | Čo robí                                                                                                                                                                                          |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `profileQueryOptions`, `useProfileQuery` | `GET /api/profile` (`Profile`), kľúč `QUERY_KEYS.PROFILE()`, globálny `retry`                                                                                                                    |
+| `useUpdateProfileMutation`               | `PATCH /api/profile` (`UpdateProfileRequest` → `Profile`). Po úspechu `setQueryData` pre `PROFILE` aj `AUTH.ME` (polia `AuthUser`), iniciály v hornej lište sa zmenia hneď bez ďalšieho requestu |
+
 ## Layout a horná lišta
 
 Prihlásené stránky majú `AppLayout`: horná lišta `TopBar` a pod ňou `<main>` s obsahom routy. Sidebar, drobčeky a ikona `?` vo Fáze 1 nie sú.
@@ -121,7 +131,7 @@ Lišta je nový dizajn zložený z prvkov Figmy (node `28:2`): výška 64 px, po
     - `LanguageSwitcher`: Mantine `SegmentedControl` SK / EN. Volá `i18n.changeLanguage`, jazyk sa zmení bez reloadu a uloží do `localStorage['locale']`. Viditeľný text je skratka (pre čítačky skrytá cez `aria-hidden`), prístupné meno je názov jazyka v danom jazyku (`VisuallyHidden` s `lang`): rádio **Slovenčina** a **English** v oboch jazykoch UI (kľúče `topBar.languages.<jazyk>.label` a `.name`). Pred skratkou je vlajka (viď i18n).
     - `ThemeSwitcher`: prepínač svetlej a tmavej schémy (viď Farebné schémy), hneď za prepínačom jazyka.
     - zvonček notifikácií: iba statická ikona 18 px v boxe 38 × 38 px, farba `slate.4`, bez akcie a bez ružovej bodky (zatiaľ nie sú notifikácie)
-    - `UserMenu`: Mantine `Menu`. Tlačidlo je avatar 32 px (kruh `slate.9`, iniciály 10 px / 700 biele cez `getInitials` zo `@locale/shared`). V menu je email, položka **Používatelia** (iba `ADMIN`, odkaz na `/admin/users`) a **Odhlásiť**. Chyba pri odhlásení sa ukáže ako notifikácia `errors.<CODE>`.
+    - `UserMenu`: Mantine `Menu`. Tlačidlo je avatar 32 px (kruh `slate.9`, iniciály 10 px / 700 biele cez `getInitials` zo `@locale/shared`). V menu je email, položka **Môj profil** (všetky role, odkaz na `/profile`), **Používatelia** (iba `ADMIN`, odkaz na `/admin/users`) a **Odhlásiť**. Chyba pri odhlásení sa ukáže ako notifikácia `errors.<CODE>`.
 
 ## Prihlasovacia stránka
 
@@ -160,6 +170,24 @@ Správanie:
 - Počas odosielania je tlačidlo v stave `loading` (aj `disabled`) a `onSubmit` počas bežiacej mutácie nič neurobí, formulár sa nedá odoslať dvakrát.
 - Počas odosielania sa modál nedá zavrieť: **Zrušiť** a krížik sú `disabled`, `Esc` a klik mimo modálu sú vypnuté (`closeOnEscape`, `closeOnClickOutside`). Inak by zatvorenie resetovalo mutáciu a stratila by sa notifikácia o úspechu alebo chybe.
 - Po úspechu: invalidácia zoznamu, zelená notifikácia „Používateľ {{email}} bol vytvorený.“, reset formulára a zatvorenie modálu. **Zrušiť**, krížik, `Esc` aj klik mimo modálu formulár tiež resetujú.
+
+## Stránka Môj profil
+
+Podľa Figmy `3:1762` bez sidebaru, drobčekov a ikony `?`, vnútri `AppLayout` na route `/profile` (ADMIN aj EDITOR). Obsah má šírku najviac 980 px a padding 32 px, karty sú pod sebou s medzerou 20 px. MVP ukladá iba meno a priezvisko, ostatné prvky sú zobrazené ako Mantine `disabled` (bez tooltipu a vysvetľujúceho textu).
+
+- Hlavička: `PageIntro` s `titleSize="h2"` (Používateľský účet / Môj profil / popis).
+- `ProfileCard`: hlavička 112 px s ružovým gradientom (`--app-color-brand-tint` → `--app-color-surface-muted`, svetlá `brand.0` → `slate.0`, tmavá stlmená ružová → `dark.7`), avatar 88 px (`--app-color-avatar`, okraj 4 px `--app-color-surface`, radius `xl`, iniciály 20 px / 700 cez `getInitials`, `aria-hidden`, lebo hneď za ním je nadpis s celým menom), meno 18 / 28 / 700 (bez mena sa zobrazí email) a globálna rola (`Administrátor` / `Editor`, kľúče `profilePage.roles.<ROLE>`). Tlačidlo **Zmeniť fotografiu** s ikonou `Upload` je disabled. Karta zobrazuje uložené údaje, nie rozpísaný formulár.
+- **Osobné údaje** (`PersonalDetailsSection` v karte `ProfileSection`): **Meno** a **Priezvisko** sú editovateľné, **E-mailová adresa** je disabled s emailom používateľa, **Pracovná pozícia** je disabled a prázdna s placeholderom „Napr. Product manager“ (pole v DB neexistuje). Dve stĺpce od šírky `sm`.
+- **Preferencie** (`PreferencesSection`): **Jazyk rozhrania** je Mantine `Select` (Slovenčina / English, kľúče `topBar.languages.<jazyk>.name`, šípka `ChevronDown` z Figmy). Zmena volá `i18n.changeLanguage` rovnako ako `LanguageSwitcher` v hornej lište, jazyk sa prepne hneď a uloží do `localStorage`, nie cez **Uložiť profil**. **E-mailové oznámenia**: tri disabled `Switch` (všetky vypnuté) s popisom, skupina má `role="group"` s nadpisom ako menom. Mantine dáva popis do `<label>`, takže je súčasťou prístupného mena prepínača.
+- **Heslo a zabezpečenie** (`SecuritySection`): ikona `Shield`, text „Heslo bolo naposledy zmenené {{relative}}.“ z `passwordChangedAt` cez `formatRelativeTime`, tlačidlo **Zmeniť heslo** je disabled.
+- **Uložiť profil** vpravo dole: React Hook Form + `zodResolver(updateProfileRequestSchema)` zo `@locale/shared` (chyby cez `toValidationCode` → `validation.<CODE>`), polia predvyplnené z profilu (`null` → prázdny reťazec). Tlačidlo je disabled, kým sa formulár nezmení (`isDirty`), počas requestu je `loading` a druhé odoslanie sa ignoruje. Úspech → zelená notifikácia „Profil bol uložený.“ a `reset` na uložené hodnoty. `400 VALIDATION_ERROR` → `setError` pri poliach podľa `details`, iná chyba → červená notifikácia `errors.<CODE>`.
+- Stavy mimo Figmy: načítavanie (4 Mantine `Skeleton` vo výške kariet, kontajner má `aria-busy`) a chyba načítania (text „Profil sa nepodarilo načítať.“, preklad `errors.<CODE>` a tlačidlo **Skúsiť znova**, ktoré zavolá `refetch`).
+
+Odchýlky od Figmy: polia a select majú výšku 44 px a text 12 px / 600 z theme (Figma 40 px, select 16 px), prepínače majú Mantine veľkosť `md` (46 × 24 px, Figma 44 × 24 px), disabled prvky majú vzhľad Mantine `disabled`, pri role chýba „· Organizácia1“ (organizácie ešte nie sú). Tmavá schéma nie je vo Figme, farby stránky idú cez premenné `--app-color-*` (viď Farebné schémy).
+
+### Relatívny čas
+
+`lib/formatRelativeTime.ts`: `formatRelativeTime(isoDate, language, now?)` cez `Intl.RelativeTimeFormat` (`numeric: 'auto'`) s rovnakým mapovaním jazyka ako `formatDate` (`toIntlLocale`: `sk` → `sk-SK`, `en` → `en-GB`, neznámy → `sk`). Vyberie najväčšiu jednotku, ktorá sa zmestí (rok 365 dní, mesiac 30 dní, týždeň, deň, hodina, minúta, sekunda), a zaokrúhli: `pred 3 mesiacmi` / `3 months ago`, `včera` / `yesterday`, `teraz` / `now`.
 
 ## Stránka 403
 
@@ -203,26 +231,29 @@ Svetlá (predvolená, podľa Figmy) a tmavá schéma cez vstavanú podporu Manti
 
 Komponenty a CSS moduly nepoužívajú priamo `slate.N`, `black` ani `white`, ale premenné `--app-color-*` z `cssVariablesResolver` v `styles/mantineTheme.ts`. Svetlé hodnoty sú presne farby z Figmy.
 
-| Premenná                     | Kde                                                                        | Svetlá                | Tmavá                   |
-| ---------------------------- | -------------------------------------------------------------------------- | --------------------- | ----------------------- |
-| `--mantine-color-body`       | pozadie stránky                                                            | `#F7F8FB`             | `#020618` (`slate-950`) |
-| `--mantine-color-text`       | základný text, odstavec                                                    | `slate.5`             | `slate.4`               |
-| `--app-color-surface`        | karta tabuľky, modál, horná lišta (90 %), input                            | `white`               | `slate.9`               |
-| `--app-color-surface-muted`  | hlavička tabuľky, päta modálu (60 %)                                       | `slate.0`             | `#0B1222` (`dark.7`)    |
-| `--app-color-border`         | okraj inputu, karty, modálu, lišty, sekundárneho tlačidla, prstenec vlajky | `slate.2`             | `slate.7`               |
-| `--app-color-border-subtle`  | okraj riadkov tabuľky, oddeľovače v modáli                                 | `slate.1`             | `slate.8`               |
-| `--app-color-heading`        | H1                                                                         | `black` (`slate-950`) | `slate.0`               |
-| `--app-color-title`          | „Locale“ v logu, nadpis modálu                                             | `slate.9`             | `slate.1`               |
-| `--app-color-text-strong`    | text v inpute (placeholder 50 %), emaily, titulok chyby tabuľky            | `slate.8`             | `slate.2`               |
-| `--app-color-label`          | label poľa                                                                 | `slate.7`             | `slate.3`               |
-| `--app-color-text-secondary` | text sekundárneho tlačidla, iniciály v tabuľke                             | `slate.6`             | `slate.3`               |
-| `--app-color-muted`          | „WORKSPACE“, pätička, hlavička tabuľky, zvonček, prepínač schémy, krížik   | `slate.4`             | `slate.5`               |
-| `--app-color-eyebrow`        | malý nadpis nad H1                                                         | `brand.7`             | `brand.4`               |
-| `--app-color-avatar`         | avatar v menu používateľa (iniciály biele)                                 | `slate.9`             | `slate.7`               |
-| `--app-color-avatar-muted`   | avatar v tabuľke                                                           | `slate.1`             | `slate.8`               |
-| `--mantine-color-error`      | okraj a text chyby poľa                                                    | `red.6` (Mantine)     | `red.6`                 |
+| Premenná                         | Kde                                                                                                            | Svetlá                | Tmavá                                    |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------- | ---------------------------------------- |
+| `--mantine-color-body`           | pozadie stránky                                                                                                | `#F7F8FB`             | `#020618` (`slate-950`)                  |
+| `--mantine-color-text`           | základný text, odstavec                                                                                        | `slate.5`             | `slate.4`                                |
+| `--app-color-surface`            | karta tabuľky, modál, horná lišta (90 %), input, karty profilu, okraj avatara profilu                          | `white`               | `slate.9`                                |
+| `--app-color-surface-muted`      | hlavička tabuľky, päta modálu (60 %), koniec gradientu karty profilu                                           | `slate.0`             | `#0B1222` (`dark.7`)                     |
+| `--app-color-border`             | okraj inputu, karty, modálu, lišty, sekundárneho tlačidla, prstenec vlajky                                     | `slate.2`             | `slate.7`                                |
+| `--app-color-border-subtle`      | okraj riadkov tabuľky, oddeľovače v modáli, oddeľovač hlavičky sekcie profilu                                  | `slate.1`             | `slate.8`                                |
+| `--app-color-heading`            | H1                                                                                                             | `black` (`slate-950`) | `slate.0`                                |
+| `--app-color-title`              | „Locale“ v logu, nadpis modálu, meno a nadpisy sekcií profilu                                                  | `slate.9`             | `slate.1`                                |
+| `--app-color-text-strong`        | text v inpute (placeholder 50 %), emaily, titulok chyby tabuľky a profilu                                      | `slate.8`             | `slate.2`                                |
+| `--app-color-label`              | label poľa, label prepínača v profile                                                                          | `slate.7`             | `slate.3`                                |
+| `--app-color-text-secondary`     | text sekundárneho tlačidla, iniciály v tabuľke, labely v Preferenciách                                         | `slate.6`             | `slate.3`                                |
+| `--app-color-muted`              | „WORKSPACE“, pätička, hlavička tabuľky, zvonček, prepínač schémy, krížik, popisy a rola v profile, ikona štítu | `slate.4`             | `slate.5`                                |
+| `--app-color-eyebrow`            | malý nadpis nad H1                                                                                             | `brand.7`             | `brand.4`                                |
+| `--app-color-avatar`             | avatar v menu používateľa a v karte profilu (iniciály biele)                                                   | `slate.9`             | `slate.7`                                |
+| `--app-color-avatar-muted`       | avatar v tabuľke                                                                                               | `slate.1`             | `slate.8`                                |
+| `--app-color-brand-tint`         | začiatok gradientu karty profilu (stred cez `color-mix` 60 % s `--app-color-surface-muted`)                    | `brand.0`             | `brand.9` 30 % + `slate.9` (`color-mix`) |
+| `--mantine-color-error`          | okraj a text chyby poľa                                                                                        | `red.6` (Mantine)     | `red.6`                                  |
+| `--mantine-color-disabled`       | pozadie disabled tlačidla, inputu a dráhy prepínača                                                            | `gray.2` (Mantine)    | `dark.5` (`slate-800`)                   |
+| `--mantine-color-disabled-color` | text disabled tlačidla a inputu                                                                                | `gray.5` (Mantine)    | `dark.2` (`slate-400`)                   |
 
-- Primárna `brand` sa nemení. Ružový malý nadpis má v tmavej `brand.4` (kontrast asi 6,5 : 1 na `slate-950`, `brand.7` by mal iba 4,4 : 1). Chyba poľa je v tmavej `red.6`, lebo predvolená `red.8` z Mantine má na `slate.9` menej ako 4,5 : 1.
+- Primárna `brand` sa nemení. Ružový malý nadpis má v tmavej `brand.4` (kontrast asi 6,5 : 1 na `slate-950`, `brand.7` by mal iba 4,4 : 1). Chyba poľa je v tmavej `red.6`, lebo predvolená `red.8` z Mantine má na `slate.9` menej ako 4,5 : 1. Disabled prvky majú v tmavej `dark.5` a `dark.2`: predvolené `dark.6` z Mantine je tu `slate-900`, teda rovnaké ako pozadie karty, a disabled tlačidlá a dráhy prepínačov by na karte zanikli. Svetlá schéma ostáva na predvolených hodnotách Mantine.
 - Ikona loga má farbu `--mantine-primary-color-contrast` (biela v oboch schémach).
 - Mantine vlastné komponenty (`SegmentedControl`, `Menu`, `Notification`, `Skeleton`, `Alert`, sekundárne tlačidlo) farbia tmavú schému paletou `dark`. Tá je v theme nahradená odtieňmi `slate`: `#E2E8F0`, `#CAD5E2`, `#90A1B9`, `#62748E`, `#314158`, `#1D293D`, `#0F172B`, `#0B1222`, `#070E1D`, `#020618` (napr. `dark.4` okraje = `slate-700`, `dark.6` pozadie dropdownu a sekundárneho tlačidla = `slate-900`). Svetlá schéma paletu `dark` nepoužíva.
 
@@ -242,24 +273,25 @@ Figma súbor nemá premenné. Hodnoty sú zo štýlov login screenu (node `5:286
 
 Šedé sú Tailwind v4 `slate`. V Mantine je to farba `slate`, index 0–9 = `slate-50` až `slate-900`. `slate-950` je `theme.black`.
 
-| Figma            | Kde                                | Theme                                           |
-| ---------------- | ---------------------------------- | ----------------------------------------------- |
-| `#F7F8FB`        | pozadie stránky                    | `--mantine-color-body`                          |
-| `#020618`        | nadpis H1                          | `black` (`slate-950`)                           |
-| `#0F172B`        | názov „Locale“ v logu              | `slate.9` (`slate-900`)                         |
-| `#1D293D` (50 %) | placeholder v inpute               | `slate.8` (`slate-800`)                         |
-| `#314158`        | label poľa                         | `slate.7` (`slate-700`)                         |
-| `#62748E`        | základný text, odstavec            | `slate.5` (`slate-500`), `--mantine-color-text` |
-| `#90A1B9`        | „WORKSPACE“, pätička               | `slate.4` (`slate-400`)                         |
-| `#94A3B8`        | ikona zvončeka (Figma `28:27`)     | `slate.4` (najbližší odtieň)                    |
-| `#E2E8F0`        | okraj inputu, okraj hornej lišty   | `slate.2` (`slate-200`)                         |
-| `#F8FAFC`        | hlavička tabuľky, päta modálu      | `slate.0` (`slate-50`)                          |
-| `#F1F5F9`        | okraj riadkov, pozadie avatara     | `slate.1` (`slate-100`)                         |
-| `#45556C`        | iniciály v tabuľke                 | `slate.6` (`slate-600`)                         |
-| `#475569`        | text sekundárneho tlačidla         | `slate.6` (najbližší odtieň)                    |
-| `#0F172B`        | pozadie avatara v menu             | `slate.9`                                       |
-| `#E83E8C`        | tlačidlo, pozadie loga             | `brand.6` (`primaryColor`)                      |
-| `#D72F7C`        | malý nadpis nad H1 („PRIHLÁSENIE“) | `brand.7`                                       |
+| Figma                 | Kde                                | Theme                                           |
+| --------------------- | ---------------------------------- | ----------------------------------------------- |
+| `#F7F8FB`             | pozadie stránky                    | `--mantine-color-body`                          |
+| `#020618`             | nadpis H1                          | `black` (`slate-950`)                           |
+| `#0F172B`             | názov „Locale“ v logu              | `slate.9` (`slate-900`)                         |
+| `#1D293D` (50 %)      | placeholder v inpute               | `slate.8` (`slate-800`)                         |
+| `#314158`             | label poľa                         | `slate.7` (`slate-700`)                         |
+| `#62748E`             | základný text, odstavec            | `slate.5` (`slate-500`), `--mantine-color-text` |
+| `#90A1B9`             | „WORKSPACE“, pätička               | `slate.4` (`slate-400`)                         |
+| `#94A3B8`             | ikona zvončeka (Figma `28:27`)     | `slate.4` (najbližší odtieň)                    |
+| `#E2E8F0`             | okraj inputu, okraj hornej lišty   | `slate.2` (`slate-200`)                         |
+| `#F8FAFC`             | hlavička tabuľky, päta modálu      | `slate.0` (`slate-50`)                          |
+| `#F1F5F9`             | okraj riadkov, pozadie avatara     | `slate.1` (`slate-100`)                         |
+| `#FFF1F7` → `#F8FAFC` | gradient karty profilu             | `brand.0` → `slate.0` (stred cez `color-mix`)   |
+| `#45556C`             | iniciály v tabuľke                 | `slate.6` (`slate-600`)                         |
+| `#475569`             | text sekundárneho tlačidla         | `slate.6` (najbližší odtieň)                    |
+| `#0F172B`             | pozadie avatara v menu             | `slate.9`                                       |
+| `#E83E8C`             | tlačidlo, pozadie loga             | `brand.6` (`primaryColor`)                      |
+| `#D72F7C`             | malý nadpis nad H1 („PRIHLÁSENIE“) | `brand.7`                                       |
 
 Primárna farba `brand` má 10 odtieňov: `#FDEEF5`, `#FBD9E8`, `#F6B0D0`, `#F184B6`, `#ED5F9F`, `#EA4B93`, `#E83E8C`, `#D72F7C`, `#B9246A`, `#961A55`. Odtiene 6 a 7 sú z Figmy, ostatné sú dopočítané.
 
@@ -312,7 +344,7 @@ Nie je vo Figme, je navrhnutá podľa login screenu: rovnaké pozadie, logo „L
 
 ## Ikony
 
-1. SVG sa exportuje z Figmy (Figma MCP) do `src/assets/icons/` (`logo.svg`, `arrow-right.svg`, `bell.svg`, `plus.svg`, `close.svg`). `sun.svg` a `moon.svg` (prepínač schémy) vo Figme nie sú, sú to jednoduché ikony 24 px v štýle Lucide s ťahom 1,8. Farba ťahu sa v súbore nastaví na `white` (napr. `close.svg` má vo Figme `#90A1B9`), aby ju SVGR nahradil za `currentColor`.
+1. SVG sa exportuje z Figmy (Figma MCP) do `src/assets/icons/` (`logo.svg`, `arrow-right.svg`, `bell.svg`, `plus.svg`, `close.svg`, `upload.svg`, `shield.svg`, `chevron-down.svg`). `sun.svg` a `moon.svg` (prepínač schémy) vo Figme nie sú, sú to jednoduché ikony 24 px v štýle Lucide s ťahom 1,8. Farba ťahu sa v súbore nastaví na `white` (napr. `close.svg` má vo Figme `#90A1B9`), aby ju SVGR nahradil za `currentColor`.
 2. `pnpm --filter frontend generate-icons` cez SVGR (`svgr.config.cjs`) vygeneruje TypeScript komponenty do `src/components/Icons/` a barrel `index.ts`, potom spustí ESLint a Prettier.
 3. Farba `white` z Figmy sa nahradí za `currentColor`, ikona preberá farbu textu. Predvolená veľkosť je veľkosť z Figmy, mení sa cez `width` a `height`, `viewBox` zostáva.
 
@@ -320,7 +352,7 @@ Použitie: `import { Logo } from '@/components/Icons'`.
 
 ## Testy
 
-Unit testy bežia cez `vp test` v jsdom. `src/test/setup.ts` načíta matchery `@testing-library/jest-dom`, i18n a doplní `matchMedia`, `ResizeObserver` a `scrollTo`, ktoré jsdom nemá. Po každom teste vyčistí `queryClient`, mock API, `localStorage` a vráti jazyk na `sk`.
+Unit testy bežia cez `vp test` v jsdom. `src/test/setup.ts` načíta matchery `@testing-library/jest-dom`, i18n a doplní `matchMedia`, `ResizeObserver`, `scrollTo` a `Element.scrollIntoView` (volá ho dropdown `Select`), ktoré jsdom nemá. Po každom teste vyčistí `queryClient`, mock API, `localStorage` a vráti jazyk na `sk`.
 
 - `renderApp(path)` (`test/renderApp.tsx`) vyrenderuje celú aplikáciu (Mantine s `env="test"`, Query, router s memory history) a vráti router.
 - `mockApi(routes)` (`test/mockApi.ts`) nahradí adapter axios inštancie odpoveďami podľa kľúča `METHOD /url` (napr. `GET /auth/me`) a vráti zoznam odoslaných požiadaviek. Skratky `signedInAs(user)` a `signedOut()`, chyby cez `apiError(status, code)`.

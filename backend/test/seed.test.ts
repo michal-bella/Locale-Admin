@@ -30,33 +30,27 @@ describe('seedAdmin', () => {
 })
 
 describe('seedLanguages', () => {
-	it('creates sk as the base and en once and changes nothing on the second run', async () => {
+	it('creates sk as the base and en in an empty table and changes nothing on the second run', async () => {
 		const prisma = getTestPrisma()
 
-		await seedLanguages(prisma)
+		await expect(seedLanguages(prisma)).resolves.toBe('created')
 		const created = await prisma.language.findMany({ orderBy: { tag: 'asc' } })
 		expect(created).toMatchObject([
 			{ tag: 'en', englishName: 'English', nativeName: 'English', flagCode: 'gb', isBase: false },
 			{ tag: 'sk', englishName: 'Slovak', nativeName: 'slovenčina', flagCode: 'sk', isBase: true },
 		])
 
-		await prisma.language.update({ where: { tag: 'en' }, data: { englishName: 'English (UK)' } })
-		await seedLanguages(prisma)
-		const after = await prisma.language.findMany({ orderBy: { tag: 'asc' } })
-		expect(after).toHaveLength(2)
-		expect(after[0]?.englishName).toBe('English (UK)')
-		expect(after[1]).toEqual(created[1])
+		await expect(seedLanguages(prisma)).resolves.toBe('exists')
+		await expect(prisma.language.findMany({ orderBy: { tag: 'asc' } })).resolves.toEqual(created)
 	})
 
-	it('adds a missing sk as not base when another language is the base', async () => {
+	it('changes nothing when the table already has a language', async () => {
 		const prisma = getTestPrisma()
-		await prisma.language.create({ data: { tag: 'ru', englishName: 'Russian', nativeName: 'русский', flagCode: 'ru', isBase: true } })
+		const ru = await prisma.language.create({ data: { tag: 'ru', englishName: 'Russian', nativeName: 'русский', flagCode: 'ru', isBase: true } })
 
-		await seedLanguages(prisma)
+		await expect(seedLanguages(prisma)).resolves.toBe('exists')
 
-		const bases = await prisma.language.findMany({ where: { isBase: true } })
-		expect(bases.map(({ tag }) => tag)).toEqual(['ru'])
-		await expect(prisma.language.count()).resolves.toBe(3)
+		await expect(prisma.language.findMany()).resolves.toEqual([ru])
 	})
 })
 

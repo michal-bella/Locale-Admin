@@ -118,8 +118,7 @@ Seed (`backend/prisma/seed.ts`) vytvorí admina `michal.bella@goodrequest.com` s
 
 - Heslo je z ENV `SEED_ADMIN_PASSWORD` a musí spĺňať pravidlá hesla z `packages/shared` (8 až 128 znakov). Ak chýba alebo je nevalidné, seed skončí s chybou a nič nevytvorí.
 - Seed je idempotentný: ak admin s týmto emailom existuje, nemení nič (ani heslo, ani rolu). Zmena `SEED_ADMIN_PASSWORD` v `.env` existujúceho admina neovplyvní. Lokálne sa admin obnoví cez `pnpm db:reset`.
-- Jazyky `sk` a `en` sa zakladajú idempotentne (`upsert` podľa `tag`) s názvami a vlajkou z katalógu. Existujúci jazyk seed nemení. `sk` dostane príznak základného jazyka iba vtedy, keď ešte žiadny základný jazyk neexistuje.
-- Seed beží pri každom štarte backend kontajnera, preto sa jazyk `sk` alebo `en`, ktorý ADMIN odstránil, po reštarte znova objaví.
+- Jazyky `sk` (základný) a `en` s názvami a vlajkou z katalógu seed vytvorí iba do prázdnej tabuľky `Language`. Ak v nej je aspoň jeden jazyk, nemení nič. Seed beží pri každom štarte backend kontajnera, takže jazyk, ktorý ADMIN odstránil, sa po reštarte neobjaví. Lokálne sa jazyky obnovia cez `pnpm db:reset`.
 
 ## Test databáza
 

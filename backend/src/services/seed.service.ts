@@ -24,18 +24,18 @@ const SEED_BASE_LANGUAGE_TAG = 'sk' satisfies LanguageTag
 
 export const SEED_LANGUAGE_TAGS = [SEED_BASE_LANGUAGE_TAG, 'en'] as const satisfies LanguageTag[]
 
-/**
- * Creates the missing seed languages; existing ones are never changed.
- * `sk` becomes the base only when there is no base yet, otherwise the partial unique index on `isBase` would fail the seed.
- */
-export const seedLanguages = async (prisma: PrismaClient): Promise<void> => {
-	const hasBase = (await prisma.language.count({ where: { isBase: true } })) > 0
-	for (const tag of SEED_LANGUAGE_TAGS) {
-		const { englishName, nativeName, flagCode } = getSupportedLanguage(tag)
-		await prisma.language.upsert({
-			where: { tag },
-			create: { tag, englishName, nativeName, flagCode, isBase: !hasBase && tag === SEED_BASE_LANGUAGE_TAG },
-			update: {},
-		})
+export type SeedLanguagesResult = 'created' | 'exists'
+
+/** Seeds only an empty table, so languages an ADMIN deleted do not come back on the next backend start. */
+export const seedLanguages = async (prisma: PrismaClient): Promise<SeedLanguagesResult> => {
+	if ((await prisma.language.count()) > 0) {
+		return 'exists'
 	}
+	await prisma.language.createMany({
+		data: SEED_LANGUAGE_TAGS.map((tag) => {
+			const { englishName, nativeName, flagCode } = getSupportedLanguage(tag)
+			return { tag, englishName, nativeName, flagCode, isBase: tag === SEED_BASE_LANGUAGE_TAG }
+		}),
+	})
+	return 'created'
 }

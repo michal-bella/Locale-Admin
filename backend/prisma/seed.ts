@@ -12,8 +12,8 @@ const prisma = createPrismaClient(env.data.DATABASE_URL)
 try {
 	const result = await seedAdmin(prisma, env.data.SEED_ADMIN_PASSWORD)
 	console.info(result === 'created' ? `Seed: admin ${SEED_ADMIN_EMAIL} created` : `Seed: admin ${SEED_ADMIN_EMAIL} already exists, nothing changed`)
-	await seedLanguages(prisma)
-	console.info(`Seed: languages ${SEED_LANGUAGE_TAGS.join(', ')} ensured`)
+	const languages = await seedLanguages(prisma)
+	console.info(languages === 'created' ? `Seed: languages ${SEED_LANGUAGE_TAGS.join(', ')} created` : 'Seed: languages already exist, nothing changed')
 } catch (error) {
 	console.error('Seed failed.', error)
 	process.exitCode = 1

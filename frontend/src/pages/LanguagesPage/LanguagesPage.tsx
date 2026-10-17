@@ -1,6 +1,6 @@
 import { Button } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type Language, SUPPORTED_LANGUAGES } from '@locale/shared'
@@ -24,9 +24,36 @@ const LanguagesPage = () => {
 	const [deleteLanguage, setDeleteLanguage] = useState<Language | null>(null)
 	const allAdded = languages !== undefined && languages.length >= SUPPORTED_LANGUAGES.length
 
-	const openSettings = (language: Language) => {
+	const tableRef = useRef<HTMLTableElement>(null)
+	const returnFocusRef = useRef<HTMLElement | null>(null)
+
+	// Mantine returns focus to what was focused when a modal opened: here the item of an already closed row menu, or a button whose row is gone (or that got disabled).
+	// Deferred so the list has re-rendered with the refetched data and a removed row's button is already detached.
+	const restoreFocus = () =>
+		setTimeout(() => {
+			const target = returnFocusRef.current
+			;(target?.isConnected && !target.matches(':disabled') ? target : tableRef.current)?.focus()
+		})
+
+	const openAdd = (trigger: HTMLElement) => {
+		returnFocusRef.current = trigger
+		addModal.open()
+	}
+
+	const closeAdd = () => {
+		addModal.close()
+		restoreFocus()
+	}
+
+	const openSettings = (language: Language, trigger: HTMLElement | null) => {
+		returnFocusRef.current = trigger
 		setSettingsLanguage(language)
 		settingsModal.open()
+	}
+
+	const closeSettings = () => {
+		settingsModal.close()
+		restoreFocus()
 	}
 
 	const openDelete = (language: Language) => {
@@ -34,29 +61,43 @@ const LanguagesPage = () => {
 		deleteModal.open()
 	}
 
+	const openDeleteFromRow = (language: Language, trigger: HTMLElement | null) => {
+		returnFocusRef.current = trigger
+		openDelete(language)
+	}
+
+	// Opened over the settings modal, Mantine returns focus into it.
+	const closeDelete = () => {
+		deleteModal.close()
+		if (!settingsOpened) {
+			restoreFocus()
+		}
+	}
+
 	const handleDeleted = () => {
 		deleteModal.close()
 		settingsModal.close()
+		tableRef.current?.focus()
 	}
 
 	return (
 		<div className='mx-auto flex w-full max-w-[1200px] flex-col gap-6 p-8'>
 			<div className='flex flex-wrap items-end justify-between gap-4'>
 				<PageIntro eyebrow={t('languagesPage.eyebrow')} title={t('languagesPage.title')} description={t('languagesPage.description')} titleSize='h2' />
-				<Button leftSection={<Plus aria-hidden />} onClick={addModal.open} disabled={!languages || allAdded}>
+				<Button leftSection={<Plus aria-hidden />} onClick={(event) => openAdd(event.currentTarget)} disabled={!languages || allAdded}>
 					{t('languagesPage.addButton')}
 				</Button>
 			</div>
-			<LanguagesTable onAdd={addModal.open} onEdit={openSettings} onDelete={openDelete} />
-			<AddLanguageModal opened={addOpened} onClose={addModal.close} languages={languages ?? []} />
+			<LanguagesTable ref={tableRef} onAdd={openAdd} onEdit={openSettings} onDelete={openDeleteFromRow} />
+			<AddLanguageModal opened={addOpened} onClose={closeAdd} languages={languages ?? []} />
 			<LanguageSettingsModal
 				opened={settingsOpened}
 				language={settingsLanguage}
-				onClose={settingsModal.close}
+				onClose={closeSettings}
 				onDelete={openDelete}
 				inBackground={deleteOpened}
 			/>
-			<ConfirmDeleteModal opened={deleteOpened} language={deleteLanguage} onClose={deleteModal.close} onDeleted={handleDeleted} />
+			<ConfirmDeleteModal opened={deleteOpened} language={deleteLanguage} onClose={closeDelete} onDeleted={handleDeleted} />
 		</div>
 	)
 }

@@ -485,3 +485,82 @@ describe('Deleting a language', () => {
 		expect(within(getRow('Slovak')).queryByText('Základný')).not.toBeInTheDocument()
 	})
 })
+
+describe('Focus after a modal closes', () => {
+	/** fireEvent.click does not move focus like a real click or Enter does. */
+	const press = (element: HTMLElement) => {
+		element.focus()
+		fireEvent.click(element)
+	}
+
+	const openFromRowMenu = async (name: string, item: 'Upraviť' | 'Odstrániť', dialogName: string) => {
+		press(await screen.findByRole('button', { name: `Akcie pre jazyk ${name}` }))
+		press(await screen.findByRole('menuitem', { name: item }))
+		return screen.findByRole('dialog', { name: dialogName })
+	}
+
+	it('returns to the row menu button after the settings modal or the delete confirmation is cancelled', async () => {
+		mockLanguagesApi([SLOVAK, ENGLISH])
+		renderApp('/languages')
+		const trigger = await screen.findByRole('button', { name: 'Akcie pre jazyk English' })
+
+		const settings = await openFromRowMenu('English', 'Upraviť', 'Nastavenia jazyka')
+		press(within(settings).getByRole('button', { name: 'Zrušiť' }))
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(trigger).toHaveFocus()
+
+		const confirm = await openFromRowMenu('English', 'Odstrániť', 'Odstrániť jazyk')
+		press(within(confirm).getByRole('button', { name: 'Zrušiť' }))
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(trigger).toHaveFocus()
+	})
+
+	it('returns to the row menu button after cancelling a delete opened from the settings modal and closing the settings', async () => {
+		mockLanguagesApi([SLOVAK, ENGLISH])
+		renderApp('/languages')
+		const trigger = await screen.findByRole('button', { name: 'Akcie pre jazyk English' })
+
+		const settings = await openFromRowMenu('English', 'Upraviť', 'Nastavenia jazyka')
+		press(within(settings).getByRole('button', { name: 'Odstrániť jazyk' }))
+		const confirm = await screen.findByRole('dialog', { name: 'Odstrániť jazyk' })
+		press(within(confirm).getByRole('button', { name: 'Zrušiť' }))
+		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Odstrániť jazyk' })).not.toBeInTheDocument())
+		press(within(settings).getByRole('button', { name: 'Zrušiť' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(trigger).toHaveFocus()
+	})
+
+	it('moves focus to the table after the row is deleted', async () => {
+		mockLanguagesApi([SLOVAK, ENGLISH])
+		renderApp('/languages')
+
+		const confirm = await openFromRowMenu('English', 'Odstrániť', 'Odstrániť jazyk')
+		press(within(confirm).getByRole('button', { name: 'Odstrániť' }))
+
+		await waitFor(() => expect(within(getTable()).queryByText('English')).not.toBeInTheDocument())
+		expect(getTable()).toHaveFocus()
+	})
+
+	it('moves focus to the table when the empty-state button is gone after adding a language', async () => {
+		let languages: Language[] = []
+		signedInAs(ADMIN_USER, {
+			'GET /admin/languages': () => languagesResponse(languages),
+			'POST /admin/languages': () => {
+				languages = [RUSSIAN]
+				return { status: 201, data: RUSSIAN }
+			},
+		})
+		renderApp('/languages')
+		await screen.findByText('Zatiaľ nemáte žiadne jazyky.')
+
+		press(within(getTable()).getByRole('button', { name: 'Pridať jazyk' }))
+		const dialog = await screen.findByRole('dialog', { name: 'Pridať jazyk' })
+		await pickOption(within(dialog).getByLabelText('Jazyk', { selector: 'input' }), 'Russian – русский – ru')
+		press(within(dialog).getByRole('button', { name: 'Pridať' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(await within(getTable()).findByText('Russian')).toBeInTheDocument()
+		expect(getTable()).toHaveFocus()
+	})
+})

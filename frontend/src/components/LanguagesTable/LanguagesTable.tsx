@@ -1,6 +1,8 @@
 import { ActionIcon, Badge, Button, Menu, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
-import { type ReactNode } from 'react'
+import { type ReactNode, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import { type Language } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useLanguagesQuery } from '@/api/languages/languagesQuery'
@@ -12,8 +14,38 @@ import { type LanguagesTableProps } from './types'
 
 const SKELETON_ROWS = 3
 
+type RowActionsProps = Pick<LanguagesTableProps, 'onEdit' | 'onDelete'> & { language: Language }
+
+const RowActions = ({ language, onEdit, onDelete }: RowActionsProps) => {
+	const { t } = useTranslation()
+	const triggerRef = useRef<HTMLButtonElement>(null)
+
+	return (
+		<Menu position='bottom-end' width={180} radius='lg' shadow='md'>
+			<Menu.Target>
+				<ActionIcon
+					ref={triggerRef}
+					variant='transparent'
+					size={34}
+					radius='sm'
+					aria-label={t('languagesPage.table.actions', { name: language.englishName })}
+					className={classes.menuButton}
+				>
+					<DotsHorizontal aria-hidden />
+				</ActionIcon>
+			</Menu.Target>
+			<Menu.Dropdown>
+				<Menu.Item onClick={() => onEdit(language, triggerRef.current)}>{t('languagesPage.table.edit')}</Menu.Item>
+				<Menu.Item color='red' disabled={language.isBase} onClick={() => onDelete(language, triggerRef.current)}>
+					{t('languagesPage.table.delete')}
+				</Menu.Item>
+			</Menu.Dropdown>
+		</Menu>
+	)
+}
+
 /** Language list in a card (Figma 3:812) without the Preložené, Na kontrolu and Pokrytie columns. */
-const LanguagesTable = ({ onAdd, onEdit, onDelete }: LanguagesTableProps) => {
+const LanguagesTable = ({ onAdd, onEdit, onDelete, ref }: LanguagesTableProps) => {
 	const { t } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useLanguagesQuery()
 
@@ -55,7 +87,7 @@ const LanguagesTable = ({ onAdd, onEdit, onDelete }: LanguagesTableProps) => {
 			return stateRow(
 				<div className='flex flex-col items-center gap-4'>
 					<Text size='sm'>{t('languagesPage.table.empty')}</Text>
-					<Button leftSection={<Plus aria-hidden />} onClick={onAdd}>
+					<Button leftSection={<Plus aria-hidden />} onClick={(event) => onAdd(event.currentTarget)}>
 						{t('languagesPage.addButton')}
 					</Button>
 				</div>,
@@ -82,25 +114,7 @@ const LanguagesTable = ({ onAdd, onEdit, onDelete }: LanguagesTableProps) => {
 					</div>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-					<Menu position='bottom-end' width={180} radius='lg' shadow='md'>
-						<Menu.Target>
-							<ActionIcon
-								variant='transparent'
-								size={34}
-								radius='sm'
-								aria-label={t('languagesPage.table.actions', { name: language.englishName })}
-								className={classes.menuButton}
-							>
-								<DotsHorizontal aria-hidden />
-							</ActionIcon>
-						</Menu.Target>
-						<Menu.Dropdown>
-							<Menu.Item onClick={() => onEdit(language)}>{t('languagesPage.table.edit')}</Menu.Item>
-							<Menu.Item color='red' disabled={language.isBase} onClick={() => onDelete(language)}>
-								{t('languagesPage.table.delete')}
-							</Menu.Item>
-						</Menu.Dropdown>
-					</Menu>
+					<RowActions language={language} onEdit={onEdit} onDelete={onDelete} />
 				</Table.Td>
 			</Table.Tr>
 		))
@@ -108,7 +122,7 @@ const LanguagesTable = ({ onAdd, onEdit, onDelete }: LanguagesTableProps) => {
 
 	return (
 		<div className={classes.card}>
-			<Table aria-label={t('languagesPage.table.label')} aria-busy={isPending} withRowBorders={false}>
+			<Table ref={ref} tabIndex={-1} aria-label={t('languagesPage.table.label')} aria-busy={isPending} withRowBorders={false}>
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('languagesPage.table.language')}</Table.Th>

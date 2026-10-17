@@ -121,6 +121,63 @@
 		"save": "Save profile",
 		"saveSuccess": "Profile saved."
 	},
+	"languagesPage": {
+		"eyebrow": "Localization",
+		"title": "Languages",
+		"description": "Set the source language and manage the target languages of the project.",
+		"addButton": "Add language",
+		"table": {
+			"label": "Language list",
+			"language": "Language",
+			"base": "Base",
+			"actions": "Actions for language {{name}}",
+			"edit": "Edit",
+			"delete": "Delete",
+			"empty": "You have no languages yet.",
+			"loadError": "The language list could not be loaded.",
+			"retry": "Try again"
+		},
+		"addModal": {
+			"title": "Add language",
+			"description": "Pick a language from the list of supported languages.",
+			"close": "Close",
+			"language": {
+				"label": "Language",
+				"placeholder": "Search for a language",
+				"nothingFound": "No language found."
+			},
+			"cancel": "Cancel",
+			"submit": "Add",
+			"success": "Language {{name}} has been added."
+		},
+		"settingsModal": {
+			"title": "Language settings",
+			"close": "Close",
+			"englishName": "English name",
+			"nativeName": "Native name",
+			"flag": "Flag",
+			"tag": {
+				"label": "Tag",
+				"description": "The tag cannot be changed."
+			},
+			"isBase": {
+				"label": "Base language",
+				"description": "The source language translations are made from. There is always exactly one base language."
+			},
+			"delete": "Delete language",
+			"cancel": "Cancel",
+			"submit": "Save",
+			"success": "Language {{name}} has been saved."
+		},
+		"deleteModal": {
+			"title": "Delete language",
+			"close": "Close",
+			"message": "Do you really want to delete the language {{name}} ({{tag}})?",
+			"cancel": "Cancel",
+			"confirm": "Delete",
+			"success": "Language {{name}} has been deleted."
+		}
+	},
 	"topBar": {
 		"language": "Language",
 		"languages": {
@@ -142,6 +199,7 @@
 			"label": "User menu",
 			"profile": "My profile",
 			"users": "Users",
+			"languages": "Languages",
 			"logout": "Sign out"
 		}
 	},

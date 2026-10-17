@@ -10,7 +10,7 @@ const PREVIOUS_USER_DATA_KEY = ['test', 'previous-user-data']
 const openMenu = async () => fireEvent.click(await screen.findByRole('button', { name: 'Menu používateľa' }))
 
 describe('UserMenu', () => {
-	it('shows initials, email and the users link for an ADMIN', async () => {
+	it('shows initials, email and the users and languages links for an ADMIN', async () => {
 		signedInAs(ADMIN_USER)
 		renderApp('/')
 
@@ -20,10 +20,11 @@ describe('UserMenu', () => {
 		expect(await screen.findByText(ADMIN_USER.email)).toBeInTheDocument()
 		expect(screen.getByRole('menuitem', { name: 'Môj profil' })).toHaveAttribute('href', '/profile')
 		expect(screen.getByRole('menuitem', { name: 'Používatelia' })).toHaveAttribute('href', '/admin/users')
+		expect(screen.getByRole('menuitem', { name: 'Jazyky' })).toHaveAttribute('href', '/languages')
 		expect(screen.getByRole('menuitem', { name: 'Odhlásiť' })).toBeInTheDocument()
 	})
 
-	it('hides the users link for an EDITOR, keeps the profile link and uses email initials', async () => {
+	it('hides the users and languages links for an EDITOR, keeps the profile link and uses email initials', async () => {
 		signedInAs(EDITOR_USER)
 		renderApp('/')
 
@@ -33,6 +34,7 @@ describe('UserMenu', () => {
 		expect(await screen.findByRole('menuitem', { name: 'Odhlásiť' })).toBeInTheDocument()
 		expect(screen.getByRole('menuitem', { name: 'Môj profil' })).toHaveAttribute('href', '/profile')
 		expect(screen.queryByRole('menuitem', { name: 'Používatelia' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('menuitem', { name: 'Jazyky' })).not.toBeInTheDocument()
 	})
 
 	it('logs out and goes to /login', async () => {

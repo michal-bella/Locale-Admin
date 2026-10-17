@@ -23,19 +23,19 @@ Spúšťajú sa z rootu cez `pnpm --filter frontend <skript>`.
 
 ## Štruktúra `src/`
 
-| Priečinok     | Obsah                                                                                                                                                                                                                                                                                                                                |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `atoms/`      | malé obaly nad Mantine (`ButtonLink`)                                                                                                                                                                                                                                                                                                |
-| `components/` | zložené komponenty (`AppLayout`, `TopBar`, `UserMenu`, `LanguageSwitcher`, `ThemeSwitcher`, `Brand`, `CenteredLayout`, `PageIntro`, `RouteError`, `UsersTable`, `CreateUserModal`, komponenty profilu (`ProfileForm`, `ProfileCard`, `ProfileSection`, `PersonalDetailsSection`, `PreferencesSection`, `SecuritySection`), `Icons/`) |
-| `pages/`      | obrazovky rout (`HomePage`, `LoginPage`, `UsersPage`, `ProfilePage`, `ForbiddenPage`, `NotFoundPage`, `ErrorPage`)                                                                                                                                                                                                                   |
-| `routes/`     | strom rout, guardy a router (`createAppRouter`)                                                                                                                                                                                                                                                                                      |
-| `api/`        | axios inštancia `http`, `queryClient`, `QUERY_KEYS`, auth hooky (`api/auth/`), hooky správy používateľov (`api/adminUsers/`), hooky profilu (`api/profile/`), 401 interceptor, `getApiErrorCode`, `getApiErrorDetails`                                                                                                               |
-| `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n, `ForbiddenError`, `formatDate`, `formatRelativeTime`, `utils.ts` (`isLanguage`)                                                                                                                                                                                                          |
-| `locales/`    | preklady `sk.json`, `en.json`                                                                                                                                                                                                                                                                                                        |
-| `styles/`     | Mantine theme, globálne CSS s poradím vrstiev, prekrytia Mantine komponentov                                                                                                                                                                                                                                                         |
-| `assets/`     | `icons/` (zdrojové SVG z Figmy)                                                                                                                                                                                                                                                                                                      |
-| `types/`      | typy iba pre FE (typované i18n kľúče)                                                                                                                                                                                                                                                                                                |
-| `test/`       | `setup.ts`, `renderApp` a `mockApi` pre unit testy                                                                                                                                                                                                                                                                                   |
+| Priečinok     | Obsah                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `atoms/`      | malé obaly nad Mantine (`ButtonLink`)                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `components/` | zložené komponenty (`AppLayout`, `TopBar`, `UserMenu`, `LanguageSwitcher`, `ThemeSwitcher`, `Brand`, `CenteredLayout`, `PageIntro`, `RouteError`, `UsersTable`, `CreateUserModal`, komponenty jazykov (`LanguagesTable`, `LanguageFlag`, `AddLanguageModal`, `LanguageSettingsModal`, `ConfirmDeleteModal`, spoločný rám modálu `AppModal`), komponenty profilu (`ProfileForm`, `ProfileCard`, `ProfileSection`, `PersonalDetailsSection`, `PreferencesSection`, `SecuritySection`), `Icons/`) |
+| `pages/`      | obrazovky rout (`HomePage`, `LoginPage`, `UsersPage`, `LanguagesPage`, `ProfilePage`, `ForbiddenPage`, `NotFoundPage`, `ErrorPage`)                                                                                                                                                                                                                                                                                                                                                            |
+| `routes/`     | strom rout, guardy a router (`createAppRouter`)                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `api/`        | axios inštancia `http`, `queryClient`, `QUERY_KEYS`, auth hooky (`api/auth/`), hooky správy používateľov (`api/adminUsers/`), hooky profilu (`api/profile/`), hooky jazykov (`api/languages/`), 401 interceptor, `getApiErrorCode`, `getApiErrorDetails`                                                                                                                                                                                                                                       |
+| `lib/`        | `constants.ts`, `enum.ts`, nastavenie i18n, `ForbiddenError`, `formatDate`, `formatRelativeTime`, `utils.ts` (`isLanguage`)                                                                                                                                                                                                                                                                                                                                                                    |
+| `locales/`    | preklady `sk.json`, `en.json`                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `styles/`     | Mantine theme, globálne CSS s poradím vrstiev, prekrytia Mantine komponentov                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `assets/`     | `icons/` (zdrojové SVG z Figmy)                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `types/`      | typy iba pre FE (typované i18n kľúče)                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `test/`       | `setup.ts`, `renderApp` a `mockApi` pre unit testy                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 Priečinok komponentu obsahuje `Component.tsx`, `types.ts` (props) a voliteľne `Component.module.css`. Komponenty sa exportujú ako default a importujú plnou cestou (`@/components/Brand/Brand`). Barrel súbor je iba `components/Icons/index.ts`.
 
@@ -49,13 +49,14 @@ TanStack Router s routami v kóde (ADR 0002), jeden súbor na routu v `routes/`.
 | `/`            | `indexRoute` pod `_authenticated`      | `HomePage` (vo Fáze 1 prázdna)                  | prihlásený                               |
 | `/profile`     | `profileRoute` pod `_authenticated`    | `ProfilePage` (Môj profil)                      | prihlásený (`ADMIN` aj `EDITOR`)         |
 | `/admin/users` | `adminUsersRoute` pod `_authenticated` | `UsersPage` (zoznam a vytvorenie používateľa)   | `ADMIN`, ostatní vidia `ForbiddenPage`   |
+| `/languages`   | `languagesRoute` pod `_authenticated`  | `LanguagesPage` (správa jazykov)                | `ADMIN`, ostatní vidia `ForbiddenPage`   |
 | neexistujúca   | root                                   | `NotFoundPage` (`notFoundComponent` root route) | všetci                                   |
 
 Chyba v `beforeLoad` alebo v komponente routy bez vlastného `errorComponent` zobrazí `ErrorPage` (`defaultErrorComponent` routera).
 
 ### Lazy routy (code splitting)
 
-Komponenty stránok `/login`, `/profile` a `/admin/users` sa načítajú až pri prvej návšteve routy. Route súbor (`loginRoute.ts`, `adminUsersRoute.ts`) drží iba kritickú časť (`path`, `beforeLoad` guard, pri `/admin/users` aj `errorComponent`, aby sa 403 zobrazila bez čakania na chunk stránky) a cez `.lazy(() => import('@/routes/<route>.lazy').then((module) => module.Route))` pripojí súbor `<route>.lazy.ts`, ktorý obsahuje `createLazyRoute('<route id>')({ component })`. Route id je cesta vrátane pathless rodiča (`/_authenticated/admin/users`), typecheck preklep v id zachytí. `HomePage` (prázdna) a stránky 404, 403 a chybová stránka ostávajú v hlavnom chunku.
+Komponenty stránok `/login`, `/profile`, `/admin/users` a `/languages` sa načítajú až pri prvej návšteve routy. Route súbor (`loginRoute.ts`, `adminUsersRoute.ts`) drží iba kritickú časť (`path`, `beforeLoad` guard, pri `/admin/users` a `/languages` aj `errorComponent`, aby sa 403 zobrazila bez čakania na chunk stránky) a cez `.lazy(() => import('@/routes/<route>.lazy').then((module) => module.Route))` pripojí súbor `<route>.lazy.ts`, ktorý obsahuje `createLazyRoute('<route id>')({ component })`. Route id je cesta vrátane pathless rodiča (`/_authenticated/admin/users`), typecheck preklep v id zachytí. `HomePage` (prázdna) a stránky 404, 403 a chybová stránka ostávajú v hlavnom chunku.
 
 Knižnice sú v samostatných chunkoch cez `build.rolldownOptions.output.codeSplitting.groups` vo `vite.config.ts`: `react` (react, react-dom, scheduler), `mantine` (`@mantine/*`), `tanstack` (`@tanstack/*`) a `i18n-zod` (i18next, react-i18next, zod). Menia sa iba pri aktualizácii závislostí, takže ich prehliadač drží v cache aj po novom release aplikácie. Ostatné knižnice delí rolldown automaticky, takže tie, ktoré používajú iba lazy stránky (React Hook Form, resolver), ostávajú v lazy chunkoch. `chunkSizeWarningLimit` sa nemení.
 
@@ -78,11 +79,13 @@ Výsledok `pnpm --filter frontend build` (2026-10-16, minifikované / gzip):
 
 Po pridaní stránky Môj profil (2026-10-17): lazy chunk stránky má 7 kB / 3 kB. Chunk `mantine` narástol na 258 kB / 78 kB (predtým 231 kB / 71 kB), lebo `Select` (Combobox) a `Switch` patria do skupiny `@mantine/*`. Kód aplikácie pri štarte rolldown rozdelil na `index` (19 kB) a zdieľaný chunk `queryKeys` (56 kB), spolu 75 kB / 28 kB. JS pri štarte je spolu 794 kB / 251 kB, teda o 31 kB / 10 kB (asi 4 %) viac ako pred stránkou. Je to vedome prijaté, hoci `Select` a `Switch` zatiaľ používa iba lazy stránka profilu. Ak bude JS pri štarte rásť ďalej, skupina `mantine` sa zúži na komponenty používané pri štarte.
 
+Po pridaní stránky Jazyky (2026-10-17): lazy chunk stránky má 12,6 kB / 4,1 kB. Kód aplikácie pri štarte je jeden chunk `index` 90 kB / 32 kB (predtým `index` 25 kB + `queryKeys` 58 kB, spolu 83 kB / 31 kB), narástol najmä o preklady `languagesPage.*`. Chunk `mantine` má 264 kB / 80 kB (predtým 263 kB / 79 kB, pribudli `ActionIcon` a `Badge`). JS pri štarte je spolu 817 kB / 256 kB, o 8 kB / 1,3 kB viac ako pred stránkou.
+
 ### Guardy
 
 - `_authenticated` je pathless layout route (bez segmentu v URL) s komponentom `AppLayout`. Jej `beforeLoad` zavolá `queryClient.ensureQueryData(meQueryOptions)`. Pri 401 presmeruje na `/login` (bez `?redirect=`), iné chyby (5xx, nedostupný backend) pustí ďalej a zobrazí sa `ErrorPage`. Načítaného používateľa vráti do kontextu ako `context.user` pre podriadené routy.
 - `/login`: `beforeLoad` skúsi načítať `me`. Ak sa podarí, presmeruje na `/`. Akákoľvek chyba (401, nedostupný backend) znamená, že sa zobrazí formulár.
-- `/admin/users`: `beforeLoad` pre rolu inú ako `ADMIN` vyhodí `ForbiddenError`. `errorComponent` (`RouteError`) pre túto chybu zobrazí `ForbiddenPage` vnútri layoutu a URL ostáva `/admin/users`. Iné chyby zobrazí `ErrorPage` vnútri layoutu.
+- `/admin/users` a `/languages`: `beforeLoad` pre rolu inú ako `ADMIN` vyhodí `ForbiddenError`. `errorComponent` (`RouteError`) pre túto chybu zobrazí `ForbiddenPage` vnútri layoutu a URL ostáva rovnaká. Iné chyby zobrazí `ErrorPage` vnútri layoutu.
 - Po prihlásení ide `ADMIN` aj `EDITOR` na `/`.
 
 Produkčný server (nginx) musí pre neznáme cesty vrátiť `index.html` (SPA fallback), inak refresh na hlbokej route skončí chybou servera.
@@ -113,6 +116,17 @@ Interceptor ignoruje `/auth/login` (zlé heslo je chyba formulára) a `/auth/me`
 | `adminUsersQueryOptions`, `useAdminUsersQuery` | `GET /api/admin/users` (`AdminUserListResponse`), kľúč `QUERY_KEYS.ADMIN.USERS()`, globálny `retry` (3 pokusy, nie pri 401)                                        |
 | `useCreateUserMutation`                        | `POST /api/admin/users` (`CreateUserRequest` → `AdminUser`). Po úspechu `invalidateQueries(QUERY_KEYS.ADMIN.USERS())` a čaká na nové načítanie, kým mutácia skončí |
 
+### Jazyky
+
+| Hook                                         | Čo robí                                                                                                                                         |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `languagesQueryOptions`, `useLanguagesQuery` | `GET /api/admin/languages` (`LanguagesResponse`, základný jazyk prvý), kľúč `QUERY_KEYS.LANGUAGES()`, globálny `retry`                          |
+| `useCreateLanguageMutation`                  | `POST /api/admin/languages` (`CreateLanguageRequest` → `Language`). Pri `409 LANGUAGE_TAKEN` tiež invalidácia (jazyk medzitým pridal iný admin) |
+| `useUpdateLanguageMutation`                  | `PATCH /api/admin/languages/:id` (`{ id, body: UpdateLanguageRequest }` → `Language`). Pri `404 NOT_FOUND` tiež invalidácia                     |
+| `useDeleteLanguageMutation`                  | `DELETE /api/admin/languages/:id` (`204`). Pri `404 NOT_FOUND` tiež invalidácia                                                                 |
+
+Po každej úspešnej mutácii sa invaliduje celý zoznam `QUERY_KEYS.LANGUAGES()` (zmena základného jazyka mení dva riadky naraz) a mutácia čaká na nové načítanie, kým skončí.
+
 ### Profil
 
 | Hook                                     | Čo robí                                                                                                                                                                                          |
@@ -131,7 +145,7 @@ Lišta je nový dizajn zložený z prvkov Figmy (node `28:2`): výška 64 px, po
     - `LanguageSwitcher`: Mantine `SegmentedControl` SK / EN. Volá `i18n.changeLanguage`, jazyk sa zmení bez reloadu a uloží do `localStorage['locale']`. Viditeľný text je skratka (pre čítačky skrytá cez `aria-hidden`), prístupné meno je názov jazyka v danom jazyku (`VisuallyHidden` s `lang`): rádio **Slovenčina** a **English** v oboch jazykoch UI (kľúče `topBar.languages.<jazyk>.label` a `.name`). Pred skratkou je vlajka (viď i18n).
     - `ThemeSwitcher`: prepínač svetlej a tmavej schémy (viď Farebné schémy), hneď za prepínačom jazyka.
     - zvonček notifikácií: iba statická ikona 18 px v boxe 38 × 38 px, farba `slate.4`, bez akcie a bez ružovej bodky (zatiaľ nie sú notifikácie)
-    - `UserMenu`: Mantine `Menu`. Tlačidlo je avatar 32 px (kruh `slate.9`, iniciály 10 px / 700 biele cez `getInitials` zo `@locale/shared`). V menu je email, položka **Môj profil** (všetky role, odkaz na `/profile`), **Používatelia** (iba `ADMIN`, odkaz na `/admin/users`) a **Odhlásiť**. Chyba pri odhlásení sa ukáže ako notifikácia `errors.<CODE>`.
+    - `UserMenu`: Mantine `Menu`. Tlačidlo je avatar 32 px (kruh `slate.9`, iniciály 10 px / 700 biele cez `getInitials` zo `@locale/shared`). V menu je email, položka **Môj profil** (všetky role, odkaz na `/profile`), **Používatelia** (iba `ADMIN`, odkaz na `/admin/users`), **Jazyky** (iba `ADMIN`, odkaz na `/languages`) a **Odhlásiť**. Chyba pri odhlásení sa ukáže ako notifikácia `errors.<CODE>`.
 
 ## Prihlasovacia stránka
 
@@ -170,6 +184,33 @@ Správanie:
 - Počas odosielania je tlačidlo v stave `loading` (aj `disabled`) a `onSubmit` počas bežiacej mutácie nič neurobí, formulár sa nedá odoslať dvakrát.
 - Počas odosielania sa modál nedá zavrieť: **Zrušiť** a krížik sú `disabled`, `Esc` a klik mimo modálu sú vypnuté (`closeOnEscape`, `closeOnClickOutside`). Inak by zatvorenie resetovalo mutáciu a stratila by sa notifikácia o úspechu alebo chybe.
 - Po úspechu: invalidácia zoznamu, zelená notifikácia „Používateľ {{email}} bol vytvorený.“, reset formulára a zatvorenie modálu. **Zrušiť**, krížik, `Esc` aj klik mimo modálu formulár tiež resetujú.
+
+## Stránka Jazyky
+
+Podľa Figmy `3:812` bez sidebaru, drobčekov a ikony `?`, vnútri `AppLayout` na route `/languages` (iba `ADMIN`, odkaz **Jazyky** v menu používateľa). Obsah má šírku najviac 1200 px a padding 32 px ako stránka Používatelia. Jazyky sú zatiaľ globálny zoznam (projekty ešte nie sú), pridať sa dá iba jazyk z katalógu `SUPPORTED_LANGUAGES` v `@locale/shared`.
+
+- Hlavička: `PageIntro` s `titleSize="h2"` (Lokalizácia / Jazyky / popis z Figmy) a vpravo primárne tlačidlo **Pridať jazyk** s ikonou `Plus`. Tlačidlo je disabled, kým sa zoznam nenačíta, a keď sú pridané všetky jazyky z katalógu.
+- `LanguagesTable`: karta ako pri používateľoch, stĺpec **Jazyk** a úzky stĺpec s menu. Riadok má výšku 78 px: okrúhla vlajka 40 px (`LanguageFlag`), anglický názov 14 / 20 / 600 a pod ním pôvodný názov a tag (`slovenčina · sk`, 10 px `--app-color-muted`), pri základnom jazyku odznak **ZÁKLADNÝ** (Mantine `Badge`, 9 / 13,5 / 700, pozadie `--app-color-brand-tint`, text `--app-color-eyebrow`). Vpravo tlačidlo `⋯` (ikona `DotsHorizontal`, 34 px, `--app-color-muted`, prístupné meno „Akcie pre jazyk {{name}}“) s Mantine `Menu`: **Upraviť** a **Odstrániť** (červené, pri základnom jazyku disabled). Poradie je z API (základný prvý, potom podľa tagu).
+- Stavy mimo Figmy: načítavanie (3 riadky `Skeleton`, `aria-busy`), prázdny zoznam (text „Zatiaľ nemáte žiadne jazyky.“ a tlačidlo **Pridať jazyk**) a chyba (text „Zoznam jazykov sa nepodarilo načítať.“, `errors.<CODE>` a **Skúsiť znova**).
+- Názvy jazykov sú dáta z API, neprekladajú sa. Ostatné texty sú pod kľúčmi `languagesPage.*`.
+
+Odchýlky od Figmy (rozhodnuté v pláne `docs/plans/languages.md`): chýbajú stĺpce **Preložené**, **Na kontrolu** a **Pokrytie** (preklady ešte nie sú), namiesto textového odznaku `SK` je okrúhla vlajka, druhý riadok ukazuje pôvodný názov a tag (Figma „Zdrojový jazyk“ alebo tag).
+
+### Vlajky
+
+`LanguageFlag` mapuje kód vlajky z kontraktu (`LanguageFlagCode`, malé písmená `gb`, `cz`, `at`, …) na 9 komponentov z `country-flag-icons/react/3x2` (named importy `AT`, `BG`, `CZ`, `GB`, `HR`, `HU`, `RO`, `RU`, `SK`). Nový kód vlajky v katalógu bez mapovania zachytí `typecheck` (`satisfies Record<LanguageFlagCode, …>`). Vlajka je dekoratívna (`aria-hidden`) a má 1px prstenec `--app-color-border`.
+
+- `round`: kruh 40 px v tabuľke, vlajka 3 : 2 je orezaná na stred (`preserveAspectRatio="xMidYMid slice"`).
+- `rect`: obdĺžnik 20 px na šírku v selectoch (položky a náhľad zvolenej hodnoty vľavo v poli).
+
+### Modály jazykov
+
+Modály nie sú vo Figme, majú rovnaký rám ako **Nový používateľ** (`AppModal`: šírka 560 px, nadpis, popis, krížik, päta s tlačidlami, počas requestu sa nedajú zavrieť).
+
+- **Pridať jazyk** (`AddLanguageModal`): Mantine `Select` so `searchable`, položky „vlajka · English name – native name – tag“ zo `SUPPORTED_LANGUAGES`. Hľadá sa v celom texte položky, teda v anglickom aj pôvodnom názve aj v tagu. Už pridané jazyky sú v zozname disabled. **Pridať** je disabled bez výberu a `loading` počas requestu. Úspech → zelená notifikácia „Jazyk {{name}} bol pridaný.“, zatvorenie a reset. `400` → chyba pri poli, iná chyba (napr. `409 LANGUAGE_TAKEN`) → červená notifikácia `errors.<CODE>`, modál ostáva otvorený.
+- **Nastavenia jazyka** (`LanguageSettingsModal`, z menu **Upraviť**): React Hook Form + `zodResolver(updateLanguageRequestSchema)`, predvyplnené z riadku. Polia **Anglický názov**, **Pôvodný názov**, **Vlajka** (`Select` z `LANGUAGE_FLAG_CODES`, názov krajiny cez `Intl.DisplayNames` v jazyku UI, napr. „Slovensko (SK)“, s náhľadom vlajky) a **Tag** (disabled). Prepínač **Základný jazyk** sa dá iba zapnúť (pošle `isBase: true`), pri základnom jazyku je zapnutý a disabled. Päta: **Odstrániť jazyk** vľavo (disabled pri základnom jazyku), **Zrušiť**, **Uložiť** (disabled, kým sa formulár nezmení). Úspech → zelená notifikácia „Jazyk {{name}} bol uložený.“ a zatvorenie. `400` → `setError` pri poliach podľa `details`, `404` → červená notifikácia, zatvorenie a nové načítanie zoznamu, iné → červená notifikácia.
+- **Odstrániť jazyk** (`ConfirmDeleteModal`, šírka 440 px): každé odstránenie (z menu riadku aj z Nastavení) ide cez potvrdenie „Naozaj chcete odstrániť jazyk {{name}} ({{tag}})?“ s tlačidlami **Zrušiť** a červeným **Odstrániť** (`loading`). Úspech → zelená notifikácia „Jazyk {{name}} bol odstránený.“ a zatvoria sa oba modály. `404` zatvorí oba modály s červenou notifikáciou, iné chyby (`409 LANGUAGE_IS_BASE`) ukážu červenú notifikáciu a potvrdenie ostane otvorené.
+- Potvrdenie sa otvára nad Nastaveniami (`zIndex` o 1 vyšší). Mantine počúva `Esc` na `window`, takže kým je potvrdenie otvorené, Nastavenia majú vypnuté `Esc`, klik mimo a focus trap (`inBackground`), inak by `Esc` zavrel oba modály. `Modal.Stack` sa nepoužil, lebo funguje iba s `Modal`, nie s `Modal.Root`.
 
 ## Stránka Môj profil
 
@@ -245,10 +286,10 @@ Komponenty a CSS moduly nepoužívajú priamo `slate.N`, `black` ani `white`, al
 | `--app-color-label`              | label poľa, label prepínača v profile                                                                          | `slate.7`             | `slate.3`                                |
 | `--app-color-text-secondary`     | text sekundárneho tlačidla, iniciály v tabuľke, labely v Preferenciách                                         | `slate.6`             | `slate.3`                                |
 | `--app-color-muted`              | „WORKSPACE“, pätička, hlavička tabuľky, zvonček, prepínač schémy, krížik, popisy a rola v profile, ikona štítu | `slate.4`             | `slate.5`                                |
-| `--app-color-eyebrow`            | malý nadpis nad H1                                                                                             | `brand.7`             | `brand.4`                                |
+| `--app-color-eyebrow`            | malý nadpis nad H1, text odznaku ZÁKLADNÝ                                                                      | `brand.7`             | `brand.4`                                |
 | `--app-color-avatar`             | avatar v menu používateľa a v karte profilu (iniciály biele)                                                   | `slate.9`             | `slate.7`                                |
 | `--app-color-avatar-muted`       | avatar v tabuľke                                                                                               | `slate.1`             | `slate.8`                                |
-| `--app-color-brand-tint`         | začiatok gradientu karty profilu (stred cez `color-mix` 60 % s `--app-color-surface-muted`)                    | `brand.0`             | `brand.9` 30 % + `slate.9` (`color-mix`) |
+| `--app-color-brand-tint`         | začiatok gradientu karty profilu (stred cez `color-mix` 60 % s `--app-color-surface-muted`), odznak ZÁKLADNÝ   | `brand.0`             | `brand.9` 30 % + `slate.9` (`color-mix`) |
 | `--mantine-color-error`          | okraj a text chyby poľa                                                                                        | `red.6` (Mantine)     | `red.6`                                  |
 | `--mantine-color-disabled`       | pozadie disabled tlačidla, inputu a dráhy prepínača                                                            | `gray.2` (Mantine)    | `dark.5` (`slate-800`)                   |
 | `--mantine-color-disabled-color` | text disabled tlačidla a inputu                                                                                | `gray.5` (Mantine)    | `dark.2` (`slate-400`)                   |
@@ -267,7 +308,7 @@ Komponenty a CSS moduly nepoužívajú priamo `slate.N`, `black` ani `white`, al
 
 Farby v tejto sekcii a v popisoch obrazoviek vyššie sú hodnoty svetlej schémy, v kóde idú cez premenné `--app-color-*` (tmavé hodnoty sú v sekcii Farebné schémy).
 
-Figma súbor nemá premenné. Hodnoty sú zo štýlov login screenu (node `5:2861`), stránky Používatelia (`28:2`) a modálu (`28:191`) cez `get_design_context`.
+Figma súbor nemá premenné. Hodnoty sú zo štýlov login screenu (node `5:2861`), stránky Používatelia (`28:2`), modálu (`28:191`) a stránky Jazyky (`3:812`) cez `get_design_context`.
 
 ### Farby
 
@@ -292,6 +333,7 @@ Figma súbor nemá premenné. Hodnoty sú zo štýlov login screenu (node `5:286
 | `#0F172B`             | pozadie avatara v menu             | `slate.9`                                       |
 | `#E83E8C`             | tlačidlo, pozadie loga             | `brand.6` (`primaryColor`)                      |
 | `#D72F7C`             | malý nadpis nad H1 („PRIHLÁSENIE“) | `brand.7`                                       |
+| `#FDF2F8`             | pozadie odznaku ZÁKLADNÝ           | `brand.0` (najbližší odtieň)                    |
 
 Primárna farba `brand` má 10 odtieňov: `#FDEEF5`, `#FBD9E8`, `#F6B0D0`, `#F184B6`, `#ED5F9F`, `#EA4B93`, `#E83E8C`, `#D72F7C`, `#B9246A`, `#961A55`. Odtiene 6 a 7 sú z Figmy, ostatné sú dopočítané.
 
@@ -337,6 +379,7 @@ Prekrytie `Input` a `InputWrapper` v theme (`styles/components/Input.module.css`
 | 11 / 16,5 / 400                  | pätička                | `fontSizes.2xs`                                   |
 | 10 / 15 / 700, tracking 1,2 px   | malý nadpis nad H1     | `fontSizes.3xs`, `letter-spacing: 0.12em`         |
 | 10 / 15 / 600, tracking 1,6 px   | „WORKSPACE“            | `fontSizes.3xs`, `letter-spacing: 0.16em`         |
+| 9 / 13,5 / 700                   | odznak ZÁKLADNÝ        | `fontSizes.4xs`                                   |
 
 ## Stránka 404
 
@@ -344,7 +387,7 @@ Nie je vo Figme, je navrhnutá podľa login screenu: rovnaké pozadie, logo „L
 
 ## Ikony
 
-1. SVG sa exportuje z Figmy (Figma MCP) do `src/assets/icons/` (`logo.svg`, `arrow-right.svg`, `bell.svg`, `plus.svg`, `close.svg`, `upload.svg`, `shield.svg`, `chevron-down.svg`). `sun.svg` a `moon.svg` (prepínač schémy) vo Figme nie sú, sú to jednoduché ikony 24 px v štýle Lucide s ťahom 1,8. Farba ťahu sa v súbore nastaví na `white` (napr. `close.svg` má vo Figme `#90A1B9`), aby ju SVGR nahradil za `currentColor`.
+1. SVG sa exportuje z Figmy (Figma MCP) do `src/assets/icons/` (`logo.svg`, `arrow-right.svg`, `bell.svg`, `plus.svg`, `close.svg`, `upload.svg`, `shield.svg`, `chevron-down.svg`, `dots-horizontal.svg` z tlačidla `⋯` v riadku jazyka, Figma `3:901`). `sun.svg` a `moon.svg` (prepínač schémy) vo Figme nie sú, sú to jednoduché ikony 24 px v štýle Lucide s ťahom 1,8. Farba ťahu sa v súbore nastaví na `white` (napr. `close.svg` má vo Figme `#90A1B9`), aby ju SVGR nahradil za `currentColor`.
 2. `pnpm --filter frontend generate-icons` cez SVGR (`svgr.config.cjs`) vygeneruje TypeScript komponenty do `src/components/Icons/` a barrel `index.ts`, potom spustí ESLint a Prettier.
 3. Farba `white` z Figmy sa nahradí za `currentColor`, ikona preberá farbu textu. Predvolená veľkosť je veľkosť z Figmy, mení sa cez `width` a `height`, `viewBox` zostáva.
 

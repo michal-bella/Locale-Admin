@@ -8,6 +8,15 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Jazyky (MVP, 2026-10-17)
+
+- zdieľaný kontrakt: katalóg 9 podporovaných jazykov (`SUPPORTED_LANGUAGES`: bg, cs, de-AT, en, hr, hu, ro, ru, sk), `Language`, `createLanguageRequestSchema`, `updateLanguageRequestSchema`, nové chybové kódy `LANGUAGE_TAKEN` a `LANGUAGE_IS_BASE`
+- databáza: tabuľka `Language` s čiastočným unikátnym indexom (najviac jeden základný jazyk), seed `sk` (základný) a `en` iba do prázdnej tabuľky ([Databáza](./database.md))
+- backend: `GET`, `POST`, `PATCH`, `DELETE /api/admin/languages` iba pre ADMIN; prvý jazyk je základný, zmena základného jazyka v jednej transakcii, základný jazyk sa nedá odstrániť ([API](./api/admin-languages.md))
+- frontend: stránka `/languages` podľa Figmy (bez stĺpcov štatistík prekladov), položka Jazyky v menu používateľa pre ADMIN, modaly Pridať jazyk, Nastavenia jazyka a potvrdenie odstránenia, okrúhle vlajky cez `country-flag-icons`
+- E2E: testy stránky Jazyky (pridanie, úprava, základný jazyk, odstránenie s potvrdením, EDITOR 403, odhlásený) a API smoke pre `/api/admin/languages`
+- plán: [languages.md](./plans/languages.md)
+
 ### Môj profil (MVP, 2026-10-17)
 
 - zdieľaný kontrakt: `updateProfileRequestSchema` (meno a priezvisko povinné, max. 100 znakov, orezané), `Profile` s `passwordChangedAt`

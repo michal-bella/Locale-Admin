@@ -1,0 +1,199 @@
+import request from 'supertest'
+import { describe, expect, it } from 'vitest'
+
+import { ERROR_CODE, ROLE, VALIDATION_CODE, errorResponseSchema, projectListItemSchema, projectListResponseSchema } from '@locale/shared'
+
+import { createTestApp } from './helpers/app'
+import { CSRF_HEADERS, loginAs } from './helpers/auth'
+import { getTestPrisma } from './helpers/db'
+import { TEST_PASSWORD, createUser } from './helpers/users'
+
+type App = ReturnType<typeof createTestApp>
+
+const expectErrorCode = (res: request.Response, status: number, code: ERROR_CODE) => {
+	expect(res.status).toBe(status)
+	expect(errorResponseSchema.parse(res.body).error.code).toBe(code)
+}
+
+const login = async (app: App, role: ROLE = ROLE.EDITOR) => {
+	const { user } = await createUser({ role })
+	return { user, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
+}
+
+const createProjectRow = (name: string, slug: string, memberIds: string[] = []) =>
+	getTestPrisma().project.create({ data: { name, slug, members: { create: memberIds.map((userId) => ({ userId })) } } })
+
+const postProject = (app: App, cookie: string, body: unknown) =>
+	request(app)
+		.post('/api/projects')
+		.set('Cookie', cookie)
+		.set(CSRF_HEADERS)
+		.send(body as object)
+
+const leave = (app: App, cookie: string, projectId: string) =>
+	request(app).delete(`/api/projects/${projectId}/membership`).set('Cookie', cookie).set(CSRF_HEADERS).send({})
+
+describe('GET /api/projects', () => {
+	it('returns only the projects of an EDITOR sorted by name', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const web = await createProjectRow('Booking Web', 'booking-web', [user.id])
+		const admin = await createProjectRow('B2B Admin', 'b2b-admin', [user.id])
+		await createProjectRow('Foreign', 'foreign')
+
+		const res = await request(app).get('/api/projects').set('Cookie', cookie)
+
+		expect(res.status).toBe(200)
+		expect(projectListResponseSchema.extend({ projects: projectListItemSchema.strict().array() }).strict().parse(res.body).projects).toEqual([
+			{ id: admin.id, name: 'B2B Admin', slug: 'b2b-admin', primaryColor: '#E83E8C', isMember: true },
+			{ id: web.id, name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C', isMember: true },
+		])
+	})
+
+	it('returns every project to an ADMIN with isMember per project', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app, ROLE.ADMIN)
+		const own = await createProjectRow('A', 'a', [user.id])
+		const foreign = await createProjectRow('B', 'b')
+
+		const res = await request(app).get('/api/projects').set('Cookie', cookie)
+
+		expect(projectListResponseSchema.parse(res.body).projects.map(({ id, isMember }) => ({ id, isMember }))).toEqual([
+			{ id: own.id, isMember: true },
+			{ id: foreign.id, isMember: false },
+		])
+	})
+
+	it('returns 401 AUTH_UNAUTHENTICATED without a session', async () => {
+		const res = await request(createTestApp()).get('/api/projects')
+
+		expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
+	})
+})
+
+describe('POST /api/projects', () => {
+	it('creates a project with trimmed values and makes the creator a member', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+
+		const res = await postProject(app, cookie, { name: ' Booking Web ', slug: ' booking-web ' })
+
+		expect(res.status).toBe(201)
+		const body = projectListItemSchema.strict().parse(res.body)
+		expect(body).toMatchObject({ name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C', isMember: true })
+		expect(await getTestPrisma().projectMember.findMany({ where: { projectId: body.id }, select: { userId: true } })).toEqual([{ userId: user.id }])
+	})
+
+	it('returns 400 VALIDATION_ERROR with details for an invalid body', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app)
+
+		const res = await postProject(app, cookie, { name: ' ', slug: 'Booking Web' })
+
+		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(errorResponseSchema.parse(res.body).error.details).toEqual([
+			{ path: 'name', code: VALIDATION_CODE.REQUIRED },
+			{ path: 'slug', code: VALIDATION_CODE.INVALID },
+		])
+		expect(await getTestPrisma().project.count()).toBe(0)
+	})
+
+	it('returns 409 SLUG_TAKEN for an existing slug', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app)
+		await createProjectRow('Booking Web', 'booking-web')
+
+		const res = await postProject(app, cookie, { name: 'Other', slug: 'booking-web' })
+
+		expectErrorCode(res, 409, ERROR_CODE.SLUG_TAKEN)
+		expect(await getTestPrisma().project.count()).toBe(1)
+	})
+
+	it('returns 401 AUTH_UNAUTHENTICATED without a session', async () => {
+		const res = await request(createTestApp()).post('/api/projects').set(CSRF_HEADERS).send({ name: 'A', slug: 'a' })
+
+		expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
+	})
+
+	it('returns 403 CSRF_REJECTED without X-Requested-With', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app)
+
+		const res = await request(app).post('/api/projects').set('Cookie', cookie).send({ name: 'A', slug: 'a' })
+
+		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
+		expect(await getTestPrisma().project.count()).toBe(0)
+	})
+})
+
+describe('DELETE /api/projects/:projectId/membership', () => {
+	it('removes the membership of the caller only', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const { user: other } = await createUser()
+		const project = await createProjectRow('A', 'a', [user.id, other.id])
+
+		const res = await leave(app, cookie, project.id)
+
+		expect(res.status).toBe(204)
+		expect(await getTestPrisma().projectMember.findMany({ where: { projectId: project.id }, select: { userId: true } })).toEqual([{ userId: other.id }])
+	})
+
+	it('returns 409 LAST_MEMBER for the last member', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const project = await createProjectRow('A', 'a', [user.id])
+
+		const res = await leave(app, cookie, project.id)
+
+		expectErrorCode(res, 409, ERROR_CODE.LAST_MEMBER)
+		expect(await getTestPrisma().projectMember.count()).toBe(1)
+	})
+
+	it('lets only one of the last two members leave when they leave at the same time', async () => {
+		const app = createTestApp()
+		const first = await login(app)
+		const second = await login(app)
+		const project = await createProjectRow('A', 'a', [first.user.id, second.user.id])
+
+		const statuses = (await Promise.all([leave(app, first.cookie, project.id), leave(app, second.cookie, project.id)])).map(({ status }) => status)
+
+		expect(statuses.sort()).toEqual([204, 409])
+		expect(await getTestPrisma().projectMember.count()).toBe(1)
+	})
+
+	it('returns 404 NOT_FOUND to an ADMIN who is not a member', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const { user: member } = await createUser()
+		const project = await createProjectRow('A', 'a', [member.id])
+
+		const res = await leave(app, cookie, project.id)
+
+		expectErrorCode(res, 404, ERROR_CODE.NOT_FOUND)
+		expect(await getTestPrisma().projectMember.count()).toBe(1)
+	})
+
+	it('returns 404 NOT_FOUND to an EDITOR who is not a member', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app)
+		const { user: member } = await createUser()
+		const project = await createProjectRow('A', 'a', [member.id])
+
+		const res = await leave(app, cookie, project.id)
+
+		expectErrorCode(res, 404, ERROR_CODE.NOT_FOUND)
+	})
+
+	it('returns 403 CSRF_REJECTED without X-Requested-With', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const { user: other } = await createUser()
+		const project = await createProjectRow('A', 'a', [user.id, other.id])
+
+		const res = await request(app).delete(`/api/projects/${project.id}/membership`).set('Cookie', cookie)
+
+		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
+		expect(await getTestPrisma().projectMember.count()).toBe(2)
+	})
+})

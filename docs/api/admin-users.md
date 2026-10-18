@@ -1,17 +1,17 @@
 ---
 title: 'API: správa používateľov'
-updated: 2026-10-16
+updated: 2026-10-18
 notion_page_id:
 ---
 
 # Správa používateľov (`/api/admin/users`)
 
-Zoznam používateľov a vytvorenie nového používateľa. Registrácia neexistuje, nových používateľov vytvára iba `ADMIN`. Editácia, deaktivácia ani mazanie vo fáze 1 nie sú. Schémy sú v `packages/shared/src/adminUsers.ts`.
+Zoznam administrátorov a vytvorenie nového administrátora. Registrácia neexistuje. Členov projektov (`EDITOR`) vytvára admin alebo člen na stránke Členovia projektu (viď [projekty](./projects.md#členovia)). Editácia, deaktivácia ani mazanie vo fáze 1 nie sú. Schémy sú v `packages/shared/src/adminUsers.ts`.
 
-| Metóda | Cesta              | Prihlásenie | Popis                                |
-| ------ | ------------------ | ----------- | ------------------------------------ |
-| `GET`  | `/api/admin/users` | `ADMIN`     | zoznam používateľov od najnovšieho   |
-| `POST` | `/api/admin/users` | `ADMIN`     | vytvorí používateľa s rolou `EDITOR` |
+| Metóda | Cesta              | Prihlásenie | Popis                                 |
+| ------ | ------------------ | ----------- | ------------------------------------- |
+| `GET`  | `/api/admin/users` | `ADMIN`     | zoznam administrátorov od najnovšieho |
+| `POST` | `/api/admin/users` | `ADMIN`     | vytvorí používateľa s rolou `ADMIN`   |
 
 Celý router `/api/admin` je za `requireAuth` a `requireRole(ROLE.ADMIN)`: bez session vráti 401 `AUTH_UNAUTHENTICATED`, prihlásený `EDITOR` dostane 403 `FORBIDDEN` (viď [auth](./auth.md#oprávnenia)).
 
@@ -27,20 +27,20 @@ Schéma `adminUserSchema`. Hash hesla sa nikdy nevracia (backend ho z databázy 
 | `createdAt` | string (ISO 8601)  | čas vytvorenia, napr. `2026-10-12T08:30:00.000Z` |
 
 ```json
-{ "id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11", "email": "meno@firma.sk", "role": "EDITOR", "createdAt": "2026-10-12T08:30:00.000Z" }
+{ "id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11", "email": "meno@firma.sk", "role": "ADMIN", "createdAt": "2026-10-12T08:30:00.000Z" }
 ```
 
 ## GET /api/admin/users
 
-Vráti `200` s telom `{ users: AdminUser[] }` (schéma `adminUserListResponseSchema`), zoradené podľa `createdAt` od najnovšieho. Bez stránkovania a filtrov; obálka `users` nechá miesto na stránkovanie neskôr.
+Vráti `200` s telom `{ users: AdminUser[] }` (schéma `adminUserListResponseSchema`) iba s používateľmi s rolou `ADMIN`, zoradené podľa `createdAt` od najnovšieho. Bez stránkovania a filtrov; obálka `users` nechá miesto na stránkovanie neskôr.
 
 ```json
-{ "users": [{ "id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11", "email": "meno@firma.sk", "role": "EDITOR", "createdAt": "2026-10-12T08:30:00.000Z" }] }
+{ "users": [{ "id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11", "email": "meno@firma.sk", "role": "ADMIN", "createdAt": "2026-10-12T08:30:00.000Z" }] }
 ```
 
 | HTTP | `code`                 | Kedy                                 |
 | ---- | ---------------------- | ------------------------------------ |
-| 200  |                        | zoznam používateľov                  |
+| 200  |                        | zoznam administrátorov               |
 | 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session       |
 | 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN` |
 
@@ -54,7 +54,7 @@ Telo (schéma `createUserRequestSchema`):
 
 - `email` musí byť platný email. Pred uložením sa upraví cez `trim()` a malé písmená.
 - `password` má 8 až 128 znakov (`PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`). Ukladá sa iba argon2id hash.
-- Rola je vždy `EDITOR`. Pole `role` v tele sa ignoruje (schéma ho nemá). `passwordChangedAt` sa nastaví na čas vytvorenia.
+- Rola je vždy `ADMIN`. Pole `role` v tele sa ignoruje (schéma ho nemá). `passwordChangedAt` sa nastaví na čas vytvorenia.
 - Email je unikátny bez ohľadu na veľkosť písmen. Duplicitu stráži unikátny index v databáze, takže 409 vráti aj pri dvoch súbežných požiadavkách s rovnakým emailom.
 - Pri úspechu vráti `201` s `AdminUser`. Nový používateľ sa hneď vie prihlásiť cez `POST /api/auth/login`.
 

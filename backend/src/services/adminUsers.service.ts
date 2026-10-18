@@ -17,16 +17,16 @@ const toAdminUser = (user: Pick<User, 'id' | 'email' | 'role' | 'createdAt'>): A
 })
 
 export const listUsers = async (prisma: PrismaClient): Promise<AdminUser[]> => {
-	const users = await prisma.user.findMany({ select: ADMIN_USER_SELECT, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }] })
+	const users = await prisma.user.findMany({ where: { role: ROLE.ADMIN }, select: ADMIN_USER_SELECT, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }] })
 	return users.map(toAdminUser)
 }
 
-/** Always creates an EDITOR. No pre-check for the email: the unique constraint (P2002) also covers concurrent requests. */
+/** Always creates an ADMIN; members (EDITOR) are created in a project. No pre-check for the email: the unique constraint (P2002) also covers concurrent requests. */
 export const createUser = async (prisma: PrismaClient, { email, password }: CreateUserRequest): Promise<AdminUser> => {
 	const passwordHash = await hashPassword(password)
 	try {
 		const user = await prisma.user.create({
-			data: { email, passwordHash, role: ROLE.EDITOR, passwordChangedAt: new Date() },
+			data: { email, passwordHash, role: ROLE.ADMIN, passwordChangedAt: new Date() },
 			select: ADMIN_USER_SELECT,
 		})
 		return toAdminUser(user)

@@ -32,19 +32,19 @@ const postUser = (app: App, cookie: string, body: unknown) =>
 		.send(body as object)
 
 describe('GET /api/admin/users', () => {
-	it('returns users newest first without passwordHash', async () => {
+	it('returns only admins newest first without passwordHash', async () => {
 		const app = createTestApp()
 		const { user: admin } = await createUser({ role: ROLE.ADMIN, createdAt: new Date('2026-01-01T00:00:00Z') })
-		const { user: older } = await createUser({ createdAt: new Date('2026-02-01T00:00:00Z') })
-		const { user: newer } = await createUser({ createdAt: new Date('2026-03-01T00:00:00Z') })
+		const { user: newer } = await createUser({ role: ROLE.ADMIN, createdAt: new Date('2026-03-01T00:00:00Z') })
+		await createUser({ createdAt: new Date('2026-04-01T00:00:00Z') })
 		const cookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
 
 		const res = await request(app).get('/api/admin/users').set('Cookie', cookie)
 
 		expect(res.status).toBe(200)
 		const { users } = adminUserListResponseSchema.parse(res.body)
-		expect(users.map(({ id }) => id)).toEqual([newer.id, older.id, admin.id])
-		expect(users[0]).toEqual({ id: newer.id, email: newer.email, role: ROLE.EDITOR, createdAt: '2026-03-01T00:00:00.000Z' })
+		expect(users.map(({ id }) => id)).toEqual([newer.id, admin.id])
+		expect(users[0]).toEqual({ id: newer.id, email: newer.email, role: ROLE.ADMIN, createdAt: '2026-03-01T00:00:00.000Z' })
 		expect(adminUserListResponseSchema.extend({ users: adminUserSchema.strict().array() }).strict().safeParse(res.body).success).toBe(true)
 		expect(JSON.stringify(res.body)).not.toContain('passwordHash')
 	})
@@ -66,19 +66,19 @@ describe('GET /api/admin/users', () => {
 })
 
 describe('POST /api/admin/users', () => {
-	it('creates an EDITOR with a normalized email even when the body asks for ADMIN', async () => {
+	it('creates an ADMIN with a normalized email even when the body asks for EDITOR', async () => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
 		const before = Date.now()
 
-		const res = await postUser(app, cookie, { email: '  Nova.Osoba@Firma.SK ', password: NEW_PASSWORD, role: ROLE.ADMIN })
+		const res = await postUser(app, cookie, { email: '  Nova.Osoba@Firma.SK ', password: NEW_PASSWORD, role: ROLE.EDITOR })
 
 		expect(res.status).toBe(201)
 		const body = adminUserSchema.strict().parse(res.body)
-		expect(body).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.EDITOR })
+		expect(body).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.ADMIN })
 
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: body.id } })
-		expect(stored).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.EDITOR, isActive: true })
+		expect(stored).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.ADMIN, isActive: true })
 		expect(stored.passwordHash).toMatch(/^\$argon2id\$/)
 		expect(await verifyPassword(stored.passwordHash, NEW_PASSWORD)).toBe(true)
 		expect(stored.passwordChangedAt.getTime()).toBeGreaterThanOrEqual(before - 1000)
@@ -93,7 +93,7 @@ describe('POST /api/admin/users', () => {
 		const res = await request(app).post('/api/auth/login').set(CSRF_HEADERS).send({ email: 'NOVA.osoba@firma.sk', password: NEW_PASSWORD })
 
 		expect(res.status).toBe(200)
-		expect(res.body).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.EDITOR })
+		expect(res.body).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.ADMIN })
 	})
 
 	it.each([

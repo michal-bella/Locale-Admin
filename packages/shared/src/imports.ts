@@ -5,7 +5,14 @@ export const IMPORT_FILE_MAX_BYTES = 10 * 1024 * 1024
 
 export const IMPORT_FILE_NAME_MAX_LENGTH = 255
 
-export const IMPORT_KEY_MAX_LENGTH = 2000
+/**
+ * Limit of a key in UTF-8 bytes, not characters: the unique btree index on `(projectId, namespace, name)` holds at most
+ * 2 704 bytes per row, and 2 000 Cyrillic characters take about 4 000.
+ */
+export const IMPORT_KEY_MAX_BYTES = 2000
+
+/** A namespace is a JSON file name, so it is short; with the key it must fit in the same index row. */
+export const IMPORT_NAMESPACE_MAX_LENGTH = 100
 
 /** `IMPORT_FILE_INVALID` lists at most this many issues, `details.total` has the full count. */
 export const IMPORT_ISSUES_MAX = 50
@@ -41,7 +48,7 @@ export type ImportIssueCode = z.infer<typeof importIssueCodeSchema>
  * `line` and `column` are 1-based positions in the file: line 1 is the header, column 1 is `Keys`.
  *
  * `params` by code: `ROW_COLUMN_COUNT` `{ expected, actual }`, `ROW_DUPLICATE_KEY` `{ key, namespace, firstLine }`,
- * `KEY_TOO_LONG` `{ max, length }`, `HEADER_DUPLICATE_TAG` `{ tag, firstColumn }`, `NAMESPACE_INVALID` `{ namespace }`,
+ * `KEY_TOO_LONG` `{ max, length }` (UTF-8 bytes), `HEADER_DUPLICATE_TAG` `{ tag, firstColumn }`, `NAMESPACE_INVALID` `{ namespace }`,
  * `PLACEHOLDER_MISMATCH` `{ tag, key, namespace, missing, extra }` (placeholders joined by `, `),
  * `LANGUAGE_NOT_IN_PROJECT` and `LANGUAGE_UNKNOWN` `{ tag }`, `BASE_LANGUAGE_UNTRANSLATED` `{ tag, key, namespace }`.
  */
@@ -129,8 +136,10 @@ export const importPreviewResponseSchema = z.object({
 export type ImportPreviewResponse = z.infer<typeof importPreviewResponseSchema>
 
 /**
- * Body of `POST /api/projects/:projectId/imports` (milestone C). Every language column of the file is listed once;
- * `languageId: null` skips it. `createMissingKeys: false` imports only values of keys the project already has.
+ * Body of `POST /api/projects/:projectId/imports`. Every language column of the file is listed exactly once;
+ * `languageId: null` skips it, a language of the project may be mapped to one column only, and at least one column must
+ * be mapped (otherwise 400 `IMPORT_COLUMNS_INVALID`). `createMissingKeys: false` imports only values of keys the project
+ * already has.
  */
 export const importRequestSchema = importPreviewRequestSchema.extend({
 	columns: z.array(z.object({ columnIndex: z.number().int().min(2), languageId: z.uuid().nullable() })).min(1),
@@ -141,7 +150,10 @@ export type ImportRequest = z.infer<typeof importRequestSchema>
 
 export type ImportRequestInput = z.input<typeof importRequestSchema>
 
-/** Body of `200 POST /api/projects/:projectId/imports` (milestone C). */
+/**
+ * Body of `200 POST /api/projects/:projectId/imports`. Counts match the preview: `translationsCreated` = `new`,
+ * `translationsUpdated` = `changed`; `null` in the file never clears a filled value, so it is counted nowhere.
+ */
 export const importResultSchema = z.object({
 	keysCreated: count,
 	translationsCreated: count,

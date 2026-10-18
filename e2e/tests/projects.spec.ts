@@ -36,7 +36,11 @@ test.describe('member', () => {
 		await expect(page.getByRole('complementary')).toHaveCount(0)
 		const [own] = await listProjects(page.request)
 		await expect(getList(page).getByRole('listitem')).toHaveCount(1)
-		await expect(getList(page).getByRole('link', { name: own!.name, exact: true })).toHaveAttribute('href', `/projects/${editor.projectSlug}/settings`)
+		await expect(getList(page).getByRole('link', { name: own!.name, exact: true })).toHaveAttribute('href', `/projects/${editor.projectSlug}/translations`)
+		await expect(getList(page).getByRole('link', { name: `Nastavenia projektu ${own!.name}`, exact: true })).toHaveAttribute(
+			'href',
+			`/projects/${editor.projectSlug}/settings`,
+		)
 
 		const { name, slug } = newTestProjectInput('ui')
 		await page.getByRole('button', { name: 'Nový projekt' }).click()

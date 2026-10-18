@@ -65,14 +65,14 @@ afterEach(() => {
 })
 
 describe('ProjectsPage list', () => {
-	it('renders the projects without the sidebar, with initials in the project color and links to the settings', async () => {
+	it('renders the projects without the sidebar, with initials in the project color and links to the translations', async () => {
 		signedInAs(ADMIN_USER, { 'GET /projects': projectsResponse([BOOKING, DEMO]) })
 		renderApp('/')
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Projekty' })).toBeInTheDocument()
 		const list = within(await waitFor(getList))
 		expect(list.getAllByRole('listitem')).toHaveLength(2)
-		expect(list.getByRole('link', { name: 'Booking Web' })).toHaveAttribute('href', `/projects/${BOOKING.slug}/settings`)
+		expect(list.getByRole('link', { name: 'Booking Web' })).toHaveAttribute('href', `/projects/${BOOKING.slug}/translations`)
 		expect(list.getByText('booking-web')).toBeInTheDocument()
 		const initials = list.getByText('BW')
 		expect(initials).toHaveStyle({ backgroundColor: '#FACC15' })

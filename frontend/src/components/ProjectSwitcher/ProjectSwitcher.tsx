@@ -23,20 +23,18 @@ const ProjectAvatar = ({ name, primaryColor, size }: { name: string; primaryColo
 
 /**
  * Project switcher at the top of the sidebar (Figma 3:470). The second line shows the slug instead of the organization,
- * which no longer exists. Switching keeps the current page (Preklady, Nastavenia projektu, Jazyky or Členovia).
+ * which no longer exists. Switching keeps Preklady, Jazyky or Členovia; from Nastavenia projektu it opens Preklady.
  */
 const ProjectSwitcher = ({ project, onNavigate }: ProjectSwitcherProps) => {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const pathname = useLocation({ select: (location) => location.pathname })
 	const { data } = useProjectsQuery()
-	const to = pathname.endsWith('/translations')
-		? '/projects/$projectSlug/translations'
-		: pathname.endsWith('/members')
-			? '/projects/$projectSlug/members'
-			: pathname.endsWith('/languages')
-				? '/projects/$projectSlug/languages'
-				: '/projects/$projectSlug/settings'
+	const to = pathname.endsWith('/members')
+		? '/projects/$projectSlug/members'
+		: pathname.endsWith('/languages')
+			? '/projects/$projectSlug/languages'
+			: '/projects/$projectSlug/translations'
 
 	const open = (projectSlug: string) => {
 		onNavigate()

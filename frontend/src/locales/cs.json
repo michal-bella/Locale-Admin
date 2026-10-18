@@ -140,6 +140,49 @@
 			"success": "Administrátor {{email}} byl odstraněn."
 		}
 	},
+	"adminProjectsPage": {
+		"eyebrow": "Správa",
+		"title": "Projekty",
+		"description": "Všechny projekty v systému. Upravte jejich nastavení nebo je smažte i s jazyky a členstvími.",
+		"createButton": "Nový projekt",
+		"table": {
+			"label": "Seznam projektů",
+			"project": "Projekt",
+			"slug": "Slug",
+			"baseLanguage": "Základní jazyk",
+			"languages": "Jazyky",
+			"members": "Členové",
+			"createdAt": "Vytvořen",
+			"noBaseLanguage": "Bez jazyka",
+			"empty": "Zatím zde nejsou žádné projekty.",
+			"loadError": "Seznam projektů se nepodařilo načíst.",
+			"retry": "Zkusit znovu",
+			"actionsColumn": "Akce",
+			"edit": "Upravit",
+			"editLabel": "Upravit projekt {{name}}",
+			"open": "Otevřít projekt",
+			"openLabel": "Otevřít projekt {{name}}",
+			"delete": "Smazat",
+			"deleteLabel": "Smazat projekt {{name}}"
+		},
+		"editModal": {
+			"title": "Upravit projekt",
+			"close": "Zavřít",
+			"loadError": "Nastavení projektu se nepodařilo načíst.",
+			"retry": "Zkusit znovu"
+		},
+		"deleteModal": {
+			"title": "Smazat projekt",
+			"message": "Opravdu chcete smazat projekt {{name}}? Smažou se i všechny jeho jazyky a členství. Účty členů zůstanou. Akci nelze vrátit.",
+			"slug": {
+				"label": "Pro potvrzení napište slug projektu {{slug}}"
+			},
+			"close": "Zavřít",
+			"cancel": "Zrušit",
+			"confirm": "Smazat projekt",
+			"success": "Projekt {{name}} byl smazán."
+		}
+	},
 	"membersPage": {
 		"eyebrow": "Projekt",
 		"title": "Členové",
@@ -301,6 +344,7 @@
 			}
 		},
 		"leave": "Opustit projekt",
+		"cancel": "Zrušit",
 		"save": "Uložit změny",
 		"saveSuccess": "Nastavení projektu bylo uloženo."
 	},
@@ -327,6 +371,7 @@
 		"allProjects": "Všechny projekty",
 		"languages": "Jazyky",
 		"admin": "Správa",
+		"adminProjects": "Projekty",
 		"users": "Uživatelé",
 		"projectSettings": "Nastavení projektu",
 		"members": "Členové",

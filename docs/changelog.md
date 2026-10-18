@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Správa projektov (2026-10-18)
+
+- frontend: stránka **Projekty** v sekcii SPRÁVA (`/admin/projects`, iba ADMIN, EDITOR dostane 403) s tabuľkou všetkých projektov (farba a názov, slug, základný jazyk, počet jazykov a členov, vytvorený), tlačidlom Nový projekt a akciami Upraviť (formulár nastavení v modáli), Otvoriť projekt a Zmazať (potvrdenie prepísaním slugu) ([Frontend](./frontend.md#stránka-projekty-správa))
+- plán: [admin-projects.md](./plans/admin-projects.md)
+
 ### Slug v URL projektu, čeština a akcie v tabuľkách (2026-10-18)
 
 - frontend: projekt má v URL slug namiesto id (`/projects/<slug>/settings`), API ostáva na id; po zmene slugu v nastaveniach sa URL prepíše na nový ([Frontend](./frontend.md))

@@ -211,7 +211,7 @@ Seed (`backend/prisma/seed.ts`) vytvorí admina `michal.bella@goodrequest.com` s
 - Heslo je z ENV `SEED_ADMIN_PASSWORD` a musí spĺňať pravidlá hesla z `packages/shared` (8 až 128 znakov). Ak chýba alebo je nevalidné, seed skončí s chybou a nič nevytvorí.
 - Seed je idempotentný: ak admin s týmto emailom existuje, nemení nič (ani heslo, ani rolu). Zmena `SEED_ADMIN_PASSWORD` v `.env` existujúceho admina neovplyvní. Lokálne sa admin obnoví cez `pnpm db:reset`.
 - Projekt `B2B Admin` so slugom `b2b-admin` (farba a ochrana premenných z defaultov) seed vytvorí iba do prázdnej tabuľky `Project` s jazykmi `sk` (základný) a `en` a jeho jediným členom urobí seedovaného admina. Ak projekt existuje, nemení nič, takže zmeny ADMIN-a v nastaveniach projektu ostanú aj po reštarte.
-- Preklady: 30 vymyslených kľúčov v namespace `loc` a `paths` (vety, kľúče-cesty ako `orders.empty.title`, premenné `{{count}}`, HTML `<strong>`), časť v `en` nepreložená (chýbajúci riadok aj `null`). Seed ich pridá do projektu `b2b-admin`, iba kým projekt nemá žiadny kľúč, takže sa dostanú aj do DB so starším projektom a úpravy prekladov sa neprepíšu. Ak projekt neexistuje, preklady sa nevytvoria.
+- Preklady: 30 vymyslených kľúčov v namespace `loc` a `paths` (vety, kľúče-cesty ako `orders.empty.title`, premenné `{{count}}`, HTML `<strong>`), časť v `en` nepreložená (chýbajúci riadok aj `null`). Vzniknú iba v tom istom behu (a transakcii), ktorý vytvára projekt `b2b-admin`. Do projektu, ktorý už existuje, seed nikdy nič nepridá (ani do reálneho projektu bez kľúčov, napr. v produkcii), takže v staršej lokálnej DB sa vzorové preklady objavia až po `pnpm db:reset`.
 
 ## Test databáza
 

@@ -47,11 +47,11 @@ Znaky `%`, `_` a `\` vo vyhľadávaní sa berú doslovne. Hodnoty idú do SQL ib
 
 Zoradenie (posledné kritérium je vždy ID kľúča, takže stránky sa neprekrývajú):
 
-| `sort`               | Poradie                                                                           |
-| -------------------- | --------------------------------------------------------------------------------- |
-| `UNTRANSLATED_FIRST` | nepreložené najprv, potom `group`, potom kľúč                                     |
-| `KEY`                | namespace, kľúč                                                                   |
-| `UPDATED`            | čas poslednej zmeny cieľového prekladu, najnovšie prvé, bez riadku na konci; kľúč |
+| `sort`               | Poradie                                                                             |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| `UNTRANSLATED_FIRST` | nepreložené najprv, potom `group`, potom kľúč                                       |
+| `KEY`                | namespace, `group`, kľúč (kľúče jedného objektu sú spolu, vety namespace pred nimi) |
+| `UPDATED`            | čas poslednej zmeny cieľového prekladu, najnovšie prvé, bez riadku na konci; kľúč   |
 
 ### Odpoveď 200
 

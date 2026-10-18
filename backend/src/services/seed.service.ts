@@ -26,21 +26,6 @@ export const SEED_PROJECT = { name: 'B2B Admin', slug: 'b2b-admin' } as const
 
 export type SeedProjectResult = 'created' | 'exists'
 
-/** Seeds only an empty table, so changes stay after a restart. Run after `seedAdmin`: the admin becomes the only member. Languages `sk` (base) and `en`. */
-export const seedProject = async (prisma: PrismaClient): Promise<SeedProjectResult> => {
-	if ((await prisma.project.count()) > 0) {
-		return 'exists'
-	}
-	await prisma.project.create({
-		data: {
-			...SEED_PROJECT,
-			members: { create: { user: { connect: { email: SEED_ADMIN_EMAIL } } } },
-			languages: { create: SEED_LANGUAGE_TAGS.map((tag) => ({ tag, isBase: tag === SEED_BASE_LANGUAGE_TAG })) },
-		},
-	})
-	return 'created'
-}
-
 type SeedTranslation = { namespace: string; name: string; values: Partial<Record<(typeof SEED_LANGUAGE_TAGS)[number], string | null>> }
 
 /** Invented sample data. A tag missing from `values` has no row, `null` is a row without a value: both are untranslated. */
@@ -85,24 +70,26 @@ export const SEED_TRANSLATIONS: SeedTranslation[] = [
 	{ namespace: 'paths', name: 'help.contact', values: { sk: '/pomoc/kontakt' } },
 ]
 
-export type SeedTranslationsResult = 'created' | 'exists' | 'no-project'
-
-/** Fills the seeded project only while it has no keys, so it also reaches a project seeded before translations existed and never overwrites edits. */
-export const seedTranslations = async (prisma: PrismaClient): Promise<SeedTranslationsResult> => {
-	const project = await prisma.project.findUnique({
-		where: { slug: SEED_PROJECT.slug },
-		select: { id: true, languages: { select: { id: true, tag: true } } },
-	})
-	if (!project) {
-		return 'no-project'
-	}
-	if ((await prisma.translationKey.count({ where: { projectId: project.id } })) > 0) {
+/**
+ * Seeds only an empty table, so changes stay after a restart. Run after `seedAdmin`: the admin becomes the only member. Languages `sk` (base) and `en`.
+ * The sample translations are created only together with the project, so a real project with the same slug never gets invented keys.
+ */
+export const seedProject = async (prisma: PrismaClient): Promise<SeedProjectResult> => {
+	if ((await prisma.project.count()) > 0) {
 		return 'exists'
 	}
-	const languageIds = new Map(project.languages.map(({ id, tag }) => [tag, id]))
-	await prisma.$transaction(
-		SEED_TRANSLATIONS.map(({ namespace, name, values }) =>
-			prisma.translationKey.create({
+	await prisma.$transaction(async (tx) => {
+		const project = await tx.project.create({
+			data: {
+				...SEED_PROJECT,
+				members: { create: { user: { connect: { email: SEED_ADMIN_EMAIL } } } },
+				languages: { create: SEED_LANGUAGE_TAGS.map((tag) => ({ tag, isBase: tag === SEED_BASE_LANGUAGE_TAG })) },
+			},
+			select: { id: true, languages: { select: { id: true, tag: true } } },
+		})
+		const languageIds = new Map(project.languages.map(({ id, tag }) => [tag, id]))
+		for (const { namespace, name, values } of SEED_TRANSLATIONS) {
+			await tx.translationKey.create({
 				data: {
 					projectId: project.id,
 					namespace,
@@ -114,8 +101,8 @@ export const seedTranslations = async (prisma: PrismaClient): Promise<SeedTransl
 						}),
 					},
 				},
-			}),
-		),
-	)
+			})
+		}
+	})
 	return 'created'
 }

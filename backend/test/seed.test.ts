@@ -5,7 +5,7 @@ import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 
 import { ROLE } from '../src/generated/prisma/enums'
-import { SEED_ADMIN_EMAIL, SEED_PROJECT, SEED_TRANSLATIONS, seedAdmin, seedProject, seedTranslations } from '../src/services/seed.service'
+import { SEED_ADMIN_EMAIL, SEED_PROJECT, SEED_TRANSLATIONS, seedAdmin, seedProject } from '../src/services/seed.service'
 
 import { getTestDatabaseUrl, getTestPrisma } from './helpers/db'
 import { createUser } from './helpers/users'
@@ -53,7 +53,10 @@ describe('seedProject', () => {
 		])
 		expect(created[0]?.members).toHaveLength(1)
 
+		await prisma.translation.updateMany({ data: { value: 'edited' } })
 		await expect(seedProject(prisma)).resolves.toBe('exists')
+		await expect(prisma.translationKey.count()).resolves.toBe(SEED_TRANSLATIONS.length)
+		await expect(prisma.translation.count({ where: { value: { not: 'edited' } } })).resolves.toBe(0)
 		await expect(prisma.project.findMany({ include: { members: true, languages: { orderBy: { tag: 'asc' } } } })).resolves.toEqual(created)
 	})
 
@@ -66,20 +69,15 @@ describe('seedProject', () => {
 
 		await expect(prisma.project.findMany()).resolves.toEqual([project])
 		await expect(prisma.projectMember.count()).resolves.toBe(0)
+		await expect(prisma.translationKey.count()).resolves.toBe(0)
 	})
-})
 
-describe('seedTranslations', () => {
-	it('fills the seeded project once with keys in two namespaces, path keys, missing rows and null values', async () => {
+	it('creates the sample translations with the project: two namespaces, path keys, missing rows and null values', async () => {
 		const prisma = getTestPrisma()
 		await seedAdmin(prisma, 'FirstPassword1')
-		await seedProject(prisma)
 
-		await expect(seedTranslations(prisma)).resolves.toBe('created')
-		const keys = await prisma.translationKey.findMany({
-			include: { translations: { include: { language: true } } },
-			orderBy: [{ namespace: 'asc' }, { name: 'asc' }],
-		})
+		await expect(seedProject(prisma)).resolves.toBe('created')
+		const keys = await prisma.translationKey.findMany({ include: { translations: { include: { language: true } } } })
 		expect(keys).toHaveLength(SEED_TRANSLATIONS.length)
 		expect(new Set(keys.map(({ namespace }) => namespace))).toEqual(new Set(['loc', 'paths']))
 		expect(keys.some(({ name }) => name === 'orders.empty.title')).toBe(true)
@@ -89,16 +87,6 @@ describe('seedTranslations', () => {
 		const values = keys.flatMap(({ translations }) => translations.map(({ value }) => value ?? ''))
 		expect(values.some((value) => value.includes('{{'))).toBe(true)
 		expect(values.some((value) => value.includes('<strong>'))).toBe(true)
-
-		await prisma.translation.updateMany({ data: { value: 'edited' } })
-		await expect(seedTranslations(prisma)).resolves.toBe('exists')
-		await expect(prisma.translationKey.count()).resolves.toBe(SEED_TRANSLATIONS.length)
-		await expect(prisma.translation.count({ where: { value: { not: 'edited' } } })).resolves.toBe(0)
-	})
-
-	it('does nothing without the seeded project', async () => {
-		await expect(seedTranslations(getTestPrisma())).resolves.toBe('no-project')
-		await expect(getTestPrisma().translationKey.count()).resolves.toBe(0)
 	})
 })
 

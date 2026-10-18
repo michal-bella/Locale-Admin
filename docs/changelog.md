@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Slug v URL projektu, čeština a akcie v tabuľkách (2026-10-18)
+
+- frontend: projekt má v URL slug namiesto id (`/projects/<slug>/settings`), API ostáva na id; po zmene slugu v nastaveniach sa URL prepíše na nový ([Frontend](./frontend.md))
+- frontend: čeština ako tretí jazyk rozhrania, prepínač jazyka v hornej lište je `Select` s vlajkami namiesto SK/EN prepínača
+- frontend: zvonček notifikácií odstránený z hornej lišty, vráti sa s notifikáciami
+- frontend: na stránkach Používatelia, Členovia a Jazyky sú akcie riadku explicitné ikony (kôš, odobratie člena) namiesto menu `⋯`
+
 ### Favicon a akcie v zozname projektov (2026-10-18)
 
 - frontend: favicon s ružovým logom zo sidebaru; v zozname projektov namiesto menu `⋯` priamo ikony Nastavenia a Opustiť projekt ([Frontend](./frontend.md#zoznam-projektov))

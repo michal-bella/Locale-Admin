@@ -1,4 +1,4 @@
-import { ActionIcon, Avatar, Button, Menu, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
+import { Avatar, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,41 +9,13 @@ import { useAdminUsersQuery } from '@/api/adminUsers/adminUsersQuery'
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import DeleteAdminModal from '@/components/DeleteAdminModal/DeleteAdminModal'
-import { DotsHorizontal } from '@/components/Icons'
+import { Trash } from '@/components/Icons'
+import RowAction from '@/components/RowAction/RowAction'
 import { formatDate } from '@/lib/formatDate'
 
 import classes from './UsersTable.module.css'
 
 const SKELETON_ROWS = 3
-
-type RowActionsProps = { user: AdminUser; onDelete: (user: AdminUser, trigger: HTMLButtonElement | null) => void }
-
-const RowActions = ({ user, onDelete }: RowActionsProps) => {
-	const { t } = useTranslation()
-	const triggerRef = useRef<HTMLButtonElement>(null)
-
-	return (
-		<Menu position='bottom-end' width={180} radius='lg' shadow='md'>
-			<Menu.Target>
-				<ActionIcon
-					ref={triggerRef}
-					variant='transparent'
-					size={34}
-					radius='sm'
-					aria-label={t('usersPage.table.actions', { email: user.email })}
-					className={classes.menuButton}
-				>
-					<DotsHorizontal aria-hidden />
-				</ActionIcon>
-			</Menu.Target>
-			<Menu.Dropdown>
-				<Menu.Item color='red' onClick={() => onDelete(user, triggerRef.current)}>
-					{t('usersPage.table.delete')}
-				</Menu.Item>
-			</Menu.Dropdown>
-		</Menu>
-	)
-}
 
 /** Admin list in a card (Figma 28:2) with loading, empty and error states. Every row but the own one can be deleted. */
 const UsersTable = () => {
@@ -61,7 +33,7 @@ const UsersTable = () => {
 		deleteModal.open()
 	}
 
-	// Mantine returns focus to the item of the closed row menu; deferred so a deleted row is already gone and the table gets focus instead.
+	// Deferred so a deleted row is already gone and the table gets focus instead of its button.
 	const closeDelete = () => {
 		deleteModal.close()
 		setTimeout(() => (triggerRef.current?.isConnected ? triggerRef.current : tableRef.current)?.focus())
@@ -138,7 +110,17 @@ const UsersTable = () => {
 				<Table.Td className={classes.td}>
 					<Text size='xs'>{formatDate(user.createdAt, i18n.language)}</Text>
 				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>{user.id !== me?.id && <RowActions user={user} onDelete={openDelete} />}</Table.Td>
+				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
+					{user.id !== me?.id && (
+						<RowAction
+							icon={Trash}
+							tooltip={t('usersPage.table.delete')}
+							label={t('usersPage.table.deleteLabel', { email: user.email })}
+							danger
+							onClick={(event) => openDelete(user, event.currentTarget)}
+						/>
+					)}
+				</Table.Td>
 			</Table.Tr>
 		))
 	}

@@ -1,6 +1,6 @@
 import { Button } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useParams } from '@tanstack/react-router'
+import { useLoaderData } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -16,7 +16,7 @@ import PageIntro from '@/components/PageIntro/PageIntro'
 /** Languages of the project (Figma 3:812 without the translation statistics columns): add from the catalog or remove. */
 const ProjectLanguagesPage = () => {
 	const { t } = useTranslation()
-	const { projectId } = useParams({ from: '/_authenticated/_app/projects/$projectId' })
+	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { data: languages } = useProjectLanguagesQuery(projectId)
 	const [addOpened, addModal] = useDisclosure(false)
 	const [deleteOpened, deleteModal] = useDisclosure(false)
@@ -26,7 +26,7 @@ const ProjectLanguagesPage = () => {
 	const tableRef = useRef<HTMLTableElement>(null)
 	const returnFocusRef = useRef<HTMLElement | null>(null)
 
-	// Mantine returns focus to what was focused when a modal opened: here the item of an already closed row menu, or a button whose row is gone.
+	// Mantine returns focus to what was focused when a modal opened, which can be a button whose row is gone or that is disabled now.
 	// Deferred so the list has re-rendered with the refetched data and a removed row's button is already detached.
 	const restoreFocus = () =>
 		setTimeout(() => {

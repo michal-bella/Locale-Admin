@@ -44,7 +44,7 @@
 			"slug": {
 				"label": "Project slug",
 				"placeholder": "booking-web",
-				"hint": "Lowercase letters, digits and hyphens. Used in the names of exported files."
+				"hint": "Lowercase letters, digits and hyphens. Used in the project address and in the names of exported files."
 			},
 			"languages": {
 				"label": "Languages",
@@ -111,7 +111,7 @@
 			"empty": "There are no administrators yet.",
 			"loadError": "The administrator list could not be loaded.",
 			"retry": "Try again",
-			"actions": "Actions of administrator {{email}}",
+			"deleteLabel": "Delete administrator {{email}}",
 			"actionsColumn": "Actions",
 			"delete": "Delete"
 		},
@@ -152,7 +152,7 @@
 			"empty": "The project has no members yet.",
 			"loadError": "The member list could not be loaded.",
 			"retry": "Try again",
-			"actions": "Actions of member {{email}}",
+			"removeLabel": "Remove {{email}} from the project",
 			"actionsColumn": "Actions",
 			"remove": "Remove from project"
 		},
@@ -238,7 +238,7 @@
 			"label": "Language list",
 			"language": "Language",
 			"base": "Base",
-			"actions": "Actions for language {{name}}",
+			"deleteLabel": "Remove language {{name}}",
 			"actionsColumn": "Actions",
 			"delete": "Remove",
 			"empty": "The project has no languages yet.",
@@ -279,7 +279,7 @@
 			"name": "Project name",
 			"slug": {
 				"label": "Project slug",
-				"description": "Used to name exported files."
+				"description": "Used in the project address and to name exported files."
 			},
 			"primaryColor": {
 				"label": "Primary color",
@@ -308,19 +308,19 @@
 		"language": "Language",
 		"languages": {
 			"sk": {
-				"label": "SK",
 				"name": "Slovenčina"
 			},
+			"cs": {
+				"name": "Čeština"
+			},
 			"en": {
-				"label": "EN",
 				"name": "English"
 			}
 		},
 		"theme": {
 			"toDark": "Switch to dark mode",
 			"toLight": "Switch to light mode"
-		},
-		"notifications": "Notifications"
+		}
 	},
 	"sidebar": {
 		"label": "Main navigation",

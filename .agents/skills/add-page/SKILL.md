@@ -39,7 +39,7 @@ Written from how the Používatelia page (`/admin/users`) was built (milestone C
 
 ## 5. i18n
 
-Keys under `<name>Page.*` in both `src/locales/sk.json` and `en.json` (types come from `sk.json`).
+Keys under `<name>Page.*` in `src/locales/sk.json`, `cs.json` and `en.json` (types come from `sk.json`).
 
 ## 6. Tests and checks
 

@@ -15,7 +15,7 @@ type Screen = { name: string; path: string | ((request: APIRequest) => Promise<s
 const inNewProject = (page: 'settings' | 'languages' | 'members') => async (request: APIRequest) => {
 	const api = await newAdminApi(request)
 	try {
-		return `/projects/${(await createProject(api, 'a11y')).id}/${page}`
+		return `/projects/${(await createProject(api, 'a11y')).slug}/${page}`
 	} finally {
 		await api.dispose()
 	}

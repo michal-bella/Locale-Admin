@@ -21,7 +21,7 @@ Locale Admin je admin aplikácia na správu prekladov v projektoch. Organizácie
 
 Registrácia neexistuje. Po prihlásení je na úvodnej stránke (`/`) **zoznam projektov** bez sidebaru: člen vidí projekty, v ktorých je členom, admin všetky. Odtiaľ sa dá vytvoriť projekt (tvorca sa stane členom), opustiť projekt (posledný člen nemôže) a otvoriť projekt.
 
-Pri vytvorení projektu sa vyberú jeho jazyky z katalógu (aspoň jeden, prvý je základný). V projekte (`/projects/$projectId`, so sidebarom) sú **Nastavenia projektu** (názov, slug, primárna farba, ochrana premenných `{{ variable }}` a základný jazyk projektu), **Jazyky** (zoznam jazykov projektu, pridanie z katalógu a odobratie okrem základného) a **Členovia**, kde admin aj člen vytvorí alebo odoberie člena.
+Pri vytvorení projektu sa vyberú jeho jazyky z katalógu (aspoň jeden, prvý je základný). V projekte (`/projects/<slug>`, so sidebarom) sú **Nastavenia projektu** (názov, slug, primárna farba, ochrana premenných `{{ variable }}` a základný jazyk projektu), **Jazyky** (zoznam jazykov projektu, pridanie z katalógu a odobratie okrem základného) a **Členovia**, kde admin aj člen vytvorí alebo odoberie člena.
 
 Admin má navyše **Používatelia** (`/admin/users`), kde vidí, vytvára a odstraňuje administrátorov. Globálna stránka jazykov už nie je, jazyky patria projektom.
 

@@ -9,7 +9,7 @@ import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
 import i18n from '@/lib/i18n'
-import { ADMIN_USER, apiError, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -39,12 +39,12 @@ const PROJECT: ProjectSettings = {
 	baseLanguageId: null,
 }
 
-const PAGE_PATH = `/projects/${PROJECT.id}/languages`
+const PAGE_PATH = `/projects/${PROJECT.slug}/languages`
 
 const LIST_URL = `/projects/${PROJECT.id}/languages`
 
-/** The project route loads the settings before the page renders. */
-const PROJECT_ROUTES = { [`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT } }
+/** The project route resolves the slug and loads the settings before the page renders. */
+const PROJECT_ROUTES = { ...projectListRoute(PROJECT), [`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT } }
 
 const languagesResponse = (languages: Language[]) => ({ status: 200, data: languages })
 
@@ -60,8 +60,8 @@ const getRow = (name: string, tableLabel?: string) => {
 
 const bodyOf = (request: InternalAxiosRequestConfig | undefined) => JSON.parse(request?.data as string) as unknown
 
-const openRowMenu = async (name: string) => {
-	fireEvent.click(await screen.findByRole('button', { name: `Akcie pre jazyk ${name}` }))
+const clickRemove = async (name: string) => {
+	fireEvent.click(await screen.findByRole('button', { name: `Odobrať jazyk ${name}` }))
 }
 
 const openAddModal = async () => {
@@ -297,25 +297,23 @@ describe('AddLanguageModal', () => {
 })
 
 describe('Deleting a language', () => {
-	it('disables Odobrať in the row menu of the base language', async () => {
+	it('disables Odobrať in the row of the base language', async () => {
 		signedInAs(ADMIN_USER, {
 			...PROJECT_ROUTES,
 			[`GET ${LIST_URL}`]: languagesResponse([SLOVAK, ENGLISH]),
 		})
 		renderApp(PAGE_PATH)
 
-		await openRowMenu('Slovak')
-
-		expect(await screen.findByRole('menuitem', { name: 'Odobrať' })).toBeDisabled()
+		expect(await screen.findByRole('button', { name: 'Odobrať jazyk Slovak' })).toBeDisabled()
+		expect(screen.getByRole('button', { name: 'Odobrať jazyk English' })).toBeEnabled()
 	})
 
-	it('asks for confirmation from the row menu; Zrušiť removes nothing, Odobrať removes', async () => {
+	it('asks for confirmation from the row button; Zrušiť removes nothing, Odobrať removes', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		const requests = mockLanguagesApi([SLOVAK, ENGLISH])
 		renderApp(PAGE_PATH)
 
-		await openRowMenu('English')
-		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odobrať' }))
+		await clickRemove('English')
 		let confirm = await screen.findByRole('dialog', { name: 'Odobrať jazyk' })
 		expect(within(confirm).getByText('Naozaj chcete odobrať jazyk English (en) z projektu?')).toBeInTheDocument()
 		fireEvent.click(within(confirm).getByRole('button', { name: 'Zrušiť' }))
@@ -323,8 +321,7 @@ describe('Deleting a language', () => {
 		expect(requests.some((request) => request.method === 'delete')).toBe(false)
 		expect(getRow('English')).toBeInTheDocument()
 
-		await openRowMenu('English')
-		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odobrať' }))
+		await clickRemove('English')
 		confirm = await screen.findByRole('dialog', { name: 'Odobrať jazyk' })
 		fireEvent.click(within(confirm).getByRole('button', { name: 'Odobrať' }))
 
@@ -351,8 +348,7 @@ describe('Deleting a language', () => {
 		})
 		renderApp(PAGE_PATH)
 
-		await openRowMenu('English')
-		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odobrať' }))
+		await clickRemove('English')
 		const confirm = await screen.findByRole('dialog', { name: 'Odobrať jazyk' })
 		fireEvent.click(within(confirm).getByRole('button', { name: 'Odobrať' }))
 
@@ -375,18 +371,17 @@ describe('Focus after a modal closes', () => {
 		fireEvent.click(element)
 	}
 
-	const openFromRowMenu = async (name: string, item: 'Odobrať', dialogName: string) => {
-		press(await screen.findByRole('button', { name: `Akcie pre jazyk ${name}` }))
-		press(await screen.findByRole('menuitem', { name: item }))
-		return screen.findByRole('dialog', { name: dialogName })
+	const openRemove = async (name: string) => {
+		press(await screen.findByRole('button', { name: `Odobrať jazyk ${name}` }))
+		return screen.findByRole('dialog', { name: 'Odobrať jazyk' })
 	}
 
-	it('returns to the row menu button after the remove confirmation is cancelled', async () => {
+	it('returns to the row button after the remove confirmation is cancelled', async () => {
 		mockLanguagesApi([SLOVAK, ENGLISH])
 		renderApp(PAGE_PATH)
-		const trigger = await screen.findByRole('button', { name: 'Akcie pre jazyk English' })
+		const trigger = await screen.findByRole('button', { name: 'Odobrať jazyk English' })
 
-		const confirm = await openFromRowMenu('English', 'Odobrať', 'Odobrať jazyk')
+		const confirm = await openRemove('English')
 		press(within(confirm).getByRole('button', { name: 'Zrušiť' }))
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		expect(trigger).toHaveFocus()
@@ -396,7 +391,7 @@ describe('Focus after a modal closes', () => {
 		mockLanguagesApi([SLOVAK, ENGLISH])
 		renderApp(PAGE_PATH)
 
-		const confirm = await openFromRowMenu('English', 'Odobrať', 'Odobrať jazyk')
+		const confirm = await openRemove('English')
 		press(within(confirm).getByRole('button', { name: 'Odobrať' }))
 
 		await waitFor(() => expect(within(getTable()).queryByText('English')).not.toBeInTheDocument())

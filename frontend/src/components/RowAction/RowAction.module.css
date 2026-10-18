@@ -1,0 +1,17 @@
+.root {
+	color: var(--app-color-muted);
+}
+
+.root:hover:not(:disabled) {
+	background-color: var(--app-color-surface-muted);
+	color: var(--app-color-text-strong);
+}
+
+.root[data-danger]:hover:not(:disabled) {
+	color: var(--mantine-color-error);
+}
+
+.root:disabled {
+	background-color: transparent;
+	opacity: 0.4;
+}

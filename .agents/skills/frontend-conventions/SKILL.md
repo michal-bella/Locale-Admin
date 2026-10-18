@@ -35,7 +35,7 @@ src/pages/NotFoundPage/NotFoundPage.test.tsx
 ## i18n
 
 - `useTranslation()` + `t('page.section.key')`. Keys nested by page/component: `notFoundPage.title`, `users.createModal.email.label`.
-- Add every key to both `src/locales/sk.json` and `en.json`. Keys are typed from `sk.json` (`src/types/i18next.d.ts`), so a missing `sk` key is a type error.
+- Add every key to `src/locales/sk.json`, `cs.json` and `en.json`. Keys are typed from `sk.json` (`src/types/i18next.d.ts`), so a missing `sk` key is a type error.
 - API errors: ``t(`errors.${getApiErrorCode(error)}`)``. Field errors: ``t(`validation.${issue.code}`, issue.params)``. Never show the BE `message`.
 - Language is stored in `localStorage['locale']` (`LOCALE_STORAGE_KEY`), default `sk`.
 

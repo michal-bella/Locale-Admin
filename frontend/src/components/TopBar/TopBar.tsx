@@ -1,14 +1,13 @@
 import { AppShell, Burger } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 
-import { Bell } from '@/components/Icons'
 import LanguageSwitcher from '@/components/LanguageSwitcher/LanguageSwitcher'
 import ThemeSwitcher from '@/components/ThemeSwitcher/ThemeSwitcher'
 
 import classes from './TopBar.module.css'
 import { type TopBarProps } from './types'
 
-/** Top bar of Figma 3:817 without breadcrumbs and the help icon. The bell is static until notifications exist. */
+/** Top bar of Figma 3:817 without breadcrumbs and the help icon. */
 const TopBar = ({ navbarId, navOpened = false, onToggleNav, burgerRef, start, end }: TopBarProps) => {
 	const { t } = useTranslation()
 
@@ -30,9 +29,6 @@ const TopBar = ({ navbarId, navOpened = false, onToggleNav, burgerRef, start, en
 			<div className='ml-auto flex items-center gap-2'>
 				<LanguageSwitcher />
 				<ThemeSwitcher />
-				<div role='img' aria-label={t('topBar.notifications')} className={classes.notifications}>
-					<Bell aria-hidden />
-				</div>
 				{end}
 			</div>
 		</AppShell.Header>

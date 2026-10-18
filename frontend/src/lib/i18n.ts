@@ -4,12 +4,14 @@ import { initReactI18next } from 'react-i18next'
 import { DEFAULT_LANGUAGE, LOCALE_STORAGE_KEY } from '@/lib/constants'
 import { LANGUAGE } from '@/lib/enum'
 import { isLanguage } from '@/lib/utils'
+import cs from '@/locales/cs.json'
 import en from '@/locales/en.json'
 import sk from '@/locales/sk.json'
 
 export const resources = {
 	[LANGUAGE.SK]: { translation: sk },
 	[LANGUAGE.EN]: { translation: en },
+	[LANGUAGE.CS]: { translation: cs },
 } as const
 
 // localStorage throws in some private modes and when storage is blocked.

@@ -31,10 +31,10 @@ const getForm = (page: Page) => ({
 	leave: page.getByRole('button', { name: 'Opustiť projekt' }),
 })
 
-const settingsPath = (projectId: string) => `/projects/${projectId}/settings`
+const settingsPath = (projectSlug: string) => `/projects/${projectSlug}/settings`
 
-const openProjectSettingsPage = async (page: Page, projectId: string) => {
-	await page.goto(settingsPath(projectId))
+const openProjectSettingsPage = async (page: Page, projectSlug: string) => {
+	await page.goto(settingsPath(projectSlug))
 	await expect(page.getByRole('heading', PAGE_HEADING)).toBeVisible()
 	await expect(getForm(page).save).toBeVisible()
 }
@@ -91,7 +91,7 @@ test.describe('ADMIN', () => {
 	test('opens the project from the project list and sees the saved values prefilled', async ({ page }) => {
 		await page.goto('/')
 		await page.getByRole('list', { name: 'Zoznam projektov' }).getByRole('link', { name: original.name, exact: true }).click()
-		await expect(page).toHaveURL(settingsPath(original.id))
+		await expect(page).toHaveURL(settingsPath(original.slug))
 		await expect(page.getByRole('heading', PAGE_HEADING)).toBeVisible()
 		const item = getMainNavigation(page).getByRole('list', { name: original.name }).getByRole('link', { name: 'Nastavenia projektu' })
 		await expect(item).toHaveAttribute('aria-current', 'page')
@@ -108,7 +108,7 @@ test.describe('ADMIN', () => {
 			primaryColor: '#1A2B3C',
 			protectVariables: !original.protectVariables,
 		}
-		await openProjectSettingsPage(page, original.id)
+		await openProjectSettingsPage(page, original.slug)
 		const form = getForm(page)
 
 		await form.name.fill(`  ${edited.name} `)
@@ -128,6 +128,7 @@ test.describe('ADMIN', () => {
 		await expectFormValues(page, edited)
 		await expect(form.save).toBeDisabled()
 		await expect(getMainNavigation(page).getByRole('list', { name: edited.name })).toBeVisible()
+		await expect(page).toHaveURL(settingsPath(edited.slug))
 
 		await page.reload()
 		await expect(form.save).toBeVisible()
@@ -137,7 +138,7 @@ test.describe('ADMIN', () => {
 	})
 
 	test('invalid name, slug and color show field errors and nothing is sent', async ({ page }) => {
-		await openProjectSettingsPage(page, original.id)
+		await openProjectSettingsPage(page, original.slug)
 		const form = getForm(page)
 		const patches: string[] = []
 		page.on('request', (request) => {
@@ -171,7 +172,7 @@ test.describe('ADMIN', () => {
 
 	test('a slug of another project shows 409 at the slug field', async ({ page }) => {
 		const other = await createProject(api, 'taken')
-		await openProjectSettingsPage(page, original.id)
+		await openProjectSettingsPage(page, original.slug)
 		const form = getForm(page)
 
 		await form.slug.fill(other.slug)
@@ -192,7 +193,7 @@ test.describe('ADMIN base language', () => {
 		const other = await createProject(api, 'base-other', ['sk', 'en'])
 		const english = (await listLanguages(api, project.id)).find(({ tag }) => tag === 'en')!
 
-		await openProjectSettingsPage(page, project.id)
+		await openProjectSettingsPage(page, project.slug)
 		const form = getForm(page)
 		await expect(form.baseLanguage).toHaveValue('Slovak (sk)')
 		await form.baseLanguage.click()
@@ -202,7 +203,7 @@ test.describe('ADMIN base language', () => {
 		expect((await patched).status()).toBe(200)
 		await expect(page.getByText(SAVE_SUCCESS)).toBeVisible()
 
-		await page.goto(`/projects/${project.id}/languages`)
+		await page.goto(`/projects/${project.slug}/languages`)
 		await expect(getLanguagesTable(page)).toHaveAttribute('aria-busy', 'false')
 		await expect(getBaseBadge(page, 'en')).toBeVisible()
 		await expect(getBaseBadge(page, 'sk')).toHaveCount(0)
@@ -225,7 +226,7 @@ test.describe('EDITOR', () => {
 
 	test('a member saves the settings of an own project', async ({ page }) => {
 		const editorApi = page.request
-		await openProjectSettingsPage(page, editor.projectId)
+		await openProjectSettingsPage(page, editor.projectSlug)
 		const form = getForm(page)
 		const before = await getProjectSettings(editorApi, editor.projectId)
 
@@ -243,7 +244,7 @@ test.describe('EDITOR', () => {
 		const foreign = await createProject(adminApi, 'foreign')
 		await adminApi.dispose()
 
-		await page.goto(settingsPath(foreign.id))
+		await page.goto(settingsPath(foreign.slug))
 		await expect(page.getByRole('heading', { level: 1, name: 'Projekt sa nenašiel' })).toBeVisible()
 		await expect(page.getByRole('link', { name: 'Späť na projekty' })).toHaveAttribute('href', '/')
 		await expect(page.getByRole('heading', PAGE_HEADING)).toHaveCount(0)
@@ -262,7 +263,7 @@ test.describe('anonymous', () => {
 		const project = await createProject(adminApi, 'anonymous')
 		await adminApi.dispose()
 
-		await page.goto(settingsPath(project.id))
+		await page.goto(settingsPath(project.slug))
 		await expect(page).toHaveURL('/login')
 		await expect(page.getByRole('heading', { level: 1, name: 'Vitajte späť' })).toBeVisible()
 

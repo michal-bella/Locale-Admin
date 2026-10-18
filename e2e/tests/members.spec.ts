@@ -4,8 +4,8 @@ import { MUTATION_HEADERS } from '../support/api'
 import { ANONYMOUS, expectLoggedInHome, loginViaUi } from '../support/auth'
 import { createEditor, newTestUserCredentials } from '../support/users'
 
-const openMembersPage = async (page: Page, projectId: string) => {
-	await page.goto(`/projects/${projectId}/members`)
+const openMembersPage = async (page: Page, projectSlug: string) => {
+	await page.goto(`/projects/${projectSlug}/members`)
 	const table = page.getByRole('table', { name: 'Zoznam členov' })
 	await expect(table).toHaveAttribute('aria-busy', 'false')
 	return table
@@ -24,7 +24,7 @@ test('a member adds a new member, who logs in and sees only this project', async
 	const editor = await createEditor(playwright.request, baseURL)
 	await loginViaUi(page, editor)
 	await expectLoggedInHome(page)
-	const table = await openMembersPage(page, editor.projectId)
+	const table = await openMembersPage(page, editor.projectSlug)
 	await expect(table.getByRole('row').filter({ hasText: editor.email })).toBeVisible()
 
 	const credentials = newTestUserCredentials()
@@ -48,7 +48,7 @@ test('a member adds a new member, who logs in and sees only this project', async
 	const list = newMemberPage.getByRole('list', { name: 'Zoznam projektov' })
 	await expect(list.getByRole('listitem')).toHaveCount(1)
 	await list.getByRole('link', { name: /^Nastavenia projektu / }).click()
-	await expect(newMemberPage).toHaveURL(`/projects/${editor.projectId}/settings`)
+	await expect(newMemberPage).toHaveURL(`/projects/${editor.projectSlug}/settings`)
 	await context.close()
 })
 
@@ -56,7 +56,7 @@ test('an existing email shows 409 at the E-mail field', async ({ page, playwrigh
 	const editor = await createEditor(playwright.request, baseURL)
 	await loginViaUi(page, editor)
 	await expectLoggedInHome(page)
-	await openMembersPage(page, editor.projectId)
+	await openMembersPage(page, editor.projectSlug)
 
 	const dialog = await openCreateModal(page)
 	const email = dialog.getByLabel('E-mail', { exact: true })
@@ -76,11 +76,10 @@ test('a member removes another member, who then no longer sees the project', asy
 	const removed = newTestUserCredentials()
 	const added = await page.request.post(`/api/projects/${editor.projectId}/members`, { data: removed, headers: MUTATION_HEADERS })
 	expect(added.status()).toBe(201)
-	const table = await openMembersPage(page, editor.projectId)
+	const table = await openMembersPage(page, editor.projectSlug)
 
-	await expect(page.getByRole('button', { name: `Akcie člena ${editor.email}` })).toHaveCount(0)
-	await page.getByRole('button', { name: `Akcie člena ${removed.email}` }).click()
-	await page.getByRole('menuitem', { name: 'Odobrať z projektu' }).click()
+	await expect(page.getByRole('button', { name: `Odobrať ${editor.email} z projektu` })).toHaveCount(0)
+	await page.getByRole('button', { name: `Odobrať ${removed.email} z projektu` }).click()
 	const dialog = page.getByRole('dialog', { name: 'Odobrať z projektu' })
 	const deleted = page.waitForResponse((response) => response.request().method() === 'DELETE' && response.url().includes(`/members/`))
 	await dialog.getByRole('button', { name: 'Odobrať' }).click()

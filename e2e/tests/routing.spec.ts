@@ -6,7 +6,7 @@ import { getMainNavigation, openUserMenu } from '../support/layout'
 test.describe('anonymous', () => {
 	test.use({ storageState: ANONYMOUS })
 
-	for (const path of ['/', '/admin/users', '/projects/00000000-0000-4000-8000-000000000000/settings']) {
+	for (const path of ['/', '/admin/users', '/projects/e2e-unknown-project/settings']) {
 		test(`${path} redirects to /login`, async ({ page }) => {
 			await page.goto(path)
 			await expect(page).toHaveURL('/login')
@@ -31,8 +31,8 @@ test.describe('ADMIN', () => {
 
 	test('sees the top bar and the Používatelia sidebar link', async ({ page }) => {
 		await page.goto('/profile')
-		await expect(page.getByRole('img', { name: 'Notifikácie' })).toBeVisible()
-		await expect(page.getByRole('radiogroup', { name: 'Jazyk' })).toBeVisible()
+		await expect(page.getByRole('img', { name: 'Notifikácie' })).toHaveCount(0)
+		await expect(page.getByRole('combobox', { name: 'Jazyk', exact: true })).toBeVisible()
 		const users = getMainNavigation(page).getByRole('link', { name: 'Používatelia' })
 		await expect(users).toHaveAttribute('href', '/admin/users')
 		await users.click()

@@ -82,7 +82,7 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 						{getProjectInitials(project.name)}
 					</span>
 					<div className='flex min-w-0 flex-1 flex-col'>
-						<Link to='/projects/$projectId/settings' params={{ projectId: project.id }} className={classes.name}>
+						<Link to='/projects/$projectSlug/settings' params={{ projectSlug: project.slug }} className={classes.name}>
 							{project.name}
 						</Link>
 						<Text component='span' size='xs' c='var(--app-color-muted)' className={classes.slug}>
@@ -92,7 +92,7 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 					<div className='flex shrink-0 items-center gap-1'>
 						<Tooltip label={t('projectsPage.list.settings')}>
 							<ActionIcon
-								renderRoot={(props) => <Link {...props} to='/projects/$projectId/settings' params={{ projectId: project.id }} />}
+								renderRoot={(props) => <Link {...props} to='/projects/$projectSlug/settings' params={{ projectSlug: project.slug }} />}
 								variant='transparent'
 								size={32}
 								radius='md'

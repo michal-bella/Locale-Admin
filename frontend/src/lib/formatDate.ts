@@ -5,6 +5,7 @@ import { isLanguage } from '@/lib/utils'
 const DATE_LOCALE: Record<LANGUAGE, string> = {
 	[LANGUAGE.SK]: 'sk-SK',
 	[LANGUAGE.EN]: 'en-GB',
+	[LANGUAGE.CS]: 'cs-CZ',
 }
 
 /** `Intl` locale for a UI language; an unknown language falls back to `sk`. */

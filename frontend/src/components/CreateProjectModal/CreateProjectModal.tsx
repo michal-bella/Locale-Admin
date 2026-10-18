@@ -68,7 +68,7 @@ const CreateProjectModal = ({ opened, onClose }: CreateProjectModalProps) => {
 			onSuccess: (project) => {
 				notifications.show({ color: 'green', message: t('projectsPage.createModal.success', { name: project.name }) })
 				resetAndClose()
-				void navigate({ to: '/projects/$projectId/settings', params: { projectId: project.id } })
+				void navigate({ to: '/projects/$projectSlug/settings', params: { projectSlug: project.slug } })
 			},
 			onError: (error) => {
 				const code = getApiErrorCode(error)

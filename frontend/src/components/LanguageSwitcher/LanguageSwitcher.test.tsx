@@ -1,9 +1,14 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { LOCALE_STORAGE_KEY } from '@/lib/constants'
 import { EDITOR_USER, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
+
+const openSwitcher = async (label: string) => {
+	fireEvent.click(await screen.findByRole('combobox', { name: label }))
+	return within(await screen.findByRole('listbox'))
+}
 
 describe('LanguageSwitcher', () => {
 	it('switches the UI language without a reload and stores it', async () => {
@@ -11,38 +16,35 @@ describe('LanguageSwitcher', () => {
 		renderApp('/')
 
 		expect(await screen.findByRole('button', { name: 'Menu používateľa' })).toBeInTheDocument()
-		fireEvent.click(screen.getByRole('radio', { name: 'English' }))
+		fireEvent.click((await openSwitcher('Jazyk')).getByRole('option', { name: 'English' }))
 
 		expect(await screen.findByRole('button', { name: 'User menu' })).toBeInTheDocument()
-		expect(screen.getByRole('radio', { name: 'English' })).toBeChecked()
+		expect(screen.getByRole('combobox', { name: 'Language' })).toHaveValue('English')
 		expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('en')
 		expect(document.documentElement.lang).toBe('en')
 	})
 
-	it('names the options by the full language name and shows the short code', async () => {
+	it('offers Slovak, Czech and English by their own names, each with a decorative flag', async () => {
 		signedInAs(EDITOR_USER)
 		renderApp('/')
 
-		expect(await screen.findByRole('radio', { name: 'Slovenčina' })).toBeChecked()
-		expect(screen.getByRole('radio', { name: 'English' })).not.toBeChecked()
-		expect(screen.getByText('SK')).toHaveAttribute('aria-hidden', 'true')
+		expect(await screen.findByRole('combobox', { name: 'Jazyk' })).toHaveValue('Slovenčina')
+		const options = (await openSwitcher('Jazyk')).getAllByRole('option')
+		expect(options.map((option) => option.textContent)).toEqual(['Slovenčina', 'Čeština', 'English'])
+		for (const option of options) {
+			expect(option.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+		}
 	})
 
-	it('renders a decorative flag before the code in each option', async () => {
+	it('switches to Czech', async () => {
 		signedInAs(EDITOR_USER)
 		renderApp('/')
 
-		for (const [name, code] of [
-			['Slovenčina', 'SK'],
-			['English', 'EN'],
-		] as const) {
-			const radio = await screen.findByRole<HTMLInputElement>('radio', { name })
-			const flag = radio.labels?.[0]?.querySelector('svg')
-			expect(flag).toHaveAttribute('aria-hidden', 'true')
-			expect(flag?.nextElementSibling).toHaveTextContent(code)
-		}
-		expect(screen.getByRole('radiogroup', { name: 'Jazyk' })).toBeInTheDocument()
-		fireEvent.click(screen.getByText('EN', { exact: true }))
-		expect(await screen.findByRole('radiogroup', { name: 'Language' })).toBeInTheDocument()
+		fireEvent.click((await openSwitcher('Jazyk')).getByRole('option', { name: 'Čeština' }))
+
+		expect(await screen.findByRole('button', { name: 'Menu uživatele' })).toBeInTheDocument()
+		expect(screen.getByRole('combobox', { name: 'Jazyk' })).toHaveValue('Čeština')
+		expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('cs')
+		expect(document.documentElement.lang).toBe('cs')
 	})
 })

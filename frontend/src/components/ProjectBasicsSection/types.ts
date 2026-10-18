@@ -3,7 +3,8 @@ import { type Control, type FieldErrors, type UseFormRegister } from 'react-hook
 import { type Language, type UpdateProjectSettingsRequest } from '@locale/shared'
 
 export type ProjectBasicsSectionProps = {
-	projectId: string
+	/** The saved slug (the one in the URL), not the edited value. */
+	projectSlug: string
 	register: UseFormRegister<UpdateProjectSettingsRequest>
 	control: Control<UpdateProjectSettingsRequest>
 	errors: FieldErrors<UpdateProjectSettingsRequest>

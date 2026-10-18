@@ -15,7 +15,7 @@ import classes from './ProjectBasicsSection.module.css'
 import { type ProjectBasicsSectionProps } from './types'
 
 /** "Základné údaje" (Figma 3:1600) with the base language row added under the primary color. */
-const ProjectBasicsSection = ({ projectId, register, control, errors, languages, savedColor }: ProjectBasicsSectionProps) => {
+const ProjectBasicsSection = ({ projectSlug, register, control, errors, languages, savedColor }: ProjectBasicsSectionProps) => {
 	const { t } = useTranslation()
 	const nameId = useId()
 	const slugId = useId()
@@ -112,7 +112,7 @@ const ProjectBasicsSection = ({ projectId, register, control, errors, languages,
 									!hasLanguages && (
 										<>
 											{t('projectSettingsPage.basics.baseLanguage.empty')}{' '}
-											<Link to='/projects/$projectId/languages' params={{ projectId }} className={classes.link}>
+											<Link to='/projects/$projectSlug/languages' params={{ projectSlug }} className={classes.link}>
 												{t('projectSettingsPage.basics.baseLanguage.emptyLink')}
 											</Link>
 										</>

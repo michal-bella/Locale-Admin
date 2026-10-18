@@ -36,7 +36,7 @@ test.describe('member', () => {
 		await expect(page.getByRole('complementary')).toHaveCount(0)
 		const [own] = await listProjects(page.request)
 		await expect(getList(page).getByRole('listitem')).toHaveCount(1)
-		await expect(getList(page).getByRole('link', { name: own!.name, exact: true })).toHaveAttribute('href', `/projects/${editor.projectId}/settings`)
+		await expect(getList(page).getByRole('link', { name: own!.name, exact: true })).toHaveAttribute('href', `/projects/${editor.projectSlug}/settings`)
 
 		const { name, slug } = newTestProjectInput('ui')
 		await page.getByRole('button', { name: 'Nový projekt' }).click()
@@ -54,7 +54,7 @@ test.describe('member', () => {
 		expect(response.request().postDataJSON()).toMatchObject({ languageTags: ['en', 'sk'] })
 
 		await expect(page.getByText(`Projekt ${name} bol vytvorený.`)).toBeVisible()
-		await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+\/settings$/)
+		await expect(page).toHaveURL(`/projects/${slug}/settings`)
 		await expect(page.getByLabel('Názov projektu', { exact: true })).toHaveValue(name)
 		await expect(page.getByRole('navigation', { name: 'Hlavná navigácia' }).getByRole('list', { name })).toBeVisible()
 
@@ -85,6 +85,9 @@ test.describe('member', () => {
 		await languages.press('Enter')
 		await expect(dialog.getByText('Slovak – slovenčina – sk')).toBeVisible()
 		await expect(dialog.getByText('Toto pole je povinné.')).toHaveCount(0)
+		// The multi-select keeps its dropdown open after Enter, and the dropdown covers the submit button.
+		await dialog.getByRole('heading', { name: 'Nový projekt' }).click()
+		await expect(page.getByRole('option', { name: 'Slovak – slovenčina – sk' })).toBeHidden()
 		await dialog.getByRole('button', { name: 'Vytvoriť projekt' }).click()
 
 		await expect(slug).toHaveAttribute('aria-invalid', 'true')
@@ -127,7 +130,7 @@ test.describe('ADMIN', () => {
 		await page.goto('/')
 		await expect(page.getByRole('button', { name: `Opustiť projekt ${foreign.name}`, exact: true })).toHaveCount(0)
 		await page.getByRole('link', { name: `Nastavenia projektu ${foreign.name}`, exact: true }).click()
-		await expect(page).toHaveURL(`/projects/${foreign.id}/settings`)
+		await expect(page).toHaveURL(`/projects/${foreign.slug}/settings`)
 		await expect(page.getByRole('button', { name: 'Uložiť zmeny' })).toBeVisible()
 		await expect(page.getByRole('button', { name: 'Opustiť projekt' })).toHaveCount(0)
 	})

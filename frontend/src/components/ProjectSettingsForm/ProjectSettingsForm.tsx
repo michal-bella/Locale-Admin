@@ -27,7 +27,7 @@ const toFormValues = ({ name, slug, primaryColor, protectVariables, baseLanguage
 })
 
 /** Project settings page body (Figma 3:1557). "Uložiť zmeny" saves the whole form; "Opustiť projekt" asks for confirmation. */
-const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, focusFirstField = false }: ProjectSettingsFormProps) => {
+const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, onSaved, focusFirstField = false }: ProjectSettingsFormProps) => {
 	const { t } = useTranslation()
 	const updateSettings = useUpdateProjectSettingsMutation(settings.id)
 	const [leaveOpened, leaveModal] = useDisclosure(false)
@@ -65,6 +65,7 @@ const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, focusFirst
 			onSuccess: (saved) => {
 				notifications.show({ color: 'green', message: t('projectSettingsPage.saveSuccess') })
 				reset(toFormValues(saved))
+				onSaved(saved)
 			},
 			onError: (error) => {
 				const code = getApiErrorCode(error)
@@ -92,7 +93,7 @@ const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, focusFirst
 				errors={errors}
 				languages={languages}
 				savedColor={settings.primaryColor}
-				projectId={settings.id}
+				projectSlug={settings.slug}
 			/>
 			<VariableProtectionSection control={control} />
 			<div className='flex flex-wrap justify-between gap-3'>

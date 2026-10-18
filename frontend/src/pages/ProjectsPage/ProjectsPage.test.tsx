@@ -72,7 +72,7 @@ describe('ProjectsPage list', () => {
 		expect(await screen.findByRole('heading', { level: 1, name: 'Projekty' })).toBeInTheDocument()
 		const list = within(await waitFor(getList))
 		expect(list.getAllByRole('listitem')).toHaveLength(2)
-		expect(list.getByRole('link', { name: 'Booking Web' })).toHaveAttribute('href', `/projects/${BOOKING.id}/settings`)
+		expect(list.getByRole('link', { name: 'Booking Web' })).toHaveAttribute('href', `/projects/${BOOKING.slug}/settings`)
 		expect(list.getByText('booking-web')).toBeInTheDocument()
 		const initials = list.getByText('BW')
 		expect(initials).toHaveStyle({ backgroundColor: '#FACC15' })
@@ -85,9 +85,9 @@ describe('ProjectsPage list', () => {
 		renderApp('/')
 
 		const list = within(await waitFor(getList))
-		expect(list.getByRole('link', { name: 'Nastavenia projektu Booking Web' })).toHaveAttribute('href', `/projects/${BOOKING.id}/settings`)
+		expect(list.getByRole('link', { name: 'Nastavenia projektu Booking Web' })).toHaveAttribute('href', `/projects/${BOOKING.slug}/settings`)
 		expect(list.getByRole('button', { name: 'Opustiť projekt Booking Web' })).toBeInTheDocument()
-		expect(list.getByRole('link', { name: 'Nastavenia projektu Demo project' })).toHaveAttribute('href', `/projects/${DEMO.id}/settings`)
+		expect(list.getByRole('link', { name: 'Nastavenia projektu Demo project' })).toHaveAttribute('href', `/projects/${DEMO.slug}/settings`)
 		expect(list.queryByRole('button', { name: 'Opustiť projekt Demo project' })).not.toBeInTheDocument()
 	})
 
@@ -101,7 +101,7 @@ describe('ProjectsPage list', () => {
 
 		fireEvent.click(await screen.findByRole('link', { name: 'Nastavenia projektu Booking Web' }))
 
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${BOOKING.id}/settings`))
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${BOOKING.slug}/settings`))
 		expect(await screen.findByLabelText('Názov projektu')).toHaveValue('Booking Web')
 	})
 
@@ -224,9 +224,13 @@ describe('CreateProjectModal', () => {
 
 	it('creates the project, notifies and opens its settings', async () => {
 		const show = vi.spyOn(notifications, 'show')
+		let projects: ProjectListItem[] = []
 		const requests = signedInAs(EDITOR_USER, {
-			'GET /projects': projectsResponse([]),
-			'POST /projects': { status: 201, data: BOOKING },
+			'GET /projects': () => projectsResponse(projects),
+			'POST /projects': () => {
+				projects = [BOOKING]
+				return { status: 201, data: BOOKING }
+			},
 			[`GET /projects/${BOOKING.id}/settings`]: { status: 200, data: settingsOf(BOOKING) },
 			[`GET /projects/${BOOKING.id}/languages`]: { status: 200, data: [] },
 		})
@@ -237,7 +241,7 @@ describe('CreateProjectModal', () => {
 		await pickLanguages('English – English – en', 'Slovak – slovenčina – sk')
 		fireEvent.click(dialog.getByRole('button', { name: 'Vytvoriť projekt' }))
 
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${BOOKING.id}/settings`))
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${BOOKING.slug}/settings`))
 		const post = requests.find((request) => request.method === 'post')
 		expect(JSON.parse(post?.data as string)).toEqual({ name: 'Booking Web', slug: 'booking-web', languageTags: ['en', 'sk'] })
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Projekt Booking Web bol vytvorený.' }))

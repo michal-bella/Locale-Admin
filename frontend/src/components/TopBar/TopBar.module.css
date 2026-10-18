@@ -3,12 +3,3 @@
 	background-color: color-mix(in srgb, var(--app-color-surface) 90%, transparent);
 	backdrop-filter: blur(8px);
 }
-
-.notifications {
-	display: grid;
-	place-items: center;
-	width: 2.375rem;
-	height: 2.375rem;
-	border-radius: var(--mantine-radius-md);
-	color: var(--app-color-muted);
-}

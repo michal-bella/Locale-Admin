@@ -1,48 +1,18 @@
-import { ActionIcon, Badge, Button, Menu, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
+import { Badge, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
 import { useMergedRef } from '@mantine/hooks'
 import { type ReactNode, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type Language } from '@locale/shared'
-
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
-import { DotsHorizontal, Plus } from '@/components/Icons'
+import { Plus, Trash } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
+import RowAction from '@/components/RowAction/RowAction'
 
 import classes from './LanguagesTable.module.css'
 import { type LanguagesTableProps } from './types'
 
 const SKELETON_ROWS = 3
-
-type RowActionsProps = Pick<LanguagesTableProps, 'onDelete'> & { language: Language }
-
-const RowActions = ({ language, onDelete }: RowActionsProps) => {
-	const { t } = useTranslation()
-	const triggerRef = useRef<HTMLButtonElement>(null)
-
-	return (
-		<Menu position='bottom-end' width={180} radius='lg' shadow='md'>
-			<Menu.Target>
-				<ActionIcon
-					ref={triggerRef}
-					variant='transparent'
-					size={34}
-					radius='sm'
-					aria-label={t('languagesPage.table.actions', { name: language.englishName })}
-					className={classes.menuButton}
-				>
-					<DotsHorizontal aria-hidden />
-				</ActionIcon>
-			</Menu.Target>
-			<Menu.Dropdown>
-				<Menu.Item color='red' disabled={language.isBase} onClick={() => onDelete(language, triggerRef.current)}>
-					{t('languagesPage.table.delete')}
-				</Menu.Item>
-			</Menu.Dropdown>
-		</Menu>
-	)
-}
 
 /** Languages of a project in a card (Figma 3:812) without the Preložené, Na kontrolu and Pokrytie columns. The base language cannot be removed. */
 const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps) => {
@@ -124,7 +94,14 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 					</div>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-					<RowActions language={language} onDelete={onDelete} />
+					<RowAction
+						icon={Trash}
+						tooltip={t('languagesPage.table.delete')}
+						label={t('languagesPage.table.deleteLabel', { name: language.englishName })}
+						danger
+						disabled={language.isBase}
+						onClick={(event) => onDelete(language, event.currentTarget)}
+					/>
 				</Table.Td>
 			</Table.Tr>
 		))

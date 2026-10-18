@@ -38,7 +38,7 @@ Fix `high` and `medium` findings yourself. Report a finding without fixing it on
 - `Modal` and `Drawer` have a `title` (it becomes `aria-labelledby`); without one they need `aria-label`. Close buttons get `closeButtonProps={{ 'aria-label': t(...) }}`.
 - Images have `alt` (empty `alt=''` when decorative). `LanguageFlag` next to a language name is decorative.
 - Links and buttons have text that makes sense out of context (no bare "here", "more"). Link to a route is a link, an action is a button; never `onClick` on a `div` or `span`.
-- All texts, including `aria-label`, go through `t()` and exist in `sk.json` and `en.json`.
+- All texts, including `aria-label`, go through `t()` and exist in `sk.json`, `cs.json` and `en.json`.
 
 **Structure**
 

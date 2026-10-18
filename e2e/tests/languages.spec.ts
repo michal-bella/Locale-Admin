@@ -13,7 +13,7 @@ const RUSSIAN_OPTION = `${RUSSIAN.englishName} – ${RUSSIAN.nativeName} – ${R
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-const languagesPath = (projectId: string) => `/projects/${projectId}/languages`
+const languagesPath = (projectSlug: string) => `/projects/${projectSlug}/languages`
 
 const getTable = (page: Page) => page.getByRole('table', { name: 'Zoznam jazykov' })
 
@@ -25,16 +25,13 @@ const getRow = (page: Page, tag: string) =>
 
 const getBaseBadge = (page: Page, tag: string) => getRow(page, tag).getByText('Základný', { exact: true })
 
-const openLanguagesPage = async (page: Page, projectId: string) => {
-	await page.goto(languagesPath(projectId))
+const openLanguagesPage = async (page: Page, projectSlug: string) => {
+	await page.goto(languagesPath(projectSlug))
 	await expect(page.getByRole('heading', PAGE_HEADING)).toBeVisible()
 	await expect(getTable(page)).toHaveAttribute('aria-busy', 'false')
 }
 
-const openRowMenu = async (page: Page, englishName: string) => {
-	await page.getByRole('button', { name: `Akcie pre jazyk ${englishName}`, exact: true }).click()
-	await expect(page.getByRole('menu')).toBeVisible()
-}
+const getRemoveButton = (page: Page, englishName: string) => page.getByRole('button', { name: `Odobrať jazyk ${englishName}`, exact: true })
 
 // Mantine marks a disabled option only with `data-combobox-disabled` (no `aria-disabled`), so toBeDisabled() cannot see it.
 const expectOptionDisabled = async (page: Page, name: string) => {
@@ -61,11 +58,11 @@ test.describe('ADMIN in a project', () => {
 	})
 
 	test('opens Jazyky from the project sidebar and sees sk as the base and en', async ({ page }) => {
-		await page.goto(`/projects/${project.id}/settings`)
+		await page.goto(`/projects/${project.slug}/settings`)
 		const item = getMainNavigation(page).getByRole('list', { name: project.name }).getByRole('link', { name: 'Jazyky' })
-		await expect(item).toHaveAttribute('href', languagesPath(project.id))
+		await expect(item).toHaveAttribute('href', languagesPath(project.slug))
 		await item.click()
-		await expect(page).toHaveURL(languagesPath(project.id))
+		await expect(page).toHaveURL(languagesPath(project.slug))
 		await expect(page.getByRole('heading', PAGE_HEADING)).toBeVisible()
 		await expect(item).toHaveAttribute('aria-current', 'page')
 
@@ -77,7 +74,7 @@ test.describe('ADMIN in a project', () => {
 	})
 
 	test('adds a language from the catalog: the row appears and the language is disabled in the select', async ({ page }) => {
-		await openLanguagesPage(page, project.id)
+		await openLanguagesPage(page, project.slug)
 
 		await page.getByRole('button', { name: 'Pridať jazyk', exact: true }).click()
 		const dialog = page.getByRole('dialog', { name: 'Pridať jazyk' })
@@ -100,23 +97,18 @@ test.describe('ADMIN in a project', () => {
 	})
 
 	test('Odobrať is disabled for the base language; another one is removed after confirmation', async ({ page }) => {
-		await openLanguagesPage(page, project.id)
+		await openLanguagesPage(page, project.slug)
 
-		await openRowMenu(page, 'Slovak')
-		await expect(page.getByRole('menuitem', { name: 'Odobrať' })).toBeDisabled()
-		await page.keyboard.press('Escape')
-		await expect(page.getByRole('menu')).toBeHidden()
+		await expect(getRemoveButton(page, 'Slovak')).toBeDisabled()
 
-		await openRowMenu(page, RUSSIAN.englishName)
-		await page.getByRole('menuitem', { name: 'Odobrať' }).click()
+		await getRemoveButton(page, RUSSIAN.englishName).click()
 		const confirm = page.getByRole('dialog', { name: 'Odobrať jazyk' })
 		await expect(confirm).toContainText(`Naozaj chcete odobrať jazyk ${RUSSIAN.englishName} (${RUSSIAN.tag}) z projektu?`)
 		await confirm.getByRole('button', { name: 'Zrušiť' }).click()
 		await expect(confirm).toBeHidden()
 		await expect(getRow(page, RUSSIAN.tag)).toHaveCount(1)
 
-		await openRowMenu(page, RUSSIAN.englishName)
-		await page.getByRole('menuitem', { name: 'Odobrať' }).click()
+		await getRemoveButton(page, RUSSIAN.englishName).click()
 		const deleted = waitForLanguagesResponse(page, project.id, 'DELETE')
 		await confirm.getByRole('button', { name: 'Odobrať' }).click()
 		expect((await deleted).status()).toBe(204)
@@ -168,7 +160,7 @@ test.describe('anonymous', () => {
 		const project = await createProject(admin, 'languages-anonymous')
 		await admin.dispose()
 
-		await page.goto(languagesPath(project.id))
+		await page.goto(languagesPath(project.slug))
 		await expect(page).toHaveURL('/login')
 	})
 })

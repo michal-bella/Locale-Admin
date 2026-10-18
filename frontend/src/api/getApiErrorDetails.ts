@@ -7,7 +7,8 @@ const getApiErrorDetails = (error: unknown): ValidationIssue[] => {
 	if (!isAxiosError(error)) {
 		return []
 	}
-	return errorResponseSchema.safeParse(error.response?.data).data?.error.details ?? []
+	const details = errorResponseSchema.safeParse(error.response?.data).data?.error.details
+	return Array.isArray(details) ? details : []
 }
 
 export default getApiErrorDetails

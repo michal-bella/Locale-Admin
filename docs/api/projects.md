@@ -8,15 +8,16 @@ notion_page_id:
 
 Zoznam projektov pre index stránku, vytvorenie a opustenie projektu, nastavenia projektu a jeho členovia. Schémy sú v `packages/shared/src/projects.ts` a `packages/shared/src/projectSettings.ts`.
 
-| Metóda   | Cesta                                 | Prístup            | Popis                                         |
-| -------- | ------------------------------------- | ------------------ | --------------------------------------------- |
-| `GET`    | `/api/projects`                       | prihlásený         | projekty používateľa (ADMIN všetky)           |
-| `POST`   | `/api/projects`                       | prihlásený         | vytvorí projekt, tvorca sa stane členom       |
-| `DELETE` | `/api/projects/:projectId/membership` | člen               | opustí projekt                                |
-| `GET`    | `/api/projects/:projectId/settings`   | člen alebo `ADMIN` | nastavenia projektu                           |
-| `PATCH`  | `/api/projects/:projectId/settings`   | člen alebo `ADMIN` | uloží nastavenia (základný jazyk iba `ADMIN`) |
-| `GET`    | `/api/projects/:projectId/members`    | člen alebo `ADMIN` | členovia projektu                             |
-| `POST`   | `/api/projects/:projectId/members`    | člen alebo `ADMIN` | vytvorí nového používateľa `EDITOR` a člena   |
+| Metóda   | Cesta                                      | Prístup            | Popis                                         |
+| -------- | ------------------------------------------ | ------------------ | --------------------------------------------- |
+| `GET`    | `/api/projects`                            | prihlásený         | projekty používateľa (ADMIN všetky)           |
+| `POST`   | `/api/projects`                            | prihlásený         | vytvorí projekt, tvorca sa stane členom       |
+| `DELETE` | `/api/projects/:projectId/membership`      | člen               | opustí projekt                                |
+| `GET`    | `/api/projects/:projectId/settings`        | člen alebo `ADMIN` | nastavenia projektu                           |
+| `PATCH`  | `/api/projects/:projectId/settings`        | člen alebo `ADMIN` | uloží nastavenia (základný jazyk iba `ADMIN`) |
+| `GET`    | `/api/projects/:projectId/members`         | člen alebo `ADMIN` | členovia projektu                             |
+| `POST`   | `/api/projects/:projectId/members`         | člen alebo `ADMIN` | vytvorí nového používateľa `EDITOR` a člena   |
+| `DELETE` | `/api/projects/:projectId/members/:userId` | člen alebo `ADMIN` | odoberie člena z projektu, účet ostane        |
 
 Celý router je za `requireAuth`: bez session vráti 401 `AUTH_UNAUTHENTICATED`. Mutácie potrebujú CSRF hlavičku a JSON telo (aj `DELETE` posiela `{}`), inak 403 `CSRF_REJECTED` (viď [auth](./auth.md#csrf)).
 
@@ -139,6 +140,16 @@ Telo (schéma `createProjectMemberRequestSchema`, rovnaká validácia ako `POST 
 | 400  | `VALIDATION_ERROR` | nevalidný e-mail alebo krátke heslo           |
 | 404  | `NOT_FOUND`        | viď [Prístup k projektu](#prístup-k-projektu) |
 | 409  | `EMAIL_TAKEN`      | používateľ s týmto e-mailom existuje          |
+
+### DELETE /api/projects/:projectId/members/:userId
+
+Odoberie člena z projektu (zmaže `ProjectMember`), účet používateľa ostane a môže byť v iných projektoch. Môže to každý člen projektu aj `ADMIN`, projektové role zatiaľ nie sú. Rovnako ako pri opustení projektu drží zámok riadku projektu a posledného člena odobrať nejde. UI vlastný riadok neponúka, na to je Opustiť projekt.
+
+| HTTP | `code`        | Kedy                                                                       |
+| ---- | ------------- | -------------------------------------------------------------------------- |
+| 204  |               | člen odobraný                                                              |
+| 404  | `NOT_FOUND`   | projekt mimo prístupu, používateľ nie je členom alebo `userId` nie je UUID |
+| 409  | `LAST_MEMBER` | odoberaný je posledný člen projektu                                        |
 
 ## Príklad (curl)
 

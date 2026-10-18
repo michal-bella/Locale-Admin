@@ -173,3 +173,71 @@ describe('POST /api/admin/users', () => {
 		expect(await getTestPrisma().user.count()).toBe(1)
 	})
 })
+
+describe('DELETE /api/admin/users/:id', () => {
+	const deleteUser = (app: App, cookie: string, id: string) => request(app).delete(`/api/admin/users/${id}`).set('Cookie', cookie).set(CSRF_HEADERS).send({})
+
+	it('deletes another admin with their sessions and project memberships', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user: other } = await createUser({ role: ROLE.ADMIN })
+		const otherCookie = await loginAs(app, { email: other.email, password: TEST_PASSWORD })
+		await getTestPrisma().project.create({ data: { name: 'A', slug: 'a', members: { create: { userId: other.id } } } })
+
+		const res = await deleteUser(app, cookie, other.id)
+
+		expect(res.status).toBe(204)
+		expect(await getTestPrisma().user.count({ where: { id: other.id } })).toBe(0)
+		expect(await getTestPrisma().projectMember.count()).toBe(0)
+		expect((await request(app).get('/api/auth/me').set('Cookie', otherCookie)).status).toBe(401)
+	})
+
+	it('returns 409 SELF_DELETE for the own account', async () => {
+		const app = createTestApp()
+		const { user: admin } = await createUser({ role: ROLE.ADMIN })
+		const cookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
+
+		const res = await deleteUser(app, cookie, admin.id)
+
+		expectErrorCode(res, 409, ERROR_CODE.SELF_DELETE)
+		expect(await getTestPrisma().user.count({ where: { id: admin.id } })).toBe(1)
+	})
+
+	it.each([
+		{ name: 'an EDITOR (members are removed in a project)', id: () => createUser().then(({ user }) => user.id) },
+		{ name: 'an unknown id', id: () => Promise.resolve('00000000-0000-4000-8000-000000000999') },
+		{ name: 'an id that is not a UUID', id: () => Promise.resolve('not-a-uuid') },
+	])('returns 404 NOT_FOUND for $name', async ({ id }) => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const target = await id()
+		const usersBefore = await getTestPrisma().user.count()
+
+		const res = await deleteUser(app, cookie, target)
+
+		expectErrorCode(res, 404, ERROR_CODE.NOT_FOUND)
+		expect(await getTestPrisma().user.count()).toBe(usersBefore)
+	})
+
+	it('returns 403 FORBIDDEN for an EDITOR', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.EDITOR)
+		const { user: admin } = await createUser({ role: ROLE.ADMIN })
+
+		const res = await deleteUser(app, cookie, admin.id)
+
+		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
+		expect(await getTestPrisma().user.count({ where: { id: admin.id } })).toBe(1)
+	})
+
+	it('returns 403 CSRF_REJECTED without X-Requested-With', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user: other } = await createUser({ role: ROLE.ADMIN })
+
+		const res = await request(app).delete(`/api/admin/users/${other.id}`).set('Cookie', cookie).send({})
+
+		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
+		expect(await getTestPrisma().user.count({ where: { id: other.id } })).toBe(1)
+	})
+})

@@ -4,7 +4,7 @@ import { createProjectRequestSchema, type ProjectListItem, type ProjectListRespo
 
 import { type PrismaClient } from '../lib/prisma'
 import { getAuth } from '../middleware/auth.middleware'
-import { createProject, leaveProject, listProjects } from '../services/projects.service'
+import { createProject, listProjects, removeProjectMember } from '../services/projects.service'
 
 export const createListProjectsController =
 	(prisma: PrismaClient): RequestHandler =>
@@ -24,6 +24,6 @@ export const createCreateProjectController =
 export const createLeaveProjectController =
 	(prisma: PrismaClient): RequestHandler<{ projectId: string }> =>
 	async (req, res) => {
-		await leaveProject(prisma, req.params.projectId, getAuth(req).user.id)
+		await removeProjectMember(prisma, req.params.projectId, getAuth(req).user.id)
 		res.status(204).end()
 	}

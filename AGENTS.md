@@ -10,7 +10,7 @@ Current plan: [`docs/plans/phase-1.md`](docs/plans/phase-1.md). Human documentat
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Member         | A user with global role `EDITOR` ("Člen" in the UI). Sees and manages only the projects they are a member of. There are no organizations.                |
 | Project        | One translation sheet (e.g. B2B admin, B2C iOS, B2C Android, web URLs). Listed on the index page `/`; settings and members under `/projects/$projectId`. |
-| Project member | A user in a project (`ProjectMember`). The creator of a project becomes one; members add new members and can leave (not the last one).                   |
+| Project member | A user in a project (`ProjectMember`). The creator of a project becomes one; members add and remove members and can leave (never the last one).          |
 | Editor         | A person who edits translations in projects.                                                                                                             |
 | Global role    | `ADMIN` (sees every project, manages admins and languages) or `EDITOR` (a member). Stored on `User.role`.                                                |
 | Language       | Translation language from a fixed catalog (`SUPPORTED_LANGUAGES`). Exactly one is the base. Global until languages are linked to a project.              |

@@ -212,7 +212,7 @@ Podľa Figmy `5:2861`: `CenteredLayout`, `PageIntro` (Prihlásenie / Vitajte sp�
 
 ## Stránka Používatelia
 
-Podľa Figmy `28:2` bez drobčekov, vnútri `AppLayout` na route `/admin/users` (iba `ADMIN`, položka **Používatelia** v sekcii SPRÁVA sidebaru). Stránka zobrazuje a vytvára iba administrátorov; členov projektov vytvára stránka Členovia. Obsah má šírku najviac 1200 px a padding 32 px.
+Podľa Figmy `28:2` bez drobčekov, vnútri `AppLayout` na route `/admin/users` (iba `ADMIN`, položka **Používatelia** v sekcii SPRÁVA sidebaru). Stránka zobrazuje a vytvára iba administrátorov; členov projektov vytvára stránka Členovia. Riadok iného admina má tlačidlo `⋯` (**Akcie administrátora {{email}}**) s položkou **Odstrániť**, ktorá po potvrdení v `DeleteAdminModal` účet odstráni; vlastný riadok tlačidlo nemá. Obsah má šírku najviac 1200 px a padding 32 px.
 
 - Hlavička: `PageIntro` s `titleSize="h2"` (malý ružový nadpis „Správa“, H1 „Používatelia“ vo veľkosti 28 px, popis) a vpravo dole primárne tlačidlo **Vytvoriť administrátora** s ikonou `Plus`, ktoré otvorí modál.
 - `UsersTable`: Mantine `Table` v karte (biela, okraj `slate.2`, radius `xl`). Hlavička tabuľky na pozadí `slate.0`, texty 10 px / 700 veľkými písmenami `slate.4`. Stĺpce **E-mail** (avatar 32 px s iniciálami z emailu cez `getInitials({ email, firstName: null, lastName: null })`, pozadie `slate.1`, text `slate.6`, `aria-hidden`, lebo vedľa je celý email) a **Vytvorený** (šírka 180 px, dátum cez `formatDate`). Riadky oddeľuje okraj `slate.1`. Poradie je z API (najnovší hore).
@@ -301,7 +301,7 @@ Index `/` (`ProjectsPage`) v `HomeLayout`, obsah najviac 980 px a padding 32 px.
 
 ## Stránka Členovia
 
-`/projects/$projectId/members` (`MembersPage`) vnútri `AppLayout`, pre členov aj `ADMIN`. Rovnaký vzhľad a stavy ako stránka Používatelia: tabuľka `MembersTable` (**Zoznam členov**: avatar s iniciálami, meno a pod ním e-mail alebo iba e-mail, dátum pridania do projektu) a **Pridať člena** (`CreateMemberModal`: e-mail a heslo, `409 EMAIL_TAKEN` pri e-maile). Nový člen dostane rolu `EDITOR`. Projektové role zatiaľ nie sú, odstránenie člena tiež nie.
+`/projects/$projectId/members` (`MembersPage`) vnútri `AppLayout`, pre členov aj `ADMIN`. Rovnaký vzhľad a stavy ako stránka Používatelia: tabuľka `MembersTable` (**Zoznam členov**: avatar s iniciálami, meno a pod ním e-mail alebo iba e-mail, dátum pridania do projektu) a **Pridať člena** (`CreateMemberModal`: e-mail a heslo, `409 EMAIL_TAKEN` pri e-maile). Nový člen dostane rolu `EDITOR`. Riadok má tlačidlo `⋯` (**Akcie člena {{email}}**) s položkou **Odobrať z projektu**, ktorá po potvrdení v `RemoveMemberModal` odoberie člena (účet ostane). Vlastný riadok tlačidlo nemá, na to je Opustiť projekt. `409 LAST_MEMBER` → červená notifikácia. Po zatvorení modálu ide fokus späť na `⋯`, po odobraní na tabuľku. Úprava člena nie je, meno si každý mení v profile. Projektové role zatiaľ nie sú.
 
 ## Stránka Nastavenia projektu
 

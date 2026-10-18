@@ -87,7 +87,7 @@ test.describe('member', () => {
 		await page.reload()
 
 		const dialog = await leaveFromList(page, project.name)
-		await expect(page.getByText('Ste posledný člen projektu, nemôžete ho opustiť.')).toBeVisible()
+		await expect(page.getByText('Projekt musí mať aspoň jedného člena.')).toBeVisible()
 		await expect(dialog).toBeVisible()
 		await dialog.getByRole('button', { name: 'Zrušiť' }).click()
 		await expect(dialog).toBeHidden()

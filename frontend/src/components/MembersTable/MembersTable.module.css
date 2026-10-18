@@ -44,3 +44,20 @@
 	padding: 2.5rem 1.25rem;
 	text-align: center;
 }
+
+.actionsColumn {
+	width: 4.625rem;
+}
+
+.actionsCell {
+	padding-inline: 0 1.25rem;
+	text-align: center;
+}
+
+.menuButton {
+	color: var(--app-color-muted);
+}
+
+.menuButton:hover {
+	background-color: var(--app-color-surface-muted);
+}

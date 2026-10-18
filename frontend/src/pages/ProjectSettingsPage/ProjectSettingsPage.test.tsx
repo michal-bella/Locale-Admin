@@ -345,9 +345,7 @@ describe('ProjectSettingsPage', () => {
 		fireEvent.click(screen.getByRole('button', { name: 'Opustiť projekt' }))
 		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Opustiť projekt' })).getByRole('button', { name: 'Opustiť projekt' }))
 
-		await waitFor(() =>
-			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Ste posledný člen projektu, nemôžete ho opustiť.' })),
-		)
+		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Projekt musí mať aspoň jedného člena.' })))
 		expect(router.state.location.pathname).toBe(PAGE_PATH)
 	})
 

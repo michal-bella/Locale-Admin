@@ -37,3 +37,14 @@ export const createUser = async (prisma: PrismaClient, { email, password }: Crea
 		throw err
 	}
 }
+
+/** Deletes an ADMIN; sessions and project memberships cascade. Nobody deletes their own account, so at least one admin always stays. */
+export const deleteAdmin = async (prisma: PrismaClient, id: string, currentUserId: string): Promise<void> => {
+	if (id === currentUserId) {
+		throw new AppError(409, ERROR_CODE.SELF_DELETE, 'An admin cannot delete their own account')
+	}
+	const { count } = await prisma.user.deleteMany({ where: { id, role: ROLE.ADMIN } })
+	if (count === 0) {
+		throw new AppError(404, ERROR_CODE.NOT_FOUND, 'Admin not found')
+	}
+}

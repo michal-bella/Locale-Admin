@@ -39,6 +39,11 @@ const SCREENS: Screen[] = [
 		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam administrátorov' })).toHaveAttribute('aria-busy', 'false'),
 	},
 	{
+		name: 'admin projects',
+		path: '/admin/projects',
+		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam projektov' })).toHaveAttribute('aria-busy', 'false'),
+	},
+	{
 		name: 'project languages',
 		path: inNewProject('languages'),
 		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam jazykov' })).toHaveAttribute('aria-busy', 'false'),

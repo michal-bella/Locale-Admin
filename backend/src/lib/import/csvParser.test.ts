@@ -65,6 +65,27 @@ describe('parseCsv', () => {
 		expect(parseOk(`\uFEFF${SAMPLE.replaceAll('\n', '\r\n')}`)).toEqual(parseOk(SAMPLE))
 	})
 
+	it('accepts old Mac \\r line endings and mixed line endings', () => {
+		expect(parseOk(SAMPLE.replaceAll('\n', '\r'))).toEqual(parseOk(SAMPLE))
+		expect(parseOk('Keys; en\r\n a; A\r b; B\n c; C').rows.map(({ line, key }) => [line, key])).toEqual([
+			[2, 'a'],
+			[3, 'b'],
+			[4, 'c'],
+		])
+	})
+
+	it('accepts a trailing ; when an editor stripped the space of an empty last field', () => {
+		expect(parseOk('Keys; en ; sk\n a; A;\n b; ;\n c; C; C').rows.map(({ values }) => values)).toEqual([
+			['A', null],
+			[null, null],
+			['C', 'C'],
+		])
+	})
+
+	it('keeps a ; that ends a value when the field count is right', () => {
+		expect(parseOk('Keys; en ; sk\n a; A; B&nbsp;').rows[0]?.values).toEqual(['A', 'B&nbsp;'])
+	})
+
 	it('puts rows before the first section into the empty namespace and keeps line numbers across blank lines', () => {
 		const file = parseOk('\n\nKeys; en\n\n Ahoj; Hello\n\n--loc--\n Ahoj; Hi\n')
 
@@ -110,6 +131,7 @@ describe('parseCsv', () => {
 		{ name: 'a lower-case first column', content: 'keys; en\n a; b' },
 		{ name: 'no language column', content: 'Keys\n a' },
 		{ name: 'a comma-separated header', content: 'Keys, en, sk\n a, b, c' },
+		{ name: 'a header separated by ; without spaces', content: 'Keys;en\n a;b' },
 	])('returns HEADER_INVALID for $name', ({ content }) => {
 		expect(parseIssues(content).issues).toEqual([{ code: 'HEADER_INVALID', line: 1, column: 1 }])
 	})
@@ -160,6 +182,13 @@ describe('parseCsv', () => {
 	it('accepts a key of exactly the maximum length', () => {
 		const key = 'ж'.repeat(IMPORT_KEY_MAX_LENGTH)
 		expect(parseOk(`Keys; ru\n ${key}; Привет`).rows[0]?.key).toBe(key)
+	})
+
+	it('counts key length in code points, so an emoji is one character', () => {
+		expect(parseOk(`Keys; en\n ${'\u{1F44D}'.repeat(IMPORT_KEY_MAX_LENGTH)}; a`).rows).toHaveLength(1)
+		expect(parseIssues(`Keys; en\n ${'\u{1F44D}'.repeat(IMPORT_KEY_MAX_LENGTH + 1)}; a`).issues).toEqual([
+			{ code: 'KEY_TOO_LONG', line: 2, column: 1, params: { max: IMPORT_KEY_MAX_LENGTH, length: IMPORT_KEY_MAX_LENGTH + 1 } },
+		])
 	})
 
 	it('accepts namespaces with dots, dashes and underscores', () => {

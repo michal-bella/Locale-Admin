@@ -8,18 +8,18 @@ Node 24, Express 5, TypeScript strict (ESM), Prisma 7 with `@prisma/adapter-pg`,
 
 ## Structure (`src/`)
 
-| Folder                   | Holds                                                                             |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| `app.ts`                 | `createApp(config)`: builds the Express app from an explicit config, reads no ENV |
-| `server.ts`              | entry point: validates ENV with zod, creates Prisma client and app, listens       |
-| `config/`                | ENV schema and config type                                                        |
-| `routes/`                | routers per area (`health`, `auth`, `admin`), mounted under `/api`                |
-| `controllers/`           | request and response handling, input validation                                   |
-| `services/`              | business logic and Prisma access                                                  |
-| `middleware/`            | error handler, not-found, CSRF, auth, rate limit                                  |
-| `lib/`                   | errors (`AppError`), logger, Prisma client factory                                |
-| `prisma/` (package root) | `schema.prisma`, migrations, `seed.ts`                                            |
-| `test/` (package root)   | integration tests, `globalSetup`, helpers                                         |
+| Folder                   | Holds                                                                                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `app.ts`                 | `createApp(config)`: builds the Express app from an explicit config, reads no ENV                          |
+| `server.ts`              | entry point: validates ENV with zod, creates Prisma client and app, listens                                |
+| `config/`                | ENV schema and config type                                                                                 |
+| `routes/`                | routers per area (`health`, `auth`, `admin`), mounted under `/api`                                         |
+| `controllers/`           | request and response handling, input validation                                                            |
+| `services/`              | business logic and Prisma access                                                                           |
+| `middleware/`            | error handler, not-found, CSRF, auth, project access, rate limit, JSON body (100 kB; 12 MB on `/imports*`) |
+| `lib/`                   | errors (`AppError`), logger, Prisma client factory, `import/` file parsers (`ParsedFile`, `csvParser`)     |
+| `prisma/` (package root) | `schema.prisma`, migrations, `seed.ts`                                                                     |
+| `test/` (package root)   | integration tests, `globalSetup`, helpers                                                                  |
 
 ## Rules
 

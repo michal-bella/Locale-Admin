@@ -38,9 +38,11 @@ export const parseImportFile = (content: string): ParsedFile => {
 	return result.file
 }
 
-/** `{{ count }}` and `{{count}}` are the same placeholder; the set keeps the order of first appearance. */
-const placeholders = (value: string): Set<string> =>
-	new Set([...value.matchAll(PLACEHOLDER_PATTERN)].map((match) => `{{${(match[1] ?? '').replace(/\s+/g, '')}}}`))
+/** i18next variants are the same placeholder: `{{ count }}`, `{{- count}}` (unescaped) and `{{count, number}}` (formatted) are `{{count}}`. */
+const normalizePlaceholder = (inner: string) => `{{${inner.replace(/\s+/g, '').replace(/^-/, '').split(',')[0] ?? ''}}}`
+
+/** The set keeps the order of first appearance. */
+const placeholders = (value: string): Set<string> => new Set([...value.matchAll(PLACEHOLDER_PATTERN)].map((match) => normalizePlaceholder(match[1] ?? '')))
 
 const difference = (a: Set<string>, b: Set<string>) => [...a].filter((item) => !b.has(item))
 

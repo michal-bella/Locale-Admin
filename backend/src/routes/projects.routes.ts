@@ -36,6 +36,8 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.post('/:projectId/members', requireProjectAccess, createCreateProjectMemberController(prisma))
 	router.delete('/:projectId/members/:userId', requireProjectAccess, createRemoveProjectMemberController(prisma))
 	router.get('/:projectId/translations', requireProjectAccess, createListTranslationsController(prisma))
-	router.post('/:projectId/imports/preview', requireProjectAccess, importJsonBody, createPreviewImportController(prisma))
+	// The default JSON parser skips /imports*: every route under this prefix gets the 12 MB parser, after the access check.
+	router.use('/:projectId/imports', requireProjectAccess, importJsonBody)
+	router.post('/:projectId/imports/preview', createPreviewImportController(prisma))
 	return router
 }

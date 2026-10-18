@@ -26,6 +26,7 @@ model User {
   updatedAt          DateTime        @updatedAt
   sessions           Session[]
   projectMemberships ProjectMember[]
+  translations       Translation[]
 }
 
 model Session {
@@ -44,26 +45,28 @@ model Session {
 /// At most one row has `isBase = true`: partial unique index `Language_isBase_key` in the `add_language` migration (Prisma cannot express it).
 /// A language of a project. Names and flag come from SUPPORTED_LANGUAGES in @locale/shared, only the tag is stored.
 model ProjectLanguage {
-  id        String   @id @default(uuid()) @db.Uuid
-  projectId String   @db.Uuid
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tag       String
-  isBase    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id           String        @id @default(uuid()) @db.Uuid
+  projectId    String        @db.Uuid
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tag          String
+  isBase       Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  translations Translation[]
 
   @@unique([projectId, tag])
 }
 
 model Project {
-  id               String          @id @default(uuid()) @db.Uuid
+  id               String            @id @default(uuid()) @db.Uuid
   name             String
-  slug             String          @unique
-  primaryColor     String          @default("#E83E8C")
-  protectVariables Boolean         @default(true)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  slug             String            @unique
+  primaryColor     String            @default("#E83E8C")
+  protectVariables Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
   members          ProjectMember[]
   languages        ProjectLanguage[]
+  translationKeys  TranslationKey[]
 }
 
 model ProjectMember {
@@ -75,4 +78,33 @@ model ProjectMember {
 
   @@id([projectId, userId])
   @@index([userId])
+}
+
+/// `namespace` is the JSON file of the key (`loc`, `paths`), `""` for none. It is part of the key identity and must be kept exactly for the export.
+model TranslationKey {
+  id           String        @id @default(uuid()) @db.Uuid
+  projectId    String        @db.Uuid
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  namespace    String        @default("")
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  translations Translation[]
+
+  @@unique([projectId, namespace, name])
+}
+
+/// The status is derived, never stored: a missing row or `value = null` is untranslated. `""` is never written (saved as `null`).
+model Translation {
+  keyId       String          @db.Uuid
+  key         TranslationKey  @relation(fields: [keyId], references: [id], onDelete: Cascade)
+  languageId  String          @db.Uuid
+  language    ProjectLanguage @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  value       String?
+  updatedById String?         @db.Uuid
+  updatedBy   User?           @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime        @updatedAt
+
+  @@id([keyId, languageId])
+  @@index([languageId])
 }

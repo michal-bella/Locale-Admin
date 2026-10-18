@@ -13,6 +13,7 @@ import {
 } from '../controllers/projectMembers.controller'
 import { createGetProjectSettingsController, createUpdateProjectSettingsController } from '../controllers/projectSettings.controller'
 import { createCreateProjectController, createLeaveProjectController, createListProjectsController } from '../controllers/projects.controller'
+import { createListTranslationsController } from '../controllers/translations.controller'
 import { type PrismaClient } from '../lib/prisma'
 import { createRequireAuth } from '../middleware/auth.middleware'
 import { createRequireProjectAccess } from '../middleware/projectAccess.middleware'
@@ -32,5 +33,6 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.get('/:projectId/members', requireProjectAccess, createListProjectMembersController(prisma))
 	router.post('/:projectId/members', requireProjectAccess, createCreateProjectMemberController(prisma))
 	router.delete('/:projectId/members/:userId', requireProjectAccess, createRemoveProjectMemberController(prisma))
+	router.get('/:projectId/translations', requireProjectAccess, createListTranslationsController(prisma))
 	return router
 }

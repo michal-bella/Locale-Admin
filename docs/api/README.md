@@ -30,6 +30,7 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `GET`    | `/api/projects/:projectId/members`               | členovia projektu (člen, ADMIN), [detail](./projects.md)                       |
 | `POST`   | `/api/projects/:projectId/members`               | vytvorenie nového člena projektu (člen, ADMIN), [detail](./projects.md)        |
 | `DELETE` | `/api/projects/:projectId/members/:userId`       | odobranie člena z projektu (člen, ADMIN), [detail](./projects.md)              |
+| `GET`    | `/api/projects/:projectId/translations`          | zoznam prekladov projektu (člen, ADMIN), [detail](./translations.md)           |
 | `GET`    | `/api/profile`                                   | profil prihláseného používateľa, [detail](./profile.md)                        |
 | `PATCH`  | `/api/profile`                                   | úprava mena a priezviska, [detail](./profile.md)                               |
 

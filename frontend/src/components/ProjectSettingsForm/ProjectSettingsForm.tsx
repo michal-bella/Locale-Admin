@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, Tooltip } from '@mantine/core'
+import { Button } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
@@ -10,24 +11,26 @@ import { ERROR_CODE, type ProjectSettings, toValidationCode, type UpdateProjectS
 import getApiErrorCode from '@/api/getApiErrorCode'
 import getApiErrorDetails from '@/api/getApiErrorDetails'
 import { useUpdateProjectSettingsMutation } from '@/api/projectSettings/useUpdateProjectSettingsMutation'
+import LeaveProjectModal from '@/components/LeaveProjectModal/LeaveProjectModal'
 import ProjectBasicsSection from '@/components/ProjectBasicsSection/ProjectBasicsSection'
 import VariableProtectionSection from '@/components/VariableProtectionSection/VariableProtectionSection'
 
 import { type ProjectSettingsFormProps } from './types'
 
-// Without languages `baseLanguageId` is null; the empty string fails the schema, so the form cannot be saved until a language exists.
+// Without languages there is no base language to send; the BE keeps the current one when the field is missing.
 const toFormValues = ({ name, slug, primaryColor, protectVariables, baseLanguageId }: ProjectSettings): UpdateProjectSettingsRequest => ({
 	name,
 	slug,
 	primaryColor,
 	protectVariables,
-	baseLanguageId: baseLanguageId ?? '',
+	baseLanguageId: baseLanguageId ?? undefined,
 })
 
-/** Project settings page body (Figma 3:1557). "Uložiť zmeny" saves the whole form; "Opustiť projekt" waits for project members. */
-const ProjectSettingsForm = ({ settings, languages, focusFirstField = false }: ProjectSettingsFormProps) => {
+/** Project settings page body (Figma 3:1557). "Uložiť zmeny" saves the whole form; "Opustiť projekt" asks for confirmation. */
+const ProjectSettingsForm = ({ settings, languages, isAdmin, isMember, onLeft, focusFirstField = false }: ProjectSettingsFormProps) => {
 	const { t } = useTranslation()
-	const updateSettings = useUpdateProjectSettingsMutation()
+	const updateSettings = useUpdateProjectSettingsMutation(settings.id)
+	const [leaveOpened, leaveModal] = useDisclosure(false)
 	const { isPending } = updateSettings
 	const {
 		register,
@@ -72,6 +75,10 @@ const ProjectSettingsForm = ({ settings, languages, focusFirstField = false }: P
 					)
 					return
 				}
+				if (code === ERROR_CODE.SLUG_TAKEN) {
+					setError('slug', { message: t('errors.SLUG_TAKEN') }, { shouldFocus: true })
+					return
+				}
 				notifications.show({ color: 'red', message: t(`errors.${code}`) })
 			},
 		})
@@ -79,19 +86,26 @@ const ProjectSettingsForm = ({ settings, languages, focusFirstField = false }: P
 
 	return (
 		<form onSubmit={(event) => void onSubmit(event)} noValidate className='flex flex-col gap-5'>
-			<ProjectBasicsSection register={register} control={control} errors={errors} languages={languages} savedColor={settings.primaryColor} />
+			<ProjectBasicsSection
+				register={register}
+				control={control}
+				errors={errors}
+				languages={languages}
+				savedColor={settings.primaryColor}
+				canChangeBaseLanguage={isAdmin}
+			/>
 			<VariableProtectionSection control={control} />
 			<div className='flex flex-wrap justify-between gap-3'>
-				{/* Mantine: a `disabled` button fires no mouseleave, so the tooltip needs `data-disabled` and a prevented click. */}
-				<Tooltip label={t('projectSettingsPage.leaveTooltip')} events={{ hover: true, focus: true, touch: true }}>
-					<Button variant='outline' data-disabled aria-disabled='true' onClick={(event) => event.preventDefault()}>
+				{isMember && (
+					<Button variant='outline' onClick={leaveModal.open}>
 						{t('projectSettingsPage.leave')}
 					</Button>
-				</Tooltip>
-				<Button type='submit' loading={isPending} disabled={!isDirty}>
+				)}
+				<Button type='submit' loading={isPending} disabled={!isDirty} className='ml-auto'>
 					{t('projectSettingsPage.save')}
 				</Button>
 			</div>
+			<LeaveProjectModal opened={leaveOpened} project={settings} onClose={leaveModal.close} onLeft={onLeft} />
 		</form>
 	)
 }

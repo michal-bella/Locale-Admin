@@ -1,10 +1,15 @@
 import { Button, Skeleton, Text } from '@mantine/core'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { ROLE } from '@locale/shared'
+
+import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useLanguagesQuery } from '@/api/languages/languagesQuery'
 import { useProjectSettingsQuery } from '@/api/projectSettings/projectSettingsQuery'
+import { useProjectsQuery } from '@/api/projects/projectsQuery'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import ProjectSettingsForm from '@/components/ProjectSettingsForm/ProjectSettingsForm'
 
@@ -13,10 +18,14 @@ import classes from './ProjectSettingsPage.module.css'
 /** Heights of the two cards in Figma 3:1557 (the first one with the base language row), used for the loading skeletons. */
 const SKELETON_HEIGHTS = [330, 152]
 
-/** Figma 3:1557 without the breadcrumbs and help icon, plus the base language and "Opustiť projekt". ADMIN only. */
+/** Figma 3:1557 without the breadcrumbs and help icon, plus the base language and "Opustiť projekt". Members and ADMIN. */
 const ProjectSettingsPage = () => {
 	const { t } = useTranslation()
-	const settingsQuery = useProjectSettingsQuery()
+	const navigate = useNavigate()
+	const { projectId } = useParams({ from: '/_authenticated/_app/projects/$projectId' })
+	const { data: user } = useMeQuery()
+	const { data: projects } = useProjectsQuery()
+	const settingsQuery = useProjectSettingsQuery(projectId)
 	const languagesQuery = useLanguagesQuery()
 	const [retrySucceeded, setRetrySucceeded] = useState(false)
 	const failedQueries = [settingsQuery, languagesQuery].filter((query) => query.isError && query.data === undefined)
@@ -49,7 +58,21 @@ const ProjectSettingsPage = () => {
 				</div>
 			)
 		}
-		return <ProjectSettingsForm settings={settingsQuery.data} languages={languagesQuery.data} focusFirstField={retrySucceeded} />
+		const isAdmin = user?.role === ROLE.ADMIN
+		// Anyone but an ADMIN got here as a member; an ADMIN's membership comes from the project list.
+		const isMember = !isAdmin || projects?.projects.some(({ id, isMember: member }) => id === projectId && member) === true
+		return (
+			<ProjectSettingsForm
+				// A new form per project, so default values never come from the previous one.
+				key={projectId}
+				settings={settingsQuery.data}
+				languages={languagesQuery.data}
+				isAdmin={isAdmin}
+				isMember={isMember}
+				onLeft={() => void navigate({ to: '/' })}
+				focusFirstField={retrySucceeded}
+			/>
+		)
 	}
 
 	return (

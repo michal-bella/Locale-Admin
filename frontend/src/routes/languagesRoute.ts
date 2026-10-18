@@ -4,10 +4,10 @@ import { ROLE } from '@locale/shared'
 
 import RouteError from '@/components/RouteError/RouteError'
 import { ForbiddenError } from '@/lib/forbiddenError'
-import { authenticatedRoute } from '@/routes/authenticatedRoute'
+import { appLayoutRoute } from '@/routes/appLayoutRoute'
 
 export const languagesRoute = createRoute({
-	getParentRoute: () => authenticatedRoute,
+	getParentRoute: () => appLayoutRoute,
 	path: '/languages',
 	beforeLoad: ({ context }) => {
 		if (context.user.role !== ROLE.ADMIN) {

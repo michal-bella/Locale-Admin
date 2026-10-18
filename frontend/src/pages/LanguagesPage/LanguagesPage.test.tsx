@@ -68,7 +68,7 @@ const pickOption = async (input: HTMLElement, name: string) => {
 const mockLanguagesApi = (initial: Language[]) => {
 	let languages = initial
 	const requests = signedInAs(ADMIN_USER, {
-		'GET /admin/languages': () => languagesResponse(languages),
+		'GET /languages': () => languagesResponse(languages),
 		...Object.fromEntries(
 			initial.map((language) => [
 				`DELETE /admin/languages/${language.id}`,
@@ -93,7 +93,7 @@ afterEach(() => {
 
 describe('LanguagesPage table', () => {
 	it('renders the header and rows with flags, names, tags and the base badge', async () => {
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': languagesResponse([SLOVAK, ENGLISH]) })
+		signedInAs(ADMIN_USER, { 'GET /languages': languagesResponse([SLOVAK, ENGLISH]) })
 		renderApp('/languages')
 
 		expect(await screen.findByText('Slovak')).toBeInTheDocument()
@@ -118,7 +118,7 @@ describe('LanguagesPage table', () => {
 	it('shows skeleton rows while loading and keeps Pridať jazyk disabled', async () => {
 		signedInAs(ADMIN_USER)
 		const adapter = http.defaults.adapter as AxiosAdapter
-		http.defaults.adapter = (config) => (config.url === '/admin/languages' ? new Promise(() => undefined) : adapter(config))
+		http.defaults.adapter = (config) => (config.url === '/languages' ? new Promise(() => undefined) : adapter(config))
 		renderApp('/languages')
 
 		await screen.findByRole('heading', { level: 1, name: 'Jazyky' })
@@ -128,7 +128,7 @@ describe('LanguagesPage table', () => {
 	})
 
 	it('shows the empty state with a button that opens the add modal', async () => {
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': languagesResponse([]) })
+		signedInAs(ADMIN_USER, { 'GET /languages': languagesResponse([]) })
 		renderApp('/languages')
 
 		expect(await screen.findByText('Zatiaľ nemáte žiadne jazyky.')).toBeInTheDocument()
@@ -141,7 +141,7 @@ describe('LanguagesPage table', () => {
 	it('shows the translated load error and retries', async () => {
 		let backendUp = false
 		signedInAs(ADMIN_USER, {
-			'GET /admin/languages': () => (backendUp ? languagesResponse([SLOVAK]) : apiError(500, 'INTERNAL_ERROR')),
+			'GET /languages': () => (backendUp ? languagesResponse([SLOVAK]) : apiError(500, 'INTERNAL_ERROR')),
 		})
 		renderApp('/languages')
 
@@ -160,7 +160,7 @@ describe('LanguagesPage table', () => {
 
 	it('renders texts in en', async () => {
 		await i18n.changeLanguage('en')
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': languagesResponse([SLOVAK]) })
+		signedInAs(ADMIN_USER, { 'GET /languages': languagesResponse([SLOVAK]) })
 		renderApp('/languages')
 
 		expect(await screen.findByText('Slovak')).toBeInTheDocument()
@@ -175,7 +175,7 @@ describe('AddLanguageModal', () => {
 		const show = vi.spyOn(notifications, 'show')
 		let languages = [SLOVAK, ENGLISH]
 		const requests = signedInAs(ADMIN_USER, {
-			'GET /admin/languages': () => languagesResponse(languages),
+			'GET /languages': () => languagesResponse(languages),
 			'POST /admin/languages': () => {
 				languages = [...languages, RUSSIAN]
 				return { status: 201, data: RUSSIAN }
@@ -208,7 +208,7 @@ describe('AddLanguageModal', () => {
 	})
 
 	it('searches by tag', async () => {
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': languagesResponse([SLOVAK]) })
+		signedInAs(ADMIN_USER, { 'GET /languages': languagesResponse([SLOVAK]) })
 		renderApp('/languages')
 		await screen.findByText('Slovak')
 		const dialog = await openAddModal()
@@ -222,7 +222,7 @@ describe('AddLanguageModal', () => {
 	})
 
 	it('disables Pridať jazyk when every supported language is added', async () => {
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': languagesResponse(ALL_LANGUAGES) })
+		signedInAs(ADMIN_USER, { 'GET /languages': languagesResponse(ALL_LANGUAGES) })
 		renderApp('/languages')
 
 		await screen.findByText('Slovak')
@@ -233,7 +233,7 @@ describe('AddLanguageModal', () => {
 		const show = vi.spyOn(notifications, 'show')
 		let languages = [SLOVAK]
 		const requests = signedInAs(ADMIN_USER, {
-			'GET /admin/languages': () => languagesResponse(languages),
+			'GET /languages': () => languagesResponse(languages),
 			'POST /admin/languages': () => {
 				languages = [SLOVAK, RUSSIAN]
 				return apiError(409, 'LANGUAGE_TAKEN')
@@ -256,7 +256,7 @@ describe('AddLanguageModal', () => {
 		expect(submit).toBeDisabled()
 		expect(show).not.toHaveBeenCalledWith(expect.objectContaining({ color: 'red' }))
 		expect(screen.getByRole('dialog', { name: 'Pridať jazyk' })).toBeInTheDocument()
-		await waitFor(() => expect(requests.filter((request) => request.method === 'get' && request.url === '/admin/languages')).toHaveLength(2))
+		await waitFor(() => expect(requests.filter((request) => request.method === 'get' && request.url === '/languages')).toHaveLength(2))
 
 		fireEvent.click(input)
 		await waitFor(() => expect(screen.getByRole('option', { name: 'Russian – русский – ru' })).toHaveAttribute('data-combobox-disabled', 'true'))
@@ -269,7 +269,7 @@ describe('AddLanguageModal', () => {
 
 describe('LanguageSettingsModal', () => {
 	it('is prefilled, keeps the tag read-only and Uložiť disabled until a change', async () => {
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': languagesResponse([SLOVAK, ENGLISH]) })
+		signedInAs(ADMIN_USER, { 'GET /languages': languagesResponse([SLOVAK, ENGLISH]) })
 		renderApp('/languages')
 		const dialog = await openSettings('English')
 
@@ -292,7 +292,7 @@ describe('LanguageSettingsModal', () => {
 	})
 
 	it('shows client validation errors without sending a request', async () => {
-		const requests = signedInAs(ADMIN_USER, { 'GET /admin/languages': languagesResponse([SLOVAK, ENGLISH]) })
+		const requests = signedInAs(ADMIN_USER, { 'GET /languages': languagesResponse([SLOVAK, ENGLISH]) })
 		renderApp('/languages')
 		const dialog = await openSettings('English')
 
@@ -307,7 +307,7 @@ describe('LanguageSettingsModal', () => {
 
 	it('maps 400 details to the fields', async () => {
 		signedInAs(ADMIN_USER, {
-			'GET /admin/languages': languagesResponse([SLOVAK, ENGLISH]),
+			'GET /languages': languagesResponse([SLOVAK, ENGLISH]),
 			[`PATCH /admin/languages/${ENGLISH.id}`]: apiError(400, 'VALIDATION_ERROR', {
 				details: [{ path: 'nativeName', code: 'TOO_LONG', params: { max: 100 } }],
 			}),
@@ -327,7 +327,7 @@ describe('LanguageSettingsModal', () => {
 		const show = vi.spyOn(notifications, 'show')
 		const saved: Language = { ...ENGLISH, englishName: 'English (US)', flagCode: 'gb' }
 		const requests = signedInAs(ADMIN_USER, {
-			'GET /admin/languages': languagesResponse([SLOVAK, ENGLISH]),
+			'GET /languages': languagesResponse([SLOVAK, ENGLISH]),
 			[`PATCH /admin/languages/${ENGLISH.id}`]: { status: 200, data: saved },
 		})
 		renderApp('/languages')
@@ -348,7 +348,7 @@ describe('LanguageSettingsModal', () => {
 	it('sets another language as the base language', async () => {
 		let languages = [SLOVAK, ENGLISH]
 		const requests = signedInAs(ADMIN_USER, {
-			'GET /admin/languages': () => languagesResponse(languages),
+			'GET /languages': () => languagesResponse(languages),
 			[`PATCH /admin/languages/${ENGLISH.id}`]: () => {
 				languages = [
 					{ ...ENGLISH, isBase: true },
@@ -375,7 +375,7 @@ describe('LanguageSettingsModal', () => {
 	})
 
 	it('keeps the base switch on and disabled and disables delete for the base language', async () => {
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': languagesResponse([SLOVAK, ENGLISH]) })
+		signedInAs(ADMIN_USER, { 'GET /languages': languagesResponse([SLOVAK, ENGLISH]) })
 		renderApp('/languages')
 		const dialog = await openSettings('Slovak')
 
@@ -388,7 +388,7 @@ describe('LanguageSettingsModal', () => {
 	it('shows 404 as a notification, closes the modal and refetches the list', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		const requests = signedInAs(ADMIN_USER, {
-			'GET /admin/languages': languagesResponse([SLOVAK, ENGLISH]),
+			'GET /languages': languagesResponse([SLOVAK, ENGLISH]),
 			[`PATCH /admin/languages/${ENGLISH.id}`]: apiError(404, 'NOT_FOUND'),
 		})
 		renderApp('/languages')
@@ -399,13 +399,13 @@ describe('LanguageSettingsModal', () => {
 
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Požadovaný záznam sa nenašiel.' }))
-		await waitFor(() => expect(requests.filter((request) => request.method === 'get' && request.url === '/admin/languages')).toHaveLength(2))
+		await waitFor(() => expect(requests.filter((request) => request.method === 'get' && request.url === '/languages')).toHaveLength(2))
 	})
 })
 
 describe('Deleting a language', () => {
 	it('disables Odstrániť in the row menu of the base language', async () => {
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': languagesResponse([SLOVAK, ENGLISH]) })
+		signedInAs(ADMIN_USER, { 'GET /languages': languagesResponse([SLOVAK, ENGLISH]) })
 		renderApp('/languages')
 
 		await openRowMenu('Slovak')
@@ -463,7 +463,7 @@ describe('Deleting a language', () => {
 		const show = vi.spyOn(notifications, 'show')
 		let languages = [SLOVAK, ENGLISH]
 		const requests = signedInAs(ADMIN_USER, {
-			'GET /admin/languages': () => languagesResponse(languages),
+			'GET /languages': () => languagesResponse(languages),
 			[`DELETE /admin/languages/${ENGLISH.id}`]: () => {
 				// Another admin made English the base language in the meantime.
 				languages = [
@@ -486,7 +486,7 @@ describe('Deleting a language', () => {
 			),
 		)
 		expect(screen.getByRole('dialog', { name: 'Odstrániť jazyk' })).toBeInTheDocument()
-		await waitFor(() => expect(requests.filter((request) => request.method === 'get' && request.url === '/admin/languages')).toHaveLength(2))
+		await waitFor(() => expect(requests.filter((request) => request.method === 'get' && request.url === '/languages')).toHaveLength(2))
 		await waitFor(() => expect(within(getRow('English')).getByText('Základný')).toBeInTheDocument())
 		expect(within(getRow('Slovak')).queryByText('Základný')).not.toBeInTheDocument()
 	})
@@ -551,7 +551,7 @@ describe('Focus after a modal closes', () => {
 	it('moves focus to the table when the empty-state button is gone after adding a language', async () => {
 		let languages: Language[] = []
 		signedInAs(ADMIN_USER, {
-			'GET /admin/languages': () => languagesResponse(languages),
+			'GET /languages': () => languagesResponse(languages),
 			'POST /admin/languages': () => {
 				languages = [RUSSIAN]
 				return { status: 201, data: RUSSIAN }
@@ -573,7 +573,7 @@ describe('Focus after a modal closes', () => {
 	it('moves focus to the table when a 404 save closes the settings of a row that is gone', async () => {
 		let languages = [SLOVAK, ENGLISH]
 		signedInAs(ADMIN_USER, {
-			'GET /admin/languages': () => languagesResponse(languages),
+			'GET /languages': () => languagesResponse(languages),
 			[`PATCH /admin/languages/${ENGLISH.id}`]: () => {
 				// Another admin deleted English in the meantime.
 				languages = [SLOVAK]
@@ -583,7 +583,7 @@ describe('Focus after a modal closes', () => {
 		const adapter = http.defaults.adapter as AxiosAdapter
 		// A real refetch takes longer than the deferred focus restore.
 		http.defaults.adapter = async (config) => {
-			if (config.method === 'get' && config.url === '/admin/languages' && languages.length === 1) {
+			if (config.method === 'get' && config.url === '/languages' && languages.length === 1) {
 				await new Promise((resolve) => setTimeout(resolve, 50))
 			}
 			return adapter(config)

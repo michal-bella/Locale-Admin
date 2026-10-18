@@ -13,8 +13,8 @@ import { DotsHorizontal } from '@/components/Icons'
 import classes from './UserMenu.module.css'
 import { type UserMenuProps } from './types'
 
-/** User block at the bottom of the sidebar (Figma 3:1742): avatar, name, global role and the `⋯` menu. */
-const UserMenu = ({ onNavigate }: UserMenuProps) => {
+/** User block (Figma 3:1742): avatar, name, global role and the `⋯` menu. At the bottom of the sidebar or in the top bar of the project list. */
+const UserMenu = ({ onNavigate, placement = 'sidebar' }: UserMenuProps) => {
 	const { t } = useTranslation()
 	const { data: user } = useMeQuery()
 	const logout = useLogoutMutation()
@@ -31,7 +31,7 @@ const UserMenu = ({ onNavigate }: UserMenuProps) => {
 		})
 
 	return (
-		<div className={`${classes.root} flex items-center gap-3`}>
+		<div data-placement={placement} className={`${classes.root} flex items-center gap-3`}>
 			<Avatar aria-hidden size={32} radius='xl' color='var(--app-color-avatar)' variant='filled' classNames={{ placeholder: classes.initials }}>
 				{getInitials(user)}
 			</Avatar>
@@ -43,7 +43,7 @@ const UserMenu = ({ onNavigate }: UserMenuProps) => {
 					{t(`roles.${user.role}`)}
 				</Text>
 			</div>
-			<Menu position='top-end' width={240} radius='lg' shadow='md'>
+			<Menu position={placement === 'sidebar' ? 'top-end' : 'bottom-end'} width={240} radius='lg' shadow='md'>
 				<Menu.Target>
 					<ActionIcon variant='transparent' size={32} radius='md' aria-label={t('sidebar.userMenu.label')} className={classes.trigger}>
 						<DotsHorizontal aria-hidden />

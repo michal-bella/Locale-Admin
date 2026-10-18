@@ -2,10 +2,9 @@ import { createRoute, redirect } from '@tanstack/react-router'
 
 import { meQueryOptions } from '@/api/auth/meQuery'
 import { isUnauthorizedError } from '@/api/isUnauthorizedError'
-import AppLayout from '@/components/AppLayout/AppLayout'
 import { rootRoute } from '@/routes/rootRoute'
 
-/** Pathless layout for every signed-in page: loads the user (top bar) and passes it to child guards as `context.user`. */
+/** Pathless parent of every signed-in page: loads the user and passes it to child guards as `context.user`. Layouts are its children. */
 export const authenticatedRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	id: '_authenticated',
@@ -20,5 +19,4 @@ export const authenticatedRoute = createRoute({
 			throw error
 		}
 	},
-	component: AppLayout,
 })

@@ -10,16 +10,59 @@
 	},
 	"roles": {
 		"ADMIN": "Administrátor",
-		"EDITOR": "Editor"
-	},
-	"homePage": {
-		"title": "Domov"
+		"EDITOR": "Člen"
 	},
 	"notFoundPage": {
 		"eyebrow": "Chyba 404",
 		"title": "Stránka sa nenašla",
 		"description": "Stránka, ktorú hľadáte, neexistuje alebo bola presunutá.",
 		"backHome": "Späť na úvod"
+	},
+	"projectsPage": {
+		"eyebrow": "Prehľad",
+		"title": "Projekty",
+		"description": "Projekty, v ktorých ste členom.",
+		"createButton": "Nový projekt",
+		"list": {
+			"label": "Zoznam projektov",
+			"empty": "Zatiaľ nemáte žiadny projekt. Vytvorte prvý.",
+			"loadError": "Zoznam projektov sa nepodarilo načítať.",
+			"retry": "Skúsiť znova",
+			"actions": "Akcie projektu {{name}}",
+			"settings": "Nastavenia",
+			"leave": "Opustiť projekt"
+		},
+		"createModal": {
+			"title": "Nový projekt",
+			"description": "Stanete sa prvým členom projektu.",
+			"close": "Zavrieť",
+			"name": {
+				"label": "Názov projektu",
+				"placeholder": "Napr. Booking Web"
+			},
+			"slug": {
+				"label": "Slug projektu",
+				"placeholder": "booking-web",
+				"hint": "Malé písmená, číslice a pomlčky. Použije sa v názvoch exportovaných súborov."
+			},
+			"cancel": "Zrušiť",
+			"submit": "Vytvoriť projekt",
+			"success": "Projekt {{name}} bol vytvorený."
+		}
+	},
+	"leaveProjectModal": {
+		"title": "Opustiť projekt",
+		"message": "Naozaj chcete opustiť projekt {{name}}? Späť vás môže pridať iný člen.",
+		"close": "Zavrieť",
+		"cancel": "Zrušiť",
+		"confirm": "Opustiť projekt",
+		"success": "Opustili ste projekt {{name}}."
+	},
+	"projectNotFoundPage": {
+		"eyebrow": "Chyba 404",
+		"title": "Projekt sa nenašiel",
+		"description": "Projekt neexistuje alebo nie ste jeho členom.",
+		"backHome": "Späť na projekty"
 	},
 	"loginPage": {
 		"eyebrow": "Prihlásenie",
@@ -53,19 +96,19 @@
 	"usersPage": {
 		"eyebrow": "Správa",
 		"title": "Používatelia",
-		"description": "Účty, ktoré majú prístup do systému.",
-		"createButton": "Vytvoriť používateľa",
+		"description": "Administrátori, ktorí spravujú systém, jazyky a všetky projekty.",
+		"createButton": "Vytvoriť administrátora",
 		"table": {
-			"label": "Zoznam používateľov",
+			"label": "Zoznam administrátorov",
 			"email": "E-mail",
 			"createdAt": "Vytvorený",
-			"empty": "Zatiaľ tu nie sú žiadni používatelia.",
-			"loadError": "Zoznam používateľov sa nepodarilo načítať.",
+			"empty": "Zatiaľ tu nie sú žiadni administrátori.",
+			"loadError": "Zoznam administrátorov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova"
 		},
 		"createModal": {
-			"title": "Nový používateľ",
-			"description": "Zadajte e-mail a heslo pre nový účet.",
+			"title": "Nový administrátor",
+			"description": "Zadajte e-mail a heslo pre nový administrátorský účet. Členov projektov vytvoríte na stránke Členovia v projekte.",
 			"close": "Zavrieť",
 			"email": {
 				"label": "E-mail",
@@ -76,8 +119,38 @@
 				"placeholder": "Min. {{min}} znakov"
 			},
 			"cancel": "Zrušiť",
-			"submit": "Vytvoriť používateľa",
-			"success": "Používateľ {{email}} bol vytvorený."
+			"submit": "Vytvoriť administrátora",
+			"success": "Administrátor {{email}} bol vytvorený."
+		}
+	},
+	"membersPage": {
+		"eyebrow": "Projekt",
+		"title": "Členovia",
+		"description": "Používatelia, ktorí majú prístup k tomuto projektu.",
+		"createButton": "Pridať člena",
+		"table": {
+			"label": "Zoznam členov",
+			"member": "Člen",
+			"joinedAt": "Pridaný",
+			"empty": "Projekt zatiaľ nemá žiadnych členov.",
+			"loadError": "Zoznam členov sa nepodarilo načítať.",
+			"retry": "Skúsiť znova"
+		},
+		"createModal": {
+			"title": "Nový člen",
+			"description": "Vytvorí nový účet, ktorý bude mať prístup k tomuto projektu.",
+			"close": "Zavrieť",
+			"email": {
+				"label": "E-mail",
+				"placeholder": "meno@firma.sk"
+			},
+			"password": {
+				"label": "Heslo",
+				"placeholder": "Min. {{min}} znakov"
+			},
+			"cancel": "Zrušiť",
+			"submit": "Pridať člena",
+			"success": "Člen {{email}} bol pridaný do projektu."
 		}
 	},
 	"profilePage": {
@@ -91,7 +164,7 @@
 		},
 		"personal": {
 			"title": "Osobné údaje",
-			"description": "Tieto informácie uvidia ostatní členovia organizácie.",
+			"description": "Tieto informácie uvidia ostatní členovia vašich projektov.",
 			"firstName": "Meno",
 			"lastName": "Priezvisko",
 			"email": "E-mailová adresa",
@@ -189,7 +262,7 @@
 	"projectSettingsPage": {
 		"eyebrow": "Konfigurácia",
 		"title": "Nastavenia projektu",
-		"description": "Základné údaje, identita organizácie a pravidlá prekladov.",
+		"description": "Základné údaje, identita projektu a pravidlá prekladov.",
 		"loadError": "Nastavenia projektu sa nepodarilo načítať.",
 		"retry": "Skúsiť znova",
 		"basics": {
@@ -208,7 +281,8 @@
 				"label": "Základný jazyk",
 				"placeholder": "Vyberte jazyk",
 				"empty": "Zatiaľ nemáte žiadne jazyky.",
-				"emptyLink": "Pridať jazyk"
+				"emptyLink": "Pridať jazyk",
+				"adminOnly": "Základný jazyk je spoločný pre všetky projekty, mení ho iba administrátor."
 			}
 		},
 		"variables": {
@@ -220,7 +294,6 @@
 			}
 		},
 		"leave": "Opustiť projekt",
-		"leaveTooltip": "Bude dostupné spolu so správou členov",
 		"save": "Uložiť zmeny",
 		"saveSuccess": "Nastavenia projektu boli uložené."
 	},
@@ -244,10 +317,12 @@
 	},
 	"sidebar": {
 		"label": "Hlavná navigácia",
+		"allProjects": "Všetky projekty",
 		"languages": "Jazyky",
 		"admin": "Správa",
 		"users": "Používatelia",
 		"projectSettings": "Nastavenia projektu",
+		"members": "Členovia",
 		"openNavigation": "Otvoriť navigáciu",
 		"closeNavigation": "Zavrieť navigáciu",
 		"home": "Locale – domovská stránka",

@@ -14,7 +14,7 @@ const openMenu = async () => fireEvent.click(await screen.findByRole('button', {
 describe('UserMenu', () => {
 	it('shows initials, full name and role of an ADMIN in the sidebar', async () => {
 		signedInAs(ADMIN_USER)
-		renderApp('/')
+		renderApp('/profile')
 		const sidebar = await getSidebar()
 
 		expect(await sidebar.findByText('MK')).toBeInTheDocument()
@@ -25,12 +25,12 @@ describe('UserMenu', () => {
 
 	it('shows the email instead of a missing name and the EDITOR role', async () => {
 		signedInAs(EDITOR_USER)
-		renderApp('/')
+		renderApp('/profile')
 		const sidebar = await getSidebar()
 
 		expect(await sidebar.findByText('JA')).toBeInTheDocument()
 		expect(sidebar.getByText(EDITOR_USER.email)).toBeInTheDocument()
-		expect(sidebar.getByText('Editor')).toBeInTheDocument()
+		expect(sidebar.getByText('Člen')).toBeInTheDocument()
 	})
 
 	it('has only the profile link and logout in the menu', async () => {

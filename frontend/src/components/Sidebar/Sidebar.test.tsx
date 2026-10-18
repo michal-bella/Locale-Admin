@@ -1,41 +1,69 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
 
+import { type ProjectSettings } from '@locale/shared'
+
 import { ADMIN_USER, EDITOR_USER, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
+
+const PROJECT: ProjectSettings = {
+	id: '00000000-0000-4000-8000-000000000301',
+	name: 'Booking Web',
+	slug: 'booking-web',
+	primaryColor: '#E83E8C',
+	protectVariables: true,
+	baseLanguageId: null,
+}
 
 const findNavigation = async () => within(await screen.findByRole('navigation', { name: 'Hlavná navigácia' }))
 
 describe('Sidebar', () => {
-	it('shows Jazyky and, under SPRÁVA, Používatelia and Nastavenia projektu to an ADMIN', async () => {
+	it('shows Všetky projekty and, under SPRÁVA, Používatelia and Jazyky to an ADMIN outside a project', async () => {
 		signedInAs(ADMIN_USER)
-		renderApp('/')
+		renderApp('/profile')
 		const navigation = await findNavigation()
 
-		expect(navigation.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('href', '/languages')
+		expect(navigation.getByRole('link', { name: 'Všetky projekty' })).toHaveAttribute('href', '/')
 		const admin = within(navigation.getByRole('list', { name: 'Správa' }))
-		expect(admin.getAllByRole('link').map((link) => link.textContent)).toEqual(['Používatelia', 'Nastavenia projektu'])
+		expect(admin.getAllByRole('link').map((link) => link.textContent)).toEqual(['Používatelia', 'Jazyky'])
 		expect(admin.getByRole('link', { name: 'Používatelia' })).toHaveAttribute('href', '/admin/users')
-		expect(admin.getByRole('link', { name: 'Nastavenia projektu' })).toHaveAttribute('href', '/project-settings')
+		expect(admin.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('href', '/languages')
 		expect(within(screen.getByRole('complementary')).getByText('Locale')).toBeInTheDocument()
 	})
 
-	it('shows no items and no SPRÁVA label to an EDITOR', async () => {
+	it('shows only Všetky projekty and no SPRÁVA label to an EDITOR outside a project', async () => {
 		signedInAs(EDITOR_USER)
-		renderApp('/')
+		renderApp('/profile')
 		const navigation = await findNavigation()
 
-		expect(navigation.queryAllByRole('link')).toHaveLength(0)
+		expect(navigation.getAllByRole('link').map((link) => link.textContent)).toEqual(['Všetky projekty'])
+		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
+	})
+
+	it('shows the project name with Nastavenia projektu and Členovia inside a project', async () => {
+		signedInAs(EDITOR_USER, {
+			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
+			'GET /languages': { status: 200, data: [] },
+			'GET /projects': { status: 200, data: { projects: [] } },
+		})
+		renderApp(`/projects/${PROJECT.id}/settings`)
+		const navigation = await findNavigation()
+
+		const project = within(await navigation.findByRole('list', { name: 'Booking Web' }))
+		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Nastavenia projektu', 'Členovia'])
+		expect(project.getByRole('link', { name: 'Členovia' })).toHaveAttribute('href', `/projects/${PROJECT.id}/members`)
+		await waitFor(() => expect(project.getByRole('link', { name: 'Nastavenia projektu' })).toHaveAttribute('aria-current', 'page'))
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
 
 	it('marks the item of the current route as the current page', async () => {
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': { status: 200, data: [] } })
+		signedInAs(ADMIN_USER, { 'GET /languages': { status: 200, data: [] } })
 		const router = renderApp('/languages')
 		const navigation = await findNavigation()
 
 		await waitFor(() => expect(navigation.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('aria-current', 'page'))
 		expect(navigation.getByRole('link', { name: 'Používatelia' })).not.toHaveAttribute('aria-current')
+		expect(navigation.getByRole('link', { name: 'Všetky projekty' })).not.toHaveAttribute('aria-current')
 
 		fireEvent.click(navigation.getByRole('link', { name: 'Používatelia' }))
 
@@ -44,19 +72,9 @@ describe('Sidebar', () => {
 		expect(navigation.getByRole('link', { name: 'Jazyky' })).not.toHaveAttribute('aria-current')
 	})
 
-	it('marks Nastavenia projektu as the current page on /project-settings', async () => {
-		signedInAs(ADMIN_USER)
-		renderApp('/project-settings')
-		const navigation = await findNavigation()
-
-		await waitFor(() => expect(navigation.getByRole('link', { name: 'Nastavenia projektu' })).toHaveAttribute('aria-current', 'page'))
-		expect(navigation.getByRole('link', { name: 'Používatelia' })).not.toHaveAttribute('aria-current')
-		expect(navigation.getByRole('link', { name: 'Jazyky' })).not.toHaveAttribute('aria-current')
-	})
-
 	it('opens and closes on narrow screens with the burgers', async () => {
 		signedInAs(ADMIN_USER)
-		renderApp('/')
+		renderApp('/profile')
 		const openButton = await screen.findByRole('button', { name: 'Otvoriť navigáciu' })
 		const sidebar = screen.getByRole('complementary')
 
@@ -73,7 +91,7 @@ describe('Sidebar', () => {
 	})
 
 	it('links the logo to the home page and closes the sidebar on narrow screens', async () => {
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': { status: 200, data: [] } })
+		signedInAs(ADMIN_USER, { 'GET /languages': { status: 200, data: [] } })
 		const router = renderApp('/languages')
 		fireEvent.click(await screen.findByRole('button', { name: 'Otvoriť navigáciu' }))
 		const sidebar = screen.getByRole('complementary')
@@ -89,8 +107,8 @@ describe('Sidebar', () => {
 	})
 
 	it('moves focus to the top-bar burger when the narrow-screen sidebar closes, since the closed sidebar is hidden', async () => {
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': { status: 200, data: [] } })
-		const router = renderApp('/')
+		signedInAs(ADMIN_USER, { 'GET /languages': { status: 200, data: [] } })
+		const router = renderApp('/profile')
 		const openButton = await screen.findByRole('button', { name: 'Otvoriť navigáciu' })
 		const sidebar = screen.getByRole('complementary')
 

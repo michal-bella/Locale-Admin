@@ -64,7 +64,7 @@ describe('ProfilePage', () => {
 		expect(screen.getByLabelText('Meno')).toHaveValue('')
 		expect(screen.getByLabelText('Priezvisko')).toHaveValue('')
 		expect(screen.getByRole('heading', { level: 2, name: EDITOR_USER.email })).toBeInTheDocument()
-		expect(getMain().getByText('Editor')).toBeInTheDocument()
+		expect(getMain().getByText('Člen')).toBeInTheDocument()
 	})
 
 	it('shows the controls outside the MVP as disabled', async () => {

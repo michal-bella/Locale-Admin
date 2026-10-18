@@ -1,0 +1,89 @@
+.card {
+	overflow: hidden;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-xl);
+	background-color: var(--app-color-surface);
+	list-style: none;
+}
+
+.card:focus-visible {
+	outline: 2px solid var(--mantine-primary-color-filled);
+	outline-offset: 2px;
+}
+
+/* The name link covers the whole row (stretched link); the menu button sits above it. */
+.row {
+	position: relative;
+	padding: 1rem 1.25rem;
+	border-bottom: 1px solid var(--app-color-border-subtle);
+}
+
+.row:last-child {
+	border-bottom: 0;
+}
+
+.row:hover {
+	background-color: var(--app-color-surface-muted);
+}
+
+.avatar {
+	display: grid;
+	flex-shrink: 0;
+	place-items: center;
+	width: 3rem;
+	height: 3rem;
+	border-radius: var(--mantine-radius-md);
+	font-size: var(--mantine-font-size-md);
+	font-weight: 700;
+	color: var(--mantine-color-white);
+}
+
+.avatar[data-tone='dark'] {
+	color: var(--mantine-color-black);
+}
+
+.name {
+	font-size: var(--mantine-font-size-md);
+	font-weight: 600;
+	line-height: 1.5;
+	color: var(--app-color-text-strong);
+	text-decoration: none;
+	overflow-wrap: anywhere;
+}
+
+.name::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+}
+
+.name:focus-visible {
+	outline: none;
+}
+
+.name:focus-visible::after {
+	outline: 2px solid var(--mantine-primary-color-filled);
+	outline-offset: -2px;
+}
+
+.slug {
+	overflow-wrap: anywhere;
+}
+
+.trigger {
+	position: relative;
+	z-index: 1;
+	flex-shrink: 0;
+	color: var(--app-color-muted);
+}
+
+.trigger:hover {
+	background-color: var(--app-color-surface);
+}
+
+.state {
+	padding: 2.5rem 1.25rem;
+	text-align: center;
+}

@@ -56,6 +56,34 @@ describe('Sidebar', () => {
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
 
+	it('switches projects from the switcher and keeps the current page', async () => {
+		const other = { ...PROJECT, id: '00000000-0000-4000-8000-000000000302', name: 'Demo project', slug: 'demo-project', primaryColor: '#FACC15' }
+		signedInAs(EDITOR_USER, {
+			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
+			[`GET /projects/${other.id}/settings`]: { status: 200, data: other },
+			[`GET /projects/${PROJECT.id}/members`]: { status: 200, data: { members: [] } },
+			[`GET /projects/${other.id}/members`]: { status: 200, data: { members: [] } },
+			'GET /projects': {
+				status: 200,
+				data: { projects: [PROJECT, other].map(({ id, name, slug, primaryColor }) => ({ id, name, slug, primaryColor, isMember: true })) },
+			},
+		})
+		const router = renderApp(`/projects/${PROJECT.id}/members`)
+		const switcher = await screen.findByRole('button', { name: 'Prepnúť projekt, aktuálny Booking Web' })
+
+		expect(switcher).toHaveTextContent('BWBooking Webbooking-web')
+		expect((await findNavigation()).queryByRole('link', { name: 'Všetky projekty' })).not.toBeInTheDocument()
+
+		fireEvent.click(switcher)
+		const menu = within(await screen.findByRole('menu'))
+		expect(menu.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['BWBooking Web', 'DPDemo project', 'Všetky projekty'])
+		expect(menu.getByRole('menuitem', { name: /Booking Web/ })).toHaveAttribute('aria-current', 'true')
+		fireEvent.click(menu.getByRole('menuitem', { name: /Demo project/ }))
+
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${other.id}/members`))
+		expect(await screen.findByRole('button', { name: 'Prepnúť projekt, aktuálny Demo project' })).toBeInTheDocument()
+	})
+
 	it('marks the item of the current route as the current page', async () => {
 		signedInAs(ADMIN_USER, { 'GET /languages': { status: 200, data: [] } })
 		const router = renderApp('/languages')

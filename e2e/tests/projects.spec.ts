@@ -52,7 +52,11 @@ test.describe('member', () => {
 		await expect(page.getByLabel('Názov projektu', { exact: true })).toHaveValue(name)
 		await expect(page.getByRole('navigation', { name: 'Hlavná navigácia' }).getByRole('list', { name })).toBeVisible()
 
-		await page.getByRole('link', { name: 'Všetky projekty' }).click()
+		await page
+			.getByRole('complementary')
+			.getByRole('button', { name: `Prepnúť projekt, aktuálny ${name}` })
+			.click()
+		await page.getByRole('menu').getByRole('menuitem', { name: 'Všetky projekty' }).click()
 		await expect(getList(page).getByRole('listitem')).toHaveCount(2)
 	})
 

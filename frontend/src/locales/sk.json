@@ -323,6 +323,10 @@
 		"users": "Používatelia",
 		"projectSettings": "Nastavenia projektu",
 		"members": "Členovia",
+		"projectSwitcher": {
+			"label": "Prepnúť projekt, aktuálny {{name}}",
+			"projects": "Projekty"
+		},
 		"openNavigation": "Otvoriť navigáciu",
 		"closeNavigation": "Zavrieť navigáciu",
 		"home": "Locale – domovská stránka",

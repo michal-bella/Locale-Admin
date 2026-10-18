@@ -173,16 +173,17 @@ Zoznam projektov (`/`) má `HomeLayout`: iba horná lišta s logom vľavo a `Use
 
 - šírka 236 px vrátane pravého okraja `--app-color-border` s 80 % krytím, padding 16 px, pozadie `--app-color-surface`. Element je `<aside>` (`AppShell.Navbar` s `component="aside"`).
 - hore `Brand` (logo „Locale / WORKSPACE“) ako odkaz `Link` na `/` s prístupným menom „Locale – domovská stránka“. Vzhľad loga sa nemení (bez podčiarknutia a zmeny farby), pri fokuse z klávesnice má obrys. Na úzkej obrazovke klik na logo zavrie otvorený sidebar ako položky navigácie. `Brand` v `CenteredLayout` (login, chybové stránky) odkazom nie je.
-- `<nav aria-label="Hlavná navigácia">` (odsadená 24 px od loga):
-    - **Všetky projekty** (`/`, ikona `ArrowRight` otočená doľava) pre všetkých.
-    - V projekte (`/projects/$projectId/*`): oddeľovač, nadpis sekcie s názvom projektu (z cache `PROJECTS.SETTINGS`, sidebar sám nič nenačítava) a zoznam **Nastavenia projektu** (`settings`, ikona `Settings`) a **Členovia** (`members`, ikona `Users`).
+- v projekte pod logom (odsadený 28 px) prepínač projektu `ProjectSwitcher` podľa Figmy `3:470`: karta (padding 10 px, okraj `--app-color-border`, radius `lg`, tieň `xs`, výška aspoň 62 px), štvorček 32 px s iniciálami v primárnej farbe projektu (radius `sm`, text čierny alebo biely podľa `isLightColor`), názov 12 / 16 / 600 `--app-color-text-strong` a pod ním slug 10 / 15 `--app-color-muted` (Figma má „Organizácia1“, organizácie nie sú), vpravo šípka `ChevronSelector` 15 px. Prístupné meno „Prepnúť projekt, aktuálny {{name}}“. Otvára Mantine `Menu` na šírku karty: nadpis Projekty, projekty zo `useProjectsQuery` (malý štvorček s iniciálami, aktuálny má `aria-current` a pozadie `--app-color-brand-tint`) a **Všetky projekty**. Výber projektu ostane na tej istej stránke (Nastavenia projektu alebo Členovia) a zavrie sidebar na úzkej obrazovke. Údaje projektu berie z cache `PROJECTS.SETTINGS`, sidebar sám nastavenia nenačítava.
+- `<nav aria-label="Hlavná navigácia">` (odsadená 24 px od loga alebo prepínača):
+    - Mimo projektu **Všetky projekty** (`/`, ikona `ArrowRight` otočená doľava).
+    - V projekte (`/projects/$projectId/*`): zoznam **Nastavenia projektu** (`settings`, ikona `Settings`) a **Členovia** (`members`, ikona `Users`) s prístupným menom názvu projektu. **Všetky projekty** tu nie je, je v prepínači projektu.
     - Iba `ADMIN`: oddeľovač (`--app-color-border-subtle`, okraje 16 px), nadpis sekcie **SPRÁVA** (10 / 15 / 700, veľké písmená, rozostup 0,14 em, `--app-color-muted`) a zoznam **Používatelia** (`/admin/users`, ikona `Users`) a **Jazyky** (`/languages`, ikona `Globe`).
     - Zoznamy sekcií majú `aria-labelledby` na nadpis sekcie.
 - položka: odkaz TanStack Router `Link`, výška aspoň 44 px, padding 10 / 12 px, medzera 12 px, radius `lg`, text 16 / 24 `--mantine-color-text`, ikona 18 px `--app-color-muted`, medzi položkami 4 px. Hover `--app-color-surface-muted` (vo Figme nie je). Dlhý text sa neskracuje, zalomí sa na ďalší riadok a položka sa zvýši (**Nastavenia projektu** má v sidebari 236 px dva riadky a výšku 68 px ako Figma `3:1724`, na úzkej obrazovke jeden riadok). Ikona a bodka sú zvisle v strede položky.
 - aktívna položka podľa aktuálnej routy: `Link` jej sám nastaví `aria-current="page"` a `data-status="active"`. Pozadie `--app-color-brand-tint`, text `--app-color-eyebrow`, ikona a bodka 6 px vpravo `brand.6`.
 - dole `UserMenu`
 
-Vynechané, lebo ešte neexistujú: prepínač projektu, Prehľad, Preklady, Aktivita a box Chránené premenné.
+Vynechané, lebo ešte neexistujú: Prehľad, Preklady, Aktivita a box Chránené premenné.
 
 ### Používateľ v sidebari (`UserMenu`)
 
@@ -479,7 +480,7 @@ Nie je vo Figme, je navrhnutá podľa login screenu: rovnaké pozadie, logo „L
 
 ## Ikony
 
-1. SVG sa exportuje z Figmy (Figma MCP) do `src/assets/icons/` (`logo.svg`, `arrow-right.svg`, `bell.svg`, `plus.svg`, `close.svg`, `upload.svg`, `shield.svg`, `chevron-down.svg`, `dots-horizontal.svg` z tlačidla `⋯` v riadku jazyka, Figma `3:901`, rovnaká ikona je aj v sidebari pri používateľovi, `globe.svg` z položky Jazyky v sidebari, Figma `3:1702`, `users.svg` z položky Členovia, Figma `3:1720`, `settings.svg` (ozubené koleso) z položky Nastavenia projektu, Figma `3:1726`). `sun.svg` a `moon.svg` (prepínač schémy) vo Figme nie sú, sú to jednoduché ikony 24 px v štýle Lucide s ťahom 1,8. Farba ťahu sa v súbore nastaví na `white` (napr. `close.svg` má vo Figme `#90A1B9`), aby ju SVGR nahradil za `currentColor`.
+1. SVG sa exportuje z Figmy (Figma MCP) do `src/assets/icons/` (`logo.svg`, `arrow-right.svg`, `bell.svg`, `plus.svg`, `close.svg`, `upload.svg`, `shield.svg`, `chevron-down.svg`, `dots-horizontal.svg` z tlačidla `⋯` v riadku jazyka, Figma `3:901`, rovnaká ikona je aj v sidebari pri používateľovi, `globe.svg` z položky Jazyky v sidebari, Figma `3:1702`, `users.svg` z položky Členovia, Figma `3:1720`, `settings.svg` (ozubené koleso) z položky Nastavenia projektu, Figma `3:1726`, `chevron-selector.svg` (15 px) zo šípky prepínača projektu, Figma `3:393`). `sun.svg` a `moon.svg` (prepínač schémy) vo Figme nie sú, sú to jednoduché ikony 24 px v štýle Lucide s ťahom 1,8. Farba ťahu sa v súbore nastaví na `white` (napr. `close.svg` má vo Figme `#90A1B9`), aby ju SVGR nahradil za `currentColor`.
 2. `pnpm --filter frontend generate-icons` cez SVGR (`svgr.config.cjs`) vygeneruje TypeScript komponenty do `src/components/Icons/` a barrel `index.ts`, potom spustí ESLint a Prettier.
 3. Farba `white` z Figmy sa nahradí za `currentColor`, ikona preberá farbu textu. Predvolená veľkosť je veľkosť z Figmy, mení sa cez `width` a `height`, `viewBox` zostáva.
 

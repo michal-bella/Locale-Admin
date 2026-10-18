@@ -1,6 +1,7 @@
 export { default as ArrowRight } from './ArrowRight'
 export { default as Bell } from './Bell'
 export { default as ChevronDown } from './ChevronDown'
+export { default as ChevronSelector } from './ChevronSelector'
 export { default as Close } from './Close'
 export { default as DotsHorizontal } from './DotsHorizontal'
 export { default as Globe } from './Globe'

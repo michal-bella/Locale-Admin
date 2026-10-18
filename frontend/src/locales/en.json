@@ -323,6 +323,10 @@
 		"users": "Users",
 		"projectSettings": "Project settings",
 		"members": "Members",
+		"projectSwitcher": {
+			"label": "Switch project, current {{name}}",
+			"projects": "Projects"
+		},
 		"openNavigation": "Open navigation",
 		"closeNavigation": "Close navigation",
 		"home": "Locale – home page",

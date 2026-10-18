@@ -13,6 +13,7 @@ File: `https://www.figma.com/design/8mjlOXj1MXEqGwkWlf83mZ/Admin-system-for-tran
 | Users list                                                                                           | `28:2`                                  |
 | New user modal                                                                                       | `28:191`                                |
 | Languages                                                                                            | `3:812`                                 |
+| Project switcher in the sidebar                                                                      | `3:470`                                 |
 | Other screens (Translations, Overview, Activity, Members, Project Settings, Profile, Import, Export) | `get_metadata` on page `0:1` lists them |
 
 If the Figma MCP is unavailable, stop and ask the user for screenshots.

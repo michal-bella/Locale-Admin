@@ -6,15 +6,18 @@ Current plan: [`docs/plans/phase-1.md`](docs/plans/phase-1.md). Human documentat
 
 ## Domain
 
-| Term           | Meaning                                                                                                                                                  |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Member         | A user with global role `EDITOR` ("Člen" in the UI). Sees and manages only the projects they are a member of. There are no organizations.                |
-| Project        | One translation sheet (e.g. B2B admin, B2C iOS, B2C Android, web URLs). Listed on the index page `/`; settings and members under `/projects/$projectId`. |
-| Project member | A user in a project (`ProjectMember`). The creator of a project becomes one; members add and remove members and can leave (never the last one).          |
-| Editor         | A person who edits translations in projects.                                                                                                             |
-| Global role    | `ADMIN` (sees every project, manages admins) or `EDITOR` (a member). Stored on `User.role`.                                                              |
-| Language       | Translation language of a project (`ProjectLanguage`) from a fixed catalog (`SUPPORTED_LANGUAGES`). Each project has exactly one base language.          |
-| Project role   | Administrator, Translator, Developer, Reviewer. Per project, not yet: every member has the same rights for now.                                          |
+| Term            | Meaning                                                                                                                                                                    |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Member          | A user with global role `EDITOR` ("Člen" in the UI). Sees and manages only the projects they are a member of. There are no organizations.                                  |
+| Project         | One translation sheet (e.g. B2B admin, B2C iOS, B2C Android, web URLs). Listed on the index page `/`; settings and members under `/projects/$projectId`.                   |
+| Project member  | A user in a project (`ProjectMember`). The creator of a project becomes one; members add and remove members and can leave (never the last one).                            |
+| Editor          | A person who edits translations in projects.                                                                                                                               |
+| Global role     | `ADMIN` (sees every project, manages admins) or `EDITOR` (a member). Stored on `User.role`.                                                                                |
+| Language        | Translation language of a project (`ProjectLanguage`) from a fixed catalog (`SUPPORTED_LANGUAGES`). Each project has exactly one base language.                            |
+| Translation key | A key in a project (`TranslationKey`), unique per project + namespace + name. Path-like keys (`orders.empty.title`) are grouped by prefix; keys with spaces are sentences. |
+| Namespace       | Name of the source JSON file of a key (`loc`, `paths`, …). Must be preserved exactly for export.                                                                           |
+| Translation     | Value of a key in one project language (`Translation`). `null` or a missing row = untranslated; the status (Preložené / Nepreložené) is never stored.                      |
+| Project role    | Administrator, Translator, Developer, Reviewer. Per project, not yet: every member has the same rights for now.                                                            |
 
 There is no self-registration. An `ADMIN` creates admins on `/admin/users`; members are created by an `ADMIN` or another member on the Members page of a project.
 

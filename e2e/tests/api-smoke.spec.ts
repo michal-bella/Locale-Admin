@@ -12,6 +12,7 @@ import {
 	projectSettingsApi,
 	TEST_PROJECT_SLUG_PREFIX,
 } from '../support/projects'
+import { insertTranslationKeys, projectTranslationsApi } from '../support/translations'
 import { createEditor, newTestUserCredentials } from '../support/users'
 
 const CREDENTIALS = { email: 'csrf-check@example.com', password: 'irrelevant' }
@@ -295,5 +296,98 @@ test.describe('ADMIN /api/projects', () => {
 		const project = (await listProjects(request)).find(({ id }) => id === ownedByMember.id)
 		expect(project).toEqual({ ...ownedByMember, isMember: false })
 		expect((await request.get(projectSettingsApi(ownedByMember.id))).status()).toBe(200)
+	})
+})
+
+test.describe('/api/projects/:projectId/translations', () => {
+	test.use({ storageState: STORAGE_STATE.ADMIN })
+
+	test('lists keys with stats and namespaces, validates the query and hides foreign projects and languages', async ({ request, playwright, baseURL }) => {
+		const project = await createProject(request, 'smoke-tr', ['sk', 'en'])
+		const languages = await listLanguages(request, project.id)
+		const [sk, en] = languages
+		await insertTranslationKeys(project.id, languages, [
+			{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky', en: null } },
+			{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte, {{name}}', en: 'Welcome, {{name}}' } },
+			{ namespace: 'paths', name: 'Adresa nie je kompletná. Uistite sa', values: { sk: 'Adresa' } },
+		])
+		const url = projectTranslationsApi(project.id)
+		const languageParams = { sourceLanguageId: sk!.id, targetLanguageId: en!.id }
+
+		const list = await request.get(url, { params: languageParams })
+		expect(list.status()).toBe(200)
+		const body = (await list.json()) as { items: { target: { updatedAt: string | null } }[] }
+		expect(body).toEqual({
+			items: [
+				{
+					keyId: expect.any(String),
+					namespace: 'loc',
+					name: 'orders.empty.title',
+					group: 'loc:orders.empty',
+					source: { value: 'Zatiaľ nemáte žiadne objednávky' },
+					target: { value: null, status: 'UNTRANSLATED', updatedAt: expect.any(String) },
+				},
+				{
+					keyId: expect.any(String),
+					namespace: 'paths',
+					name: 'Adresa nie je kompletná. Uistite sa',
+					group: 'paths',
+					source: { value: 'Adresa' },
+					target: { value: null, status: 'UNTRANSLATED', updatedAt: null },
+				},
+				{
+					keyId: expect.any(String),
+					namespace: 'loc',
+					name: 'dashboard.welcome',
+					group: 'loc:dashboard',
+					source: { value: 'Vitajte, {{name}}' },
+					target: { value: 'Welcome, {{name}}', status: 'TRANSLATED', updatedAt: expect.any(String) },
+				},
+			],
+			total: 3,
+			page: 1,
+			pageSize: 50,
+			stats: { totalKeys: 3, translated: 1, untranslated: 2 },
+			namespaces: ['loc', 'paths'],
+		})
+		expect(new Date(body.items[0]!.target.updatedAt!).toISOString()).toBe(body.items[0]!.target.updatedAt)
+
+		const filtered = await request.get(url, { params: { ...languageParams, search: 'WELCOME', status: 'TRANSLATED', namespace: 'loc', pageSize: 1 } })
+		expect(filtered.status()).toBe(200)
+		expect(await filtered.json()).toMatchObject({ items: [{ name: 'dashboard.welcome' }], total: 1, pageSize: 1, stats: { totalKeys: 3 } })
+		const pastEnd = await request.get(url, { params: { ...languageParams, page: 5 } })
+		expect(await pastEnd.json()).toMatchObject({ items: [], total: 3, page: 5 })
+
+		for (const params of [
+			{},
+			{ ...languageParams, sourceLanguageId: 'not-a-uuid' },
+			{ ...languageParams, status: 'REVIEW' },
+			{ ...languageParams, sort: 'RANDOM' },
+			{ ...languageParams, pageSize: 101 },
+		]) {
+			const invalid = await request.get(url, { params })
+			expect(invalid.status(), JSON.stringify(params)).toBe(400)
+			const error = await readApiError(invalid)
+			expect(error.code).toBe('VALIDATION_ERROR')
+			expect(error.details).toEqual(expect.arrayContaining([expect.objectContaining({ path: expect.any(String), code: expect.any(String) })]))
+		}
+
+		const other = await createProject(request, 'smoke-tr-other', ['sk'])
+		const [otherSk] = await listLanguages(request, other.id)
+		const foreignLanguage = await request.get(url, { params: { ...languageParams, targetLanguageId: otherSk!.id } })
+		expect(foreignLanguage.status()).toBe(404)
+		expect((await readApiError(foreignLanguage)).code).toBe('NOT_FOUND')
+
+		const editor = await playwright.request.newContext({ baseURL, storageState: STORAGE_STATE.EDITOR })
+		const foreignProject = await editor.get(url, { params: languageParams })
+		expect(foreignProject.status()).toBe(404)
+		expect((await readApiError(foreignProject)).code).toBe('NOT_FOUND')
+		await editor.dispose()
+
+		const anonymous = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
+		const unauthenticated = await anonymous.get(url, { params: languageParams })
+		expect(unauthenticated.status()).toBe(401)
+		expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
+		await anonymous.dispose()
 	})
 })

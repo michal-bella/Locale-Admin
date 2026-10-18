@@ -2,8 +2,9 @@ import AxeBuilder from '@axe-core/playwright'
 import { type APIRequest, expect, type Page, test, type TestInfo } from '@playwright/test'
 
 import { ANONYMOUS } from '../support/auth'
-import { newAdminApi } from '../support/languages'
+import { listLanguages, newAdminApi } from '../support/languages'
 import { createProject } from '../support/projects'
+import { insertTranslationKeys } from '../support/translations'
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 const COLOR_SCHEMES = ['light', 'dark'] as const
@@ -16,6 +17,22 @@ const inNewProject = (page: 'settings' | 'languages' | 'members') => async (requ
 	const api = await newAdminApi(request)
 	try {
 		return `/projects/${(await createProject(api, 'a11y')).slug}/${page}`
+	} finally {
+		await api.dispose()
+	}
+}
+
+/** Keys cover every row variant: untranslated, translated, a `{{var}}` chip and a sentence key. */
+const translationsWithKeys = async (request: APIRequest) => {
+	const api = await newAdminApi(request)
+	try {
+		const project = await createProject(api, 'a11y')
+		await insertTranslationKeys(project.id, await listLanguages(api, project.id), [
+			{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky' } },
+			{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte späť, {{name}}', en: 'Welcome back, {{name}}' } },
+			{ namespace: 'paths', name: 'Adresa nie je kompletná. Uistite sa', values: { sk: 'Adresa nie je kompletná.', en: null } },
+		])
+		return `/projects/${project.slug}/translations`
 	} finally {
 		await api.dispose()
 	}
@@ -37,6 +54,11 @@ const SCREENS: Screen[] = [
 		name: 'users',
 		path: '/admin/users',
 		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam administrátorov' })).toHaveAttribute('aria-busy', 'false'),
+	},
+	{
+		name: 'project translations',
+		path: translationsWithKeys,
+		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam prekladov' }).locator('tr[data-status]')).toHaveCount(3),
 	},
 	{
 		name: 'project languages',

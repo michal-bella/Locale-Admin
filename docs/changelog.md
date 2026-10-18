@@ -8,6 +8,12 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Import prekladov: zápis (2026-10-18)
+
+- zdieľaný kontrakt: `KEY_TOO_LONG` počíta UTF-8 bajty (max. 2 000 B, 2 000 znakov v cyrilike sa nezmestilo do unikátneho indexu), namespace max. 100 znakov, chybový kód `IMPORT_COLUMNS_INVALID` (400)
+- backend: `POST /api/projects/:projectId/imports` – priradenie stĺpcov k jazykom (alebo preskočenie), voliteľné vytvorenie chýbajúcich kľúčov, zápis v jednej transakcii s `pg_advisory_xact_lock` na projekt a dávkovým upsertom; `null` v súbore nikdy neprepíše vyplnený preklad, rovnaké hodnoty sa nemenia, opakovaný import = 0 zmien ([Import](./api/imports.md))
+- výkon: 2 500 kľúčov × 10 jazykov (25 000 prekladov) za ~0,7 s
+
 ### Import prekladov: parser CSV a kontrola súboru (2026-10-18)
 
 - zdieľaný kontrakt: `importPreviewRequestSchema`, `importPreviewResponseSchema`, `importRequestSchema` (pre ďalší krok), kódy `IMPORT_ISSUE_CODES`, chybové kódy `IMPORT_FILE_INVALID` (422, `details.issues`) a `IMPORT_FILE_TOO_LARGE` (413)

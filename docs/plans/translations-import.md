@@ -113,8 +113,8 @@ model Translation {
 | `ROW_COLUMN_COUNT` | riadok má iný počet polí ako hlavička (typicky `; ` vnútri textu) – s číslom riadku, očakávaným a skutočným počtom |
 | `ROW_EMPTY_KEY` | prázdny kľúč |
 | `ROW_DUPLICATE_KEY` | kľúč dvakrát v tom istom namespace – s oboma číslami riadkov |
-| `KEY_TOO_LONG` | kľúč nad 2 000 znakov |
-| `NAMESPACE_INVALID` | riadok `--…--` s prázdnym alebo neplatným názvom |
+| `KEY_TOO_LONG` | kľúč nad 2 000 bajtov v UTF-8 (rozhodnutie z míľnika C) |
+| `NAMESPACE_INVALID` | riadok `--…--` s prázdnym, neplatným alebo dlhším ako 100 znakov názvom |
 
 Vypíše sa prvých 50 chýb + celkový počet, každá s číslom riadku.
 
@@ -205,8 +205,11 @@ Vetva `feature/translations` z `main`, každý míľnik vo vlastnej session s co
 ### Odložené z míľnika A
 
 - Kľúče s prázdnym namespace `""` sa nedajú vyfiltrovať (prázdna hodnota filtra = bez filtra). Riešiť, keď import začne vytvárať kľúče mimo sekcie `--…--`, napr. hodnotou `namespace=~none`.
-- B → C: kľúč s 2 000 znakmi v cyrilike **neprejde** (index row size 2 768 > 2 704 B pre `TranslationKey_projectId_namespace_name_key`). Preview ho pustí, zápis by skončil 500. Rozhodnúť pred C: limit v bajtoch (`KEY_TOO_LONG`) alebo unikátny index na `md5(name)`. Test je v `backend/test/imports.test.ts` ako `it.fails`.
-- C: `updatedAt` nemá v DB default, dávkový upsert cez `unnest` ho musí nastaviť (`now()`).
+- B → C: kľúč s 2 000 znakmi v cyrilike sa nezmestil do unikátneho indexu (2 768 > 2 704 B). **Vyriešené v C** (rozhodnutie používateľa): `KEY_TOO_LONG` počíta UTF-8 bajty (max. 2 000 B), namespace má max. 100 znakov.
+- C: `updatedAt` nemá v DB default, dávkový upsert cez `unnest` ho nastavuje (`now()`). Hotové.
+- C → E: advisory lock zoraďuje len importy medzi sebou. Úprava v riadku (`PUT`) počas importu dáta nepokazí, ale počty vo výsledku importu môžu o ten riadok nesedieť; ak treba presné počty, `PUT` vezme ten istý lock.
+- C → D: výsledok sa rovná preview len pri `createMissingKeys: true` a priradení stĺpcov podľa tagov z preview (preview vždy počíta aj nové kľúče a nemá `changes` pre ručne priradené stĺpce CATALOG/UNKNOWN); súhrn v UI s tým musí počítať.
+- C: zmazanie jazyka počas importu skončí 500 a import sa celý vráti (nič sa nestratí); ak to bude vadiť, `DELETE` jazyka vezme ten istý advisory lock.
 
 ## Odhad
 

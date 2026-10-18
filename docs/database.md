@@ -91,12 +91,46 @@ Každý projekt má vlastné jazyky a vlastný základný jazyk (`ProjectLanguag
 
 PK je dvojica (`projectId`, `userId`), index na `userId`. Používateľ má spätnú reláciu `projectMemberships`.
 
+### TranslationKey
+
+Kľúč prekladu v projekte. Správanie API je v [API: preklady](./api/translations.md).
+
+| Pole                     | Typ      | Poznámka                                                                       |
+| ------------------------ | -------- | ------------------------------------------------------------------------------ |
+| `id`                     | UUID     | PK                                                                             |
+| `projectId`              | UUID     | FK na `Project`, pri zmazaní projektu sa zmaže                                 |
+| `namespace`              | string   | default `""`; názov JSON súboru (`loc`, `paths`), v CSV sekcia `--namespace--` |
+| `name`                   | string   | kľúč, napr. veta `Uložiť` alebo cesta `orders.empty.title`                     |
+| `createdAt`, `updatedAt` | datetime |                                                                                |
+
+Unikátna trojica (`projectId`, `namespace`, `name`): ten istý kľúč môže byť v projekte vo viacerých namespace. Namespace je súčasť identity kľúča a musí sa zachovať presne, lebo budúci export z neho generuje JSON súbory po jazykoch aj sekcie v CSV. V zozname prekladov slúži ako skupina a filter.
+
+### Translation
+
+Text kľúča v jednom jazyku projektu.
+
+| Pole          | Typ              | Poznámka                                                                        |
+| ------------- | ---------------- | ------------------------------------------------------------------------------- |
+| `keyId`       | UUID             | FK na `TranslationKey`, pri zmazaní kľúča sa zmaže                              |
+| `languageId`  | UUID             | FK na `ProjectLanguage`, pri odobratí jazyka z projektu sa zmaže                |
+| `value`       | string, nullable | text prekladu; `null` = nepreložené. `""` sa neukladá (zapíše sa ako `null`)    |
+| `updatedById` | UUID, nullable   | FK na `User`, kto naposledy zmenil preklad; pri zmazaní usera sa nastaví `null` |
+| `updatedAt`   | datetime         | posledná zmena                                                                  |
+
+PK je dvojica (`keyId`, `languageId`), index na `languageId`.
+
+Stav prekladu sa neukladá. **Nepreložené** = riadok pre jazyk chýba alebo `value` je `null`, inak **Preložené**. Jazyk pridaný do projektu po importe preto nemá žiadne riadky a všetky kľúče sú v ňom nepreložené; nič sa nedopĺňa. Index `pg_trgm` pre vyhľadávanie zatiaľ nie je, 2 500 kľúčov × 10 jazykov zvládne `ILIKE` za približne 10 ms (viď [API: preklady](./api/translations.md#výkon)).
+
 ```mermaid
 erDiagram
     User ||--o{ Session : "má"
     User ||--o{ ProjectMember : "je členom"
     Project ||--o{ ProjectMember : "má"
     Project ||--o{ ProjectLanguage : "prekladá sa do"
+    Project ||--o{ TranslationKey : "má"
+    TranslationKey ||--o{ Translation : "má"
+    ProjectLanguage ||--o{ Translation : "obsahuje"
+    User |o--o{ Translation : "naposledy upravil"
     User {
         uuid id PK
         string email UK
@@ -139,6 +173,21 @@ erDiagram
         uuid userId PK, FK
         datetime createdAt
     }
+    TranslationKey {
+        uuid id PK
+        uuid projectId FK
+        string namespace
+        string name
+        datetime createdAt
+        datetime updatedAt
+    }
+    Translation {
+        uuid keyId PK, FK
+        uuid languageId PK, FK
+        string value
+        uuid updatedById FK
+        datetime updatedAt
+    }
 ```
 
 ## Migrácie
@@ -157,11 +206,12 @@ V produkčnom stacku backend pri štarte spustí `prisma migrate deploy`, potom 
 
 ## Seed
 
-Seed (`backend/prisma/seed.ts`) vytvorí admina `michal.bella@goodrequest.com` s rolou `ADMIN` a projekt `B2B Admin` s jazykmi `sk` (základný) a `en`.
+Seed (`backend/prisma/seed.ts`) vytvorí admina `michal.bella@goodrequest.com` s rolou `ADMIN`, projekt `B2B Admin` s jazykmi `sk` (základný) a `en` a v ňom vzorové preklady.
 
 - Heslo je z ENV `SEED_ADMIN_PASSWORD` a musí spĺňať pravidlá hesla z `packages/shared` (8 až 128 znakov). Ak chýba alebo je nevalidné, seed skončí s chybou a nič nevytvorí.
 - Seed je idempotentný: ak admin s týmto emailom existuje, nemení nič (ani heslo, ani rolu). Zmena `SEED_ADMIN_PASSWORD` v `.env` existujúceho admina neovplyvní. Lokálne sa admin obnoví cez `pnpm db:reset`.
 - Projekt `B2B Admin` so slugom `b2b-admin` (farba a ochrana premenných z defaultov) seed vytvorí iba do prázdnej tabuľky `Project` s jazykmi `sk` (základný) a `en` a jeho jediným členom urobí seedovaného admina. Ak projekt existuje, nemení nič, takže zmeny ADMIN-a v nastaveniach projektu ostanú aj po reštarte.
+- Preklady: 30 vymyslených kľúčov v namespace `loc` a `paths` (vety, kľúče-cesty ako `orders.empty.title`, premenné `{{count}}`, HTML `<strong>`), časť v `en` nepreložená (chýbajúci riadok aj `null`). Seed ich pridá do projektu `b2b-admin`, iba kým projekt nemá žiadny kľúč, takže sa dostanú aj do DB so starším projektom a úpravy prekladov sa neprepíšu. Ak projekt neexistuje, preklady sa nevytvoria.
 
 ## Test databáza
 

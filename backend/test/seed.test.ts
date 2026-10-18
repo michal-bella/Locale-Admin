@@ -5,7 +5,7 @@ import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 
 import { ROLE } from '../src/generated/prisma/enums'
-import { SEED_ADMIN_EMAIL, SEED_PROJECT, seedAdmin, seedProject } from '../src/services/seed.service'
+import { SEED_ADMIN_EMAIL, SEED_PROJECT, SEED_TRANSLATIONS, seedAdmin, seedProject, seedTranslations } from '../src/services/seed.service'
 
 import { getTestDatabaseUrl, getTestPrisma } from './helpers/db'
 import { createUser } from './helpers/users'
@@ -69,6 +69,39 @@ describe('seedProject', () => {
 	})
 })
 
+describe('seedTranslations', () => {
+	it('fills the seeded project once with keys in two namespaces, path keys, missing rows and null values', async () => {
+		const prisma = getTestPrisma()
+		await seedAdmin(prisma, 'FirstPassword1')
+		await seedProject(prisma)
+
+		await expect(seedTranslations(prisma)).resolves.toBe('created')
+		const keys = await prisma.translationKey.findMany({
+			include: { translations: { include: { language: true } } },
+			orderBy: [{ namespace: 'asc' }, { name: 'asc' }],
+		})
+		expect(keys).toHaveLength(SEED_TRANSLATIONS.length)
+		expect(new Set(keys.map(({ namespace }) => namespace))).toEqual(new Set(['loc', 'paths']))
+		expect(keys.some(({ name }) => name === 'orders.empty.title')).toBe(true)
+		const en = keys.map(({ translations }) => translations.find(({ language }) => language.tag === 'en'))
+		expect(en.some((row) => row === undefined)).toBe(true)
+		expect(en.some((row) => row !== undefined && row.value === null)).toBe(true)
+		const values = keys.flatMap(({ translations }) => translations.map(({ value }) => value ?? ''))
+		expect(values.some((value) => value.includes('{{'))).toBe(true)
+		expect(values.some((value) => value.includes('<strong>'))).toBe(true)
+
+		await prisma.translation.updateMany({ data: { value: 'edited' } })
+		await expect(seedTranslations(prisma)).resolves.toBe('exists')
+		await expect(prisma.translationKey.count()).resolves.toBe(SEED_TRANSLATIONS.length)
+		await expect(prisma.translation.count({ where: { value: { not: 'edited' } } })).resolves.toBe(0)
+	})
+
+	it('does nothing without the seeded project', async () => {
+		await expect(seedTranslations(getTestPrisma())).resolves.toBe('no-project')
+		await expect(getTestPrisma().translationKey.count()).resolves.toBe(0)
+	})
+})
+
 describe('seed script', () => {
 	it('creates the admin with a valid SEED_ADMIN_PASSWORD', async () => {
 		const { stdout } = await runSeedScript({ DATABASE_URL: getTestDatabaseUrl(), SEED_ADMIN_PASSWORD: 'ValidPassword1' })
@@ -78,6 +111,7 @@ describe('seed script', () => {
 		await expect(getTestPrisma().projectLanguage.count()).resolves.toBe(2)
 		await expect(getTestPrisma().project.count()).resolves.toBe(1)
 		await expect(getTestPrisma().projectMember.count()).resolves.toBe(1)
+		await expect(getTestPrisma().translationKey.count()).resolves.toBe(SEED_TRANSLATIONS.length)
 	})
 
 	it.each([

@@ -60,6 +60,8 @@ Telo (schéma `createLanguageRequestSchema`): `{ "tag": "ru" }`. Ostatné polia 
 | 404  | `NOT_FOUND`        | jazyk neexistuje, patrí inému projektu alebo `languageId` nie je UUID |
 | 409  | `LANGUAGE_IS_BASE` | ide o základný jazyk projektu                                         |
 
+Odobratím jazyka sa zmažú aj všetky jeho preklady (`Translation`, cascade). Kľúče ostanú.
+
 ## Príklad (curl)
 
 ```bash

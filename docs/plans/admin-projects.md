@@ -32,7 +32,7 @@ Nová stránka **Projekty** v sekcii SPRÁVA, kde ADMIN vidí **všetky projekty
 ## Rozhodnutia
 
 - **Route:** `/admin/projects` pod `appLayoutRoute`, guard `beforeLoad` na `ROLE.ADMIN` a `errorComponent: RouteError` v eager súbore, stránka lazy (`adminProjectsRoute.ts` + `.lazy.ts`) presne ako `adminUsersRoute`.
-- **Modal je lokálny stav stránky** (`editingProjectId`), nie route. Deep link na úpravu existuje už ako `/projects/$projectSlug/settings`.
+- **Modal je lokálny stav stránky** (celý riadok `AdminProjectListItem`, aby text modalu ostal počas zatváracej animácie), nie route. Deep link na úpravu existuje už ako `/projects/$projectSlug/settings`.
 - **Formulár v modale:** `ProjectSettingsForm` dostane voliteľné props `onSaved` (modal sa po úspešnom uložení zavrie) a `onCancel` (zobrazí tlačidlo Zrušiť namiesto „Opustiť projekt“). V modale sa posiela `isMember={false}`, takže „Opustiť projekt“ sa nezobrazí. Stránka nastavení sa správa rovnako ako doteraz.
 - **Modal `EditProjectModal`** (`components/EditProjectModal/`): `AppModal` (size ~720), načíta `useProjectSettingsQuery(id)` a `useProjectLanguagesQuery(id)`; loading = skeletony, chyba = text + Skúsiť znova (ako `ProjectSettingsPage`). Počas uloženia sa nedá zavrieť (`isPending`).
 - **Modal `DeleteProjectModal`** (`components/DeleteProjectModal/`) podľa `RemoveMemberModal`/`ConfirmDeleteModal`: text s názvom projektu a dopadmi (zmaže sa N jazykov a odoberie N členov), `TextInput` na prepísanie slugu, červené tlačidlo aktívne až pri zhode. 404 pri mazaní = projekt už neexistuje → notifikácia + obnovenie zoznamu.

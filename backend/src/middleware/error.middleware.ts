@@ -5,6 +5,8 @@ import { ERROR_CODE, toValidationIssues, type ErrorResponse } from '@locale/shar
 
 import { AppError } from '../lib/errors'
 
+import { isImportRequest } from './jsonBody.middleware'
+
 type BodyParserError = Error & { type: string; status: number; expose: boolean }
 
 const isJsonParseError = (err: unknown): boolean => err instanceof SyntaxError && 'type' in err && err.type === 'entity.parse.failed'
@@ -37,7 +39,8 @@ export const errorMiddleware: ErrorRequestHandler = (err: unknown, req, res, _ne
 	} else if (isBodyParserClientError(err)) {
 		req.log.warn({ err }, 'Rejected request body')
 		status = err.status
-		body = { error: { code: ERROR_CODE.VALIDATION_ERROR, message: err.message } }
+		const code = err.type === 'entity.too.large' && isImportRequest(req) ? ERROR_CODE.IMPORT_FILE_TOO_LARGE : ERROR_CODE.VALIDATION_ERROR
+		body = { error: { code, message: err.message } }
 	} else {
 		req.log.error({ err }, 'Unhandled error')
 		status = 500

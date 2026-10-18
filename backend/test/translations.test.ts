@@ -58,6 +58,11 @@ const listOk = async (...args: Parameters<typeof list>) => {
 
 const names = (body: { items: { name: string }[] }) => body.items.map(({ name }) => name)
 
+const detailPaths = (res: request.Response) => {
+	const details = errorResponseSchema.parse(res.body).error.details
+	return Array.isArray(details) ? details.map(({ path }) => path) : details
+}
+
 describe('GET /api/projects/:projectId/translations', () => {
 	it('returns keys with source and target, untranslated first, then by group and key, with stats and namespaces', async () => {
 		const app = createTestApp()
@@ -325,7 +330,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 		const details = async (query: Parameters<typeof list>[3]) => {
 			const res = await list(app, cookie, project.id, query)
 			expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
-			return errorResponseSchema.parse(res.body).error.details?.map(({ path }) => path)
+			return detailPaths(res)
 		}
 		const valid = { sourceLanguageId: sk.id, targetLanguageId: en.id }
 
@@ -338,7 +343,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			.get(`/api/projects/${project.id}/translations?sourceLanguageId=${sk.id}&targetLanguageId=${en.id}&search=a&search=b`)
 			.set('Cookie', cookie)
 		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
-		expect(errorResponseSchema.parse(res.body).error.details?.map(({ path }) => path)).toEqual(['search'])
+		expect(detailPaths(res)).toEqual(['search'])
 	})
 
 	it('answers quickly for 2 500 keys in 10 languages', async () => {

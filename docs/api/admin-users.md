@@ -6,12 +6,13 @@ notion_page_id:
 
 # Správa používateľov (`/api/admin/users`)
 
-Zoznam administrátorov a vytvorenie nového administrátora. Registrácia neexistuje. Členov projektov (`EDITOR`) vytvára admin alebo člen na stránke Členovia projektu (viď [projekty](./projects.md#členovia)). Editácia, deaktivácia ani mazanie vo fáze 1 nie sú. Schémy sú v `packages/shared/src/adminUsers.ts`.
+Zoznam administrátorov a vytvorenie nového administrátora. Registrácia neexistuje. Členov projektov (`EDITOR`) vytvára admin alebo člen na stránke Členovia projektu (viď [projekty](./projects.md#členovia)). Editácia a deaktivácia nie sú, meno si každý mení v profile. Schémy sú v `packages/shared/src/adminUsers.ts`.
 
-| Metóda | Cesta              | Prihlásenie | Popis                                 |
-| ------ | ------------------ | ----------- | ------------------------------------- |
-| `GET`  | `/api/admin/users` | `ADMIN`     | zoznam administrátorov od najnovšieho |
-| `POST` | `/api/admin/users` | `ADMIN`     | vytvorí používateľa s rolou `ADMIN`   |
+| Metóda   | Cesta                  | Prihlásenie | Popis                                 |
+| -------- | ---------------------- | ----------- | ------------------------------------- |
+| `GET`    | `/api/admin/users`     | `ADMIN`     | zoznam administrátorov od najnovšieho |
+| `POST`   | `/api/admin/users`     | `ADMIN`     | vytvorí používateľa s rolou `ADMIN`   |
+| `DELETE` | `/api/admin/users/:id` | `ADMIN`     | odstráni administrátora               |
 
 Celý router `/api/admin` je za `requireAuth` a `requireRole(ROLE.ADMIN)`: bez session vráti 401 `AUTH_UNAUTHENTICATED`, prihlásený `EDITOR` dostane 403 `FORBIDDEN` (viď [auth](./auth.md#oprávnenia)).
 
@@ -74,6 +75,19 @@ Príklady `details` pri 400:
 | zlý email       | `[{ "path": "email", "code": "INVALID_EMAIL" }]`                                        |
 | krátke heslo    | `[{ "path": "password", "code": "TOO_SHORT", "params": { "min": 8 } }]`                 |
 | chýbajúce polia | `[{ "path": "email", "code": "REQUIRED" }, { "path": "password", "code": "REQUIRED" }]` |
+
+## DELETE /api/admin/users/:id
+
+Odstráni administrátora (`role = ADMIN`). Jeho session a členstvá v projektoch sa zmažú kaskádou, preto sa hneď odhlási. Vlastný účet odstrániť nejde, takže vždy ostane aspoň jeden admin. Členov (`EDITOR`) táto cesta nemaže, tí sa odoberajú z projektu (viď [projekty](./projects.md)).
+
+| HTTP | `code`                 | Kedy                                                                |
+| ---- | ---------------------- | ------------------------------------------------------------------- |
+| 204  |                        | administrátor odstránený                                            |
+| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                      |
+| 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN`                                |
+| 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo (stačí `{}`)                    |
+| 404  | `NOT_FOUND`            | admin s týmto `id` neexistuje, `id` patrí členovi alebo nie je UUID |
+| 409  | `SELF_DELETE`          | pokus odstrániť vlastný účet                                        |
 
 ## Príklad (curl)
 

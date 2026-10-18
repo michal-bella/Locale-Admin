@@ -104,7 +104,10 @@
 			"createdAt": "Vytvorený",
 			"empty": "Zatiaľ tu nie sú žiadni administrátori.",
 			"loadError": "Zoznam administrátorov sa nepodarilo načítať.",
-			"retry": "Skúsiť znova"
+			"retry": "Skúsiť znova",
+			"actions": "Akcie administrátora {{email}}",
+			"actionsColumn": "Akcie",
+			"delete": "Odstrániť"
 		},
 		"createModal": {
 			"title": "Nový administrátor",
@@ -121,6 +124,14 @@
 			"cancel": "Zrušiť",
 			"submit": "Vytvoriť administrátora",
 			"success": "Administrátor {{email}} bol vytvorený."
+		},
+		"deleteModal": {
+			"title": "Odstrániť administrátora",
+			"message": "Naozaj chcete odstrániť účet {{email}}? Zmaže sa aj jeho prihlásenie a členstvo v projektoch. Akciu nie je možné vrátiť.",
+			"close": "Zavrieť",
+			"cancel": "Zrušiť",
+			"confirm": "Odstrániť",
+			"success": "Administrátor {{email}} bol odstránený."
 		}
 	},
 	"membersPage": {
@@ -134,7 +145,10 @@
 			"joinedAt": "Pridaný",
 			"empty": "Projekt zatiaľ nemá žiadnych členov.",
 			"loadError": "Zoznam členov sa nepodarilo načítať.",
-			"retry": "Skúsiť znova"
+			"retry": "Skúsiť znova",
+			"actions": "Akcie člena {{email}}",
+			"actionsColumn": "Akcie",
+			"remove": "Odobrať z projektu"
 		},
 		"createModal": {
 			"title": "Nový člen",
@@ -151,6 +165,14 @@
 			"cancel": "Zrušiť",
 			"submit": "Pridať člena",
 			"success": "Člen {{email}} bol pridaný do projektu."
+		},
+		"removeModal": {
+			"title": "Odobrať z projektu",
+			"message": "Naozaj chcete odobrať {{email}} z projektu? Účet ostane, späť ho môže pridať ktorýkoľvek člen.",
+			"close": "Zavrieť",
+			"cancel": "Zrušiť",
+			"confirm": "Odobrať",
+			"success": "{{email}} bol odobraný z projektu."
 		}
 	},
 	"profilePage": {
@@ -347,7 +369,8 @@
 		"LANGUAGE_TAKEN": "Tento jazyk je už pridaný.",
 		"LANGUAGE_IS_BASE": "Základný jazyk nie je možné odstrániť. Najprv nastavte iný základný jazyk.",
 		"SLUG_TAKEN": "Projekt s týmto slugom už existuje.",
-		"LAST_MEMBER": "Ste posledný člen projektu, nemôžete ho opustiť.",
+		"LAST_MEMBER": "Projekt musí mať aspoň jedného člena.",
+		"SELF_DELETE": "Vlastný účet nemôžete odstrániť.",
 		"RATE_LIMITED": "Príliš veľa pokusov. Skúste to znova neskôr.",
 		"INTERNAL_ERROR": "Nastala neočakávaná chyba. Skúste to znova.",
 		"UNKNOWN": "Nastala neznáma chyba. Skúste to znova."

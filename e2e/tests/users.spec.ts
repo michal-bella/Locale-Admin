@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 
 import { ANONYMOUS, expectLoggedInHome, loginViaUi } from '../support/auth'
+import { ADMIN_EMAIL } from '../support/env'
 import { createAdmin, createEditor, newTestUserCredentials } from '../support/users'
 
 const openUsersPage = async (page: Page) => {
@@ -112,4 +113,27 @@ test('created date follows the UI language (SK and EN)', async ({ page, playwrig
 	await expect(page.getByRole('table', { name: 'Administrator list' })).toBeVisible()
 	await expect(createdCell).toHaveText(/^\d{2}\/\d{2}\/\d{4}$/)
 	await expect(createdCell).toHaveText(formatCreatedAt(user.createdAt, 'en-GB'))
+})
+
+test('ADMIN deletes another admin, who can no longer log in; the own row has no delete', async ({ page, browser, playwright, baseURL }) => {
+	const admin = await createAdmin(playwright.request, baseURL)
+	const table = await openUsersPage(page)
+
+	await expect(page.getByRole('button', { name: `Akcie administrátora ${ADMIN_EMAIL}` })).toHaveCount(0)
+	await page.getByRole('button', { name: `Akcie administrátora ${admin.email}` }).click()
+	await page.getByRole('menuitem', { name: 'Odstrániť' }).click()
+	const dialog = page.getByRole('dialog', { name: 'Odstrániť administrátora' })
+	await expect(dialog).toContainText(`Naozaj chcete odstrániť účet ${admin.email}?`)
+	const deleted = page.waitForResponse((response) => response.url().endsWith(`/api/admin/users/${admin.id}`) && response.request().method() === 'DELETE')
+	await dialog.getByRole('button', { name: 'Odstrániť' }).click()
+	expect((await deleted).status()).toBe(204)
+
+	await expect(page.getByText(`Administrátor ${admin.email} bol odstránený.`)).toBeVisible()
+	await expect(table.getByRole('row').filter({ hasText: admin.email })).toHaveCount(0)
+
+	const context = await browser.newContext({ baseURL, storageState: ANONYMOUS })
+	const deletedPage = await context.newPage()
+	await loginViaUi(deletedPage, admin)
+	await expect(deletedPage.getByText('Nesprávny e-mail alebo heslo.')).toBeVisible()
+	await context.close()
 })

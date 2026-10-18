@@ -8,6 +8,12 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Odobratie člena a odstránenie admina (2026-10-18)
+
+- backend: `DELETE /api/projects/:projectId/members/:userId` (člen aj ADMIN, účet ostane, posledného člena nejde odobrať) a `DELETE /api/admin/users/:id` (iba iného admina, nový kód `SELF_DELETE`)
+- frontend: menu `⋯` s Odobrať z projektu na stránke Členovia a Odstrániť na stránke Používatelia, oboje s potvrdením; úprava člena nie je, meno sa mení v profile
+- E2E: odobratie člena a odstránenie admina cez UI
+
 ### Projekty a členovia (MVP, 2026-10-18)
 
 - organizácie vypadli: používateľ s rolou `EDITOR` (v UI „Člen“) spravuje svoje projekty sám, `ADMIN` vidí všetky

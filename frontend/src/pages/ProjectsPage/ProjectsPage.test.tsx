@@ -158,9 +158,7 @@ describe('LeaveProjectModal from the list', () => {
 		fireEvent.click((await openActions('Booking Web')).getByRole('menuitem', { name: 'Opustiť projekt' }))
 		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Opustiť projekt' })).getByRole('button', { name: 'Opustiť projekt' }))
 
-		await waitFor(() =>
-			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Ste posledný člen projektu, nemôžete ho opustiť.' })),
-		)
+		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Projekt musí mať aspoň jedného člena.' })))
 		expect(screen.getByRole('dialog', { name: 'Opustiť projekt' })).toBeInTheDocument()
 		expect(screen.getByRole('link', { name: 'Booking Web' })).toBeInTheDocument()
 	})

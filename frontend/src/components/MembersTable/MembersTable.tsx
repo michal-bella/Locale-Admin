@@ -1,11 +1,15 @@
-import { Avatar, Button, Skeleton, Table, Text } from '@mantine/core'
-import { type ReactNode, useRef } from 'react'
+import { ActionIcon, Avatar, Button, Menu, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
+import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { getInitials } from '@locale/shared'
+import { getInitials, type ProjectMember } from '@locale/shared'
 
+import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectMembersQuery } from '@/api/projectMembers/projectMembersQuery'
+import { DotsHorizontal } from '@/components/Icons'
+import RemoveMemberModal from '@/components/RemoveMemberModal/RemoveMemberModal'
 import { formatDate } from '@/lib/formatDate'
 
 import classes from './MembersTable.module.css'
@@ -13,11 +17,59 @@ import { type MembersTableProps } from './types'
 
 const SKELETON_ROWS = 3
 
-/** Members of a project in a card, same look and states as the users table. */
+type RowActionsProps = { member: ProjectMember; onRemove: (member: ProjectMember, trigger: HTMLButtonElement | null) => void }
+
+const RowActions = ({ member, onRemove }: RowActionsProps) => {
+	const { t } = useTranslation()
+	const triggerRef = useRef<HTMLButtonElement>(null)
+
+	return (
+		<Menu position='bottom-end' width={200} radius='lg' shadow='md'>
+			<Menu.Target>
+				<ActionIcon
+					ref={triggerRef}
+					variant='transparent'
+					size={34}
+					radius='sm'
+					aria-label={t('membersPage.table.actions', { email: member.email })}
+					className={classes.menuButton}
+				>
+					<DotsHorizontal aria-hidden />
+				</ActionIcon>
+			</Menu.Target>
+			<Menu.Dropdown>
+				<Menu.Item color='red' onClick={() => onRemove(member, triggerRef.current)}>
+					{t('membersPage.table.remove')}
+				</Menu.Item>
+			</Menu.Dropdown>
+		</Menu>
+	)
+}
+
+/**
+ * Members of a project in a card, same look and states as the users table. Every member can remove another one;
+ * the own row has no menu, leaving goes through Opustiť projekt.
+ */
 const MembersTable = ({ projectId }: MembersTableProps) => {
 	const { t, i18n } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectMembersQuery(projectId)
+	const { data: me } = useMeQuery()
 	const tableRef = useRef<HTMLTableElement>(null)
+	const triggerRef = useRef<HTMLButtonElement | null>(null)
+	const [removeOpened, removeModal] = useDisclosure(false)
+	const [removing, setRemoving] = useState<ProjectMember | null>(null)
+
+	const openRemove = (member: ProjectMember, trigger: HTMLButtonElement | null) => {
+		triggerRef.current = trigger
+		setRemoving(member)
+		removeModal.open()
+	}
+
+	// Mantine returns focus to the item of the closed row menu; deferred so a removed row is already gone and the table gets focus instead.
+	const closeRemove = () => {
+		removeModal.close()
+		setTimeout(() => (triggerRef.current?.isConnected ? triggerRef.current : tableRef.current)?.focus())
+	}
 
 	// A successful retry replaces the focused retry button with the rows.
 	const retry = async () => {
@@ -29,7 +81,7 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr className={classes.tr}>
-			<Table.Td colSpan={2} className={`${classes.td} ${classes.state}`}>
+			<Table.Td colSpan={3} className={`${classes.td} ${classes.state}`}>
 				{content}
 			</Table.Td>
 		</Table.Tr>
@@ -48,6 +100,7 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 					<Table.Td className={classes.td}>
 						<Skeleton height={12} width='60%' radius='sm' />
 					</Table.Td>
+					<Table.Td className={classes.td} />
 				</Table.Tr>
 			))
 		}
@@ -98,6 +151,9 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 					<Table.Td className={classes.td}>
 						<Text size='xs'>{formatDate(member.createdAt, i18n.language)}</Text>
 					</Table.Td>
+					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
+						{member.id !== me?.id && <RowActions member={member} onRemove={openRemove} />}
+					</Table.Td>
 				</Table.Tr>
 			)
 		})
@@ -110,10 +166,23 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('membersPage.table.member')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.joinedColumn}`}>{t('membersPage.table.joinedAt')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
+							<VisuallyHidden>{t('membersPage.table.actionsColumn')}</VisuallyHidden>
+						</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>{renderBody()}</Table.Tbody>
 			</Table>
+			<RemoveMemberModal
+				projectId={projectId}
+				opened={removeOpened}
+				member={removing}
+				onClose={closeRemove}
+				onRemoved={() => {
+					triggerRef.current = null
+					closeRemove()
+				}}
+			/>
 		</div>
 	)
 }

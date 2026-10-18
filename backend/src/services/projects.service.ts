@@ -42,8 +42,11 @@ export const createProject = async (prisma: PrismaClient, userId: string, input:
 	}
 }
 
-/** The project row lock serializes concurrent leaves, so the last two members cannot both leave. */
-export const leaveProject = async (prisma: PrismaClient, projectId: string, userId: string): Promise<void> =>
+/**
+ * Removes a member: leaving the project (the user themselves) or removing another member.
+ * The project row lock serializes concurrent removals, so the last two members cannot both go.
+ */
+export const removeProjectMember = async (prisma: PrismaClient, projectId: string, userId: string): Promise<void> =>
 	prisma.$transaction(async (tx) => {
 		await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId}::uuid FOR UPDATE`
 		const members = await tx.projectMember.findMany({ where: { projectId }, select: { userId: true } })
@@ -51,7 +54,7 @@ export const leaveProject = async (prisma: PrismaClient, projectId: string, user
 			throw new AppError(404, ERROR_CODE.NOT_FOUND, 'Not a member of the project')
 		}
 		if (members.length === 1) {
-			throw new AppError(409, ERROR_CODE.LAST_MEMBER, 'The last member cannot leave the project')
+			throw new AppError(409, ERROR_CODE.LAST_MEMBER, 'The last member cannot be removed from the project')
 		}
 		await tx.projectMember.delete({ where: { projectId_userId: { projectId, userId } } })
 	})

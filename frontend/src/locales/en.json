@@ -104,7 +104,10 @@
 			"createdAt": "Created",
 			"empty": "There are no administrators yet.",
 			"loadError": "The administrator list could not be loaded.",
-			"retry": "Try again"
+			"retry": "Try again",
+			"actions": "Actions of administrator {{email}}",
+			"actionsColumn": "Actions",
+			"delete": "Delete"
 		},
 		"createModal": {
 			"title": "New administrator",
@@ -121,6 +124,14 @@
 			"cancel": "Cancel",
 			"submit": "Create administrator",
 			"success": "Administrator {{email}} has been created."
+		},
+		"deleteModal": {
+			"title": "Delete administrator",
+			"message": "Do you really want to delete the account {{email}}? Its sessions and project memberships are deleted too. This cannot be undone.",
+			"close": "Close",
+			"cancel": "Cancel",
+			"confirm": "Delete",
+			"success": "Administrator {{email}} has been deleted."
 		}
 	},
 	"membersPage": {
@@ -134,7 +145,10 @@
 			"joinedAt": "Added",
 			"empty": "The project has no members yet.",
 			"loadError": "The member list could not be loaded.",
-			"retry": "Try again"
+			"retry": "Try again",
+			"actions": "Actions of member {{email}}",
+			"actionsColumn": "Actions",
+			"remove": "Remove from project"
 		},
 		"createModal": {
 			"title": "New member",
@@ -151,6 +165,14 @@
 			"cancel": "Cancel",
 			"submit": "Add member",
 			"success": "Member {{email}} has been added to the project."
+		},
+		"removeModal": {
+			"title": "Remove from project",
+			"message": "Do you really want to remove {{email}} from the project? The account stays and any member can add it back.",
+			"close": "Close",
+			"cancel": "Cancel",
+			"confirm": "Remove",
+			"success": "{{email}} has been removed from the project."
 		}
 	},
 	"profilePage": {
@@ -347,7 +369,8 @@
 		"LANGUAGE_TAKEN": "This language has already been added.",
 		"LANGUAGE_IS_BASE": "The base language cannot be deleted. Set another base language first.",
 		"SLUG_TAKEN": "A project with this slug already exists.",
-		"LAST_MEMBER": "You are the last member of the project and cannot leave it.",
+		"LAST_MEMBER": "A project must have at least one member.",
+		"SELF_DELETE": "You cannot delete your own account.",
 		"RATE_LIMITED": "Too many attempts. Please try again later.",
 		"INTERNAL_ERROR": "An unexpected error occurred. Please try again.",
 		"UNKNOWN": "An unknown error occurred. Please try again."

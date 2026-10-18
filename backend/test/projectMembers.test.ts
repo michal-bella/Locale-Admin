@@ -134,3 +134,78 @@ describe('POST /api/projects/:projectId/members', () => {
 		expect(await getTestPrisma().user.count()).toBe(1)
 	})
 })
+
+describe('DELETE /api/projects/:projectId/members/:userId', () => {
+	const removeMember = (app: App, cookie: string, projectId: string, userId: string) =>
+		request(app)
+			.delete(`${membersUrl(projectId)}/${userId}`)
+			.set('Cookie', cookie)
+			.set(CSRF_HEADERS)
+			.send({})
+
+	it.each([ROLE.EDITOR, ROLE.ADMIN])('lets a %s remove another member and keeps the user account', async (role) => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app, role)
+		const { user: other } = await createUser()
+		const project = await createProjectRow(role === ROLE.EDITOR ? [user.id, other.id] : [other.id, (await createUser()).user.id])
+
+		const res = await removeMember(app, cookie, project.id, other.id)
+
+		expect(res.status).toBe(204)
+		expect(await getTestPrisma().projectMember.count({ where: { projectId: project.id, userId: other.id } })).toBe(0)
+		expect(await getTestPrisma().user.count({ where: { id: other.id } })).toBe(1)
+	})
+
+	it('returns 409 LAST_MEMBER when an ADMIN removes the only member', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const { user: only } = await createUser()
+		const project = await createProjectRow([only.id])
+
+		const res = await removeMember(app, cookie, project.id, only.id)
+
+		expectErrorCode(res, 409, ERROR_CODE.LAST_MEMBER)
+		expect(await getTestPrisma().projectMember.count()).toBe(1)
+	})
+
+	it.each([
+		{ name: 'a user who is not a member', userId: () => createUser().then(({ user }) => user.id) },
+		{ name: 'an id that is not a UUID', userId: () => Promise.resolve('not-a-uuid') },
+	])('returns 404 NOT_FOUND for $name', async ({ userId }) => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const project = await createProjectRow([user.id])
+
+		const res = await removeMember(app, cookie, project.id, await userId())
+
+		expectErrorCode(res, 404, ERROR_CODE.NOT_FOUND)
+	})
+
+	it('returns 404 NOT_FOUND to an EDITOR who is not a member of the project', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app)
+		const { user: first } = await createUser()
+		const { user: second } = await createUser()
+		const project = await createProjectRow([first.id, second.id])
+
+		const res = await removeMember(app, cookie, project.id, first.id)
+
+		expectErrorCode(res, 404, ERROR_CODE.NOT_FOUND)
+		expect(await getTestPrisma().projectMember.count()).toBe(2)
+	})
+
+	it('returns 403 CSRF_REJECTED without X-Requested-With', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const { user: other } = await createUser()
+		const project = await createProjectRow([user.id, other.id])
+
+		const res = await request(app)
+			.delete(`${membersUrl(project.id)}/${other.id}`)
+			.set('Cookie', cookie)
+			.send({})
+
+		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
+		expect(await getTestPrisma().projectMember.count()).toBe(2)
+	})
+})

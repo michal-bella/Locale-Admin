@@ -1,22 +1,71 @@
-import { Avatar, Button, Skeleton, Table, Text } from '@mantine/core'
-import { type ReactNode, useRef } from 'react'
+import { ActionIcon, Avatar, Button, Menu, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
+import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { getInitials } from '@locale/shared'
+import { type AdminUser, getInitials } from '@locale/shared'
 
 import { useAdminUsersQuery } from '@/api/adminUsers/adminUsersQuery'
+import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
+import DeleteAdminModal from '@/components/DeleteAdminModal/DeleteAdminModal'
+import { DotsHorizontal } from '@/components/Icons'
 import { formatDate } from '@/lib/formatDate'
 
 import classes from './UsersTable.module.css'
 
 const SKELETON_ROWS = 3
 
-/** Admin user list in a card (Figma 28:2) with loading, empty and error states. */
+type RowActionsProps = { user: AdminUser; onDelete: (user: AdminUser, trigger: HTMLButtonElement | null) => void }
+
+const RowActions = ({ user, onDelete }: RowActionsProps) => {
+	const { t } = useTranslation()
+	const triggerRef = useRef<HTMLButtonElement>(null)
+
+	return (
+		<Menu position='bottom-end' width={180} radius='lg' shadow='md'>
+			<Menu.Target>
+				<ActionIcon
+					ref={triggerRef}
+					variant='transparent'
+					size={34}
+					radius='sm'
+					aria-label={t('usersPage.table.actions', { email: user.email })}
+					className={classes.menuButton}
+				>
+					<DotsHorizontal aria-hidden />
+				</ActionIcon>
+			</Menu.Target>
+			<Menu.Dropdown>
+				<Menu.Item color='red' onClick={() => onDelete(user, triggerRef.current)}>
+					{t('usersPage.table.delete')}
+				</Menu.Item>
+			</Menu.Dropdown>
+		</Menu>
+	)
+}
+
+/** Admin list in a card (Figma 28:2) with loading, empty and error states. Every row but the own one can be deleted. */
 const UsersTable = () => {
 	const { t, i18n } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useAdminUsersQuery()
+	const { data: me } = useMeQuery()
 	const tableRef = useRef<HTMLTableElement>(null)
+	const triggerRef = useRef<HTMLButtonElement | null>(null)
+	const [deleteOpened, deleteModal] = useDisclosure(false)
+	const [deleting, setDeleting] = useState<AdminUser | null>(null)
+
+	const openDelete = (user: AdminUser, trigger: HTMLButtonElement | null) => {
+		triggerRef.current = trigger
+		setDeleting(user)
+		deleteModal.open()
+	}
+
+	// Mantine returns focus to the item of the closed row menu; deferred so a deleted row is already gone and the table gets focus instead.
+	const closeDelete = () => {
+		deleteModal.close()
+		setTimeout(() => (triggerRef.current?.isConnected ? triggerRef.current : tableRef.current)?.focus())
+	}
 
 	// A successful retry replaces the focused retry button with the rows.
 	const retry = async () => {
@@ -28,7 +77,7 @@ const UsersTable = () => {
 
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr className={classes.tr}>
-			<Table.Td colSpan={2} className={`${classes.td} ${classes.state}`}>
+			<Table.Td colSpan={3} className={`${classes.td} ${classes.state}`}>
 				{content}
 			</Table.Td>
 		</Table.Tr>
@@ -47,6 +96,7 @@ const UsersTable = () => {
 					<Table.Td className={classes.td}>
 						<Skeleton height={12} width='60%' radius='sm' />
 					</Table.Td>
+					<Table.Td className={classes.td} />
 				</Table.Tr>
 			))
 		}
@@ -88,6 +138,7 @@ const UsersTable = () => {
 				<Table.Td className={classes.td}>
 					<Text size='xs'>{formatDate(user.createdAt, i18n.language)}</Text>
 				</Table.Td>
+				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>{user.id !== me?.id && <RowActions user={user} onDelete={openDelete} />}</Table.Td>
 			</Table.Tr>
 		))
 	}
@@ -99,10 +150,22 @@ const UsersTable = () => {
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('usersPage.table.email')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.createdColumn}`}>{t('usersPage.table.createdAt')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
+							<VisuallyHidden>{t('usersPage.table.actionsColumn')}</VisuallyHidden>
+						</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>{renderBody()}</Table.Tbody>
 			</Table>
+			<DeleteAdminModal
+				opened={deleteOpened}
+				admin={deleting}
+				onClose={closeDelete}
+				onDeleted={() => {
+					triggerRef.current = null
+					closeDelete()
+				}}
+			/>
 		</div>
 	)
 }

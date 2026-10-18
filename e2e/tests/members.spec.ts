@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 
+import { MUTATION_HEADERS } from '../support/api'
 import { ANONYMOUS, expectLoggedInHome, loginViaUi } from '../support/auth'
 import { createEditor, newTestUserCredentials } from '../support/users'
 
@@ -66,4 +67,32 @@ test('an existing email shows 409 at the E-mail field', async ({ page, playwrigh
 	await expect(email).toHaveAttribute('aria-invalid', 'true')
 	await expect(email).toHaveAccessibleDescription('Používateľ s týmto e-mailom už existuje.')
 	await expect(dialog).toBeVisible()
+})
+
+test('a member removes another member, who then no longer sees the project', async ({ page, browser, playwright, baseURL }) => {
+	const editor = await createEditor(playwright.request, baseURL)
+	await loginViaUi(page, editor)
+	await expectLoggedInHome(page)
+	const removed = newTestUserCredentials()
+	const added = await page.request.post(`/api/projects/${editor.projectId}/members`, { data: removed, headers: MUTATION_HEADERS })
+	expect(added.status()).toBe(201)
+	const table = await openMembersPage(page, editor.projectId)
+
+	await expect(page.getByRole('button', { name: `Akcie člena ${editor.email}` })).toHaveCount(0)
+	await page.getByRole('button', { name: `Akcie člena ${removed.email}` }).click()
+	await page.getByRole('menuitem', { name: 'Odobrať z projektu' }).click()
+	const dialog = page.getByRole('dialog', { name: 'Odobrať z projektu' })
+	const deleted = page.waitForResponse((response) => response.request().method() === 'DELETE' && response.url().includes(`/members/`))
+	await dialog.getByRole('button', { name: 'Odobrať' }).click()
+	expect((await deleted).status()).toBe(204)
+
+	await expect(page.getByText(`${removed.email} bol odobraný z projektu.`)).toBeVisible()
+	await expect(table.getByRole('row').filter({ hasText: removed.email })).toHaveCount(0)
+
+	const context = await browser.newContext({ baseURL, storageState: ANONYMOUS })
+	const removedPage = await context.newPage()
+	await loginViaUi(removedPage, removed)
+	await expectLoggedInHome(removedPage)
+	await expect(removedPage.getByText('Zatiaľ nemáte žiadny projekt. Vytvorte prvý.')).toBeVisible()
+	await context.close()
 })

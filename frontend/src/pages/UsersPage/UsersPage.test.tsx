@@ -291,3 +291,51 @@ describe('CreateUserModal', () => {
 		expect(within(reopened).getByLabelText('E-mail')).toHaveValue('')
 	})
 })
+
+describe('DeleteAdminModal', () => {
+	const SELF: AdminUser = { id: ADMIN_USER.id, email: ADMIN_USER.email, role: ROLE.ADMIN, createdAt: '2026-10-01T10:00:00.000Z' }
+
+	it('offers no delete for the own row', async () => {
+		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, SELF]) })
+		renderApp('/admin/users')
+
+		expect(await screen.findByRole('button', { name: `Akcie administrátora ${MARTIN.email}` })).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: `Akcie administrátora ${SELF.email}` })).not.toBeInTheDocument()
+	})
+
+	it('deletes an admin after confirmation, refetches the list and focuses the table', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		let users = [MARTIN, SELF]
+		const requests = signedInAs(ADMIN_USER, {
+			'GET /admin/users': () => usersResponse(users),
+			[`DELETE /admin/users/${MARTIN.id}`]: () => {
+				users = [SELF]
+				return { status: 204 }
+			},
+		})
+		renderApp('/admin/users')
+
+		fireEvent.click(await screen.findByRole('button', { name: `Akcie administrátora ${MARTIN.email}` }))
+		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odstrániť' }))
+		const dialog = await screen.findByRole('dialog', { name: 'Odstrániť administrátora' })
+		expect(dialog).toHaveTextContent(`Naozaj chcete odstrániť účet ${MARTIN.email}?`)
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Odstrániť' }))
+
+		await waitFor(() => expect(within(getTable()).queryByText(MARTIN.email)).not.toBeInTheDocument())
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: `Administrátor ${MARTIN.email} bol odstránený.` }))
+		expect(requests.filter((request) => request.method === 'delete')).toHaveLength(1)
+		await waitFor(() => expect(getTable()).toHaveFocus())
+	})
+
+	it('cancel sends nothing', async () => {
+		const requests = signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, SELF]) })
+		renderApp('/admin/users')
+
+		fireEvent.click(await screen.findByRole('button', { name: `Akcie administrátora ${MARTIN.email}` }))
+		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odstrániť' }))
+		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Odstrániť administrátora' })).getByRole('button', { name: 'Zrušiť' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(requests.some((request) => request.method === 'delete')).toBe(false)
+	})
+})

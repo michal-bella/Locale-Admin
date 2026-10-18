@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Import prekladov: parser CSV a kontrola súboru (2026-10-18)
+
+- zdieľaný kontrakt: `importPreviewRequestSchema`, `importPreviewResponseSchema`, `importRequestSchema` (pre ďalší krok), kódy `IMPORT_ISSUE_CODES`, chybové kódy `IMPORT_FILE_INVALID` (422, `details.issues`) a `IMPORT_FILE_TOO_LARGE` (413)
+- backend: parser formátu GoodRequest i18nextJsonToCsv (`; `, sekcie `--namespace--`, `null` aj `""` = nepreložené) s chybami po riadkoch; `POST /api/projects/:projectId/imports/preview` spáruje stĺpce s jazykmi, porovná súbor s DB a vráti počty zmien a upozornenia, nič nezapisuje ([Import](./api/imports.md))
+- limity: telo do 12 MB len na routách importu (inde 100 kB), obsah súboru do 10 MB, nginx `client_max_body_size 12m` pre `/api/`
+- zistenie: 2 000-znakový kľúč v cyrilike sa do DB nezmestí (limit btree indexu), treba rozhodnúť pred zápisom importu
+
 ### Preklady: dátový model a zoznam na čítanie (2026-10-18)
 
 - databáza: tabuľky `TranslationKey` (projekt, namespace, názov, unikátne v projekte + namespace) a `Translation` (kľúč + jazyk, `value` `null` = nepreložené), cascade z projektu, jazyka aj kľúča; seed pridá nový seedovaný projekt s ~30 vymyslenými kľúčmi v 2 namespace ([Databáza](./database.md))

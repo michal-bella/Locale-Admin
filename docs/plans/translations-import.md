@@ -94,7 +94,7 @@ model Translation {
 - `translationsResponseSchema`: `{ items: [{ keyId, namespace, name, group, source: { value }, target: { value, status, updatedAt } }], total, page, pageSize, stats: { totalKeys, translated, untranslated }, namespaces: string[] }`. `group` počíta backend (namespace + prefix cesty).
 - `updateTranslationRequestSchema`: `{ value: string | null }`, max. 10 000 znakov.
 - `importPreviewRequestSchema`: `{ fileName, content }` (obsah súboru ako text, max. 10 MB).
-- `importPreviewResponseSchema`: `{ columns: [{ tag, columnIndex, match: 'PROJECT' | 'CATALOG' | 'UNKNOWN', languageId?, stats: { translations, untranslated, warnings } }], keys: { total, new, existing }, changes: [{ tag, new, changed, unchanged, keptBecauseNull }], warnings: Issue[] }`.
+- `importPreviewResponseSchema`: `{ columns: [{ tag, columnIndex, match: 'PROJECT' | 'CATALOG' | 'UNKNOWN', languageId?, stats: { translations, untranslated, warnings } }], keys: { total, new, existing }, namespaces: [{ namespace, keys }], changes: [{ tag, columnIndex, new, changed, unchanged, keptBecauseNull }], warnings: Issue[], warningsTotal }` (warnings max. 1 000).
 - `importRequestSchema`: `{ fileName, content, columns: [{ columnIndex, languageId | null }], createMissingKeys: boolean }` → `importResultSchema` `{ keysCreated, translationsCreated, translationsUpdated, skippedColumns }`.
 - `Issue = { code, line?, column?, params? }`, kódy v `IMPORT_ISSUE_CODES` (FE prekladá kód, nikdy text).
 - Nové chybové kódy: `IMPORT_FILE_INVALID` (422, `details.issues`), `IMPORT_FILE_TOO_LARGE` (413), `IMPORT_COLUMNS_INVALID` (400), `PLACEHOLDER_MISMATCH` (400), `TRANSLATION_KEY_NOT_FOUND` (404).
@@ -205,7 +205,7 @@ Vetva `feature/translations` z `main`, každý míľnik vo vlastnej session s co
 ### Odložené z míľnika A
 
 - Kľúče s prázdnym namespace `""` sa nedajú vyfiltrovať (prázdna hodnota filtra = bez filtra). Riešiť, keď import začne vytvárať kľúče mimo sekcie `--…--`, napr. hodnotou `namespace=~none`.
-- B: integračný test s kľúčom 2 000 znakov v cyrilike (unikátny btree index na `(projectId, namespace, name)` má limit ~2,7 kB); ak neprejde, limit v bajtoch alebo index na `md5(name)`.
+- B → C: kľúč s 2 000 znakmi v cyrilike **neprejde** (index row size 2 768 > 2 704 B pre `TranslationKey_projectId_namespace_name_key`). Preview ho pustí, zápis by skončil 500. Rozhodnúť pred C: limit v bajtoch (`KEY_TOO_LONG`) alebo unikátny index na `md5(name)`. Test je v `backend/test/imports.test.ts` ako `it.fails`.
 - C: `updatedAt` nemá v DB default, dávkový upsert cez `unnest` ho musí nastaviť (`now()`).
 
 ## Odhad

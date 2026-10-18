@@ -1,6 +1,6 @@
 ---
 title: 'Architektúra'
-updated: 2026-10-16
+updated: 2026-10-18
 notion_page_id:
 ---
 

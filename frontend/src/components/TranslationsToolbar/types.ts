@@ -1,0 +1,17 @@
+import { type Language, type TranslationsSort, type TranslationStatus } from '@locale/shared'
+
+import { type TranslationsSearch } from '@/routes/projectTranslationsRoute'
+
+export type TranslationsToolbarProps = {
+	search?: string
+	status?: TranslationStatus
+	namespace?: string
+	sort: TranslationsSort
+	languages: Language[]
+	sourceLanguage?: Language
+	targetLanguage?: Language
+	/** Every namespace of the project; the namespace filter shows only when there is more than one. */
+	namespaces: string[]
+	/** Called with the changed URL search params; the page resets the page number. */
+	onChange: (patch: Partial<TranslationsSearch>) => void
+}

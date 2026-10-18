@@ -1,0 +1,34 @@
+.card {
+	padding: 1rem;
+	border: 1px solid color-mix(in srgb, var(--app-color-border) 80%, transparent);
+	border-radius: var(--mantine-radius-xl);
+	background-color: var(--app-color-surface);
+}
+
+.value {
+	font-size: 1.5rem;
+	font-weight: 700;
+	line-height: 1.3333;
+	letter-spacing: -0.03em;
+	color: var(--app-color-title);
+}
+
+.iconTile {
+	display: grid;
+	flex-shrink: 0;
+	place-items: center;
+	width: 2.25rem;
+	height: 2.25rem;
+	border-radius: var(--mantine-radius-lg);
+	background-color: var(--app-color-brand-tint);
+	color: var(--mantine-primary-color-filled);
+}
+
+.iconTile[data-tone='warning'] {
+	background-color: var(--mantine-color-yellow-light);
+	color: var(--mantine-color-orange-light-color);
+}
+
+.track {
+	background-color: var(--app-color-border-subtle);
+}

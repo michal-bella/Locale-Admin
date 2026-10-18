@@ -41,7 +41,7 @@ describe('route guards', () => {
 		expect(await screen.findByRole('heading', { level: 1, name: 'Stránka sa nenašla' })).toBeInTheDocument()
 	})
 
-	it('redirects a project URL to its settings', async () => {
+	it('redirects a project URL to its translations', async () => {
 		const project = { id: '00000000-0000-4000-8000-000000000601', name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C' }
 		signedInAs(EDITOR_USER, {
 			...projectListRoute(project),
@@ -50,8 +50,8 @@ describe('route guards', () => {
 		})
 		const router = renderApp(`/projects/${project.slug}`)
 
-		expect(await screen.findByRole('heading', { level: 1, name: 'Nastavenia projektu' })).toBeInTheDocument()
-		expect(router.state.location.pathname).toBe(`/projects/${project.slug}/settings`)
+		expect(await screen.findByRole('heading', { level: 1, name: 'Preklady' })).toBeInTheDocument()
+		expect(router.state.location.pathname).toBe(`/projects/${project.slug}/translations`)
 	})
 
 	it('shows the users page to an ADMIN', async () => {

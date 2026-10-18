@@ -1,0 +1,19 @@
+.text {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.chip {
+	display: inline-block;
+	margin-inline: 0.125rem;
+	padding: 0.125rem 0.375rem;
+	border: 1px solid color-mix(in srgb, var(--app-color-eyebrow) 25%, transparent);
+	border-radius: 0.375rem;
+	background-color: var(--app-color-brand-tint);
+	font-family: var(--mantine-font-family-monospace);
+	font-size: var(--mantine-font-size-2xs);
+	font-weight: 600;
+	line-height: 1.5;
+	color: var(--app-color-eyebrow);
+	white-space: nowrap;
+}

@@ -140,6 +140,67 @@
 			"success": "Administrátor {{email}} bol odstránený."
 		}
 	},
+	"translationsPage": {
+		"title": "Preklady",
+		"description": "Spravujte texty a preklady vášho projektu na jednom mieste.",
+		"importButton": "Importovať",
+		"stats": {
+			"totalKeys": "Celkom kľúčov",
+			"translated": "Preložené",
+			"missing": "Chýbajúce",
+			"progressLabel": "{{label}}: {{percent}} %"
+		},
+		"toolbar": {
+			"search": {
+				"label": "Hľadať kľúč alebo preklad",
+				"placeholder": "Hľadať kľúč alebo preklad…"
+			},
+			"status": {
+				"label": "Stav",
+				"ALL": "Všetky stavy",
+				"UNTRANSLATED": "Nepreložené",
+				"TRANSLATED": "Preložené"
+			},
+			"namespace": {
+				"label": "Namespace",
+				"placeholder": "Všetky namespace"
+			},
+			"sort": {
+				"label": "Zoradenie",
+				"UNTRANSLATED_FIRST": "Nepreložené najprv",
+				"KEY": "Podľa kľúča",
+				"UPDATED": "Naposledy upravené"
+			},
+			"sourceLanguage": "Zdrojový jazyk",
+			"targetLanguage": "Cieľový jazyk"
+		},
+		"table": {
+			"label": "Zoznam prekladov",
+			"key": "Kľúč",
+			"status": "Stav",
+			"noGroup": "Bez skupiny",
+			"emptyValue": "Bez prekladu",
+			"loadError": "Preklady sa nepodarilo načítať.",
+			"retry": "Skúsiť znova",
+			"empty": "Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.",
+			"noResults": "Filtrom nezodpovedá žiadny kľúč.",
+			"clearFilters": "Zrušiť filtre"
+		},
+		"status": {
+			"TRANSLATED": "Preložené",
+			"UNTRANSLATED": "Nepreložené"
+		},
+		"pagination": {
+			"label": "Stránkovanie",
+			"previous": "Predošlá",
+			"next": "Ďalšia",
+			"page": "Strana {{page}}",
+			"summary_one": "Zobrazených {{shown}} z {{count}} kľúča",
+			"summary_few": "Zobrazených {{shown}} z {{count}} kľúčov",
+			"summary_many": "Zobrazených {{shown}} z {{count}} kľúčov",
+			"summary_other": "Zobrazených {{shown}} z {{count}} kľúčov"
+		}
+	},
 	"membersPage": {
 		"eyebrow": "Projekt",
 		"title": "Členovia",
@@ -328,6 +389,7 @@
 		"languages": "Jazyky",
 		"admin": "Správa",
 		"users": "Používatelia",
+		"translations": "Preklady",
 		"projectSettings": "Nastavenia projektu",
 		"members": "Členovia",
 		"projectSwitcher": {

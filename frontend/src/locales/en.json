@@ -140,6 +140,67 @@
 			"success": "Administrator {{email}} has been deleted."
 		}
 	},
+	"translationsPage": {
+		"title": "Translations",
+		"description": "Manage the texts and translations of your project in one place.",
+		"importButton": "Import",
+		"stats": {
+			"totalKeys": "Total keys",
+			"translated": "Translated",
+			"missing": "Missing",
+			"progressLabel": "{{label}}: {{percent}} %"
+		},
+		"toolbar": {
+			"search": {
+				"label": "Search key or translation",
+				"placeholder": "Search key or translation…"
+			},
+			"status": {
+				"label": "Status",
+				"ALL": "All statuses",
+				"UNTRANSLATED": "Untranslated",
+				"TRANSLATED": "Translated"
+			},
+			"namespace": {
+				"label": "Namespace",
+				"placeholder": "All namespaces"
+			},
+			"sort": {
+				"label": "Sort",
+				"UNTRANSLATED_FIRST": "Untranslated first",
+				"KEY": "By key",
+				"UPDATED": "Recently updated"
+			},
+			"sourceLanguage": "Source language",
+			"targetLanguage": "Target language"
+		},
+		"table": {
+			"label": "Translation list",
+			"key": "Key",
+			"status": "Status",
+			"noGroup": "No group",
+			"emptyValue": "No translation",
+			"loadError": "The translations could not be loaded.",
+			"retry": "Try again",
+			"empty": "The project has no keys yet. Add them by importing a file.",
+			"noResults": "No key matches the filters.",
+			"clearFilters": "Clear filters"
+		},
+		"status": {
+			"TRANSLATED": "Translated",
+			"UNTRANSLATED": "Untranslated"
+		},
+		"pagination": {
+			"label": "Pagination",
+			"previous": "Previous",
+			"next": "Next",
+			"page": "Page {{page}}",
+			"summary_one": "Showing {{shown}} of {{count}} key",
+			"summary_few": "Showing {{shown}} of {{count}} keys",
+			"summary_many": "Showing {{shown}} of {{count}} keys",
+			"summary_other": "Showing {{shown}} of {{count}} keys"
+		}
+	},
 	"membersPage": {
 		"eyebrow": "Project",
 		"title": "Members",
@@ -328,6 +389,7 @@
 		"languages": "Languages",
 		"admin": "Administration",
 		"users": "Users",
+		"translations": "Translations",
 		"projectSettings": "Project settings",
 		"members": "Members",
 		"projectSwitcher": {

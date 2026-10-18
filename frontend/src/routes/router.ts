@@ -14,6 +14,7 @@ import { projectLanguagesRoute } from '@/routes/projectLanguagesRoute'
 import { projectMembersRoute } from '@/routes/projectMembersRoute'
 import { projectRoute } from '@/routes/projectRoute'
 import { projectSettingsRoute } from '@/routes/projectSettingsRoute'
+import { projectTranslationsRoute } from '@/routes/projectTranslationsRoute'
 import { rootRoute } from '@/routes/rootRoute'
 
 const routeTree = rootRoute.addChildren([
@@ -23,7 +24,7 @@ const routeTree = rootRoute.addChildren([
 		appLayoutRoute.addChildren([
 			profileRoute,
 			adminUsersRoute,
-			projectRoute.addChildren([projectIndexRoute, projectSettingsRoute, projectLanguagesRoute, projectMembersRoute]),
+			projectRoute.addChildren([projectIndexRoute, projectTranslationsRoute, projectSettingsRoute, projectLanguagesRoute, projectMembersRoute]),
 		]),
 	]),
 ])

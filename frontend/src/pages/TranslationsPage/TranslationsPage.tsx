@@ -1,5 +1,6 @@
 import { Button } from '@mantine/core'
 import { useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { TRANSLATIONS_PAGE_SIZE_DEFAULT } from '@locale/shared'
@@ -59,6 +60,15 @@ const TranslationsPage = () => {
 	const updateSearch = (patch: Partial<TranslationsSearch>, { resetPage = true } = {}) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch, ...(resetPage ? { page: undefined } : {}) }), replace: true })
 
+	// A page past the end (shared link, or the last page shrank) goes to the last page instead of showing "no results".
+	const lastPage = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1
+	const isPastEnd = !translationsQuery.isPlaceholderData && data !== undefined && data.total > 0 && data.items.length === 0 && page > lastPage
+	useEffect(() => {
+		if (isPastEnd) {
+			void navigate({ search: (previous) => ({ ...previous, page: lastPage === 1 ? undefined : lastPage }), replace: true })
+		}
+	}, [isPastEnd, lastPage, navigate])
+
 	const clearFilters = () => updateSearch({ search: undefined, status: undefined, namespace: undefined })
 
 	const retry = async () => {
@@ -72,7 +82,7 @@ const TranslationsPage = () => {
 
 	const isError = languagesQuery.isError || translationsQuery.isError
 	const hasLanguages = languages.length > 0
-	const isPending = !isError && (languagesQuery.isPending || (hasLanguages && translationsQuery.isPending))
+	const isPending = !isError && (languagesQuery.isPending || (hasLanguages && translationsQuery.isPending) || isPastEnd)
 
 	return (
 		<div className='mx-auto flex w-full max-w-[1440px] flex-col gap-6 p-8'>
@@ -113,9 +123,10 @@ const TranslationsPage = () => {
 					sourceLanguage={sourceLanguage}
 					targetLanguage={targetLanguage}
 					onClearFilters={clearFilters}
+					showGroups={sort !== 'UPDATED'}
 				/>
 			</div>
-			{!isError && data && data.total > 0 && (
+			{!isError && !isPastEnd && data && data.total > 0 && (
 				<TranslationsPagination
 					page={page}
 					pageSize={data.pageSize}

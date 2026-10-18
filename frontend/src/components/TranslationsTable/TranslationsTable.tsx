@@ -28,8 +28,8 @@ const Value = ({ value }: { value: string | null }) => {
 }
 
 /**
- * Keys with the source and target text (Figma 3:147), read-only for now. A group header row starts every run of keys with the same
- * `group`, so with the default sort the untranslated keys come first and are grouped inside. Untranslated rows have a soft red background.
+ * Keys with the source and target text (Figma 3:147), read-only for now. With `showGroups` a group header row starts every run of keys
+ * with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first and are grouped inside. Untranslated rows have a soft red background.
  */
 const TranslationsTable = ({
 	data,
@@ -41,6 +41,7 @@ const TranslationsTable = ({
 	sourceLanguage,
 	targetLanguage,
 	onClearFilters,
+	showGroups,
 }: TranslationsTableProps) => {
 	const { t, i18n } = useTranslation()
 	const tableRef = useRef<HTMLTableElement>(null)
@@ -155,9 +156,9 @@ const TranslationsTable = ({
 		const now = new Date()
 		return data.items.map((item, index) => (
 			<Fragment key={item.keyId}>
-				{item.group !== data.items[index - 1]?.group && (
+				{showGroups && item.group !== data.items[index - 1]?.group && (
 					<Table.Tr data-group-header className={classes.groupRow}>
-						<Table.Th colSpan={COLUMNS} scope='colgroup' className={classes.groupCell}>
+						<Table.Th colSpan={COLUMNS} scope='rowgroup' className={classes.groupCell}>
 							{item.group || t('translationsPage.table.noGroup')}
 						</Table.Th>
 					</Table.Tr>

@@ -16,6 +16,8 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `POST`   | `/api/auth/login`                                | prihlásenie, session cookie, [detail](./auth.md)                               |
 | `POST`   | `/api/auth/logout`                               | odhlásenie, [detail](./auth.md)                                                |
 | `GET`    | `/api/auth/me`                                   | prihlásený používateľ, [detail](./auth.md)                                     |
+| `GET`    | `/api/admin/projects`                            | všetky projekty s počtami (ADMIN), [detail](./admin-projects.md)               |
+| `DELETE` | `/api/admin/projects/:projectId`                 | zmazanie projektu (ADMIN), [detail](./admin-projects.md)                       |
 | `GET`    | `/api/admin/users`                               | zoznam administrátorov (ADMIN), [detail](./admin-users.md)                     |
 | `POST`   | `/api/admin/users`                               | vytvorenie administrátora (ADMIN), [detail](./admin-users.md)                  |
 | `DELETE` | `/api/admin/users/:id`                           | odstránenie administrátora (ADMIN), [detail](./admin-users.md)                 |

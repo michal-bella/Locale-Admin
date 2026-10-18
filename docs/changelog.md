@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Správa projektov: backend (2026-10-18)
+
+- backend: `GET /api/admin/projects` (všetky projekty so základným jazykom, počtom jazykov a členov) a `DELETE /api/admin/projects/:projectId` (členstvá a jazyky kaskádou, používatelia ostávajú), iba ADMIN ([API](./api/admin-projects.md))
+- plán: [admin-projects.md](./plans/admin-projects.md)
+
 ### Slug v URL projektu, čeština a akcie v tabuľkách (2026-10-18)
 
 - frontend: projekt má v URL slug namiesto id (`/projects/<slug>/settings`), API ostáva na id; po zmene slugu v nastaveniach sa URL prepíše na nový ([Frontend](./frontend.md))

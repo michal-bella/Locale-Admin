@@ -26,11 +26,11 @@ export const listProjects = async (prisma: PrismaClient, user: AuthUser): Promis
 	return projects.map(({ members, ...project }) => ({ ...project, isMember: members.length > 0 }))
 }
 
-/** The creator becomes the first member. No pre-check for the slug: the unique constraint (P2002) also covers concurrent requests. */
-export const createProject = async (prisma: PrismaClient, userId: string, input: CreateProjectRequest): Promise<ProjectListItem> => {
+/** The creator becomes the first member, the first language the base. No pre-check for the slug: the unique constraint (P2002) also covers concurrent requests. */
+export const createProject = async (prisma: PrismaClient, userId: string, { name, slug, languageTags }: CreateProjectRequest): Promise<ProjectListItem> => {
 	try {
 		const project = await prisma.project.create({
-			data: { ...input, members: { create: { userId } } },
+			data: { name, slug, members: { create: { userId } }, languages: { create: languageTags.map((tag, index) => ({ tag, isBase: index === 0 })) } },
 			select: PROJECT_LIST_SELECT,
 		})
 		return { ...project, isMember: true }

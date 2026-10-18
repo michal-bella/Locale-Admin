@@ -43,6 +43,14 @@ const openActions = async (name: string) => {
 	return within(await screen.findByRole('menu'))
 }
 
+/** Picks languages in the Jazyky multi-select of the create modal, in this order. */
+const pickLanguages = async (...labels: string[]) => {
+	for (const label of labels) {
+		fireEvent.click(screen.getByLabelText('Jazyky', { selector: 'input[data-type="visible"]' }))
+		fireEvent.click(await screen.findByRole('option', { name: label }))
+	}
+}
+
 const openCreate = async () => {
 	fireEvent.click(await screen.findByRole('button', { name: 'Nový projekt' }))
 	return screen.findByRole('dialog', { name: 'Nový projekt' })
@@ -90,7 +98,7 @@ describe('ProjectsPage list', () => {
 		signedInAs(EDITOR_USER, {
 			'GET /projects': projectsResponse([BOOKING]),
 			[`GET /projects/${BOOKING.id}/settings`]: { status: 200, data: settingsOf(BOOKING) },
-			'GET /languages': { status: 200, data: [] },
+			[`GET /projects/${BOOKING.id}/languages`]: { status: 200, data: [] },
 		})
 		const router = renderApp('/')
 
@@ -197,7 +205,8 @@ describe('CreateProjectModal', () => {
 		fireEvent.change(dialog.getByLabelText('Slug projektu'), { target: { value: 'Zlý Slug' } })
 		fireEvent.click(dialog.getByRole('button', { name: 'Vytvoriť projekt' }))
 
-		expect(await dialog.findByText('Toto pole je povinné.')).toBeInTheDocument()
+		// Name and languages are both required.
+		await waitFor(() => expect(dialog.getAllByText('Toto pole je povinné.')).toHaveLength(2))
 		expect(dialog.getByText('Neplatná hodnota.')).toBeInTheDocument()
 		expect(requests.some((request) => request.method === 'post')).toBe(false)
 	})
@@ -208,6 +217,7 @@ describe('CreateProjectModal', () => {
 		const dialog = within(await openCreate())
 
 		fireEvent.change(dialog.getByLabelText('Názov projektu'), { target: { value: 'Booking Web' } })
+		await pickLanguages('Slovak – slovenčina – sk')
 		fireEvent.click(dialog.getByRole('button', { name: 'Vytvoriť projekt' }))
 
 		expect(await dialog.findByText('Projekt s týmto slugom už existuje.')).toBeInTheDocument()
@@ -221,17 +231,18 @@ describe('CreateProjectModal', () => {
 			'GET /projects': projectsResponse([]),
 			'POST /projects': { status: 201, data: BOOKING },
 			[`GET /projects/${BOOKING.id}/settings`]: { status: 200, data: settingsOf(BOOKING) },
-			'GET /languages': { status: 200, data: [] },
+			[`GET /projects/${BOOKING.id}/languages`]: { status: 200, data: [] },
 		})
 		const router = renderApp('/')
 		const dialog = within(await openCreate())
 
 		fireEvent.change(dialog.getByLabelText('Názov projektu'), { target: { value: ' Booking Web ' } })
+		await pickLanguages('English – English – en', 'Slovak – slovenčina – sk')
 		fireEvent.click(dialog.getByRole('button', { name: 'Vytvoriť projekt' }))
 
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${BOOKING.id}/settings`))
 		const post = requests.find((request) => request.method === 'post')
-		expect(JSON.parse(post?.data as string)).toEqual({ name: 'Booking Web', slug: 'booking-web' })
+		expect(JSON.parse(post?.data as string)).toEqual({ name: 'Booking Web', slug: 'booking-web', languageTags: ['en', 'sk'] })
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Projekt Booking Web bol vytvorený.' }))
 		expect(await screen.findByLabelText('Názov projektu')).toHaveValue('Booking Web')
 	})

@@ -18,16 +18,15 @@ const PROJECT: ProjectSettings = {
 const findNavigation = async () => within(await screen.findByRole('navigation', { name: 'Hlavná navigácia' }))
 
 describe('Sidebar', () => {
-	it('shows Všetky projekty and, under SPRÁVA, Používatelia and Jazyky to an ADMIN outside a project', async () => {
+	it('shows Všetky projekty and, under SPRÁVA, Používatelia to an ADMIN outside a project', async () => {
 		signedInAs(ADMIN_USER)
 		renderApp('/profile')
 		const navigation = await findNavigation()
 
 		expect(navigation.getByRole('link', { name: 'Všetky projekty' })).toHaveAttribute('href', '/')
 		const admin = within(navigation.getByRole('list', { name: 'Správa' }))
-		expect(admin.getAllByRole('link').map((link) => link.textContent)).toEqual(['Používatelia', 'Jazyky'])
+		expect(admin.getAllByRole('link').map((link) => link.textContent)).toEqual(['Používatelia'])
 		expect(admin.getByRole('link', { name: 'Používatelia' })).toHaveAttribute('href', '/admin/users')
-		expect(admin.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('href', '/languages')
 		expect(within(screen.getByRole('complementary')).getByText('Locale')).toBeInTheDocument()
 	})
 
@@ -43,14 +42,15 @@ describe('Sidebar', () => {
 	it('shows the project name with Nastavenia projektu and Členovia inside a project', async () => {
 		signedInAs(EDITOR_USER, {
 			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
-			'GET /languages': { status: 200, data: [] },
+			[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [] },
 			'GET /projects': { status: 200, data: { projects: [] } },
 		})
 		renderApp(`/projects/${PROJECT.id}/settings`)
 		const navigation = await findNavigation()
 
 		const project = within(await navigation.findByRole('list', { name: 'Booking Web' }))
-		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Nastavenia projektu', 'Členovia'])
+		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Nastavenia projektu', 'Jazyky', 'Členovia'])
+		expect(project.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('href', `/projects/${PROJECT.id}/languages`)
 		expect(project.getByRole('link', { name: 'Členovia' })).toHaveAttribute('href', `/projects/${PROJECT.id}/members`)
 		await waitFor(() => expect(project.getByRole('link', { name: 'Nastavenia projektu' })).toHaveAttribute('aria-current', 'page'))
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
@@ -85,11 +85,10 @@ describe('Sidebar', () => {
 	})
 
 	it('marks the item of the current route as the current page', async () => {
-		signedInAs(ADMIN_USER, { 'GET /languages': { status: 200, data: [] } })
-		const router = renderApp('/languages')
+		signedInAs(ADMIN_USER, { 'GET /admin/users': { status: 200, data: { users: [] } } })
+		const router = renderApp('/profile')
 		const navigation = await findNavigation()
 
-		await waitFor(() => expect(navigation.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('aria-current', 'page'))
 		expect(navigation.getByRole('link', { name: 'Používatelia' })).not.toHaveAttribute('aria-current')
 		expect(navigation.getByRole('link', { name: 'Všetky projekty' })).not.toHaveAttribute('aria-current')
 
@@ -97,7 +96,7 @@ describe('Sidebar', () => {
 
 		await waitFor(() => expect(router.state.location.pathname).toBe('/admin/users'))
 		await waitFor(() => expect(navigation.getByRole('link', { name: 'Používatelia' })).toHaveAttribute('aria-current', 'page'))
-		expect(navigation.getByRole('link', { name: 'Jazyky' })).not.toHaveAttribute('aria-current')
+		expect(navigation.getByRole('link', { name: 'Všetky projekty' })).not.toHaveAttribute('aria-current')
 	})
 
 	it('opens and closes on narrow screens with the burgers', async () => {
@@ -119,8 +118,8 @@ describe('Sidebar', () => {
 	})
 
 	it('links the logo to the home page and closes the sidebar on narrow screens', async () => {
-		signedInAs(ADMIN_USER, { 'GET /languages': { status: 200, data: [] } })
-		const router = renderApp('/languages')
+		signedInAs(ADMIN_USER)
+		const router = renderApp('/profile')
 		fireEvent.click(await screen.findByRole('button', { name: 'Otvoriť navigáciu' }))
 		const sidebar = screen.getByRole('complementary')
 		const home = within(sidebar).getByRole('link', { name: 'Locale – domovská stránka' })
@@ -135,7 +134,7 @@ describe('Sidebar', () => {
 	})
 
 	it('moves focus to the top-bar burger when the narrow-screen sidebar closes, since the closed sidebar is hidden', async () => {
-		signedInAs(ADMIN_USER, { 'GET /languages': { status: 200, data: [] } })
+		signedInAs(ADMIN_USER, { 'GET /admin/users': { status: 200, data: { users: [] } } })
 		const router = renderApp('/profile')
 		const openButton = await screen.findByRole('button', { name: 'Otvoriť navigáciu' })
 		const sidebar = screen.getByRole('complementary')
@@ -147,10 +146,10 @@ describe('Sidebar', () => {
 		expect(openButton).toHaveFocus()
 
 		fireEvent.click(openButton)
-		const link = within(sidebar).getByRole('link', { name: 'Jazyky' })
+		const link = within(sidebar).getByRole('link', { name: 'Používatelia' })
 		link.focus()
 		fireEvent.click(link)
-		await waitFor(() => expect(router.state.location.pathname).toBe('/languages'))
+		await waitFor(() => expect(router.state.location.pathname).toBe('/admin/users'))
 		expect(sidebar).toHaveAttribute('data-collapsed')
 		expect(openButton).toHaveFocus()
 	})

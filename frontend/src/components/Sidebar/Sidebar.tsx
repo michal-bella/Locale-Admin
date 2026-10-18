@@ -40,9 +40,8 @@ const NavItem = ({ to, params, icon: Icon, iconClassName = '', label, onNavigate
 )
 
 /**
- * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Nastavenia projektu
- * and Členovia, outside one: Všetky projekty.
- * ADMIN also sees Jazyky and, under SPRÁVA, Používatelia. User block at the bottom.
+ * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Nastavenia projektu,
+ * Jazyky and Členovia, outside one: Všetky projekty. ADMIN also sees Používatelia under SPRÁVA.
  */
 const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 	const { t } = useTranslation()
@@ -76,6 +75,7 @@ const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 							label={t('sidebar.projectSettings')}
 							onNavigate={onClose}
 						/>
+						<NavItem to='/projects/$projectId/languages' params={{ projectId }} icon={Globe} label={t('sidebar.languages')} onNavigate={onClose} />
 						<NavItem to='/projects/$projectId/members' params={{ projectId }} icon={Users} label={t('sidebar.members')} onNavigate={onClose} />
 					</ul>
 				) : (
@@ -91,7 +91,6 @@ const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 						</p>
 						<ul aria-labelledby={adminLabelId} className={classes.list}>
 							<NavItem to='/admin/users' icon={Users} label={t('sidebar.users')} onNavigate={onClose} />
-							<NavItem to='/languages' icon={Globe} label={t('sidebar.languages')} onNavigate={onClose} />
 						</ul>
 					</>
 				)}

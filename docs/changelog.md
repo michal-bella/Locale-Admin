@@ -8,6 +8,15 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Jazyky na úrovni projektu (2026-10-18)
+
+- databáza: tabuľka `ProjectLanguage` (tag a základný jazyk per projekt, čiastočný unikátny index na základný jazyk v projekte); migrácia `project_languages` skopírovala dovtedajšie globálne jazyky do každého projektu a zmazala tabuľku `Language` ([Databáza](./database.md))
+- zdieľaný kontrakt: `languageTags` pri vytvorení projektu (aspoň jeden, prvý je základný), zrušená úprava názvov a vlajky jazyka
+- backend: `GET`, `POST`, `DELETE /api/projects/:projectId/languages` pre členov aj ADMIN-a; `baseLanguageId` v nastaveniach projektu mení ktorýkoľvek člen; `/api/languages` a `/api/admin/languages` zrušené ([API](./api/project-languages.md))
+- frontend: stránka Jazyky projektu (`/projects/$projectId/languages`, položka v sidebari projektu), výber jazykov v modáli Nový projekt, admin stránka `/languages` a modál Nastavenia jazyka zrušené
+- E2E: jazyky v testovacích projektoch bez zdieľaného locku
+- plán: [project-languages.md](./plans/project-languages.md)
+
 ### Odobratie člena a odstránenie admina (2026-10-18)
 
 - backend: `DELETE /api/projects/:projectId/members/:userId` (člen aj ADMIN, účet ostane, posledného člena nejde odobrať) a `DELETE /api/admin/users/:id` (iba iného admina, nový kód `SELF_DELETE`)

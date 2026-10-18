@@ -34,13 +34,11 @@ describe('route guards', () => {
 		expect(router.state.location.pathname).toBe('/admin/users')
 	})
 
-	it('shows the 403 page to an EDITOR on /languages without requesting the list', async () => {
-		const requests = signedInAs(EDITOR_USER)
-		const router = renderApp('/languages')
+	it('shows the 404 page on the removed /languages', async () => {
+		signedInAs(ADMIN_USER)
+		renderApp('/languages')
 
-		expect(await screen.findByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeInTheDocument()
-		expect(router.state.location.pathname).toBe('/languages')
-		expect(requests.some((request) => request.url === '/languages')).toBe(false)
+		expect(await screen.findByRole('heading', { level: 1, name: 'Stránka sa nenašla' })).toBeInTheDocument()
 	})
 
 	it('redirects a project URL to its settings', async () => {
@@ -50,7 +48,7 @@ describe('route guards', () => {
 				status: 200,
 				data: { id: projectId, name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C', protectVariables: true, baseLanguageId: null },
 			},
-			'GET /languages': { status: 200, data: [] },
+			[`GET /projects/${projectId}/languages`]: { status: 200, data: [] },
 		})
 		const router = renderApp(`/projects/${projectId}`)
 

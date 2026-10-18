@@ -1,19 +1,19 @@
-import { Button, getDefaultZIndex, Text } from '@mantine/core'
+import { Button, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useTranslation } from 'react-i18next'
 
 import { ERROR_CODE } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
-import { useDeleteLanguageMutation } from '@/api/languages/useDeleteLanguageMutation'
+import { useDeleteProjectLanguageMutation } from '@/api/projectLanguages/useDeleteProjectLanguageMutation'
 import AppModal from '@/components/AppModal/AppModal'
 
 import { type ConfirmDeleteModalProps } from './types'
 
-/** Every language delete goes through this confirmation, also when opened over "Nastavenia jazyka". */
-const ConfirmDeleteModal = ({ opened, language, onClose, onDeleted }: ConfirmDeleteModalProps) => {
+/** Every removal of a language from the project goes through this confirmation. */
+const ConfirmDeleteModal = ({ projectId, opened, language, onClose, onDeleted }: ConfirmDeleteModalProps) => {
 	const { t } = useTranslation()
-	const deleteLanguage = useDeleteLanguageMutation()
+	const deleteLanguage = useDeleteProjectLanguageMutation(projectId)
 	const { isPending } = deleteLanguage
 
 	const handleClose = () => {
@@ -50,8 +50,6 @@ const ConfirmDeleteModal = ({ opened, language, onClose, onDeleted }: ConfirmDel
 			closeLabel={t('languagesPage.deleteModal.close')}
 			isPending={isPending}
 			size={440}
-			// Above "Nastavenia jazyka", which stays open underneath.
-			zIndex={getDefaultZIndex('modal') + 1}
 			footer={
 				<>
 					<Button variant='default' onClick={handleClose} disabled={isPending}>

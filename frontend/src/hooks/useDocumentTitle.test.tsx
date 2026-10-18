@@ -23,10 +23,10 @@ describe('document.title', () => {
 	})
 
 	it('follows navigation and the UI language', async () => {
-		signedInAs(ADMIN_USER, { 'GET /languages': { status: 200, data: [] }, 'GET /admin/users': { status: 200, data: { users: [] } } })
-		renderApp('/languages')
+		signedInAs(ADMIN_USER, { 'GET /admin/users': { status: 200, data: { users: [] } } })
+		renderApp('/profile')
 
-		await waitFor(() => expect(document.title).toBe('Jazyky – Locale'))
+		await waitFor(() => expect(document.title).toBe('Môj profil – Locale'))
 
 		fireEvent.click(within(screen.getByRole('navigation', { name: 'Hlavná navigácia' })).getByRole('link', { name: 'Používatelia' }))
 		await waitFor(() => expect(document.title).toBe('Používatelia – Locale'))

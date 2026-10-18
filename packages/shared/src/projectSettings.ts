@@ -29,7 +29,7 @@ export type HexColor = z.infer<typeof hexColorSchema>
 
 /**
  * Body of `GET` and `PATCH /api/projects/:projectId/settings`.
- * `baseLanguageId` is the language with `isBase`, `null` when there are no languages.
+ * `baseLanguageId` is the project language with `isBase`, `null` when the project has no languages.
  */
 export const projectSettingsSchema = z.object({
 	id: z.uuid(),
@@ -43,8 +43,8 @@ export const projectSettingsSchema = z.object({
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>
 
 /**
- * Body of `PATCH /api/projects/:projectId/settings`. The base language is still global, so only an ADMIN may send `baseLanguageId`;
- * it moves the base flag of languages in the same transaction.
+ * Body of `PATCH /api/projects/:projectId/settings`. `baseLanguageId` must be a language of the project;
+ * a new one moves the base flag in the same transaction.
  */
 export const updateProjectSettingsRequestSchema = z.object({
 	name: projectNameSchema,

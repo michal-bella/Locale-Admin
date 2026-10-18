@@ -23,13 +23,7 @@ export const LANGUAGE_TAGS = SUPPORTED_LANGUAGES.map((language) => language.tag)
 
 export const LANGUAGE_FLAG_CODES = [...new Set(SUPPORTED_LANGUAGES.map((language) => language.flagCode))] as [LanguageFlagCode, ...LanguageFlagCode[]]
 
-export const LANGUAGE_NAME_MAX_LENGTH = 100
-
-export const languageNameSchema = z.string().trim().min(1).max(LANGUAGE_NAME_MAX_LENGTH)
-
-export type LanguageName = z.infer<typeof languageNameSchema>
-
-/** One language in `GET /api/admin/languages` and the body of `POST` and `PATCH`. */
+/** One language of a project in `GET /api/projects/:projectId/languages` and the body of `201 POST`. Names and flag come from the catalog. */
 export const languageSchema = z.object({
 	id: z.uuid(),
 	tag: z.enum(LANGUAGE_TAGS),
@@ -42,27 +36,14 @@ export const languageSchema = z.object({
 
 export type Language = z.infer<typeof languageSchema>
 
-/** Body of `GET /api/admin/languages`, the base language first, then by tag. */
+/** Body of `GET /api/projects/:projectId/languages`, the base language first, then by tag. */
 export const languagesResponseSchema = z.array(languageSchema)
 
 export type LanguagesResponse = z.infer<typeof languagesResponseSchema>
 
-/** Body of `POST /api/admin/languages`. Names and flag come from `SUPPORTED_LANGUAGES`. */
+/** Body of `POST /api/projects/:projectId/languages`. Names and flag come from `SUPPORTED_LANGUAGES`. */
 export const createLanguageRequestSchema = z.object({
 	tag: z.enum(LANGUAGE_TAGS),
 })
 
 export type CreateLanguageRequest = z.infer<typeof createLanguageRequestSchema>
-
-/**
- * Body of `PATCH /api/admin/languages/:id`. The tag is not editable, zod strips it.
- * `isBase` can only be turned on: the previous base language loses the flag in the same transaction.
- */
-export const updateLanguageRequestSchema = z.object({
-	englishName: languageNameSchema,
-	nativeName: languageNameSchema,
-	flagCode: z.enum(LANGUAGE_FLAG_CODES),
-	isBase: z.literal(true).optional(),
-})
-
-export type UpdateLanguageRequest = z.infer<typeof updateLanguageRequestSchema>

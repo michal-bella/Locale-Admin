@@ -7,7 +7,7 @@ import { ROLE } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
-import { useLanguagesQuery } from '@/api/languages/languagesQuery'
+import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import { useProjectSettingsQuery } from '@/api/projectSettings/projectSettingsQuery'
 import { useProjectsQuery } from '@/api/projects/projectsQuery'
 import PageIntro from '@/components/PageIntro/PageIntro'
@@ -26,7 +26,7 @@ const ProjectSettingsPage = () => {
 	const { data: user } = useMeQuery()
 	const { data: projects } = useProjectsQuery()
 	const settingsQuery = useProjectSettingsQuery(projectId)
-	const languagesQuery = useLanguagesQuery()
+	const languagesQuery = useProjectLanguagesQuery(projectId)
 	const [retrySucceeded, setRetrySucceeded] = useState(false)
 	const failedQueries = [settingsQuery, languagesQuery].filter((query) => query.isError && query.data === undefined)
 
@@ -67,7 +67,6 @@ const ProjectSettingsPage = () => {
 				key={projectId}
 				settings={settingsQuery.data}
 				languages={languagesQuery.data}
-				isAdmin={isAdmin}
 				isMember={isMember}
 				onLeft={() => void navigate({ to: '/' })}
 				focusFirstField={retrySucceeded}

@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { type Language } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
-import { useLanguagesQuery } from '@/api/languages/languagesQuery'
+import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import { DotsHorizontal, Plus } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 
@@ -15,9 +15,9 @@ import { type LanguagesTableProps } from './types'
 
 const SKELETON_ROWS = 3
 
-type RowActionsProps = Pick<LanguagesTableProps, 'onEdit' | 'onDelete'> & { language: Language }
+type RowActionsProps = Pick<LanguagesTableProps, 'onDelete'> & { language: Language }
 
-const RowActions = ({ language, onEdit, onDelete }: RowActionsProps) => {
+const RowActions = ({ language, onDelete }: RowActionsProps) => {
 	const { t } = useTranslation()
 	const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -36,7 +36,6 @@ const RowActions = ({ language, onEdit, onDelete }: RowActionsProps) => {
 				</ActionIcon>
 			</Menu.Target>
 			<Menu.Dropdown>
-				<Menu.Item onClick={() => onEdit(language, triggerRef.current)}>{t('languagesPage.table.edit')}</Menu.Item>
 				<Menu.Item color='red' disabled={language.isBase} onClick={() => onDelete(language, triggerRef.current)}>
 					{t('languagesPage.table.delete')}
 				</Menu.Item>
@@ -45,10 +44,10 @@ const RowActions = ({ language, onEdit, onDelete }: RowActionsProps) => {
 	)
 }
 
-/** Language list in a card (Figma 3:812) without the Preložené, Na kontrolu and Pokrytie columns. */
-const LanguagesTable = ({ onAdd, onEdit, onDelete, ref }: LanguagesTableProps) => {
+/** Languages of a project in a card (Figma 3:812) without the Preložené, Na kontrolu and Pokrytie columns. The base language cannot be removed. */
+const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps) => {
 	const { t } = useTranslation()
-	const { data, isPending, isError, error, refetch, isRefetching } = useLanguagesQuery()
+	const { data, isPending, isError, error, refetch, isRefetching } = useProjectLanguagesQuery(projectId)
 	const tableRef = useRef<HTMLTableElement>(null)
 	const mergedRef = useMergedRef(tableRef, ref)
 
@@ -125,7 +124,7 @@ const LanguagesTable = ({ onAdd, onEdit, onDelete, ref }: LanguagesTableProps) =
 					</div>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-					<RowActions language={language} onEdit={onEdit} onDelete={onDelete} />
+					<RowActions language={language} onDelete={onDelete} />
 				</Table.Td>
 			</Table.Tr>
 		))

@@ -1,25 +1,24 @@
 import { Button } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
+import { useParams } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type Language, SUPPORTED_LANGUAGES } from '@locale/shared'
 
-import { useLanguagesQuery } from '@/api/languages/languagesQuery'
+import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import AddLanguageModal from '@/components/AddLanguageModal/AddLanguageModal'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal/ConfirmDeleteModal'
 import { Plus } from '@/components/Icons'
-import LanguageSettingsModal from '@/components/LanguageSettingsModal/LanguageSettingsModal'
 import LanguagesTable from '@/components/LanguagesTable/LanguagesTable'
 import PageIntro from '@/components/PageIntro/PageIntro'
 
-/** Figma 3:812 without the sidebar, breadcrumbs and translation statistics columns. */
-const LanguagesPage = () => {
+/** Languages of the project (Figma 3:812 without the translation statistics columns): add from the catalog or remove. */
+const ProjectLanguagesPage = () => {
 	const { t } = useTranslation()
-	const { data: languages } = useLanguagesQuery()
+	const { projectId } = useParams({ from: '/_authenticated/_app/projects/$projectId' })
+	const { data: languages } = useProjectLanguagesQuery(projectId)
 	const [addOpened, addModal] = useDisclosure(false)
-	const [settingsOpened, settingsModal] = useDisclosure(false)
-	const [settingsLanguage, setSettingsLanguage] = useState<Language | null>(null)
 	const [deleteOpened, deleteModal] = useDisclosure(false)
 	const [deleteLanguage, setDeleteLanguage] = useState<Language | null>(null)
 	const allAdded = languages !== undefined && languages.length >= SUPPORTED_LANGUAGES.length
@@ -27,7 +26,7 @@ const LanguagesPage = () => {
 	const tableRef = useRef<HTMLTableElement>(null)
 	const returnFocusRef = useRef<HTMLElement | null>(null)
 
-	// Mantine returns focus to what was focused when a modal opened: here the item of an already closed row menu, or a button whose row is gone (or that got disabled).
+	// Mantine returns focus to what was focused when a modal opened: here the item of an already closed row menu, or a button whose row is gone.
 	// Deferred so the list has re-rendered with the refetched data and a removed row's button is already detached.
 	const restoreFocus = () =>
 		setTimeout(() => {
@@ -45,38 +44,19 @@ const LanguagesPage = () => {
 		restoreFocus()
 	}
 
-	const openSettings = (language: Language, trigger: HTMLElement | null) => {
+	const openDelete = (language: Language, trigger: HTMLElement | null) => {
 		returnFocusRef.current = trigger
-		setSettingsLanguage(language)
-		settingsModal.open()
-	}
-
-	const closeSettings = () => {
-		settingsModal.close()
-		restoreFocus()
-	}
-
-	const openDelete = (language: Language) => {
 		setDeleteLanguage(language)
 		deleteModal.open()
 	}
 
-	const openDeleteFromRow = (language: Language, trigger: HTMLElement | null) => {
-		returnFocusRef.current = trigger
-		openDelete(language)
-	}
-
-	// Opened over the settings modal, Mantine returns focus into it.
 	const closeDelete = () => {
 		deleteModal.close()
-		if (!settingsOpened) {
-			restoreFocus()
-		}
+		restoreFocus()
 	}
 
 	const handleDeleted = () => {
 		deleteModal.close()
-		settingsModal.close()
 		tableRef.current?.focus()
 	}
 
@@ -88,18 +68,11 @@ const LanguagesPage = () => {
 					{t('languagesPage.addButton')}
 				</Button>
 			</div>
-			<LanguagesTable ref={tableRef} onAdd={openAdd} onEdit={openSettings} onDelete={openDeleteFromRow} />
-			<AddLanguageModal opened={addOpened} onClose={closeAdd} languages={languages ?? []} />
-			<LanguageSettingsModal
-				opened={settingsOpened}
-				language={settingsLanguage}
-				onClose={closeSettings}
-				onDelete={openDelete}
-				inBackground={deleteOpened}
-			/>
-			<ConfirmDeleteModal opened={deleteOpened} language={deleteLanguage} onClose={closeDelete} onDeleted={handleDeleted} />
+			<LanguagesTable ref={tableRef} projectId={projectId} onAdd={openAdd} onDelete={openDelete} />
+			<AddLanguageModal projectId={projectId} opened={addOpened} onClose={closeAdd} languages={languages ?? []} />
+			<ConfirmDeleteModal projectId={projectId} opened={deleteOpened} language={deleteLanguage} onClose={closeDelete} onDeleted={handleDeleted} />
 		</div>
 	)
 }
 
-export default LanguagesPage
+export default ProjectLanguagesPage

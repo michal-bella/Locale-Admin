@@ -2,6 +2,11 @@ import { Router } from 'express'
 
 import { type Config } from '../config/env'
 import {
+	createCreateProjectLanguageController,
+	createDeleteProjectLanguageController,
+	createListProjectLanguagesController,
+} from '../controllers/projectLanguages.controller'
+import {
 	createCreateProjectMemberController,
 	createListProjectMembersController,
 	createRemoveProjectMemberController,
@@ -21,6 +26,9 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.delete('/:projectId/membership', requireProjectAccess, createLeaveProjectController(prisma))
 	router.get('/:projectId/settings', requireProjectAccess, createGetProjectSettingsController(prisma))
 	router.patch('/:projectId/settings', requireProjectAccess, createUpdateProjectSettingsController(prisma))
+	router.get('/:projectId/languages', requireProjectAccess, createListProjectLanguagesController(prisma))
+	router.post('/:projectId/languages', requireProjectAccess, createCreateProjectLanguageController(prisma))
+	router.delete('/:projectId/languages/:languageId', requireProjectAccess, createDeleteProjectLanguageController(prisma))
 	router.get('/:projectId/members', requireProjectAccess, createListProjectMembersController(prisma))
 	router.post('/:projectId/members', requireProjectAccess, createCreateProjectMemberController(prisma))
 	router.delete('/:projectId/members/:userId', requireProjectAccess, createRemoveProjectMemberController(prisma))

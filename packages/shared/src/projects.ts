@@ -1,12 +1,17 @@
 import { z } from 'zod'
 
 import { createUserRequestSchema } from './adminUsers'
+import { LANGUAGE_TAGS } from './languages'
 import { projectNameSchema, projectSlugSchema } from './projectSettings'
 
-/** Body of `POST /api/projects`. The creator becomes a member of the new project. */
+/** Body of `POST /api/projects`. The creator becomes a member; the first of `languageTags` is the base language. */
 export const createProjectRequestSchema = z.object({
 	name: projectNameSchema,
 	slug: projectSlugSchema,
+	languageTags: z
+		.array(z.enum(LANGUAGE_TAGS))
+		.min(1)
+		.refine((tags) => new Set(tags).size === tags.length),
 })
 
 export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>

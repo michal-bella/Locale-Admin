@@ -1,8 +1,9 @@
 import { type Language } from '@locale/shared'
 
 export type AddLanguageModalProps = {
+	projectId: string
 	opened: boolean
 	onClose: () => void
-	/** Already added languages, disabled in the select. */
+	/** Languages of the project, disabled in the select. */
 	languages: Language[]
 }

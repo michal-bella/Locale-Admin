@@ -45,6 +45,11 @@
 				"placeholder": "booking-web",
 				"hint": "Malé písmená, číslice a pomlčky. Použije sa v názvoch exportovaných súborov."
 			},
+			"languages": {
+				"label": "Jazyky",
+				"placeholder": "Vyhľadajte jazyky",
+				"hint": "Prvý vybraný jazyk bude základný, zmeniť ho môžete v nastaveniach projektu."
+			},
 			"cancel": "Zrušiť",
 			"submit": "Vytvoriť projekt",
 			"success": "Projekt {{name}} bol vytvorený."
@@ -226,7 +231,7 @@
 	"languagesPage": {
 		"eyebrow": "Lokalizácia",
 		"title": "Jazyky",
-		"description": "Nastavte zdrojový jazyk a spravujte cieľové jazyky projektu.",
+		"description": "Jazyky, do ktorých sa projekt prekladá. Základný jazyk zmeníte v nastaveniach projektu.",
 		"addButton": "Pridať jazyk",
 		"table": {
 			"label": "Zoznam jazykov",
@@ -234,9 +239,8 @@
 			"base": "Základný",
 			"actions": "Akcie pre jazyk {{name}}",
 			"actionsColumn": "Akcie",
-			"edit": "Upraviť",
-			"delete": "Odstrániť",
-			"empty": "Zatiaľ nemáte žiadne jazyky.",
+			"delete": "Odobrať",
+			"empty": "Projekt zatiaľ nemá žiadne jazyky.",
 			"loadError": "Zoznam jazykov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova"
 		},
@@ -253,32 +257,13 @@
 			"submit": "Pridať",
 			"success": "Jazyk {{name}} bol pridaný."
 		},
-		"settingsModal": {
-			"title": "Nastavenia jazyka",
-			"close": "Zavrieť",
-			"englishName": "Anglický názov",
-			"nativeName": "Pôvodný názov",
-			"flag": "Vlajka",
-			"tag": {
-				"label": "Tag",
-				"description": "Tag sa nedá zmeniť."
-			},
-			"isBase": {
-				"label": "Základný jazyk",
-				"description": "Zdrojový jazyk, z ktorého sa prekladá. Základný je vždy práve jeden jazyk."
-			},
-			"delete": "Odstrániť jazyk",
-			"cancel": "Zrušiť",
-			"submit": "Uložiť",
-			"success": "Jazyk {{name}} bol uložený."
-		},
 		"deleteModal": {
-			"title": "Odstrániť jazyk",
+			"title": "Odobrať jazyk",
 			"close": "Zavrieť",
-			"message": "Naozaj chcete odstrániť jazyk {{name}} ({{tag}})?",
+			"message": "Naozaj chcete odobrať jazyk {{name}} ({{tag}}) z projektu?",
 			"cancel": "Zrušiť",
-			"confirm": "Odstrániť",
-			"success": "Jazyk {{name}} bol odstránený."
+			"confirm": "Odobrať",
+			"success": "Jazyk {{name}} bol odobraný z projektu."
 		}
 	},
 	"projectSettingsPage": {
@@ -302,9 +287,8 @@
 			"baseLanguage": {
 				"label": "Základný jazyk",
 				"placeholder": "Vyberte jazyk",
-				"empty": "Zatiaľ nemáte žiadne jazyky.",
-				"emptyLink": "Pridať jazyk",
-				"adminOnly": "Základný jazyk je spoločný pre všetky projekty, mení ho iba administrátor."
+				"empty": "Projekt zatiaľ nemá žiadne jazyky.",
+				"emptyLink": "Pridať jazyk do projektu"
 			}
 		},
 		"variables": {

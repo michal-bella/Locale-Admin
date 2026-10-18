@@ -4,8 +4,6 @@ import { ROLE } from '../generated/prisma/enums'
 import { hashPassword } from '../lib/password'
 import { type PrismaClient } from '../lib/prisma'
 
-import { getSupportedLanguage } from './adminLanguages.service'
-
 export const SEED_ADMIN_EMAIL = 'michal.bella@goodrequest.com'
 
 export type SeedAdminResult = 'created' | 'exists'
@@ -24,31 +22,21 @@ const SEED_BASE_LANGUAGE_TAG = 'sk' satisfies LanguageTag
 
 export const SEED_LANGUAGE_TAGS = [SEED_BASE_LANGUAGE_TAG, 'en'] as const satisfies LanguageTag[]
 
-export type SeedLanguagesResult = 'created' | 'exists'
-
-/** Seeds only an empty table, so languages an ADMIN deleted do not come back on the next backend start. */
-export const seedLanguages = async (prisma: PrismaClient): Promise<SeedLanguagesResult> => {
-	if ((await prisma.language.count()) > 0) {
-		return 'exists'
-	}
-	await prisma.language.createMany({
-		data: SEED_LANGUAGE_TAGS.map((tag) => {
-			const { englishName, nativeName, flagCode } = getSupportedLanguage(tag)
-			return { tag, englishName, nativeName, flagCode, isBase: tag === SEED_BASE_LANGUAGE_TAG }
-		}),
-	})
-	return 'created'
-}
-
 export const SEED_PROJECT = { name: 'B2B Admin', slug: 'b2b-admin' } as const
 
 export type SeedProjectResult = 'created' | 'exists'
 
-/** Seeds only an empty table, so an ADMIN's changes stay after a restart. Run after `seedAdmin`: the admin becomes the only member. */
+/** Seeds only an empty table, so changes stay after a restart. Run after `seedAdmin`: the admin becomes the only member. Languages `sk` (base) and `en`. */
 export const seedProject = async (prisma: PrismaClient): Promise<SeedProjectResult> => {
 	if ((await prisma.project.count()) > 0) {
 		return 'exists'
 	}
-	await prisma.project.create({ data: { ...SEED_PROJECT, members: { create: { user: { connect: { email: SEED_ADMIN_EMAIL } } } } } })
+	await prisma.project.create({
+		data: {
+			...SEED_PROJECT,
+			members: { create: { user: { connect: { email: SEED_ADMIN_EMAIL } } } },
+			languages: { create: SEED_LANGUAGE_TAGS.map((tag) => ({ tag, isBase: tag === SEED_BASE_LANGUAGE_TAG })) },
+		},
+	})
 	return 'created'
 }

@@ -1,10 +1,19 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 
 import { MUTATION_HEADERS } from '../support/api'
 import { ANONYMOUS, expectLoggedInHome, loginViaUi } from '../support/auth'
 import { newAdminApi } from '../support/languages'
 import { createProject, listProjects, newTestProjectInput, projectMembersApi } from '../support/projects'
 import { createEditor, newTestUserCredentials } from '../support/users'
+
+/** Mantine MultiSelect also renders a hidden input with the same label; the visible one opens the options. */
+const pickLanguages = async (page: Page, dialog: Locator, ...options: string[]) => {
+	const input = dialog.getByLabel('Jazyky', { exact: true }).and(dialog.locator('[data-type="visible"]'))
+	for (const option of options) {
+		await input.click()
+		await page.getByRole('option', { name: option }).click()
+	}
+}
 
 const getList = (page: Page) => page.getByRole('list', { name: 'Zoznam projektov' })
 
@@ -43,9 +52,13 @@ test.describe('member', () => {
 		// The slug follows the name until it is edited.
 		await expect(dialog.getByLabel('Slug projektu', { exact: true })).toHaveValue(name.toLowerCase().replaceAll(' ', '-'))
 		await dialog.getByLabel('Slug projektu', { exact: true }).fill(slug)
+		// The first chosen language becomes the base.
+		await pickLanguages(page, dialog, 'English – English – en', 'Slovak – slovenčina – sk')
 		const created = page.waitForResponse((response) => response.url().endsWith('/api/projects') && response.request().method() === 'POST')
 		await dialog.getByRole('button', { name: 'Vytvoriť projekt' }).click()
-		expect((await created).status()).toBe(201)
+		const response = await created
+		expect(response.status()).toBe(201)
+		expect(response.request().postDataJSON()).toMatchObject({ languageTags: ['en', 'sk'] })
 
 		await expect(page.getByText(`Projekt ${name} bol vytvorený.`)).toBeVisible()
 		await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+\/settings$/)
@@ -72,6 +85,13 @@ test.describe('member', () => {
 		await dialog.getByLabel('Názov projektu', { exact: true }).fill('Iný projekt')
 		const slug = dialog.getByLabel('Slug projektu', { exact: true })
 		await slug.fill(taken.slug)
+		// Enter after typing picks the first match and does not submit the form yet.
+		const languages = dialog.getByLabel('Jazyky', { exact: true }).and(dialog.locator('[data-type="visible"]'))
+		await languages.fill('slov')
+		await expect(page.getByRole('option', { name: 'Slovak – slovenčina – sk' })).toBeVisible()
+		await languages.press('Enter')
+		await expect(dialog.getByText('Slovak – slovenčina – sk')).toBeVisible()
+		await expect(dialog.getByText('Toto pole je povinné.')).toHaveCount(0)
 		await dialog.getByRole('button', { name: 'Vytvoriť projekt' }).click()
 
 		await expect(slug).toHaveAttribute('aria-invalid', 'true')

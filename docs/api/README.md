@@ -18,7 +18,7 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `GET`    | `/api/auth/me`                        | prihlásený používateľ, [detail](./auth.md)                                     |
 | `GET`    | `/api/admin/users`                    | zoznam administrátorov (ADMIN), [detail](./admin-users.md)                     |
 | `POST`   | `/api/admin/users`                    | vytvorenie administrátora (ADMIN), [detail](./admin-users.md)                  |
-| `GET`    | `/api/admin/languages`                | zoznam jazykov (ADMIN), [detail](./admin-languages.md)                         |
+| `GET`    | `/api/languages`                      | zoznam jazykov (prihlásený), [detail](./admin-languages.md)                    |
 | `POST`   | `/api/admin/languages`                | pridanie jazyka z katalógu (ADMIN), [detail](./admin-languages.md)             |
 | `PATCH`  | `/api/admin/languages/:id`            | úprava jazyka, zmena základného jazyka (ADMIN), [detail](./admin-languages.md) |
 | `DELETE` | `/api/admin/languages/:id`            | odstránenie jazyka (ADMIN), [detail](./admin-languages.md)                     |

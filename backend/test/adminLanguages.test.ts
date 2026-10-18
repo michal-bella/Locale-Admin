@@ -49,7 +49,7 @@ const deleteLanguage = (app: App, cookie: string, id: string) =>
 
 const UPDATE_BODY = { englishName: 'Russian', nativeName: 'русский', flagCode: 'ru' }
 
-describe('GET /api/admin/languages', () => {
+describe('GET /api/languages', () => {
 	it('returns the base language first, then by tag', async () => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
@@ -58,7 +58,7 @@ describe('GET /api/admin/languages', () => {
 		const en = await createLanguageRow('en')
 		const deAt = await createLanguageRow('de-AT')
 
-		const res = await request(app).get('/api/admin/languages').set('Cookie', cookie)
+		const res = await request(app).get('/api/languages').set('Cookie', cookie)
 
 		expect(res.status).toBe(200)
 		const languages = languageSchema.strict().array().parse(res.body)
@@ -78,25 +78,34 @@ describe('GET /api/admin/languages', () => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
 
-		const res = await request(app).get('/api/admin/languages').set('Cookie', cookie)
+		const res = await request(app).get('/api/languages').set('Cookie', cookie)
 
 		expect(res.status).toBe(200)
 		expect(res.body).toEqual([])
 	})
 
 	it('returns 401 AUTH_UNAUTHENTICATED without a session', async () => {
-		const res = await request(createTestApp()).get('/api/admin/languages')
+		const res = await request(createTestApp()).get('/api/languages')
 
 		expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
 	})
 
-	it('returns 403 FORBIDDEN for an EDITOR', async () => {
+	it('returns the list to an EDITOR too', async () => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.EDITOR)
 
+		const res = await request(app).get('/api/languages').set('Cookie', cookie)
+
+		expect(res.status).toBe(200)
+	})
+
+	it('no longer serves the list under /api/admin', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+
 		const res = await request(app).get('/api/admin/languages').set('Cookie', cookie)
 
-		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
+		expectErrorCode(res, 404, ERROR_CODE.NOT_FOUND)
 	})
 })
 
@@ -256,7 +265,7 @@ describe('PATCH /api/admin/languages/:id', () => {
 		expect(bases.map(({ id }) => id)).toEqual([ru.id])
 		expect((await getTestPrisma().language.findUniqueOrThrow({ where: { id: sk.id } })).isBase).toBe(false)
 
-		const list = languagesResponseSchema.parse((await request(app).get('/api/admin/languages').set('Cookie', cookie)).body)
+		const list = languagesResponseSchema.parse((await request(app).get('/api/languages').set('Cookie', cookie)).body)
 		expect(list.map(({ tag }) => tag)).toEqual(['ru', 'sk'])
 	})
 

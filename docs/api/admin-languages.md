@@ -1,21 +1,21 @@
 ---
 title: 'API: jazyky'
-updated: 2026-10-17
+updated: 2026-10-18
 notion_page_id:
 ---
 
-# Jazyky (`/api/admin/languages`)
+# Jazyky (`/api/languages`, `/api/admin/languages`)
 
-Správa jazykov, do ktorých sa prekladá. Kým neexistujú projekty, je to jeden globálny zoznam. Pridať sa dá iba jazyk z pevného katalógu `SUPPORTED_LANGUAGES` (9 jazykov). Schémy sú v `packages/shared/src/languages.ts`.
+Správa jazykov, do ktorých sa prekladá. Kým nie sú jazyky naviazané na projekt, je to jeden globálny zoznam. Pridať sa dá iba jazyk z pevného katalógu `SUPPORTED_LANGUAGES` (9 jazykov). Schémy sú v `packages/shared/src/languages.ts`.
 
 | Metóda   | Cesta                      | Prihlásenie | Popis                                        |
 | -------- | -------------------------- | ----------- | -------------------------------------------- |
-| `GET`    | `/api/admin/languages`     | `ADMIN`     | zoznam jazykov, základný prvý                |
+| `GET`    | `/api/languages`           | prihlásený  | zoznam jazykov, základný prvý                |
 | `POST`   | `/api/admin/languages`     | `ADMIN`     | pridá jazyk z katalógu                       |
 | `PATCH`  | `/api/admin/languages/:id` | `ADMIN`     | upraví názvy, vlajku, nastaví základný jazyk |
 | `DELETE` | `/api/admin/languages/:id` | `ADMIN`     | odstráni jazyk (okrem základného)            |
 
-Celý router `/api/admin` je za `requireAuth` a `requireRole(ROLE.ADMIN)`: bez session vráti 401 `AUTH_UNAUTHENTICATED`, prihlásený `EDITOR` dostane 403 `FORBIDDEN` (viď [auth](./auth.md#oprávnenia)). Zápisy (`POST`, `PATCH`, `DELETE`) potrebujú CSRF hlavičku a JSON telo, aj `DELETE` (stačí `{}`), inak 403 `CSRF_REJECTED` (viď [auth](./auth.md#csrf)).
+Zoznam (`/api/languages`) je za `requireAuth` a vidí ho každý prihlásený, lebo nastavenia projektu ukazujú základný jazyk aj členom. Zápisy sú pod `/api/admin`, ktorý je celý za `requireAuth` a `requireRole(ROLE.ADMIN)`: bez session vráti 401 `AUTH_UNAUTHENTICATED`, prihlásený `EDITOR` dostane 403 `FORBIDDEN` (viď [auth](./auth.md#oprávnenia)). Zápisy (`POST`, `PATCH`, `DELETE`) potrebujú CSRF hlavičku a JSON telo, aj `DELETE` (stačí `{}`), inak 403 `CSRF_REJECTED` (viď [auth](./auth.md#csrf)).
 
 ## Základný jazyk
 
@@ -51,15 +51,14 @@ Schéma `languageSchema`.
 }
 ```
 
-## GET /api/admin/languages
+## GET /api/languages
 
-Vráti `200` s poľom `Language[]` (schéma `languagesResponseSchema`, bez obálky). Základný jazyk je prvý, ostatné podľa `tag`. Bez jazykov vráti `[]`.
+Vráti `200` s poľom `Language[]` (schéma `languagesResponseSchema`, bez obálky). Základný jazyk je prvý, ostatné podľa `tag`. Bez jazykov vráti `[]`. Do 2026-10-18 bol zoznam na `GET /api/admin/languages` iba pre `ADMIN`.
 
-| HTTP | `code`                 | Kedy                                 |
-| ---- | ---------------------- | ------------------------------------ |
-| 200  |                        | zoznam jazykov                       |
-| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session       |
-| 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN` |
+| HTTP | `code`                 | Kedy                           |
+| ---- | ---------------------- | ------------------------------ |
+| 200  |                        | zoznam jazykov                 |
+| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session |
 
 ## POST /api/admin/languages
 

@@ -1,6 +1,6 @@
 ---
 title: 'Changelog'
-updated: 2026-10-17
+updated: 2026-10-18
 notion_page_id:
 ---
 
@@ -8,11 +8,20 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Projekty a členovia (MVP, 2026-10-18)
+
+- organizácie vypadli: používateľ s rolou `EDITOR` (v UI „Člen“) spravuje svoje projekty sám, `ADMIN` vidí všetky
+- zdieľaný kontrakt: `ProjectListItem`, `createProjectRequestSchema`, `ProjectMember`, `createProjectMemberRequestSchema`, `baseLanguageId` v nastaveniach projektu voliteľné, nové chybové kódy `SLUG_TAKEN` a `LAST_MEMBER`
+- backend: `/api/projects` (zoznam, vytvorenie, opustenie, nastavenia, členovia) s prístupom pre člena alebo ADMIN-a (inak 404); `/api/admin/project` zrušené; `/api/admin/users` zobrazuje a vytvára iba adminov; zoznam jazykov presunutý na `GET /api/languages` pre každého prihláseného ([API](./api/projects.md))
+- frontend: úvodná stránka so zoznamom projektov bez sidebaru (Nový projekt, Opustiť projekt, Nastavenia), routy `/projects/$projectId/settings` a `/members` so sidebarom, stránka Členovia, `/project-settings` zrušené
+- E2E: testy projektov a členov, testovací používatelia sa zakladajú cez Členovia v testovacom projekte, `teardown` maže aj testovacie projekty
+- plán: [projects.md](./plans/projects.md)
+
 ### Nastavenia projektu (MVP, 2026-10-17)
 
 - zdieľaný kontrakt: `ProjectSettings`, `updateProjectSettingsRequestSchema` (názov, slug `a-z0-9` s pomlčkami, farba `#RRGGBB` uložená veľkými písmenami, ochrana premenných, základný jazyk)
 - databáza: tabuľky `Project` a `ProjectMember`, seed jedného projektu `B2B Admin` / `b2b-admin` so seedovaným adminom ako členom iba do prázdnej tabuľky ([Databáza](./database.md))
-- backend: `GET` a `PATCH /api/admin/project` iba pre ADMIN; zmena základného jazyka v tej istej transakcii cez spoločnú funkciu `setBaseLanguage` ([API](./api/admin-project.md))
+- backend: `GET` a `PATCH /api/admin/project` iba pre ADMIN; zmena základného jazyka v tej istej transakcii cez spoločnú funkciu `setBaseLanguage` ([API](./api/projects.md))
 - frontend: stránka `/project-settings` podľa Figmy doplnená o Základný jazyk a disabled tlačidlo Opustiť projekt, položka Nastavenia projektu v sekcii SPRÁVA sidebaru
 - E2E: testy stránky (uloženie, základný jazyk, validácia, EDITOR 403, odhlásený), sidebar a axe s novou stránkou
 - plán: [project-settings.md](./plans/project-settings.md)

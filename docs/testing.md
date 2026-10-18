@@ -40,7 +40,7 @@ Potrebujú bežiaci Postgres (`pnpm db:up`) a `TEST_DATABASE_URL` v `.env`.
 
 - Prostredie jsdom, setup v `frontend/src/test/setup.ts` (jest-dom matchery, i18n).
 - Stránky sa renderujú cez router s pamäťovou históriou, keď záleží na routingu.
-- `src/lib/i18n.test.ts` overuje, že každý `ERROR_CODE` a `VALIDATION_CODE` má preklad `sk` aj `en`. Nový kód bez prekladov test zhodí.
+- `src/lib/i18n.test.ts` overuje, že každý `ERROR_CODE` a `VALIDATION_CODE` má preklad `sk`, `cs` aj `en`, že `sk.json`, `cs.json` a `en.json` majú rovnaké kľúče (plurálové kľúče `_one`/`_few`/`_many`/`_other` sa porovnávajú podľa základného kľúča a každý má všetky tvary, ktoré jazyk podľa `Intl.PluralRules` potrebuje) a že žiadna hodnota nie je prázdna. Nový kód bez prekladov test zhodí.
 
 ## E2E testy (Playwright)
 

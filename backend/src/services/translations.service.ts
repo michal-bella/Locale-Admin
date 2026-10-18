@@ -33,7 +33,7 @@ END`
 
 const ORDER_BY: Record<TranslationsSort, Prisma.Sql> = {
 	UNTRANSLATED_FIRST: Prisma.sql`(t.value IS NULL) DESC, "group", k.name, k.id`,
-	KEY: Prisma.sql`k.namespace, k.name, k.id`,
+	KEY: Prisma.sql`k.namespace, "group", k.name, k.id`,
 	UPDATED: Prisma.sql`t."updatedAt" DESC NULLS LAST, k.name, k.id`,
 }
 

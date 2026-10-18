@@ -217,6 +217,26 @@ describe('GET /api/projects/:projectId/translations', () => {
 		expect(names(await listOk(app, cookie, project.id, query))).toEqual(['b', 'y', 'a', 'z'])
 	})
 
+	it('sorts KEY by namespace, then group, so path keys of one object stay together after the sentence keys', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		for (const name of ['orders.title', 'b', 'orders.empty.title', 'z', 'invoices.title']) {
+			await createKey(project.id, 'loc', name)
+		}
+		await createKey(project.id, 'paths', 'a')
+
+		const body = await listOk(app, cookie, project.id, { sourceLanguageId: sk.id, targetLanguageId: en.id, sort: 'KEY' })
+
+		expect(body.items.map(({ group, name }) => `${group} ${name}`)).toEqual([
+			'loc b',
+			'loc z',
+			'loc:invoices invoices.title',
+			'loc:orders orders.title',
+			'loc:orders.empty orders.empty.title',
+			'paths a',
+		])
+	})
+
 	it('uses the key id as the last tiebreaker, so pages never overlap', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie } = await setup(app)

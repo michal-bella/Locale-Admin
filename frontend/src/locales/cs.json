@@ -420,6 +420,7 @@
 		"SELF_DELETE": "Vlastní účet nemůžete odstranit.",
 		"IMPORT_FILE_INVALID": "Soubor obsahuje chyby. Opravte je a nahrajte ho znovu.",
 		"IMPORT_FILE_TOO_LARGE": "Soubor je příliš velký. Maximální velikost je 10 MB.",
+		"IMPORT_COLUMNS_INVALID": "Přiřazení sloupců k jazykům je neplatné. Zkontrolujte jazyky a zkuste to znovu.",
 		"RATE_LIMITED": "Příliš mnoho pokusů. Zkuste to znovu později.",
 		"INTERNAL_ERROR": "Nastala neočekávaná chyba. Zkuste to znovu.",
 		"UNKNOWN": "Nastala neznámá chyba. Zkuste to znovu."

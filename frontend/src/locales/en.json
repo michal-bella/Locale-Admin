@@ -420,6 +420,7 @@
 		"SELF_DELETE": "You cannot delete your own account.",
 		"IMPORT_FILE_INVALID": "The file contains errors. Fix them and upload it again.",
 		"IMPORT_FILE_TOO_LARGE": "The file is too large. The maximum size is 10 MB.",
+		"IMPORT_COLUMNS_INVALID": "The column-to-language mapping is invalid. Check the languages and try again.",
 		"RATE_LIMITED": "Too many attempts. Please try again later.",
 		"INTERNAL_ERROR": "An unexpected error occurred. Please try again.",
 		"UNKNOWN": "An unknown error occurred. Please try again."

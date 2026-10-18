@@ -1,6 +1,6 @@
 # Locale Admin
 
-Admin aplikácia na správu prekladov pre organizácie a ich projekty.
+Admin aplikácia na správu prekladov v projektoch.
 
 - Dokumentácia: [`docs/`](docs/README.md)
 - Plán aktuálnej fázy: [`docs/plans/phase-1.md`](docs/plans/phase-1.md)

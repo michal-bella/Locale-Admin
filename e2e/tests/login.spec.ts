@@ -10,7 +10,7 @@ import { createEditor } from '../support/users'
 // Each test logs in on its own: logging out of the shared storageState session would break other tests.
 test.use({ storageState: ANONYMOUS })
 
-test('logs in via the UI and logs out from the sidebar user menu', async ({ page, playwright, baseURL }) => {
+test('logs in via the UI and logs out from the user menu', async ({ page, playwright, baseURL }) => {
 	await loginViaUi(page, await createEditor(playwright.request, baseURL))
 	await expectLoggedInHome(page)
 	const token = await getSessionToken(page.context())

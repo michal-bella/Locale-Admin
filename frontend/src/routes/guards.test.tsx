@@ -40,7 +40,22 @@ describe('route guards', () => {
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeInTheDocument()
 		expect(router.state.location.pathname).toBe('/languages')
-		expect(requests.some((request) => request.url === '/admin/languages')).toBe(false)
+		expect(requests.some((request) => request.url === '/languages')).toBe(false)
+	})
+
+	it('redirects a project URL to its settings', async () => {
+		const projectId = '00000000-0000-4000-8000-000000000601'
+		signedInAs(EDITOR_USER, {
+			[`GET /projects/${projectId}/settings`]: {
+				status: 200,
+				data: { id: projectId, name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C', protectVariables: true, baseLanguageId: null },
+			},
+			'GET /languages': { status: 200, data: [] },
+		})
+		const router = renderApp(`/projects/${projectId}`)
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Nastavenia projektu' })).toBeInTheDocument()
+		expect(router.state.location.pathname).toBe(`/projects/${projectId}/settings`)
 	})
 
 	it('shows the users page to an ADMIN', async () => {

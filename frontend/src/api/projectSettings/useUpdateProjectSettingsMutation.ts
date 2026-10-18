@@ -5,15 +5,16 @@ import { type ProjectSettings, type UpdateProjectSettingsRequest } from '@locale
 import http from '@/api/http'
 import { QUERY_KEYS } from '@/api/queryKeys'
 
-export const useUpdateProjectSettingsMutation = () => {
+export const useUpdateProjectSettingsMutation = (projectId: string) => {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: async (body: UpdateProjectSettingsRequest) => (await http.patch<ProjectSettings>('/admin/project', body)).data,
-		// A new base language moves the base flag on the Languages page too.
+		mutationFn: async (body: UpdateProjectSettingsRequest) => (await http.patch<ProjectSettings>(`/projects/${projectId}/settings`, body)).data,
+		// A new base language moves the base flag on the Languages page too; name and color show in the project list.
 		onSuccess: () =>
 			Promise.all([
-				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECT_SETTINGS() }),
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.SETTINGS(projectId) }),
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.LIST() }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.LANGUAGES() }),
 			]),
 	})

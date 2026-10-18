@@ -53,7 +53,6 @@ model Language {
   updatedAt   DateTime @updatedAt
 }
 
-/// There is one project for now (seeded); the API reads it as a singleton.
 model Project {
   id               String          @id @default(uuid()) @db.Uuid
   name             String

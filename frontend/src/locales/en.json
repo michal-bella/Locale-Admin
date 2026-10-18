@@ -10,16 +10,59 @@
 	},
 	"roles": {
 		"ADMIN": "Administrator",
-		"EDITOR": "Editor"
-	},
-	"homePage": {
-		"title": "Home"
+		"EDITOR": "Member"
 	},
 	"notFoundPage": {
 		"eyebrow": "Error 404",
 		"title": "Page not found",
 		"description": "The page you are looking for does not exist or has been moved.",
 		"backHome": "Back to home"
+	},
+	"projectsPage": {
+		"eyebrow": "Overview",
+		"title": "Projects",
+		"description": "Projects you are a member of.",
+		"createButton": "New project",
+		"list": {
+			"label": "Project list",
+			"empty": "You have no projects yet. Create the first one.",
+			"loadError": "The project list could not be loaded.",
+			"retry": "Try again",
+			"actions": "Actions of project {{name}}",
+			"settings": "Settings",
+			"leave": "Leave project"
+		},
+		"createModal": {
+			"title": "New project",
+			"description": "You will become the first member of the project.",
+			"close": "Close",
+			"name": {
+				"label": "Project name",
+				"placeholder": "E.g. Booking Web"
+			},
+			"slug": {
+				"label": "Project slug",
+				"placeholder": "booking-web",
+				"hint": "Lowercase letters, digits and hyphens. Used in the names of exported files."
+			},
+			"cancel": "Cancel",
+			"submit": "Create project",
+			"success": "Project {{name}} has been created."
+		}
+	},
+	"leaveProjectModal": {
+		"title": "Leave project",
+		"message": "Do you really want to leave the project {{name}}? Another member can add you back.",
+		"close": "Close",
+		"cancel": "Cancel",
+		"confirm": "Leave project",
+		"success": "You have left the project {{name}}."
+	},
+	"projectNotFoundPage": {
+		"eyebrow": "Error 404",
+		"title": "Project not found",
+		"description": "The project does not exist or you are not its member.",
+		"backHome": "Back to projects"
 	},
 	"loginPage": {
 		"eyebrow": "Sign in",
@@ -53,19 +96,19 @@
 	"usersPage": {
 		"eyebrow": "Administration",
 		"title": "Users",
-		"description": "Accounts that have access to the system.",
-		"createButton": "Create user",
+		"description": "Administrators who manage the system, languages and all projects.",
+		"createButton": "Create administrator",
 		"table": {
-			"label": "User list",
+			"label": "Administrator list",
 			"email": "Email",
 			"createdAt": "Created",
-			"empty": "There are no users yet.",
-			"loadError": "The user list could not be loaded.",
+			"empty": "There are no administrators yet.",
+			"loadError": "The administrator list could not be loaded.",
 			"retry": "Try again"
 		},
 		"createModal": {
-			"title": "New user",
-			"description": "Enter an email and a password for the new account.",
+			"title": "New administrator",
+			"description": "Enter an email and a password for the new administrator account. Project members are created on the Members page of a project.",
 			"close": "Close",
 			"email": {
 				"label": "Email",
@@ -76,8 +119,38 @@
 				"placeholder": "Min. {{min}} characters"
 			},
 			"cancel": "Cancel",
-			"submit": "Create user",
-			"success": "User {{email}} has been created."
+			"submit": "Create administrator",
+			"success": "Administrator {{email}} has been created."
+		}
+	},
+	"membersPage": {
+		"eyebrow": "Project",
+		"title": "Members",
+		"description": "Users who have access to this project.",
+		"createButton": "Add member",
+		"table": {
+			"label": "Member list",
+			"member": "Member",
+			"joinedAt": "Added",
+			"empty": "The project has no members yet.",
+			"loadError": "The member list could not be loaded.",
+			"retry": "Try again"
+		},
+		"createModal": {
+			"title": "New member",
+			"description": "Creates a new account with access to this project.",
+			"close": "Close",
+			"email": {
+				"label": "Email",
+				"placeholder": "name@company.com"
+			},
+			"password": {
+				"label": "Password",
+				"placeholder": "Min. {{min}} characters"
+			},
+			"cancel": "Cancel",
+			"submit": "Add member",
+			"success": "Member {{email}} has been added to the project."
 		}
 	},
 	"profilePage": {
@@ -91,7 +164,7 @@
 		},
 		"personal": {
 			"title": "Personal details",
-			"description": "Other members of the organization will see this information.",
+			"description": "Other members of your projects will see this information.",
 			"firstName": "First name",
 			"lastName": "Last name",
 			"email": "Email address",
@@ -189,7 +262,7 @@
 	"projectSettingsPage": {
 		"eyebrow": "Configuration",
 		"title": "Project settings",
-		"description": "Basic details, organization identity and translation rules.",
+		"description": "Basic details, project identity and translation rules.",
 		"loadError": "Project settings could not be loaded.",
 		"retry": "Try again",
 		"basics": {
@@ -208,7 +281,8 @@
 				"label": "Base language",
 				"placeholder": "Select a language",
 				"empty": "You have no languages yet.",
-				"emptyLink": "Add a language"
+				"emptyLink": "Add a language",
+				"adminOnly": "The base language is shared by all projects, only an administrator can change it."
 			}
 		},
 		"variables": {
@@ -220,7 +294,6 @@
 			}
 		},
 		"leave": "Leave project",
-		"leaveTooltip": "Available together with member management",
 		"save": "Save changes",
 		"saveSuccess": "Project settings were saved."
 	},
@@ -244,10 +317,12 @@
 	},
 	"sidebar": {
 		"label": "Main navigation",
+		"allProjects": "All projects",
 		"languages": "Languages",
 		"admin": "Administration",
 		"users": "Users",
 		"projectSettings": "Project settings",
+		"members": "Members",
 		"openNavigation": "Open navigation",
 		"closeNavigation": "Close navigation",
 		"home": "Locale – home page",
@@ -267,6 +342,8 @@
 		"EMAIL_TAKEN": "A user with this email already exists.",
 		"LANGUAGE_TAKEN": "This language has already been added.",
 		"LANGUAGE_IS_BASE": "The base language cannot be deleted. Set another base language first.",
+		"SLUG_TAKEN": "A project with this slug already exists.",
+		"LAST_MEMBER": "You are the last member of the project and cannot leave it.",
 		"RATE_LIMITED": "Too many attempts. Please try again later.",
 		"INTERNAL_ERROR": "An unexpected error occurred. Please try again.",
 		"UNKNOWN": "An unknown error occurred. Please try again."

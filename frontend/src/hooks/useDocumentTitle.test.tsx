@@ -14,16 +14,16 @@ describe('document.title', () => {
 		expect(document.title).toBe('Vitajte späť – Locale')
 	})
 
-	it('names the home page, which has a hidden h1', async () => {
-		signedInAs(ADMIN_USER)
+	it('names the project list on the home page', async () => {
+		signedInAs(ADMIN_USER, { 'GET /projects': { status: 200, data: { projects: [] } } })
 		renderApp('/')
 
-		expect(await screen.findByRole('heading', { level: 1, name: 'Domov' })).toBeInTheDocument()
-		expect(document.title).toBe('Domov – Locale')
+		expect(await screen.findByRole('heading', { level: 1, name: 'Projekty' })).toBeInTheDocument()
+		expect(document.title).toBe('Projekty – Locale')
 	})
 
 	it('follows navigation and the UI language', async () => {
-		signedInAs(ADMIN_USER, { 'GET /admin/languages': { status: 200, data: [] }, 'GET /admin/users': { status: 200, data: { users: [] } } })
+		signedInAs(ADMIN_USER, { 'GET /languages': { status: 200, data: [] }, 'GET /admin/users': { status: 200, data: { users: [] } } })
 		renderApp('/languages')
 
 		await waitFor(() => expect(document.title).toBe('Jazyky – Locale'))

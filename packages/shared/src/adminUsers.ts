@@ -4,7 +4,7 @@ import { ROLE } from './auth'
 import { emailSchema } from './email'
 import { passwordSchema } from './password'
 
-/** Body of `POST /api/admin/users`. There is no role field: a new user is always an EDITOR. */
+/** Body of `POST /api/admin/users`. There is no role field: a new user is always an ADMIN. */
 export const createUserRequestSchema = z.object({
 	email: emailSchema,
 	password: passwordSchema,

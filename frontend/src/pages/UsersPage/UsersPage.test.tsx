@@ -35,17 +35,17 @@ const NEW_USER: AdminUser = {
 
 const usersResponse = (users: AdminUser[]) => ({ status: 200, data: { users } })
 
-const getTable = () => screen.getByRole('table', { name: 'Zoznam používateľov' })
+const getTable = () => screen.getByRole('table', { name: 'Zoznam administrátorov' })
 
 const openModal = async () => {
-	fireEvent.click(await screen.findByRole('button', { name: 'Vytvoriť používateľa' }))
-	return screen.findByRole('dialog', { name: 'Nový používateľ' })
+	fireEvent.click(await screen.findByRole('button', { name: 'Vytvoriť administrátora' }))
+	return screen.findByRole('dialog', { name: 'Nový administrátor' })
 }
 
 const fillAndSubmit = (dialog: HTMLElement, email: string, password: string) => {
 	fireEvent.change(within(dialog).getByLabelText('E-mail'), { target: { value: email } })
 	fireEvent.change(within(dialog).getByLabelText('Heslo'), { target: { value: password } })
-	const submit = within(dialog).getByRole('button', { name: 'Vytvoriť používateľa' })
+	const submit = within(dialog).getByRole('button', { name: 'Vytvoriť administrátora' })
 	// fireEvent.click does not move focus like a real click or Enter does.
 	submit.focus()
 	fireEvent.click(submit)
@@ -121,7 +121,7 @@ describe('UsersPage table', () => {
 		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([]) })
 		renderApp('/admin/users')
 
-		expect(await screen.findByText('Zatiaľ tu nie sú žiadni používatelia.')).toBeInTheDocument()
+		expect(await screen.findByText('Zatiaľ tu nie sú žiadni administrátori.')).toBeInTheDocument()
 		expect(getTable()).toHaveAttribute('aria-busy', 'false')
 	})
 
@@ -132,7 +132,7 @@ describe('UsersPage table', () => {
 		})
 		renderApp('/admin/users')
 
-		expect(await screen.findByText('Zoznam používateľov sa nepodarilo načítať.')).toBeInTheDocument()
+		expect(await screen.findByText('Zoznam administrátorov sa nepodarilo načítať.')).toBeInTheDocument()
 		expect(screen.getByText('Nastala neočakávaná chyba. Skúste to znova.')).toBeInTheDocument()
 		expect(screen.queryByText('English message that must not be shown')).not.toBeInTheDocument()
 
@@ -235,7 +235,7 @@ describe('CreateUserModal', () => {
 		expect(posts).toHaveLength(1)
 		expect(JSON.parse(posts[0]?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password' })
 		expect(requests.filter((request) => request.method === 'get' && request.url === '/admin/users')).toHaveLength(2)
-		expect(show).toHaveBeenCalledWith(expect.objectContaining({ message: 'Používateľ nova@firma.sk bol vytvorený.' }))
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ message: 'Administrátor nova@firma.sk bol vytvorený.' }))
 
 		const reopened = await openModal()
 		expect(within(reopened).getByLabelText('E-mail')).toHaveValue('')
@@ -247,7 +247,7 @@ describe('CreateUserModal', () => {
 		const dialog = await openModal()
 
 		fillAndSubmit(dialog, 'nova@firma.sk', 'long-enough-password')
-		const submit = within(dialog).getByRole('button', { name: 'Vytvoriť používateľa' })
+		const submit = within(dialog).getByRole('button', { name: 'Vytvoriť administrátora' })
 		await waitFor(() => expect(submit).toHaveAttribute('data-loading', 'true'))
 		expect(submit).toBeDisabled()
 
@@ -274,7 +274,7 @@ describe('CreateUserModal', () => {
 		fireEvent.keyDown(dialog, { key: 'Escape' })
 		fireEvent.click(cancel)
 
-		expect(screen.getByRole('dialog', { name: 'Nový používateľ' })).toBeInTheDocument()
+		expect(screen.getByRole('dialog', { name: 'Nový administrátor' })).toBeInTheDocument()
 		expect(within(dialog).getByLabelText('E-mail')).toHaveValue('nova@firma.sk')
 	})
 

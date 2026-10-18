@@ -9,4 +9,6 @@ export type ProjectBasicsSectionProps = {
 	languages: Language[]
 	/** Shown in the preview while the typed color is not a valid `#RRGGBB` yet. */
 	savedColor: string
+	/** The base language is global, only an ADMIN may change it. */
+	canChangeBaseLanguage: boolean
 }

@@ -7,7 +7,10 @@ import { BASE_URL, getDatabaseUrl } from './env'
 
 export type Language = { id: string; tag: string; englishName: string; nativeName: string; flagCode: string; isBase: boolean; createdAt: string }
 
+/** Writes are ADMIN only; the list is `LANGUAGES_LIST_API` for every signed-in user. */
 export const LANGUAGES_API = '/api/admin/languages'
+
+export const LANGUAGES_LIST_API = '/api/languages'
 
 /**
  * Catalog tags the suite adds and deletes. Each browser project and the API smoke test use their own tag,
@@ -22,8 +25,8 @@ export const TEST_LANGUAGE = {
 export const newAdminApi = (request: APIRequest) => request.newContext({ baseURL: BASE_URL, storageState: STORAGE_STATE.ADMIN })
 
 export const listLanguages = async (api: APIRequestContext) => {
-	const response = await api.get(LANGUAGES_API)
-	expect(response.status(), `GET ${LANGUAGES_API}`).toBe(200)
+	const response = await api.get(LANGUAGES_LIST_API)
+	expect(response.status(), `GET ${LANGUAGES_LIST_API}`).toBe(200)
 	return (await response.json()) as Language[]
 }
 

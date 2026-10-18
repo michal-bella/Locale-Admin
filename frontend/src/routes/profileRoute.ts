@@ -1,8 +1,8 @@
 import { createRoute } from '@tanstack/react-router'
 
-import { authenticatedRoute } from '@/routes/authenticatedRoute'
+import { appLayoutRoute } from '@/routes/appLayoutRoute'
 
 export const profileRoute = createRoute({
-	getParentRoute: () => authenticatedRoute,
+	getParentRoute: () => appLayoutRoute,
 	path: '/profile',
 }).lazy(() => import('@/routes/profileRoute.lazy').then((module) => module.Route))

@@ -1,6 +1,6 @@
 ---
 title: 'Databáza'
-updated: 2026-10-17
+updated: 2026-10-18
 notion_page_id:
 ---
 
@@ -66,7 +66,7 @@ Zápisy, ktoré čítajú alebo presúvajú príznak `isBase` (vytvorenie, `PATC
 
 ### Project
 
-Projekt (jeden prekladový hárok). Zatiaľ existuje jediný projekt, ktorý vytvorí seed, a API ho číta ako singleton (najstarší riadok). Správanie API je v [API: nastavenia projektu](./api/admin-project.md).
+Projekt (jeden prekladový hárok). Projekty vytvárajú používatelia na index stránke, seed vytvorí prvý projekt. Správanie API je v [API: projekty a členovia](./api/projects.md).
 
 | Pole                     | Typ            | Poznámka                                                              |
 | ------------------------ | -------------- | --------------------------------------------------------------------- |
@@ -81,7 +81,7 @@ Projekt nemá vlastný základný jazyk, používa globálny `Language.isBase`.
 
 ### ProjectMember
 
-Členstvo používateľa v projekte. Zatiaľ ho iba naplní seed, API ho nepoužíva. Stavať naň budú obrazovka Členovia a akcia Opustiť projekt.
+Členstvo používateľa v projekte. Určuje, ktoré projekty vidí `EDITOR` a ku ktorým má prístup (`ADMIN` má prístup ku všetkým). Vzniká pri vytvorení projektu (tvorca), pri vytvorení člena na stránke Členovia a zo seedu; zaniká akciou Opustiť projekt.
 
 | Pole        | Typ      | Poznámka                                       |
 | ----------- | -------- | ---------------------------------------------- |

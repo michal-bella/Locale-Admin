@@ -1,6 +1,6 @@
 import { type APIRequestContext, expect, type Page, test } from '@playwright/test'
 
-import { readApiError } from '../support/api'
+import { MUTATION_HEADERS, readApiError } from '../support/api'
 import { ANONYMOUS, STORAGE_STATE } from '../support/auth'
 import {
 	acquireLanguagesLock,
@@ -8,6 +8,7 @@ import {
 	deleteLeftoverTestLanguages,
 	type Language,
 	LANGUAGES_API,
+	LANGUAGES_LIST_API,
 	listLanguages,
 	newAdminApi,
 	restoreBaseLanguage,
@@ -107,7 +108,7 @@ test.describe('ADMIN', () => {
 	})
 
 	test('opens Jazyky from the sidebar and sees sk, en and the current base language with the badge', async ({ page }) => {
-		await page.goto('/')
+		await page.goto('/profile')
 		const item = getMainNavigation(page).getByRole('link', { name: 'Jazyky' })
 		await expect(item).toHaveAttribute('href', '/languages')
 		await item.click()
@@ -279,7 +280,7 @@ test.describe('EDITOR', () => {
 	test.use({ storageState: STORAGE_STATE.EDITOR })
 
 	test('does not see the Jazyky link in the sidebar or the user menu', async ({ page }) => {
-		await page.goto('/')
+		await page.goto('/profile')
 		await expect(getMainNavigation(page)).toBeAttached()
 		await expect(page.getByRole('link', { name: 'Jazyky' })).toHaveCount(0)
 		const menu = await openUserMenu(page)
@@ -287,7 +288,7 @@ test.describe('EDITOR', () => {
 		await expect(menu.getByRole('menuitem', { name: 'Jazyky' })).toHaveCount(0)
 	})
 
-	test('/languages shows the 403 page and the API returns 403', async ({ page }) => {
+	test('/languages shows the 403 page and the admin API returns 403', async ({ page }) => {
 		await page.goto('/languages')
 		await expect(page.getByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeVisible()
 		await expect(page).toHaveURL('/languages')
@@ -295,9 +296,13 @@ test.describe('EDITOR', () => {
 		await expect(getTable(page)).toHaveCount(0)
 		await expect(page.getByRole('button', { name: 'Pridať jazyk' })).toHaveCount(0)
 
-		const response = await page.request.get(LANGUAGES_API)
+		// An unknown tag: even if the role check were missing, validation would reject it before anything is saved.
+		const response = await page.request.post(LANGUAGES_API, { data: { tag: 'xx' }, headers: MUTATION_HEADERS })
 		expect(response.status()).toBe(403)
 		expect((await readApiError(response)).code).toBe('FORBIDDEN')
+
+		// The list is read-only for every signed-in user (project settings show the base language).
+		expect((await page.request.get(LANGUAGES_LIST_API)).status()).toBe(200)
 	})
 })
 

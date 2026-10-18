@@ -6,7 +6,7 @@ import { getMainNavigation, openUserMenu } from '../support/layout'
 test.describe('anonymous', () => {
 	test.use({ storageState: ANONYMOUS })
 
-	for (const path of ['/', '/admin/users']) {
+	for (const path of ['/', '/admin/users', '/projects/00000000-0000-4000-8000-000000000000/settings']) {
 		test(`${path} redirects to /login`, async ({ page }) => {
 			await page.goto(path)
 			await expect(page).toHaveURL('/login')
@@ -30,7 +30,7 @@ test.describe('ADMIN', () => {
 	})
 
 	test('sees the top bar and the Používatelia sidebar link', async ({ page }) => {
-		await page.goto('/')
+		await page.goto('/profile')
 		await expect(page.getByRole('img', { name: 'Notifikácie' })).toBeVisible()
 		await expect(page.getByRole('radiogroup', { name: 'Jazyk' })).toBeVisible()
 		const users = getMainNavigation(page).getByRole('link', { name: 'Používatelia' })
@@ -61,7 +61,7 @@ test.describe('EDITOR', () => {
 	})
 
 	test('does not see the Používatelia link in the sidebar or the user menu', async ({ page }) => {
-		await page.goto('/')
+		await page.goto('/profile')
 		await expect(getMainNavigation(page)).toBeAttached()
 		await expect(page.getByRole('link', { name: 'Používatelia' })).toHaveCount(0)
 		const menu = await openUserMenu(page)
@@ -74,7 +74,7 @@ test.describe('EDITOR', () => {
 		await expect(page.getByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeVisible()
 		await expect(page).toHaveURL('/admin/users')
 		await expect(page.getByRole('heading', { level: 1, name: 'Používatelia' })).toHaveCount(0)
-		await expect(page.getByRole('table', { name: 'Zoznam používateľov' })).toHaveCount(0)
-		await expect(page.getByRole('button', { name: 'Vytvoriť používateľa' })).toHaveCount(0)
+		await expect(page.getByRole('table', { name: 'Zoznam administrátorov' })).toHaveCount(0)
+		await expect(page.getByRole('button', { name: 'Vytvoriť administrátora' })).toHaveCount(0)
 	})
 })

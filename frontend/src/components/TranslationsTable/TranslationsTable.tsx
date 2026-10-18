@@ -84,7 +84,7 @@ const TranslationsTable = ({
 					<Value value={item.target.value} />
 				</div>
 			</Table.Td>
-			<Table.Td className={classes.td}>
+			<Table.Td className={`${classes.td} ${classes.statusCell}`}>
 				<Badge
 					variant='light'
 					color={item.target.status === 'TRANSLATED' ? 'teal' : 'red'}
@@ -182,7 +182,7 @@ const TranslationsTable = ({
 						<Table.Th className={`${classes.th} ${classes.keyColumn}`}>{t('translationsPage.table.key')}</Table.Th>
 						<Table.Th className={classes.th}>{sourceLanguage?.nativeName}</Table.Th>
 						<Table.Th className={classes.th}>{targetLanguage?.nativeName}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.statusColumn}`}>{t('translationsPage.table.status')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.statusColumn} ${classes.statusCell}`}>{t('translationsPage.table.status')}</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>{renderBody()}</Table.Tbody>

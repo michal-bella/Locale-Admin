@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Favicon a akcie v zozname projektov (2026-10-18)
+
+- frontend: favicon s ružovým logom zo sidebaru; v zozname projektov namiesto menu `⋯` priamo ikony Nastavenia a Opustiť projekt ([Frontend](./frontend.md#zoznam-projektov))
+
 ### Jazyky na úrovni projektu (2026-10-18)
 
 - databáza: tabuľka `ProjectLanguage` (tag a základný jazyk per projekt, čiastočný unikátny index na základný jazyk v projekte); migrácia `project_languages` skopírovala dovtedajšie globálne jazyky do každého projektu a zmazala tabuľku `Language` ([Databáza](./database.md))

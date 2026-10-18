@@ -28,9 +28,10 @@
 			"empty": "You have no projects yet. Create the first one.",
 			"loadError": "The project list could not be loaded.",
 			"retry": "Try again",
-			"actions": "Actions of project {{name}}",
 			"settings": "Settings",
-			"leave": "Leave project"
+			"leave": "Leave project",
+			"settingsLabel": "Settings of project {{name}}",
+			"leaveLabel": "Leave project {{name}}"
 		},
 		"createModal": {
 			"title": "New project",

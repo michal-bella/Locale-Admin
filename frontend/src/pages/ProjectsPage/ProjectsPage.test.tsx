@@ -38,9 +38,8 @@ const settingsOf = ({ id, name, slug, primaryColor }: ProjectListItem): ProjectS
 
 const getList = () => screen.getByRole('list', { name: 'Zoznam projektov' })
 
-const openActions = async (name: string) => {
-	fireEvent.click(await screen.findByRole('button', { name: `Akcie projektu ${name}` }))
-	return within(await screen.findByRole('menu'))
+const clickLeave = async (name: string) => {
+	fireEvent.click(await screen.findByRole('button', { name: `Opustiť projekt ${name}` }))
 }
 
 /** Picks languages in the Jazyky multi-select of the create modal, in this order. */
@@ -81,20 +80,18 @@ describe('ProjectsPage list', () => {
 		expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
 	})
 
-	it('offers Opustiť projekt only for projects the user is a member of', async () => {
+	it('shows Nastavenia for every project and Opustiť projekt only for projects the user is a member of', async () => {
 		signedInAs(ADMIN_USER, { 'GET /projects': projectsResponse([BOOKING, DEMO]) })
 		renderApp('/')
 
-		const bookingMenu = await openActions('Booking Web')
-		expect(bookingMenu.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Nastavenia', 'Opustiť projekt'])
-		fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
-		await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
-
-		const demoMenu = await openActions('Demo project')
-		expect(demoMenu.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Nastavenia'])
+		const list = within(await waitFor(getList))
+		expect(list.getByRole('link', { name: 'Nastavenia projektu Booking Web' })).toHaveAttribute('href', `/projects/${BOOKING.id}/settings`)
+		expect(list.getByRole('button', { name: 'Opustiť projekt Booking Web' })).toBeInTheDocument()
+		expect(list.getByRole('link', { name: 'Nastavenia projektu Demo project' })).toHaveAttribute('href', `/projects/${DEMO.id}/settings`)
+		expect(list.queryByRole('button', { name: 'Opustiť projekt Demo project' })).not.toBeInTheDocument()
 	})
 
-	it('opens the project settings from the menu', async () => {
+	it('opens the project settings from the settings icon', async () => {
 		signedInAs(EDITOR_USER, {
 			'GET /projects': projectsResponse([BOOKING]),
 			[`GET /projects/${BOOKING.id}/settings`]: { status: 200, data: settingsOf(BOOKING) },
@@ -102,7 +99,7 @@ describe('ProjectsPage list', () => {
 		})
 		const router = renderApp('/')
 
-		fireEvent.click((await openActions('Booking Web')).getByRole('menuitem', { name: 'Nastavenia' }))
+		fireEvent.click(await screen.findByRole('link', { name: 'Nastavenia projektu Booking Web' }))
 
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${BOOKING.id}/settings`))
 		expect(await screen.findByLabelText('Názov projektu')).toHaveValue('Booking Web')
@@ -144,7 +141,7 @@ describe('LeaveProjectModal from the list', () => {
 		})
 		renderApp('/')
 
-		fireEvent.click((await openActions('Booking Web')).getByRole('menuitem', { name: 'Opustiť projekt' }))
+		await clickLeave('Booking Web')
 		const dialog = await screen.findByRole('dialog', { name: 'Opustiť projekt' })
 		expect(dialog).toHaveTextContent('Naozaj chcete opustiť projekt Booking Web?')
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Opustiť projekt' }))
@@ -163,7 +160,7 @@ describe('LeaveProjectModal from the list', () => {
 		})
 		renderApp('/')
 
-		fireEvent.click((await openActions('Booking Web')).getByRole('menuitem', { name: 'Opustiť projekt' }))
+		await clickLeave('Booking Web')
 		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Opustiť projekt' })).getByRole('button', { name: 'Opustiť projekt' }))
 
 		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Projekt musí mať aspoň jedného člena.' })))
@@ -175,7 +172,7 @@ describe('LeaveProjectModal from the list', () => {
 		const requests = signedInAs(EDITOR_USER, { 'GET /projects': projectsResponse([BOOKING]) })
 		renderApp('/')
 
-		fireEvent.click((await openActions('Booking Web')).getByRole('menuitem', { name: 'Opustiť projekt' }))
+		await clickLeave('Booking Web')
 		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Opustiť projekt' })).getByRole('button', { name: 'Zrušiť' }))
 
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())

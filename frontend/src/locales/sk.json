@@ -28,9 +28,10 @@
 			"empty": "Zatiaľ nemáte žiadny projekt. Vytvorte prvý.",
 			"loadError": "Zoznam projektov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
-			"actions": "Akcie projektu {{name}}",
 			"settings": "Nastavenia",
-			"leave": "Opustiť projekt"
+			"leave": "Opustiť projekt",
+			"settingsLabel": "Nastavenia projektu {{name}}",
+			"leaveLabel": "Opustiť projekt {{name}}"
 		},
 		"createModal": {
 			"title": "Nový projekt",

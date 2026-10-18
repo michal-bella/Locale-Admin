@@ -47,7 +47,7 @@ test('a member adds a new member, who logs in and sees only this project', async
 	await expectLoggedInHome(newMemberPage)
 	const list = newMemberPage.getByRole('list', { name: 'Zoznam projektov' })
 	await expect(list.getByRole('listitem')).toHaveCount(1)
-	await list.getByRole('link').click()
+	await list.getByRole('link', { name: /^Nastavenia projektu / }).click()
 	await expect(newMemberPage).toHaveURL(`/projects/${editor.projectId}/settings`)
 	await context.close()
 })

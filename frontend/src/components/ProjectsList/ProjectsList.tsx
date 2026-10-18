@@ -1,11 +1,11 @@
-import { ActionIcon, Button, Menu, Skeleton, Text } from '@mantine/core'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { ActionIcon, Button, Skeleton, Text, Tooltip } from '@mantine/core'
+import { Link } from '@tanstack/react-router'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectsQuery } from '@/api/projects/projectsQuery'
-import { DotsHorizontal } from '@/components/Icons'
+import { LogOut, Settings } from '@/components/Icons'
 import { getProjectInitials, isLightColor } from '@/lib/utils'
 
 import classes from './ProjectsList.module.css'
@@ -16,7 +16,6 @@ const SKELETON_ROWS = 2
 /** Projects of the user in a card (rows as in the old system without keys, progress and flags, which come with translations). */
 const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	const { t } = useTranslation()
-	const navigate = useNavigate()
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectsQuery()
 	const listRef = useRef<HTMLUListElement>(null)
 	const [retrySucceeded, setRetrySucceeded] = useState(false)
@@ -90,29 +89,38 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 							{project.slug}
 						</Text>
 					</div>
-					<Menu position='bottom-end' width={200} radius='lg' shadow='md'>
-						<Menu.Target>
+					<div className='flex shrink-0 items-center gap-1'>
+						<Tooltip label={t('projectsPage.list.settings')}>
 							<ActionIcon
+								renderRoot={(props) => <Link {...props} to='/projects/$projectId/settings' params={{ projectId: project.id }} />}
 								variant='transparent'
 								size={32}
 								radius='md'
-								aria-label={t('projectsPage.list.actions', { name: project.name })}
-								className={classes.trigger}
+								aria-label={t('projectsPage.list.settingsLabel', { name: project.name })}
+								className={classes.action}
 							>
-								<DotsHorizontal aria-hidden />
+								<Settings aria-hidden />
 							</ActionIcon>
-						</Menu.Target>
-						<Menu.Dropdown>
-							<Menu.Item onClick={() => void navigate({ to: '/projects/$projectId/settings', params: { projectId: project.id } })}>
-								{t('projectsPage.list.settings')}
-							</Menu.Item>
-							{project.isMember && (
-								<Menu.Item color='red' onClick={() => onLeave(project)}>
-									{t('projectsPage.list.leave')}
-								</Menu.Item>
-							)}
-						</Menu.Dropdown>
-					</Menu>
+						</Tooltip>
+						{project.isMember ? (
+							<Tooltip label={t('projectsPage.list.leave')}>
+								<ActionIcon
+									variant='transparent'
+									size={32}
+									radius='md'
+									aria-label={t('projectsPage.list.leaveLabel', { name: project.name })}
+									className={classes.action}
+									data-variant='danger'
+									onClick={() => onLeave(project)}
+								>
+									<LogOut aria-hidden />
+								</ActionIcon>
+							</Tooltip>
+						) : (
+							// Keeps the settings icons of all rows in one column.
+							<span aria-hidden className='size-8' />
+						)}
+					</div>
 				</li>
 			))}
 		</ul>

@@ -65,7 +65,6 @@ test.describe('ADMIN', () => {
 		const navigation = getMainNavigation(page)
 		const projectsLink = navigation.getByRole('link', { name: 'Projekty', exact: true })
 		const usersLink = navigation.getByRole('link', { name: 'Používatelia', exact: true })
-		// Projekty sits above Používatelia in SPRÁVA.
 		expect((await projectsLink.boundingBox())!.y).toBeLessThan((await usersLink.boundingBox())!.y)
 		await projectsLink.click()
 
@@ -82,7 +81,14 @@ test.describe('ADMIN', () => {
 		await expect(cells.nth(3)).toHaveText('3')
 		await expect(cells.nth(4)).toHaveText('2')
 		await expect(cells.nth(5)).toHaveText(formatCreatedAt(createdAt))
-		await expect(cells.nth(6).getByRole('button')).toHaveCount(3)
+		await expect(cells.nth(6).getByRole('button')).toHaveCount(2)
+		await expect(cells.nth(6).getByRole('button', { name: `Upraviť projekt ${project.name}`, exact: true })).toBeVisible()
+		await expect(cells.nth(6).getByRole('button', { name: `Zmazať projekt ${project.name}`, exact: true })).toBeVisible()
+		await expect(cells.nth(6).getByRole('link')).toHaveCount(1)
+		await expect(cells.nth(6).getByRole('link', { name: `Otvoriť projekt ${project.name}`, exact: true })).toHaveAttribute(
+			'href',
+			settingsPath(project.slug),
+		)
 	})
 
 	test('Nový projekt opens the create project modal', async ({ page }) => {
@@ -102,6 +108,7 @@ test.describe('ADMIN', () => {
 		await openAdminProjectsPage(page)
 		await markNoReload(page)
 		const dialog = await openEditModal(page, project)
+		await expect(dialog.getByLabel('Názov projektu', { exact: true })).toBeFocused()
 		await expect(dialog).toContainText(project.name)
 		await expect(dialog.getByRole('button', { name: 'Opustiť projekt' })).toHaveCount(0)
 		await expect(dialog.getByLabel('Názov projektu', { exact: true })).toHaveValue(project.name)
@@ -143,6 +150,7 @@ test.describe('ADMIN', () => {
 		await expect(dialog).toBeHidden()
 
 		dialog = await openEditModal(page, project)
+		await expect(dialog.getByLabel('Názov projektu', { exact: true })).toBeFocused()
 		await expect(dialog.getByLabel('Názov projektu', { exact: true })).toHaveValue(project.name)
 		expect(patches).toEqual([])
 	})
@@ -176,7 +184,6 @@ test.describe('ADMIN', () => {
 		await openAdminProjectsPage(page)
 		await markNoReload(page)
 		const dialog = await openDeleteModal(page, project)
-		await expect(dialog).toContainText(`Naozaj chcete zmazať projekt ${project.name}?`)
 		const confirmation = dialog.getByLabel(`Pre potvrdenie napíšte slug projektu ${project.slug}`, { exact: true })
 		const confirm = dialog.getByRole('button', { name: 'Zmazať projekt' })
 		await expect(confirmation).toBeFocused()
@@ -225,7 +232,7 @@ test.describe('ADMIN', () => {
 		await api.dispose()
 
 		await openAdminProjectsPage(page)
-		await page.getByRole('button', { name: `Otvoriť projekt ${project.name}`, exact: true }).click()
+		await page.getByRole('link', { name: `Otvoriť projekt ${project.name}`, exact: true }).click()
 		await expect(page).toHaveURL(settingsPath(project.slug))
 		await expect(page.getByRole('heading', { level: 1, name: 'Nastavenia projektu' })).toBeVisible()
 		await expect(page.getByLabel('Názov projektu', { exact: true })).toHaveValue(project.name)

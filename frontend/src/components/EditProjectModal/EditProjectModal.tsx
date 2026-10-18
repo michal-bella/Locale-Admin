@@ -62,6 +62,8 @@ const EditProjectContent = ({ projectId, onClose }: ContentProps) => {
 			// Only closes: the URL replace after a slug change belongs to the settings page, the admin list is refetched by the mutation.
 			onSaved={onClose}
 			onCancel={onClose}
+			// The focus trap already ran on the skeleton or the retry button, which are gone now.
+			focusFirstField
 		/>
 	)
 }

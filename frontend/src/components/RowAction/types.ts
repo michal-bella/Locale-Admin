@@ -1,6 +1,7 @@
+import { type LinkProps } from '@tanstack/react-router'
 import { type ComponentType, type MouseEvent, type SVGProps } from 'react'
 
-export type RowActionProps = {
+type RowActionBaseProps = {
 	icon: ComponentType<SVGProps<SVGSVGElement>>
 	/** Short visible hint, e.g. "Odstrániť". */
 	tooltip: string
@@ -8,6 +9,21 @@ export type RowActionProps = {
 	label: string
 	/** Red on hover, for destructive actions. */
 	danger?: boolean
+}
+
+type RowActionButtonProps = RowActionBaseProps & {
 	disabled?: boolean
 	onClick: (event: MouseEvent<HTMLButtonElement>) => void
+	to?: never
+	params?: never
 }
+
+/** Navigation renders a link, so it can be opened in a new tab and is announced as a link. */
+type RowActionLinkProps = RowActionBaseProps & {
+	to: LinkProps['to']
+	params?: LinkProps['params']
+	disabled?: never
+	onClick?: never
+}
+
+export type RowActionProps = RowActionButtonProps | RowActionLinkProps

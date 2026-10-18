@@ -3,8 +3,7 @@ import { IMPORT_ISSUES_MAX, IMPORT_KEY_MAX_LENGTH, type ImportIssue } from '@loc
 import { type ParseResult, type ParsedColumn, type ParsedRow } from './parsedFile'
 
 const HEADER_KEYS = 'Keys'
-const HEADER_SEPARATOR = ';'
-const ROW_SEPARATOR = '; '
+const SEPARATOR = '; '
 const SECTION_PATTERN = /^--([^;]*)--$/
 
 /** A namespace becomes a file name (`<tag>/<namespace>.json`) in the export, so only safe file names are allowed. */
@@ -17,15 +16,28 @@ const isValidNamespace = (namespace: string) => NAMESPACE_PATTERN.test(namespace
 
 const toValue = (field: string): string | null => (field === 'null' || field === '""' || field === '' ? null : field)
 
+const splitFields = (text: string) => text.split(SEPARATOR).map((field) => field.trim())
+
+/** An editor that strips trailing spaces turns a last empty field `; ` into `;`. Only then, so `&nbsp;` at the end of a value survives. */
+const splitRow = (text: string, expected: number) => {
+	const fields = splitFields(text)
+	const last = fields.at(-1)
+	if (fields.length === expected - 1 && last?.endsWith(';')) {
+		fields[fields.length - 1] = last.slice(0, -1).trim()
+		fields.push('')
+	}
+	return fields
+}
+
 const fail = (issues: ImportIssue[]): ParseResult => ({ ok: false, issues: issues.slice(0, IMPORT_ISSUES_MAX), total: issues.length })
 
 /**
- * Parses the CSV of GoodRequest i18nextJsonToCsv: header `Keys; bg ; cs ; …`, rows ` key; value; value` separated by `; `
- * without quoting, sections `--namespace--`. Every field is trimmed, `null` and `""` become `null`, blank lines are skipped.
+ * Parses the CSV of GoodRequest i18nextJsonToCsv: header `Keys; bg ; cs ; …` and rows ` key; value; value`, both separated by `; `
+ * without quoting, lines by `\r\n`, `\r` or `\n`, sections `--namespace--`. Every field is trimmed, `null` and `""` become `null`, blank lines are skipped.
  * Header issues stop parsing because the rows cannot be interpreted without the header.
  */
 export const parseCsv = (content: string): ParseResult => {
-	const lines = (content.startsWith('\uFEFF') ? content.slice(1) : content).split(/\r?\n/)
+	const lines = (content.startsWith('\uFEFF') ? content.slice(1) : content).split(/\r\n|\r|\n/)
 
 	const encodingIssues: ImportIssue[] = []
 	lines.forEach((line, index) => {
@@ -43,7 +55,7 @@ export const parseCsv = (content: string): ParseResult => {
 		return fail([{ code: 'FILE_EMPTY' }])
 	}
 	const headerLine = headerIndex + 1
-	const header = headerText.split(HEADER_SEPARATOR).map((field) => field.trim())
+	const header = splitFields(headerText)
 	if (header[0] !== HEADER_KEYS || header.length < 2) {
 		return fail([{ code: 'HEADER_INVALID', line: headerLine, column: 1 }])
 	}
@@ -88,7 +100,7 @@ export const parseCsv = (content: string): ParseResult => {
 		}
 
 		dataLines += 1
-		const fields = text.split(ROW_SEPARATOR).map((field) => field.trim())
+		const fields = splitRow(text, header.length)
 		if (fields.length !== header.length) {
 			issues.push({ code: 'ROW_COLUMN_COUNT', line, params: { expected: header.length, actual: fields.length } })
 			return
@@ -98,8 +110,9 @@ export const parseCsv = (content: string): ParseResult => {
 			issues.push({ code: 'ROW_EMPTY_KEY', line, column: 1 })
 			return
 		}
-		if (key.length > IMPORT_KEY_MAX_LENGTH) {
-			issues.push({ code: 'KEY_TOO_LONG', line, column: 1, params: { max: IMPORT_KEY_MAX_LENGTH, length: key.length } })
+		const length = [...key].length
+		if (length > IMPORT_KEY_MAX_LENGTH) {
+			issues.push({ code: 'KEY_TOO_LONG', line, column: 1, params: { max: IMPORT_KEY_MAX_LENGTH, length } })
 			return
 		}
 		const identity = `${namespace}\u0000${key}`

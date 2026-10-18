@@ -167,6 +167,21 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 		])
 	})
 
+	it('treats i18next unescaped and formatted placeholders as the plain variable', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await setup(app)
+
+		const body = await previewOk(app, cookie, project.id, [
+			'Keys; sk ; en ; cs',
+			' a; {{count}} {{name}}; {{- name}} {{count, number}}; {{ count ,number(minimumFractionDigits: 2) }} {{-name}}',
+			' b; {{count}}; {{- count, number}} {{amount, currency(EUR)}}; {{count}}',
+		])
+
+		expect(body.warnings).toEqual([
+			{ code: 'PLACEHOLDER_MISMATCH', line: 3, column: 3, params: { tag: 'en', key: 'b', namespace: '', missing: '', extra: '{{amount}}' } },
+		])
+	})
+
 	it('skips placeholder and base language warnings when the base language is not in the file', async () => {
 		const app = createTestApp()
 		const { project, cookie } = await setup(app)
@@ -282,6 +297,25 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 			.set(CSRF_HEADERS)
 			.send({ name: 'x'.repeat(200 * 1024), slug: 'x' })
 		expectErrorCode(res, 413, ERROR_CODE.VALIDATION_ERROR)
+	})
+
+	describe('checks access before parsing a large body', () => {
+		const largeBody = { fileName: 'a.csv', content: 'x'.repeat(13 * 1024 * 1024) }
+
+		it('returns 401 without a session', async () => {
+			const project = await createProject()
+
+			const res = await request(createTestApp()).post(`/api/projects/${project.id}/imports/preview`).set(CSRF_HEADERS).send(largeBody)
+
+			expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
+		})
+
+		it('returns 404 for a non-member', async () => {
+			const app = createTestApp()
+			const { project, cookie } = await setup(app, ROLE.EDITOR, { member: false })
+
+			expectErrorCode(await preview(app, cookie, project.id, largeBody), 404, ERROR_CODE.NOT_FOUND)
+		})
 	})
 
 	it('returns 401 without a session', async () => {

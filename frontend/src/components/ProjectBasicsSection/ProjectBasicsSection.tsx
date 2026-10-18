@@ -43,7 +43,8 @@ const ProjectBasicsSection = ({ projectSlug, register, control, errors, language
 				<label htmlFor={nameId} className={`${classes.label} pt-3`}>
 					{t('projectSettingsPage.basics.name')}
 				</label>
-				<TextInput id={nameId} error={errors.name?.message} {...register('name')} />
+				{/* For the focus trap of the edit modal on Projekty when the data is cached; inert on the settings page. */}
+				<TextInput id={nameId} data-autofocus error={errors.name?.message} {...register('name')} />
 
 				<label htmlFor={slugId} className={`${classes.label} pt-3`}>
 					{t('projectSettingsPage.basics.slug.label')}

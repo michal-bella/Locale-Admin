@@ -115,7 +115,7 @@ describe('AdminProjectsPage table', () => {
 		expect(within(emptyRow).getByText('Bez jazyka')).toBeInTheDocument()
 		expect(within(emptyRow).getByText('3. 10. 2026')).toBeInTheDocument()
 		expect(within(b2bRow).getByRole('button', { name: 'Upraviť projekt B2B Admin' })).toBeInTheDocument()
-		expect(within(b2bRow).getByRole('button', { name: 'Otvoriť projekt B2B Admin' })).toBeInTheDocument()
+		expect(within(b2bRow).getByRole('link', { name: 'Otvoriť projekt B2B Admin' })).toHaveAttribute('href', `/projects/${B2B.slug}/settings`)
 		expect(within(b2bRow).getByRole('button', { name: 'Zmazať projekt B2B Admin' })).toBeInTheDocument()
 	})
 
@@ -178,7 +178,7 @@ describe('AdminProjectsPage table', () => {
 		signedInAs(ADMIN_USER, { 'GET /admin/projects': listResponse([B2B]), ...editRoutes, ...projectListRoute({ ...B2B, isMember: false }) })
 		const router = renderApp(PAGE_PATH)
 
-		fireEvent.click(await screen.findByRole('button', { name: 'Otvoriť projekt B2B Admin' }))
+		fireEvent.click(await screen.findByRole('link', { name: 'Otvoriť projekt B2B Admin' }))
 
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${B2B.slug}/settings`))
 		expect(await screen.findByRole('heading', { level: 1, name: 'Nastavenia projektu' })).toBeInTheDocument()
@@ -198,6 +198,24 @@ describe('EditProjectModal', () => {
 		expect(within(dialog).queryByRole('button', { name: 'Opustiť projekt' })).not.toBeInTheDocument()
 	})
 
+	it('focuses Názov projektu when it opens, also with cached data, and returns focus to the trigger', async () => {
+		signedInAs(ADMIN_USER, { 'GET /admin/projects': listResponse([B2B]), ...editRoutes })
+		renderApp(PAGE_PATH)
+		// fireEvent.click does not move focus like a real click or Enter does.
+		const trigger = await screen.findByRole('button', { name: `Upraviť projekt ${B2B.name}` })
+		trigger.focus()
+		const dialog = await openEdit()
+
+		await waitFor(() => expect(within(dialog).getByLabelText('Názov projektu')).toHaveFocus())
+
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Zrušiť' }))
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		await waitFor(() => expect(trigger).toHaveFocus())
+
+		const reopened = await openEdit()
+		await waitFor(() => expect(within(reopened).getByLabelText('Názov projektu')).toHaveFocus())
+	})
+
 	it('shows the load error in the modal and retries', async () => {
 		let backendUp = false
 		signedInAs(ADMIN_USER, {
@@ -215,6 +233,7 @@ describe('EditProjectModal', () => {
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Skúsiť znova' }))
 
 		expect(await within(dialog).findByLabelText('Názov projektu')).toHaveValue(B2B.name)
+		await waitFor(() => expect(within(dialog).getByLabelText('Názov projektu')).toHaveFocus())
 	})
 
 	it('maps 409 SLUG_TAKEN to the slug field and keeps the modal open', async () => {

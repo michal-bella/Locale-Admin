@@ -1,6 +1,5 @@
 import { Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useNavigate } from '@tanstack/react-router'
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -26,7 +25,6 @@ const COLUMN_COUNT = 7
 /** Every project in a card, same look and states as the users table. Each row can be edited in a modal, opened or deleted. */
 const AdminProjectsTable = () => {
 	const { t, i18n } = useTranslation()
-	const navigate = useNavigate()
 	const { data, isPending, isError, error, refetch, isRefetching } = useAdminProjectsQuery()
 	const tableRef = useRef<HTMLTableElement>(null)
 	const triggerRef = useRef<HTMLButtonElement | null>(null)
@@ -164,7 +162,8 @@ const AdminProjectsTable = () => {
 							icon={ArrowRight}
 							tooltip={t('adminProjectsPage.table.open')}
 							label={t('adminProjectsPage.table.openLabel', { name: project.name })}
-							onClick={() => void navigate({ to: '/projects/$projectSlug/settings', params: { projectSlug: project.slug } })}
+							to='/projects/$projectSlug/settings'
+							params={{ projectSlug: project.slug }}
 						/>
 						<RowAction
 							icon={Trash}

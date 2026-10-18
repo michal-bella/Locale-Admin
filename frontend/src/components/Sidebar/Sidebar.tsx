@@ -10,6 +10,7 @@ import { useMeQuery } from '@/api/auth/meQuery'
 import { projectSettingsQueryOptions } from '@/api/projectSettings/projectSettingsQuery'
 import Brand from '@/components/Brand/Brand'
 import { ArrowRight, Globe, Settings, Users } from '@/components/Icons'
+import ProjectSwitcher from '@/components/ProjectSwitcher/ProjectSwitcher'
 import UserMenu from '@/components/UserMenu/UserMenu'
 
 import classes from './Sidebar.module.css'
@@ -39,7 +40,8 @@ const NavItem = ({ to, params, icon: Icon, iconClassName = '', label, onNavigate
 )
 
 /**
- * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: its name with Nastavenia projektu and Členovia.
+ * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Nastavenia projektu
+ * and Členovia, outside one: Všetky projekty.
  * ADMIN also sees Jazyky and, under SPRÁVA, Používatelia. User block at the bottom.
  */
 const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
@@ -48,7 +50,6 @@ const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 	const { projectId } = useParams({ strict: false })
 	// Only reads the cache: the project route loads the settings, and a project the user cannot open must not be refetched here.
 	const { data: project } = useQuery({ ...projectSettingsQueryOptions(projectId ?? ''), enabled: false })
-	const projectLabelId = useId()
 	const adminLabelId = useId()
 	const isAdmin = user?.role === ROLE.ADMIN
 
@@ -60,27 +61,27 @@ const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 				</Link>
 				<Burger hiddenFrom='md' size='sm' opened={opened} onClick={onClose} aria-label={t('sidebar.closeNavigation')} />
 			</div>
+			{projectId && project && (
+				<div className={classes.switcher}>
+					<ProjectSwitcher project={project} onNavigate={onClose} />
+				</div>
+			)}
 			<nav aria-label={t('sidebar.label')} className={classes.nav}>
-				<ul className={classes.list}>
-					<NavItem to='/' icon={ArrowRight} iconClassName='rotate-180' label={t('sidebar.allProjects')} onNavigate={onClose} />
-				</ul>
-				{projectId && project && (
-					<>
-						<hr className={classes.divider} />
-						<p id={projectLabelId} className={classes.sectionLabel}>
-							{project.name}
-						</p>
-						<ul aria-labelledby={projectLabelId} className={classes.list}>
-							<NavItem
-								to='/projects/$projectId/settings'
-								params={{ projectId }}
-								icon={Settings}
-								label={t('sidebar.projectSettings')}
-								onNavigate={onClose}
-							/>
-							<NavItem to='/projects/$projectId/members' params={{ projectId }} icon={Users} label={t('sidebar.members')} onNavigate={onClose} />
-						</ul>
-					</>
+				{projectId && project ? (
+					<ul aria-label={project.name} className={classes.list}>
+						<NavItem
+							to='/projects/$projectId/settings'
+							params={{ projectId }}
+							icon={Settings}
+							label={t('sidebar.projectSettings')}
+							onNavigate={onClose}
+						/>
+						<NavItem to='/projects/$projectId/members' params={{ projectId }} icon={Users} label={t('sidebar.members')} onNavigate={onClose} />
+					</ul>
+				) : (
+					<ul className={classes.list}>
+						<NavItem to='/' icon={ArrowRight} iconClassName='rotate-180' label={t('sidebar.allProjects')} onNavigate={onClose} />
+					</ul>
 				)}
 				{isAdmin && (
 					<>

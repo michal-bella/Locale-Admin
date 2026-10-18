@@ -66,9 +66,10 @@ test.describe('ADMIN', () => {
 		await expect(getSidebar(page)).toHaveCount(0)
 	})
 
-	test('inside a project sees its name with Nastavenia projektu and Členovia', async ({ page, playwright }) => {
+	test('inside a project sees the switcher with Nastavenia projektu and Členovia; switching keeps the page', async ({ page, playwright }) => {
 		const api = await newAdminApi(playwright.request)
 		const project = await createProject(api, 'sidebar')
+		const other = await createProject(api, 'sidebar-other')
 		await api.dispose()
 
 		await page.goto(`/projects/${project.id}/settings`)
@@ -83,6 +84,20 @@ test.describe('ADMIN', () => {
 		await expect(page.getByRole('heading', { level: 1, name: 'Členovia' })).toBeVisible()
 		await expect(members).toHaveAttribute('aria-current', 'page')
 		await expect(settings).not.toHaveAttribute('aria-current')
+		await expect(getMainNavigation(page).getByRole('link', { name: 'Všetky projekty' })).toHaveCount(0)
+
+		const switcher = getSidebar(page).getByRole('button', { name: `Prepnúť projekt, aktuálny ${project.name}` })
+		await expect(switcher).toContainText(project.slug)
+		await switcher.click()
+		await page.getByRole('menu').getByRole('menuitem', { name: other.name }).click()
+		await expect(page).toHaveURL(`/projects/${other.id}/members`)
+		await expect(getSidebar(page).getByRole('button', { name: `Prepnúť projekt, aktuálny ${other.name}` })).toBeVisible()
+
+		await getSidebar(page)
+			.getByRole('button', { name: `Prepnúť projekt, aktuálny ${other.name}` })
+			.click()
+		await page.getByRole('menu').getByRole('menuitem', { name: 'Všetky projekty' }).click()
+		await expect(page).toHaveURL('/')
 	})
 
 	test('user block shows initials, name and role; its menu has only Môj profil and Odhlásiť sa', async ({ page }) => {

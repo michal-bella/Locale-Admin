@@ -49,6 +49,7 @@ TanStack Router s routami v kóde (ADR 0002), jeden súbor na routu v `routes/`.
 | `/login`                           | `loginRoute`                               | `LoginPage`                                     | iba neprihlásený (prihlásený ide na `/`) |
 | `/`                                | `indexRoute` pod `_home`                   | `ProjectsPage` (zoznam projektov, bez sidebaru) | prihlásený                               |
 | `/profile`                         | `profileRoute` pod `_app`                  | `ProfilePage` (Môj profil)                      | prihlásený (`ADMIN` aj `EDITOR`)         |
+| `/admin/projects`                  | `adminProjectsRoute` pod `_app`            | `AdminProjectsPage` (správa všetkých projektov) | `ADMIN`, ostatní vidia `ForbiddenPage`   |
 | `/admin/users`                     | `adminUsersRoute` pod `_app`               | `UsersPage` (zoznam a vytvorenie adminov)       | `ADMIN`, ostatní vidia `ForbiddenPage`   |
 | `/projects/$projectSlug`           | `projectIndexRoute` pod `projectRoute`     | presmeruje na `/projects/$projectSlug/settings` | člen projektu alebo `ADMIN`              |
 | `/projects/$projectSlug/settings`  | `projectSettingsRoute` pod `projectRoute`  | `ProjectSettingsPage` (Nastavenia projektu)     | člen projektu alebo `ADMIN`              |
@@ -62,7 +63,7 @@ Chyba v `beforeLoad` alebo v komponente routy bez vlastného `errorComponent` zo
 
 ### Lazy routy (code splitting)
 
-Komponenty stránok `/login`, `/profile`, `/admin/users`, nastavení, jazykov a členov projektu sa načítajú až pri prvej návšteve routy. Route súbor (`loginRoute.ts`, `adminUsersRoute.ts`) drží iba kritickú časť (`path`, `beforeLoad` guard, pri `/admin/users` aj `errorComponent`, aby sa 403 zobrazila bez čakania na chunk stránky) a cez `.lazy(() => import('@/routes/<route>.lazy').then((module) => module.Route))` pripojí súbor `<route>.lazy.ts`, ktorý obsahuje `createLazyRoute('<route id>')({ component })`. Route id je cesta vrátane pathless rodičov (`/_authenticated/_app/admin/users`), typecheck preklep v id zachytí. `ProjectsPage` (prvá stránka po prihlásení) a stránky 404, 403 a chybová stránka ostávajú v hlavnom chunku.
+Komponenty stránok `/login`, `/profile`, `/admin/projects`, `/admin/users`, nastavení, jazykov a členov projektu sa načítajú až pri prvej návšteve routy. Route súbor (`loginRoute.ts`, `adminUsersRoute.ts`) drží iba kritickú časť (`path`, `beforeLoad` guard, pri `/admin/projects` a `/admin/users` aj `errorComponent`, aby sa 403 zobrazila bez čakania na chunk stránky) a cez `.lazy(() => import('@/routes/<route>.lazy').then((module) => module.Route))` pripojí súbor `<route>.lazy.ts`, ktorý obsahuje `createLazyRoute('<route id>')({ component })`. Route id je cesta vrátane pathless rodičov (`/_authenticated/_app/admin/users`), typecheck preklep v id zachytí. `ProjectsPage` (prvá stránka po prihlásení) a stránky 404, 403 a chybová stránka ostávajú v hlavnom chunku.
 
 Knižnice sú v samostatných chunkoch cez `build.rolldownOptions.output.codeSplitting.groups` vo `vite.config.ts`: `react` (react, react-dom, scheduler), `mantine` (`@mantine/*`), `tanstack` (`@tanstack/*`) a `i18n-zod` (i18next, react-i18next, zod). Menia sa iba pri aktualizácii závislostí, takže ich prehliadač drží v cache aj po novom release aplikácie. Ostatné knižnice delí rolldown automaticky, takže tie, ktoré používajú iba lazy stránky (React Hook Form, resolver), ostávajú v lazy chunkoch. `chunkSizeWarningLimit` sa nemení.
 
@@ -96,7 +97,7 @@ Po pridaní stránky Nastavenia projektu (2026-10-17): lazy chunk stránky má 7
 - `_authenticated` je pathless route (bez segmentu v URL) bez vlastného komponentu; layout dodávajú jej deti `_home` (`HomeLayout`) a `_app` (`AppLayout`). Jej `beforeLoad` zavolá `queryClient.ensureQueryData(meQueryOptions)`. Pri 401 presmeruje na `/login` (bez `?redirect=`), iné chyby (5xx, nedostupný backend) pustí ďalej a zobrazí sa `ErrorPage`. Načítaného používateľa vráti do kontextu ako `context.user` pre podriadené routy.
 - `/login`: `beforeLoad` skúsi načítať `me`. Ak sa podarí, presmeruje na `/`. Akákoľvek chyba (401, nedostupný backend) znamená, že sa zobrazí formulár.
 - `/projects/$projectSlug`: URL obsahuje slug projektu, API ostáva na id. `loader` nájde id podľa slugu v zozname projektov (`ensureQueryData(projectsQueryOptions)`, zoznam obsahuje práve projekty, ktoré používateľ smie otvoriť). Ak slug v uloženom zozname nie je (projekt vytvorený alebo premenovaný po načítaní zoznamu), načíta zoznam raz nanovo (`fetchQuery` so `staleTime: 0`). Potom zavolá `ensureQueryData(projectSettingsQueryOptions(projectId))` bez opakovaní a vráti `{ projectId }` (stránky ho čítajú cez `useLoaderData`, sidebar cez `useMatch`). Neznámy slug alebo `404 NOT_FOUND` (projekt neexistuje alebo používateľ nie je členom) vyhodí `notFound()` a vnútri `AppLayout` sa zobrazí `ProjectNotFoundPage` („Projekt sa nenašiel“, **Späť na projekty**). Iná chyba zobrazí `ErrorPage` cez `RouteError`. Rolu neoveruje, prístup rozhoduje BE.
-- `/admin/users`: `beforeLoad` pre rolu inú ako `ADMIN` vyhodí `ForbiddenError`. `errorComponent` (`RouteError`) pre túto chybu zobrazí `ForbiddenPage` vnútri layoutu a URL ostáva rovnaká. Iné chyby zobrazí `ErrorPage` vnútri layoutu.
+- `/admin/projects` a `/admin/users`: `beforeLoad` pre rolu inú ako `ADMIN` vyhodí `ForbiddenError`. `errorComponent` (`RouteError`) pre túto chybu zobrazí `ForbiddenPage` vnútri layoutu a URL ostáva rovnaká. Iné chyby zobrazí `ErrorPage` vnútri layoutu.
 - Po prihlásení ide `ADMIN` aj `EDITOR` na `/`.
 
 Produkčný server (nginx) musí pre neznáme cesty vrátiť `index.html` (SPA fallback), inak refresh na hlbokej route skončí chybou servera.
@@ -127,6 +128,13 @@ Interceptor ignoruje `/auth/login` (zlé heslo je chyba formulára) a `/auth/me`
 | `adminUsersQueryOptions`, `useAdminUsersQuery` | `GET /api/admin/users` (`AdminUserListResponse`), kľúč `QUERY_KEYS.ADMIN.USERS()`, globálny `retry` (3 pokusy, nie pri 401)                                        |
 | `useCreateUserMutation`                        | `POST /api/admin/users` (`CreateUserRequest` → `AdminUser`). Po úspechu `invalidateQueries(QUERY_KEYS.ADMIN.USERS())` a čaká na nové načítanie, kým mutácia skončí |
 
+### Správa projektov
+
+| Hook                                                 | Čo robí                                                                                                                                                                                              |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adminProjectsQueryOptions`, `useAdminProjectsQuery` | `GET /api/admin/projects` (`AdminProjectListResponse`), kľúč `QUERY_KEYS.ADMIN.PROJECTS()`                                                                                                           |
+| `useDeleteProjectMutation`                           | `DELETE /api/admin/projects/:id`. Po úspechu odstráni z cache `PROJECTS.DETAIL(id)` a invaliduje `ADMIN.PROJECTS()` aj `PROJECTS.LIST()` (čaká na ne); pri `404 NOT_FOUND` urobí to isté bez čakania |
+
 ### Jazyky projektu
 
 | Hook                                                       | Čo robí                                                                                                                                                                 |
@@ -141,15 +149,15 @@ Katalóg pre selecty (Pridať jazyk, jazyky v Novom projekte) je priamo `SUPPORT
 
 Kľúče sú pod `QUERY_KEYS.PROJECTS`: `LIST()`, `DETAIL(projectId)` (prefix všetkých dotazov projektu), `SETTINGS(projectId)` a `MEMBERS(projectId)`.
 
-| Hook                                                     | Čo robí                                                                                                                                                        |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `projectsQueryOptions`, `useProjectsQuery`               | `GET /api/projects` (`ProjectListResponse`), kľúč `PROJECTS.LIST()`                                                                                            |
-| `useCreateProjectMutation`                               | `POST /api/projects`, po úspechu invaliduje `PROJECTS.LIST()`                                                                                                  |
-| `useLeaveProjectMutation`                                | `DELETE /api/projects/:id/membership`, po úspechu odstráni z cache `PROJECTS.DETAIL(id)` (člen už k projektu nemá prístup) a invaliduje `PROJECTS.LIST()`      |
-| `projectSettingsQueryOptions`, `useProjectSettingsQuery` | `GET /api/projects/:id/settings` (`ProjectSettings`), kľúč `PROJECTS.SETTINGS(id)`                                                                             |
-| `useUpdateProjectSettingsMutation`                       | `PATCH /api/projects/:id/settings`, po úspechu invaliduje `PROJECTS.SETTINGS(id)`, `PROJECTS.LIST()` (názov a farba v zozname) aj `LANGUAGES` a čaká na všetky |
-| `projectMembersQueryOptions`, `useProjectMembersQuery`   | `GET /api/projects/:id/members`, kľúč `PROJECTS.MEMBERS(id)`                                                                                                   |
-| `useCreateProjectMemberMutation`                         | `POST /api/projects/:id/members`, po úspechu invaliduje `PROJECTS.MEMBERS(id)`                                                                                 |
+| Hook                                                     | Čo robí                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `projectsQueryOptions`, `useProjectsQuery`               | `GET /api/projects` (`ProjectListResponse`), kľúč `PROJECTS.LIST()`                                                                                                                                                                                                                             |
+| `useCreateProjectMutation`                               | `POST /api/projects`, po úspechu invaliduje `PROJECTS.LIST()`                                                                                                                                                                                                                                   |
+| `useLeaveProjectMutation`                                | `DELETE /api/projects/:id/membership`, po úspechu odstráni z cache `PROJECTS.DETAIL(id)` (člen už k projektu nemá prístup) a invaliduje `PROJECTS.LIST()`                                                                                                                                       |
+| `projectSettingsQueryOptions`, `useProjectSettingsQuery` | `GET /api/projects/:id/settings` (`ProjectSettings`), kľúč `PROJECTS.SETTINGS(id)`                                                                                                                                                                                                              |
+| `useUpdateProjectSettingsMutation`                       | `PATCH /api/projects/:id/settings`, po úspechu invaliduje `PROJECTS.SETTINGS(id)`, `PROJECTS.LIST()` (názov a farba v zozname), `LANGUAGES` aj `ADMIN.PROJECTS()` a čaká na všetky. `mutationKey` je `PROJECTS.SETTINGS(id)`, aby modál Upraviť projekt cez `useIsMutating` vedel, že sa ukladá |
+| `projectMembersQueryOptions`, `useProjectMembersQuery`   | `GET /api/projects/:id/members`, kľúč `PROJECTS.MEMBERS(id)`                                                                                                                                                                                                                                    |
+| `useCreateProjectMemberMutation`                         | `POST /api/projects/:id/members`, po úspechu invaliduje `PROJECTS.MEMBERS(id)`                                                                                                                                                                                                                  |
 
 `LANGUAGES` sa invaliduje, lebo zmena základného jazyka mení odznak Základný na stránke Jazyky.
 
@@ -176,7 +184,7 @@ Zoznam projektov (`/`) má `HomeLayout`: iba horná lišta s logom vľavo a `Use
 - `<nav aria-label="Hlavná navigácia">` (odsadená 24 px od loga alebo prepínača):
     - Mimo projektu **Všetky projekty** (`/`, ikona `ArrowRight` otočená doľava).
     - V projekte (`/projects/$projectSlug/*`): zoznam **Nastavenia projektu** (`settings`, ikona `Settings`), **Jazyky** (`languages`, ikona `Globe`) a **Členovia** (`members`, ikona `Users`) s prístupným menom názvu projektu. **Všetky projekty** tu nie je, je v prepínači projektu.
-    - Iba `ADMIN`: oddeľovač (`--app-color-border-subtle`, okraje 16 px), nadpis sekcie **SPRÁVA** (10 / 15 / 700, veľké písmená, rozostup 0,14 em, `--app-color-muted`) a **Používatelia** (`/admin/users`, ikona `Users`).
+    - Iba `ADMIN`: oddeľovač (`--app-color-border-subtle`, okraje 16 px), nadpis sekcie **SPRÁVA** (10 / 15 / 700, veľké písmená, rozostup 0,14 em, `--app-color-muted`) **Projekty** (`/admin/projects`, ikona `Shield`) a **Používatelia** (`/admin/users`, ikona `Users`).
     - Zoznamy sekcií majú `aria-labelledby` na nadpis sekcie.
 - položka: odkaz TanStack Router `Link`, výška aspoň 44 px, padding 10 / 12 px, medzera 12 px, radius `lg`, text 16 / 24 `--mantine-color-text`, ikona 18 px `--app-color-muted`, medzi položkami 4 px. Hover `--app-color-surface-muted` (vo Figme nie je). Dlhý text sa neskracuje, zalomí sa na ďalší riadok a položka sa zvýši (**Nastavenia projektu** má v sidebari 236 px dva riadky a výšku 68 px ako Figma `3:1724`, na úzkej obrazovke jeden riadok). Ikona a bodka sú zvisle v strede položky.
 - aktívna položka podľa aktuálnej routy: `Link` jej sám nastaví `aria-current="page"` a `data-status="active"`. Pozadie `--app-color-brand-tint`, text `--app-color-eyebrow`, ikona a bodka 6 px vpravo `brand.6`.
@@ -215,6 +223,27 @@ Podľa Figmy `28:2` bez drobčekov, vnútri `AppLayout` na route `/admin/users` 
 - Hlavička: `PageIntro` s `titleSize="h2"` (malý ružový nadpis „Správa“, H1 „Používatelia“ vo veľkosti 28 px, popis) a vpravo dole primárne tlačidlo **Vytvoriť administrátora** s ikonou `Plus`, ktoré otvorí modál.
 - `UsersTable`: Mantine `Table` v karte (biela, okraj `slate.2`, radius `xl`). Hlavička tabuľky na pozadí `slate.0`, texty 10 px / 700 veľkými písmenami `slate.4`. Stĺpce **E-mail** (avatar 32 px s iniciálami z emailu cez `getInitials({ email, firstName: null, lastName: null })`, pozadie `slate.1`, text `slate.6`, `aria-hidden`, lebo vedľa je celý email) a **Vytvorený** (šírka 180 px, dátum cez `formatDate`). Riadky oddeľuje okraj `slate.1`. Poradie je z API (najnovší hore).
 - Stavy, ktoré nie sú vo Figme: načítavanie (3 riadky Mantine `Skeleton`, tabuľka má `aria-busy`), prázdny zoznam (text v tabuľke) a chyba (text „Zoznam administrátorov sa nepodarilo načítať.“, preklad `errors.<CODE>` a tlačidlo **Skúsiť znova**, ktoré zavolá `refetch`).
+
+## Stránka Projekty (správa)
+
+`/admin/projects` (`AdminProjectsPage`) vnútri `AppLayout`, iba `ADMIN` (položka **Projekty** v sekcii SPRÁVA sidebaru nad Používateľmi). Figma pre ňu nie je, vzhľad a stavy sú ako na stránke Používatelia (šírka najviac 1200 px, padding 32 px). Plán: [admin-projects.md](./plans/admin-projects.md). Úvodná stránka `/` sa nemení, ADMIN tam ďalej vidí všetky projekty ako karty.
+
+- Hlavička: `PageIntro` (Správa / Projekty / popis) a tlačidlo **Nový projekt** s ikonou `Plus`, ktoré otvorí existujúci `CreateProjectModal` (po vytvorení otvorí nastavenia nového projektu).
+- `AdminProjectsTable` (**Zoznam projektov**, `aria-label`): stĺpce **Projekt** (štvorček 32 px s iniciálami v primárnej farbe, `aria-hidden`, a názov), **Slug**, **Základný jazyk** (kruhová vlajka `LanguageFlag` a anglický názov z `SUPPORTED_LANGUAGES`, bez jazyka text „Bez jazyka“), **Jazyky** a **Členovia** (počty zarovnané doprava), **Vytvorený** (`formatDate`). Poradie podľa názvu z API. Pri úzkej obrazovke karta scrolluje vodorovne.
+- Akcie riadku sú `RowAction`: **Upraviť** (ikona `Settings`, prístupné meno „Upraviť projekt {{name}}“), **Otvoriť projekt** (`ArrowRight`, prejde na `/projects/$projectSlug/settings`) a **Zmazať** (`Trash`, červená pri hoveri, „Zmazať projekt {{name}}“).
+- Stavy: načítavanie (3 riadky `Skeleton`, `aria-busy`), prázdny zoznam („Zatiaľ tu nie sú žiadne projekty.“), chyba (text, `errors.<CODE>` a **Skúsiť znova**, po úspechu fokus na tabuľku).
+
+### Modál Upraviť projekt
+
+`EditProjectModal` (`AppModal` 720 px, nadpis Upraviť projekt, popis názov projektu, bez spoločnej päty) načíta `useProjectSettingsQuery(id)` a `useProjectLanguagesQuery(id)` a vykreslí `ProjectSettingsForm` s `isMember={false}`, teda bez Opustiť projekt a s tlačidlom **Zrušiť** vľavo (prop `onCancel`). Počas načítania 2 `Skeleton` vo výške kariet, pri chybe text, `errors.<CODE>` a **Skúsiť znova**.
+
+- Uloženie a chyby ako na stránke Nastavenia projektu (`409 SLUG_TAKEN` pri slugu, `400` pri poliach). Po úspechu sa modál zavrie (`onSaved`) a zoznam sa obnoví invalidáciou `ADMIN.PROJECTS()`. Prepis URL po zmene slugu robí iba stránka nastavení vo svojom `onSaved`, v modáli sa URL nemení.
+- Počas ukladania sa modál nedá zavrieť (krížik a Zrušiť `disabled`, bez `Esc` a kliku mimo); stav berie z `useIsMutating` s `mutationKey` mutácie nastavení.
+- Zatvorenie zahodí neuložené zmeny bez otázky (formulár sa odpojí).
+
+### Modál Zmazať projekt
+
+`DeleteProjectModal` (`AppModal` 480 px) podľa `RemoveMemberModal`: text „Naozaj chcete zmazať projekt {{name}}? Zmažú sa aj všetky jeho jazyky a členstvá. Účty členov ostanú.“ a pole „Pre potvrdenie napíšte slug projektu {{slug}}“ (`data-autofocus`). Červené **Zmazať projekt** je `disabled`, kým sa text presne nezhoduje so slugom (kontrola iba na FE, `DELETE` nemá telo). Úspech → zelená notifikácia a riadok zmizne. `404 NOT_FOUND` → červená notifikácia `errors.NOT_FOUND`, modál sa zavrie a zoznam sa obnoví. Zatvorenie pole vyprázdni. Po zatvorení ide fokus späť na tlačidlo riadku, po zmazaní na tabuľku.
 
 ### Formátovanie dátumu
 
@@ -309,7 +338,7 @@ Podľa Figmy `3:1557` bez drobčekov, ikony `?` a zvončeka, doplnená o **Zákl
     - **Primárna farba**: Mantine `ColorInput` (`format="hex"`, bez kvapkadla, `fixOnBlur={false}`, aby neplatná farba ukázala chybu pri poli a nevrátila sa potichu) a vedľa štítok **Ukážka** s pozadím vo zadanej farbe. Kým zadaná farba nie je platná `#RRGGBB` (`hexColorSchema`), štítok ukazuje uloženú farbu. Text štítka je čierny alebo biely podľa jasu farby (`isLightColor` v `lib/utils.ts`, YIQ, prah 128), v oboch schémach rovnako, lebo leží na farbe používateľa.
     - **Základný jazyk**: `Select` s jazykmi projektu (`useProjectLanguagesQuery`, popis „English (en)“, v zozname a vľavo v poli kruhová vlajka `LanguageFlag`), predvyplnený `baseLanguageId`, mení ho člen aj `ADMIN`. Bez jazykov je disabled s nápovedou „Projekt zatiaľ nemá žiadne jazyky.“ a odkazom **Pridať jazyk do projektu** na stránku Jazyky projektu; formulár sa vtedy uloží bez `baseLanguageId`.
 - **Ochrana dynamických segmentov** (`VariableProtectionSection`, karta `ProfileSection` s `withDivider={false}`, bez čiary pod hlavičkou ako vo Figme): `Switch` veľkosti `md` vpravo v boxe `--app-color-surface-muted` (padding 16 px, radius `lg`), label „Chrániť výrazy {{ variable }}“ s popisom. Text `{{ variable }}` ide do prekladu ako parameter `example`, inak by ho i18next bral ako vlastnú premennú. Nastavenie sa iba ukladá, editor prekladov ešte neexistuje.
-- Pätička: vľavo **Opustiť projekt** (`Button variant="outline"`, otvorí `LeaveProjectModal`, po odchode presmeruje na `/`), vpravo **Uložiť zmeny**. `ADMIN`, ktorý nie je členom (podľa `isMember` zo zoznamu projektov), tlačidlo Opustiť projekt nevidí.
+- Pätička: vľavo **Opustiť projekt** (v modáli Upraviť projekt namiesto neho **Zrušiť**) (`Button variant="outline"`, otvorí `LeaveProjectModal`, po odchode presmeruje na `/`), vpravo **Uložiť zmeny**. `ADMIN`, ktorý nie je členom (podľa `isMember` zo zoznamu projektov), tlačidlo Opustiť projekt nevidí.
 - **Uložiť zmeny**: React Hook Form + `zodResolver(updateProjectSettingsRequestSchema)` (chyby cez `toValidationCode` → `validation.<CODE>`). Disabled, kým sa formulár nezmení, počas requestu `loading` a druhé odoslanie sa ignoruje. Úspech → zelená notifikácia „Nastavenia projektu boli uložené.“ a `reset` na hodnoty z odpovede. `400 VALIDATION_ERROR` → `setError` pri poliach podľa `details`, `409 SLUG_TAKEN` → chyba pri slugu, iná chyba (napr. `404 NOT_FOUND`) → červená notifikácia `errors.<CODE>`.
 - Stavy mimo Figmy: načítavanie jazykov (2 `Skeleton` vo výške kariet, `aria-busy`), chyba načítania jazykov (nastavenia už načítal loader routy) (text „Nastavenia projektu sa nepodarilo načítať.“, `errors.<CODE>` a **Skúsiť znova**, ktoré znova načíta, čo zlyhalo, a po úspechu dá fokus na Názov projektu). Chyba pri obnovení na pozadí (dáta už sú) formulár neskryje.
 

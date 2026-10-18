@@ -8,9 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
-### Správa projektov: backend (2026-10-18)
+### Správa projektov (2026-10-18)
 
+- shared: kontrakt `adminProjectListItemSchema` / `adminProjectListResponseSchema`
 - backend: `GET /api/admin/projects` (všetky projekty so základným jazykom, počtom jazykov a členov) a `DELETE /api/admin/projects/:projectId` (členstvá a jazyky kaskádou, používatelia ostávajú), iba ADMIN ([API](./api/admin-projects.md))
+- frontend: stránka **Projekty** v sekcii SPRÁVA (`/admin/projects`, iba ADMIN, EDITOR dostane 403) s tabuľkou všetkých projektov (farba a názov, slug, základný jazyk, počet jazykov a členov, vytvorený), tlačidlom Nový projekt a akciami Upraviť (formulár nastavení v modáli), Otvoriť projekt a Zmazať (potvrdenie prepísaním slugu) ([Frontend](./frontend.md#stránka-projekty-správa))
 - plán: [admin-projects.md](./plans/admin-projects.md)
 
 ### Slug v URL projektu, čeština a akcie v tabuľkách (2026-10-18)

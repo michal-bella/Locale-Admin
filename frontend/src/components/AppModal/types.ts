@@ -7,7 +7,8 @@ export type AppModalProps = {
 	description?: ReactNode
 	closeLabel: string
 	children: ReactNode
-	footer: ReactNode
+	/** Without it the body has no footer bar, e.g. when the content is a form with its own buttons. */
+	footer?: ReactNode
 	/** Wraps body and footer in a `<form noValidate>`, so a submit button in the footer submits it. */
 	onSubmit?: FormEventHandler<HTMLFormElement>
 	/** While a request runs the modal cannot be closed (X disabled, no Esc, no outside click). */

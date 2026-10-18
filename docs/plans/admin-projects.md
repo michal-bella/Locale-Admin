@@ -6,7 +6,7 @@ notion_page_id:
 
 # Správa projektov (admin) – implementačný plán (MVP)
 
-Nová stránka **Projekty** v sekcii SPRÁVA, kde ADMIN vidí **všetky projekty** v tabuľke, môže ich **upraviť** v modale (obsah stránky `/projects/$projectId/settings`) a **zmazať**. Postup podľa `.agents/workflows/feature.md` na vetve `feature/admin-projects`: kontrakt v `packages/shared`, potom BE a FE paralelne vo vlastných worktree, E2E, review. Po každom kroku checkpoint (`pnpm verify`, `docs/`, commit, krátky report).
+Nová stránka **Projekty** v sekcii SPRÁVA, kde ADMIN vidí **všetky projekty** v tabuľke, môže ich **upraviť** v modale (obsah stránky `/projects/$projectSlug/settings`) a **zmazať**. Postup podľa `.agents/workflows/feature.md` na vetve `feature/admin-projects`: kontrakt v `packages/shared`, potom BE a FE paralelne vo vlastných worktree, E2E, review. Po každom kroku checkpoint (`pnpm verify`, `docs/`, commit, krátky report).
 
 ## Predpoklady
 
@@ -22,7 +22,7 @@ Nová stránka **Projekty** v sekcii SPRÁVA, kde ADMIN vidí **všetky projekty
 | Položka **Projekty** v `Sidebar` v sekcii SPRÁVA (nad Používateľmi), iba ADMIN                          | áno                                                 |
 | `PageIntro` (eyebrow „Správa“, nadpis „Projekty“, popis)                                                | áno                                                 |
 | Tabuľka: farba + názov, slug, základný jazyk, počet jazykov, počet členov, vytvorený                    | áno                                                 |
-| Akcie v riadku (menu `DotsHorizontal`): **Upraviť**, **Otvoriť projekt**, **Zmazať**                    | áno                                                 |
+| Akcie v riadku (ikonové tlačidlá `RowAction`): **Upraviť**, **Otvoriť projekt**, **Zmazať**                    | áno                                                 |
 | Modal **Upraviť projekt** s formulárom nastavení (názov, slug, farba, základný jazyk, ochrana premenných) | áno                                                 |
 | Modal **Zmazať projekt** s potvrdením                                                                   | áno, potvrdenie prepísaním slugu                    |
 | Vytvorenie projektu z tejto stránky                                                                     | áno, tlačidlo otvorí existujúci `CreateProjectModal` |
@@ -32,7 +32,7 @@ Nová stránka **Projekty** v sekcii SPRÁVA, kde ADMIN vidí **všetky projekty
 ## Rozhodnutia
 
 - **Route:** `/admin/projects` pod `appLayoutRoute`, guard `beforeLoad` na `ROLE.ADMIN` a `errorComponent: RouteError` v eager súbore, stránka lazy (`adminProjectsRoute.ts` + `.lazy.ts`) presne ako `adminUsersRoute`.
-- **Modal je lokálny stav stránky** (`editingProjectId`), nie route. Deep link na úpravu existuje už ako `/projects/$projectId/settings`.
+- **Modal je lokálny stav stránky** (`editingProjectId`), nie route. Deep link na úpravu existuje už ako `/projects/$projectSlug/settings`.
 - **Formulár v modale:** `ProjectSettingsForm` dostane voliteľné props `onSaved` (modal sa po úspešnom uložení zavrie) a `onCancel` (zobrazí tlačidlo Zrušiť namiesto „Opustiť projekt“). V modale sa posiela `isMember={false}`, takže „Opustiť projekt“ sa nezobrazí. Stránka nastavení sa správa rovnako ako doteraz.
 - **Modal `EditProjectModal`** (`components/EditProjectModal/`): `AppModal` (size ~720), načíta `useProjectSettingsQuery(id)` a `useProjectLanguagesQuery(id)`; loading = skeletony, chyba = text + Skúsiť znova (ako `ProjectSettingsPage`). Počas uloženia sa nedá zavrieť (`isPending`).
 - **Modal `DeleteProjectModal`** (`components/DeleteProjectModal/`) podľa `RemoveMemberModal`/`ConfirmDeleteModal`: text s názvom projektu a dopadmi (zmaže sa N jazykov a odoberie N členov), `TextInput` na prepísanie slugu, červené tlačidlo aktívne až pri zhode. 404 pri mazaní = projekt už neexistuje → notifikácia + obnovenie zoznamu.
@@ -77,7 +77,7 @@ BE: `routes/adminProjects.routes.ts` pripojený v `admin.routes.ts` (`router.use
 | - | ---- | -- | -------- |
 | 1 | orchestrator | kontrakt `adminProjects.ts` + export v `index.ts` + unit test schémy, commit na `feature/admin-projects` | `pnpm --filter @locale/shared test`, `pnpm typecheck` |
 | 2 | backend-developer | route, controller, service; integračné testy: ADMIN list (počty, base jazyk, poradie), EDITOR 403, anonym 401, delete 204 + kaskáda členov a jazykov, delete 404 (neexistujúci, neplatné UUID), používatelia po zmazaní ostávajú | `pnpm --filter backend test:integration`, skill `api-smoke` |
-| 3 | frontend-developer | `QUERY_KEYS.ADMIN.PROJECTS`, `api/adminProjects/` (query + `useDeleteProjectMutation`), route, `AdminProjectsPage`, `AdminProjectsTable`, `EditProjectModal`, `DeleteProjectModal`, úprava `ProjectSettingsForm` a `useUpdateProjectSettingsMutation`, `NavItem` v `Sidebar`, i18n `adminProjectsPage.*` v `sk.json` + `en.json`; unit testy (riadky, loading, empty, error + retry, úprava v modale vrátane `SLUG_TAKEN`, zmazanie, EDITOR bez položky v sidebari) | `pnpm lint`, `pnpm --filter frontend typecheck`, `pnpm --filter frontend test`, `pnpm --filter frontend build` |
+| 3 | frontend-developer | `QUERY_KEYS.ADMIN.PROJECTS`, `api/adminProjects/` (query + `useDeleteProjectMutation`), route, `AdminProjectsPage`, `AdminProjectsTable`, `EditProjectModal`, `DeleteProjectModal`, úprava `ProjectSettingsForm` a `useUpdateProjectSettingsMutation`, `NavItem` v `Sidebar`, i18n `adminProjectsPage.*` v `sk.json`, `en.json` + `cs.json`; unit testy (riadky, loading, empty, error + retry, úprava v modale vrátane `SLUG_TAKEN`, zmazanie, EDITOR bez položky v sidebari) | `pnpm lint`, `pnpm --filter frontend typecheck`, `pnpm --filter frontend test`, `pnpm --filter frontend build` |
 | 4 | e2e-tester | happy path: ADMIN otvorí Projekty, upraví názov v modale (zoznam sa obnoví bez reloadu), zmaže projekt; EDITOR dostane 403 na `/admin/projects` | `pnpm test:e2e` |
 | 5 | accessibility-reviewer, code-reviewer | `aria-label` tabuľky („Zoznam projektov“), focus po otvorení/zatvorení modalov, review diffu | report |
 | 6 | orchestrator | `docs/api/admin-projects.md`, `docs/frontend.md`, `docs/changelog.md`, merge, `pnpm verify`, `pnpm stack:up` a kontrola na `http://localhost:8080/admin/projects` | skill `docs-update`, `pnpm verify` |

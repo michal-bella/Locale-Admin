@@ -202,6 +202,12 @@ Vetva `feature/translations` z `main`, každý míľnik vo vlastnej session s co
 | **E** Úprava v riadku | `PUT` prekladu, placeholder ochrana, optimistický update, klávesnica | integration + FE testy |
 | **F** E2E, a11y, docs | E2E scenáre, accessibility review, docs, `changelog` | `pnpm verify`, `pnpm test:e2e` |
 
+### Odložené z míľnika A
+
+- Kľúče s prázdnym namespace `""` sa nedajú vyfiltrovať (prázdna hodnota filtra = bez filtra). Riešiť, keď import začne vytvárať kľúče mimo sekcie `--…--`, napr. hodnotou `namespace=~none`.
+- B: integračný test s kľúčom 2 000 znakov v cyrilike (unikátny btree index na `(projectId, namespace, name)` má limit ~2,7 kB); ak neprejde, limit v bajtoch alebo index na `md5(name)`.
+- C: `updatedAt` nemá v DB default, dávkový upsert cez `unnest` ho musí nastaviť (`now()`).
+
 ## Odhad
 
 | Míľnik | Človekodni (MD) |

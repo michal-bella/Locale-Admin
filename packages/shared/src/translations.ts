@@ -18,7 +18,7 @@ export const translationStatusSchema = z.enum(['TRANSLATED', 'UNTRANSLATED'])
 
 export type TranslationStatus = z.infer<typeof translationStatusSchema>
 
-/** `UNTRANSLATED_FIRST` orders by status, group, key; `KEY` by namespace and key; `UPDATED` by target `updatedAt`, newest first. */
+/** `UNTRANSLATED_FIRST` orders by status, group, key; `KEY` by namespace, group, key; `UPDATED` by target `updatedAt`, newest first. */
 export const translationsSortSchema = z.enum(['UNTRANSLATED_FIRST', 'KEY', 'UPDATED'])
 
 export type TranslationsSort = z.infer<typeof translationsSortSchema>
@@ -82,7 +82,7 @@ export const translationsResponseSchema = z.object({
 
 export type TranslationsResponse = z.infer<typeof translationsResponseSchema>
 
-/** Group of a key as the backend computes it, exported for tests and fixtures. */
+/** Group of a key; the backend computes the same in SQL. */
 export const translationGroup = (namespace: string, name: string): string => {
 	if (!new RegExp(TRANSLATION_KEY_PATH_PATTERN).test(name)) {
 		return namespace

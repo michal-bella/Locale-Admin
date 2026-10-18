@@ -1,7 +1,7 @@
 import { Router } from 'express'
 
 import { type Config } from '../config/env'
-import { createPreviewImportController } from '../controllers/imports.controller'
+import { createImportController, createPreviewImportController } from '../controllers/imports.controller'
 import {
 	createCreateProjectLanguageController,
 	createDeleteProjectLanguageController,
@@ -38,6 +38,7 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.get('/:projectId/translations', requireProjectAccess, createListTranslationsController(prisma))
 	// The default JSON parser skips /imports*: every route under this prefix gets the 12 MB parser, after the access check.
 	router.use('/:projectId/imports', requireProjectAccess, importJsonBody)
+	router.post('/:projectId/imports', createImportController(prisma))
 	router.post('/:projectId/imports/preview', createPreviewImportController(prisma))
 	return router
 }

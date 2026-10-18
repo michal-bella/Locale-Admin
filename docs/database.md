@@ -119,6 +119,8 @@ Text kľúča v jednom jazyku projektu.
 
 PK je dvojica (`keyId`, `languageId`), index na `languageId`.
 
+Import zapisuje kľúče a preklady dávkovo v jednej transakcii so zámkom `pg_advisory_xact_lock` na projekt, takže súbežné importy jedného projektu idú za sebou; prázdna hodnota zo súboru nikdy nevytvorí riadok s `null` (viď [API: import](./api/imports.md#transakcia-zámok-a-dávky)).
+
 Stav prekladu sa neukladá. **Nepreložené** = riadok pre jazyk chýba alebo `value` je `null`, inak **Preložené**. Jazyk pridaný do projektu po importe preto nemá žiadne riadky a všetky kľúče sú v ňom nepreložené; nič sa nedopĺňa. Index `pg_trgm` pre vyhľadávanie zatiaľ nie je, 2 500 kľúčov × 10 jazykov zvládne `ILIKE` za približne 10 ms (viď [API: preklady](./api/translations.md#výkon)).
 
 ```mermaid

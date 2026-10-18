@@ -1,4 +1,4 @@
-import { IMPORT_ISSUES_MAX, IMPORT_KEY_MAX_LENGTH, type ImportIssue } from '@locale/shared'
+import { IMPORT_ISSUES_MAX, IMPORT_KEY_MAX_BYTES, IMPORT_NAMESPACE_MAX_LENGTH, type ImportIssue } from '@locale/shared'
 
 import { type ParseResult, type ParsedColumn, type ParsedRow } from './parsedFile'
 
@@ -12,7 +12,8 @@ export const NAMESPACE_PATTERN = /^[A-Za-z0-9._-]+$/
 /** U+FFFD is what a lenient UTF-8 decoder puts in place of invalid bytes; a lone surrogate cannot be encoded at all. */
 const NOT_UTF8_PATTERN = /\uFFFD|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/
 
-const isValidNamespace = (namespace: string) => NAMESPACE_PATTERN.test(namespace) && namespace !== '.' && namespace !== '..'
+const isValidNamespace = (namespace: string) =>
+	NAMESPACE_PATTERN.test(namespace) && namespace !== '.' && namespace !== '..' && namespace.length <= IMPORT_NAMESPACE_MAX_LENGTH
 
 const toValue = (field: string): string | null => (field === 'null' || field === '""' || field === '' ? null : field)
 
@@ -110,9 +111,9 @@ export const parseCsv = (content: string): ParseResult => {
 			issues.push({ code: 'ROW_EMPTY_KEY', line, column: 1 })
 			return
 		}
-		const length = [...key].length
-		if (length > IMPORT_KEY_MAX_LENGTH) {
-			issues.push({ code: 'KEY_TOO_LONG', line, column: 1, params: { max: IMPORT_KEY_MAX_LENGTH, length } })
+		const length = Buffer.byteLength(key, 'utf8')
+		if (length > IMPORT_KEY_MAX_BYTES) {
+			issues.push({ code: 'KEY_TOO_LONG', line, column: 1, params: { max: IMPORT_KEY_MAX_BYTES, length } })
 			return
 		}
 		const identity = `${namespace}\u0000${key}`

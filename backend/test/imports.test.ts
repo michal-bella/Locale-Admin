@@ -7,12 +7,15 @@ import {
 	ERROR_CODE,
 	IMPORT_FILE_MAX_BYTES,
 	IMPORT_ISSUES_MAX,
-	IMPORT_KEY_MAX_LENGTH,
+	IMPORT_KEY_MAX_BYTES,
+	IMPORT_NAMESPACE_MAX_LENGTH,
 	IMPORT_WARNINGS_MAX,
 	ROLE,
 	errorResponseSchema,
 	importFileInvalidDetailsSchema,
 	importPreviewResponseSchema,
+	importResultSchema,
+	type ImportRequestInput,
 	type ImportIssue,
 } from '@locale/shared'
 
@@ -48,7 +51,7 @@ const setup = async (app: App, role: ROLE = ROLE.EDITOR, { member = true }: { me
 	const sk = await createLanguage(project.id, 'sk', true)
 	const en = await createLanguage(project.id, 'en')
 	const cs = await createLanguage(project.id, 'cs')
-	return { project, sk, en, cs, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
+	return { user, project, sk, en, cs, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
 }
 
 const preview = (app: App, cookie: string, projectId: string, body: object) =>
@@ -230,8 +233,8 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 		},
 		{
 			name: 'KEY_TOO_LONG',
-			content: `Keys; sk\n ${'k'.repeat(IMPORT_KEY_MAX_LENGTH + 1)}; b`,
-			issues: [{ code: 'KEY_TOO_LONG', line: 2, column: 1, params: { max: IMPORT_KEY_MAX_LENGTH, length: IMPORT_KEY_MAX_LENGTH + 1 } }],
+			content: `Keys; sk\n ${'k'.repeat(IMPORT_KEY_MAX_BYTES + 1)}; b`,
+			issues: [{ code: 'KEY_TOO_LONG', line: 2, column: 1, params: { max: IMPORT_KEY_MAX_BYTES, length: IMPORT_KEY_MAX_BYTES + 1 } }],
 		},
 		{ name: 'NAMESPACE_INVALID', content: 'Keys; sk\n--a b--\n a; b', issues: [{ code: 'NAMESPACE_INVALID', line: 2, params: { namespace: 'a b' } }] },
 	])('returns 422 IMPORT_FILE_INVALID with $name', async ({ content, issues }) => {
@@ -390,20 +393,419 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 	})
 })
 
-describe('TranslationKey', () => {
-	// Fails today: the btree index on (projectId, namespace, name) allows 2 704 bytes per row. TODO: decide a fix before the import writes keys (milestone C).
-	it.fails(`stores a ${IMPORT_KEY_MAX_LENGTH}-character Cyrillic key under the unique index`, async () => {
+type ImportColumns = ImportRequestInput['columns']
+
+const postImport = (app: App, cookie: string, projectId: string, body: object) =>
+	request(app).post(`/api/projects/${projectId}/imports`).set('Cookie', cookie).set(CSRF_HEADERS).send(body)
+
+const importCsv = (app: App, cookie: string, projectId: string, lines: string[], columns: ImportColumns, createMissingKeys?: boolean) =>
+	postImport(app, cookie, projectId, { fileName: 'translations.csv', content: lines.join('\n'), columns, createMissingKeys })
+
+const importOk = async (...args: Parameters<typeof importCsv>) => {
+	const res = await importCsv(...args)
+	expect(res.status).toBe(200)
+	return importResultSchema.strict().parse(res.body)
+}
+
+/** Every translation of the project as `namespace/name tag = value`, sorted, with its author and time. */
+const projectTranslations = async (projectId: string) => {
+	const rows = await getTestPrisma().translation.findMany({
+		where: { key: { projectId } },
+		select: { value: true, updatedById: true, updatedAt: true, key: { select: { namespace: true, name: true } }, language: { select: { tag: true } } },
+	})
+	return rows
+		.map(({ key, language, value, updatedById, updatedAt }) => ({ id: `${key.namespace}/${key.name} ${language.tag}`, value, updatedById, updatedAt }))
+		.sort((a, b) => a.id.localeCompare(b.id))
+}
+
+const projectValues = async (projectId: string) => Object.fromEntries((await projectTranslations(projectId)).map(({ id, value }) => [id, value]))
+
+const projectKeys = async (projectId: string) =>
+	(await getTestPrisma().translationKey.findMany({ where: { projectId }, select: { namespace: true, name: true } }))
+		.map(({ namespace, name }) => `${namespace}/${name}`)
+		.sort()
+
+describe('POST /api/projects/:projectId/imports', () => {
+	const FILE = [
+		'Keys; sk ; en ; cs',
+		'--loc--',
+		' Uložiť; Uložiť; Save; ""',
+		' Zrušiť; Zrušiť; null; ',
+		'--paths--',
+		' orders; /objednavky; /orders; /objednavky',
+	]
+
+	const allColumns = (sk: { id: string }, en: { id: string }, cs: { id: string }): ImportColumns => [
+		{ columnIndex: 2, languageId: sk.id },
+		{ columnIndex: 3, languageId: en.id },
+		{ columnIndex: 4, languageId: cs.id },
+	]
+
+	it('creates keys and filled translations in a new project, never null rows', async () => {
+		const app = createTestApp()
+		const { user, project, sk, en, cs, cookie } = await setup(app)
+
+		expect(await importOk(app, cookie, project.id, FILE, allColumns(sk, en, cs))).toEqual({
+			keysCreated: 3,
+			translationsCreated: 6,
+			translationsUpdated: 0,
+			skippedColumns: 0,
+		})
+
+		expect(await projectKeys(project.id)).toEqual(['loc/Uložiť', 'loc/Zrušiť', 'paths/orders'])
+		const translations = await projectTranslations(project.id)
+		expect(Object.fromEntries(translations.map(({ id, value }) => [id, value]))).toEqual({
+			'loc/Uložiť en': 'Save',
+			'loc/Uložiť sk': 'Uložiť',
+			'loc/Zrušiť sk': 'Zrušiť',
+			'paths/orders cs': '/objednavky',
+			'paths/orders en': '/orders',
+			'paths/orders sk': '/objednavky',
+		})
+		expect(translations.every(({ updatedById }) => updatedById === user.id)).toBe(true)
+	})
+
+	it('changes nothing when the same file is imported again', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app)
+		await importOk(app, cookie, project.id, FILE, allColumns(sk, en, cs))
+		const before = await projectTranslations(project.id)
+
+		expect(await importOk(app, cookie, project.id, FILE, allColumns(sk, en, cs))).toEqual({
+			keysCreated: 0,
+			translationsCreated: 0,
+			translationsUpdated: 0,
+			skippedColumns: 0,
+		})
+		expect(await projectTranslations(project.id)).toEqual(before)
+	})
+
+	it('overwrites a different value, fills an empty one, keeps a value the file has as null and leaves equal values untouched', async () => {
+		const app = createTestApp()
+		const { user, project, sk, en, cs, cookie } = await setup(app)
+		await createKey(project.id, 'loc', 'Uložiť', { [sk.id]: 'Uložiť', [en.id]: 'Store', [cs.id]: 'Uložit' })
+		await createKey(project.id, 'loc', 'Zrušiť', { [sk.id]: null, [en.id]: 'Cancel' })
+		await createKey(project.id, 'loc', 'Nie je v súbore', { [sk.id]: 'Nie je v súbore' })
+		const before = new Map((await projectTranslations(project.id)).map((row) => [row.id, row]))
+
+		expect(await importOk(app, cookie, project.id, FILE.slice(0, 4), allColumns(sk, en, cs))).toEqual({
+			keysCreated: 0,
+			translationsCreated: 1,
+			translationsUpdated: 1,
+			skippedColumns: 0,
+		})
+
+		const after = await projectTranslations(project.id)
+		expect(Object.fromEntries(after.map(({ id, value }) => [id, value]))).toEqual({
+			'loc/Nie je v súbore sk': 'Nie je v súbore',
+			'loc/Uložiť cs': 'Uložit',
+			'loc/Uložiť en': 'Save',
+			'loc/Uložiť sk': 'Uložiť',
+			'loc/Zrušiť en': 'Cancel',
+			'loc/Zrušiť sk': 'Zrušiť',
+		})
+		for (const row of after) {
+			if (row.id === 'loc/Uložiť en' || row.id === 'loc/Zrušiť sk') {
+				expect(row.updatedById).toBe(user.id)
+				expect(row.updatedAt.getTime()).toBeGreaterThan(before.get(row.id)?.updatedAt.getTime() ?? Infinity)
+			} else {
+				expect(row).toEqual(before.get(row.id))
+			}
+		}
+	})
+
+	it('writes nothing for a skipped column', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+
+		const result = await importOk(app, cookie, project.id, FILE, [
+			{ columnIndex: 2, languageId: sk.id },
+			{ columnIndex: 3, languageId: en.id },
+			{ columnIndex: 4, languageId: null },
+		])
+
+		expect(result).toEqual({ keysCreated: 3, translationsCreated: 5, translationsUpdated: 0, skippedColumns: 1 })
+		expect(Object.keys(await projectValues(project.id)).filter((id) => id.endsWith(' cs'))).toEqual([])
+	})
+
+	it('imports only values of existing keys when createMissingKeys is false', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app)
+		await createKey(project.id, 'loc', 'Uložiť')
+
+		expect(await importOk(app, cookie, project.id, FILE, allColumns(sk, en, cs), false)).toEqual({
+			keysCreated: 0,
+			translationsCreated: 2,
+			translationsUpdated: 0,
+			skippedColumns: 0,
+		})
+		expect(await projectKeys(project.id)).toEqual(['loc/Uložiť'])
+		expect(await projectValues(project.id)).toEqual({ 'loc/Uložiť en': 'Save', 'loc/Uložiť sk': 'Uložiť' })
+	})
+
+	it('creates missing keys when createMissingKeys is left out', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie } = await setup(app)
+
+		const res = await postImport(app, cookie, project.id, {
+			fileName: 'a.csv',
+			content: 'Keys; sk\n a; A',
+			columns: [{ columnIndex: 2, languageId: sk.id }],
+		})
+
+		expect(res.status).toBe(200)
+		expect(await projectValues(project.id)).toEqual({ '/a sk': 'A' })
+	})
+
+	it('maps an unknown and a catalog column onto project languages regardless of their tags', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app)
+
+		const result = await importOk(
+			app,
+			cookie,
+			project.id,
+			['Keys; sk ; pl ; de-AT', ' a; A; Polski; Deutsch'],
+			[
+				{ columnIndex: 2, languageId: sk.id },
+				{ columnIndex: 3, languageId: cs.id },
+				{ columnIndex: 4, languageId: en.id },
+			],
+		)
+
+		expect(result).toEqual({ keysCreated: 1, translationsCreated: 3, translationsUpdated: 0, skippedColumns: 0 })
+		expect(await projectValues(project.id)).toEqual({ '/a cs': 'Polski', '/a en': 'Deutsch', '/a sk': 'A' })
+	})
+
+	it('returns the counts of the preview for the same file and mapping', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app)
+		await createKey(project.id, 'loc', 'Uložiť', { [sk.id]: 'Uložiť', [en.id]: 'Save' })
+		await createKey(project.id, 'loc', 'Zrušiť', { [sk.id]: 'Zrušiť', [en.id]: 'Cancel', [cs.id]: 'Zrušit' })
+		await createKey(project.id, 'loc', 'Existujúci bez prekladov')
+		await createKey(project.id, 'paths', 'orders', { [en.id]: '/orders', [cs.id]: null })
+		const body = await previewOk(app, cookie, project.id, SAMPLE)
+
+		const result = await importOk(
+			app,
+			cookie,
+			project.id,
+			SAMPLE,
+			body.columns.map(({ columnIndex, languageId }) => ({ columnIndex, languageId: languageId ?? null })),
+		)
+
+		expect(result).toEqual({
+			keysCreated: body.keys.new,
+			translationsCreated: body.changes.reduce((sum, change) => sum + change.new, 0),
+			translationsUpdated: body.changes.reduce((sum, change) => sum + change.changed, 0),
+			skippedColumns: 2,
+		})
+		expect(result.translationsCreated).toBeGreaterThan(0)
+		expect(result.translationsUpdated).toBeGreaterThan(0)
+	})
+
+	it('serializes concurrent imports of one project with the same outcome as running them one after the other', async () => {
+		const app = createTestApp()
+		const { project, en, cookie } = await setup(app)
+		const columns = [{ columnIndex: 2, languageId: en.id }]
+		const first = ['Keys; en', ...Array.from({ length: 2000 }, (_, index) => ` key ${index}; first ${index}`)]
+		const second = ['Keys; en', ...Array.from({ length: 2000 }, (_, index) => ` key ${index + 1000}; second ${index + 1000}`)]
+
+		const results = await Promise.all([importOk(app, cookie, project.id, first, columns), importOk(app, cookie, project.id, second, columns)])
+
+		const firstWonOrder = results[0].keysCreated === 2000
+		const [earlier, later] = firstWonOrder ? results : [results[1], results[0]]
+		expect(earlier).toEqual({ keysCreated: 2000, translationsCreated: 2000, translationsUpdated: 0, skippedColumns: 0 })
+		expect(later).toEqual({ keysCreated: 1000, translationsCreated: 1000, translationsUpdated: 1000, skippedColumns: 0 })
+		const values = await projectValues(project.id)
+		expect(Object.keys(values)).toHaveLength(3000)
+		expect(values['/key 1500 en']).toBe(firstWonOrder ? 'second 1500' : 'first 1500')
+		expect(values['/key 500 en']).toBe('first 500')
+		expect(values['/key 2500 en']).toBe('second 2500')
+	})
+
+	describe('returns 400 IMPORT_COLUMNS_INVALID and writes nothing', () => {
+		it.each<{ name: string; columns: (ids: { sk: string; en: string; cs: string; foreign: string }) => ImportColumns }>([
+			{
+				name: 'a column that is not a language column of the file',
+				columns: ({ sk, en, cs }) => [
+					{ columnIndex: 2, languageId: sk },
+					{ columnIndex: 3, languageId: en },
+					{ columnIndex: 4, languageId: cs },
+					{ columnIndex: 5, languageId: null },
+				],
+			},
+			{
+				name: 'a missing language column',
+				columns: ({ sk, en }) => [
+					{ columnIndex: 2, languageId: sk },
+					{ columnIndex: 3, languageId: en },
+				],
+			},
+			{
+				name: 'a column listed twice',
+				columns: ({ sk, en }) => [
+					{ columnIndex: 2, languageId: sk },
+					{ columnIndex: 3, languageId: en },
+					{ columnIndex: 4, languageId: null },
+					{ columnIndex: 4, languageId: null },
+				],
+			},
+			{
+				name: 'a language of another project',
+				columns: ({ sk, en, foreign }) => [
+					{ columnIndex: 2, languageId: sk },
+					{ columnIndex: 3, languageId: en },
+					{ columnIndex: 4, languageId: foreign },
+				],
+			},
+			{
+				name: 'an unknown language id',
+				columns: ({ sk, en }) => [
+					{ columnIndex: 2, languageId: sk },
+					{ columnIndex: 3, languageId: en },
+					{ columnIndex: 4, languageId: randomUUID() },
+				],
+			},
+			{
+				name: 'the same language mapped twice',
+				columns: ({ sk, en }) => [
+					{ columnIndex: 2, languageId: sk },
+					{ columnIndex: 3, languageId: en },
+					{ columnIndex: 4, languageId: en },
+				],
+			},
+			{
+				name: 'every column skipped',
+				columns: () => [
+					{ columnIndex: 2, languageId: null },
+					{ columnIndex: 3, languageId: null },
+					{ columnIndex: 4, languageId: null },
+				],
+			},
+		])('for $name', async ({ columns }) => {
+			const app = createTestApp()
+			const { project, sk, en, cs, cookie } = await setup(app)
+			const other = await createProject()
+			const foreign = await createLanguage(other.id, 'cs')
+
+			const res = await importCsv(app, cookie, project.id, FILE, columns({ sk: sk.id, en: en.id, cs: cs.id, foreign: foreign.id }))
+
+			expectErrorCode(res, 400, ERROR_CODE.IMPORT_COLUMNS_INVALID)
+			expect(await countRows()).toEqual({ keys: 0, translations: 0, languages: 4 })
+		})
+	})
+
+	it('returns 400 VALIDATION_ERROR without columns', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await setup(app)
+
+		const res = await postImport(app, cookie, project.id, { fileName: 'a.csv', content: FILE.join('\n'), columns: [] })
+
+		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
+	})
+
+	it('returns 422 IMPORT_FILE_INVALID like the preview and writes nothing', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie } = await setup(app)
+
+		const res = await importCsv(app, cookie, project.id, ['Keys; sk', ' a; b; c'], [{ columnIndex: 2, languageId: sk.id }])
+
+		expect(fileIssues(res)).toEqual({ issues: [{ code: 'ROW_COLUMN_COUNT', line: 2, params: { expected: 2, actual: 3 } }], total: 1 })
+		expect((await countRows()).keys).toBe(0)
+	})
+
+	it('returns 413 IMPORT_FILE_TOO_LARGE for content over the limit in UTF-8 bytes', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie } = await setup(app)
+		const content = 'é'.repeat(IMPORT_FILE_MAX_BYTES / 2 + 1)
+
+		const res = await postImport(app, cookie, project.id, { fileName: 'a.csv', content, columns: [{ columnIndex: 2, languageId: sk.id }] })
+
+		expectErrorCode(res, 413, ERROR_CODE.IMPORT_FILE_TOO_LARGE)
+	})
+
+	it('returns 401 without a session', async () => {
 		const project = await createProject()
+
+		const res = await request(createTestApp())
+			.post(`/api/projects/${project.id}/imports`)
+			.set(CSRF_HEADERS)
+			.send({ fileName: 'a.csv', content: FILE.join('\n'), columns: [] })
+
+		expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
+	})
+
+	it('returns 404 NOT_FOUND for a project of which the user is not a member or an unknown project', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app, ROLE.EDITOR, { member: false })
+
+		expectErrorCode(await importCsv(app, cookie, project.id, FILE, allColumns(sk, en, cs)), 404, ERROR_CODE.NOT_FOUND)
+		expectErrorCode(await importCsv(app, cookie, randomUUID(), FILE, allColumns(sk, en, cs)), 404, ERROR_CODE.NOT_FOUND)
+		expect((await countRows()).keys).toBe(0)
+	})
+
+	it('lets an ADMIN import into any project', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app, ROLE.ADMIN, { member: false })
+
+		expect((await importOk(app, cookie, project.id, FILE, allColumns(sk, en, cs))).keysCreated).toBe(3)
+	})
+
+	it('imports 2 500 keys in 10 languages in under 5 s', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app)
+		const extra = []
+		for (const tag of ['bg', 'de-AT', 'hr', 'hu', 'ro', 'ru', 'pl']) {
+			extra.push(await createLanguage(project.id, tag))
+		}
+		const languages = [sk, en, cs, ...extra]
+		const rows = Array.from({ length: 2500 }, (_, index) => {
+			const key = `Veta číslo ${index + 1} s textom {{count}}`
+			return ` ${key}; ${languages.map(({ tag }) => `${tag} ${key}`).join('; ')}`
+		})
+		const lines = [`Keys; ${languages.map(({ tag }) => tag).join(' ; ')}`, '--loc--', ...rows]
+		const columns = languages.map(({ id }, index) => ({ columnIndex: index + 2, languageId: id }))
+
+		const started = performance.now()
+		const result = await importOk(app, cookie, project.id, lines, columns)
+		const elapsed = performance.now() - started
+
+		expect(result).toEqual({ keysCreated: 2500, translationsCreated: 25000, translationsUpdated: 0, skippedColumns: 0 })
+		expect(await getTestPrisma().translation.count()).toBe(25000)
+		expect(elapsed, `import took ${Math.round(elapsed)} ms`).toBeLessThan(5000)
+	})
+})
+
+describe('TranslationKey', () => {
+	const cyrillicKey = (length: number) => {
 		const alphabet = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
 		let seed = 7
-		const name = Array.from({ length: IMPORT_KEY_MAX_LENGTH }, () => {
+		return Array.from({ length }, () => {
 			seed = (seed * 48271) % 2147483647
 			return alphabet[seed % alphabet.length]
 		}).join('')
-		expect(Buffer.byteLength(name)).toBeGreaterThan(3000)
+	}
 
-		await createKey(project.id, 'loc', name)
+	it(`stores a Cyrillic key of ${IMPORT_KEY_MAX_BYTES} bytes with a ${IMPORT_NAMESPACE_MAX_LENGTH}-character namespace under the unique index`, async () => {
+		const project = await createProject()
+		const name = cyrillicKey(IMPORT_KEY_MAX_BYTES / 2)
+		const namespace = 'n'.repeat(IMPORT_NAMESPACE_MAX_LENGTH)
+		expect(Buffer.byteLength(name)).toBe(IMPORT_KEY_MAX_BYTES)
+
+		await createKey(project.id, namespace, name)
 
 		expect(await getTestPrisma().translationKey.count({ where: { name } })).toBe(1)
+	})
+
+	it('rejects 2 000 Cyrillic characters in the preview as KEY_TOO_LONG', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await setup(app)
+		const name = cyrillicKey(2000)
+
+		expect(fileIssues(await previewCsv(app, cookie, project.id, ['Keys; sk', ` ${name}; a`]))).toEqual({
+			issues: [{ code: 'KEY_TOO_LONG', line: 2, column: 1, params: { max: IMPORT_KEY_MAX_BYTES, length: Buffer.byteLength(name) } }],
+			total: 1,
+		})
 	})
 })

@@ -6,11 +6,12 @@ notion_page_id:
 
 # Import prekladov (`/api/projects/:projectId/imports`)
 
-Import súboru s prekladmi do projektu. Najprv kontrola (preview), ktorá nič nezapisuje, potom samotný import (pribudne v ďalšom kroku). Schémy sú v `packages/shared/src/imports.ts`, plán v `docs/plans/translations-import.md`.
+Import súboru s prekladmi do projektu. Najprv kontrola (preview), ktorá nič nezapisuje, potom samotný import, ktorý dostane ten istý súbor znova spolu s priradením stĺpcov k jazykom. Schémy sú v `packages/shared/src/imports.ts`, plán v `docs/plans/translations-import.md`.
 
 | Metóda | Cesta                                      | Prístup            | Popis                                                           |
 | ------ | ------------------------------------------ | ------------------ | --------------------------------------------------------------- |
 | `POST` | `/api/projects/:projectId/imports/preview` | člen alebo `ADMIN` | analýza súboru: jazyky, kľúče, zmeny, upozornenia; nič nezapíše |
+| `POST` | `/api/projects/:projectId/imports`         | člen alebo `ADMIN` | import súboru: vytvorí kľúče, zapíše a prepíše preklady         |
 
 Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). Požiadavka prechádza CSRF kontrolou (`Content-Type: application/json` a `X-Requested-With: XMLHttpRequest`).
 
@@ -32,7 +33,7 @@ Keys; cs ; en ; sk
 - **Kódovanie** UTF-8. Úvodný BOM sa ticho odstráni. Konce riadkov `\n`, `\r\n` aj `\r` (aj zmiešané).
 - **Hlavička** je prvý neprázdny riadok (riadok 1). Delí sa podľa `; ` rovnako ako dátové riadky, každé pole sa oreže (`Keys;en` bez medzier je `HEADER_INVALID`). Prvý stĺpec musí byť presne `Keys` (veľké K), potom aspoň jeden tag jazyka. Stĺpce sa číslujú od 1, prvý jazyk je stĺpec 2.
 - **Dátový riadok** sa delí podľa `; ` (bodkočiarka a medzera), každé pole sa oreže (aj úvodná medzera riadku). Prvé pole je kľúč, ďalšie sú hodnoty v poradí stĺpcov hlavičky. Hodnota s `; ` vnútri riadok rozbije (`ROW_COLUMN_COUNT`). Ak riadku chýba presne jedno pole a končí `;` (editor odstránil koncovú medzeru za prázdnym posledným poľom), posledné pole je prázdne, teda `null`. Inak `;` na konci patrí k hodnote (napr. `&nbsp;`).
-- **Sekcia** `--názov--` nastaví namespace (názov JSON súboru) pre nasledujúce riadky. Riadky pred prvou sekciou majú prázdny namespace `""`. Povolený názov: `^[A-Za-z0-9._-]+$`, nie `.` ani `..` (pri exporte z neho vznikne názov súboru).
+- **Sekcia** `--názov--` nastaví namespace (názov JSON súboru) pre nasledujúce riadky. Riadky pred prvou sekciou majú prázdny namespace `""`. Povolený názov: `^[A-Za-z0-9._-]+$`, max. 100 znakov (`IMPORT_NAMESPACE_MAX_LENGTH`), nie `.` ani `..` (pri exporte z neho vznikne názov súboru).
 - **Nepreložené**: doslovné `null`, `""` (dve úvodzovky) aj prázdne pole sa načítajú ako `null` (rozhodnutie 1 v pláne).
 - **Prázdne riadky** sa preskočia, čísla riadkov v chybách sa počítajú podľa pôvodného súboru (vrátane prázdnych riadkov).
 - Ten istý kľúč v dvoch rôznych namespace je v poriadku, v jednom namespace je chyba.
@@ -52,8 +53,8 @@ Odpoveď 422 `IMPORT_FILE_INVALID`, `details` je `{ issues, total }`: prvých 50
 | `ROW_COLUMN_COUNT`     | riadok má iný počet polí ako hlavička (typicky `; ` vnútri textu)                                        | riadok                  | `expected`, `actual`            |
 | `ROW_EMPTY_KEY`        | prázdny kľúč                                                                                             | riadok, 1               | –                               |
 | `ROW_DUPLICATE_KEY`    | kľúč druhýkrát v tom istom namespace (hlási sa druhý výskyt)                                             | riadok, 1               | `key`, `namespace`, `firstLine` |
-| `KEY_TOO_LONG`         | kľúč nad 2 000 znakov (`IMPORT_KEY_MAX_LENGTH`, počítajú sa Unicode znaky, emoji = 1)                    | riadok, 1               | `max`, `length`                 |
-| `NAMESPACE_INVALID`    | sekcia `----` (prázdny názov) alebo názov mimo `^[A-Za-z0-9._-]+$`, prípadne `.` / `..`                  | riadok                  | `namespace`                     |
+| `KEY_TOO_LONG`         | kľúč nad 2 000 bajtov v UTF-8 (`IMPORT_KEY_MAX_BYTES`; latinka 1 bajt, diakritika a cyrilika 2, emoji 4) | riadok, 1               | `max`, `length` (v bajtoch)     |
+| `NAMESPACE_INVALID`    | sekcia `----` (prázdny názov), názov mimo `^[A-Za-z0-9._-]+$`, `.` / `..` alebo nad 100 znakov           | riadok                  | `namespace`                     |
 
 Pri `FILE_NOT_UTF8` sa ďalej nekontroluje nič (súbor je pravdepodobne v inom kódovaní). Chyby hlavičky zastavia kontrolu riadkov, lebo bez hlavičky sa riadky nedajú interpretovať.
 
@@ -144,6 +145,72 @@ Schéma `importPreviewResponseSchema`.
 | 413  | `IMPORT_FILE_TOO_LARGE` | `content` má viac ako 10 MB v UTF-8, alebo celé telo požiadavky viac ako 12 MB    |
 | 422  | `IMPORT_FILE_INVALID`   | chyby súboru, `details: { issues, total }` (viď vyššie)                           |
 
+## POST /api/projects/:projectId/imports
+
+Zapíše súbor do projektu. Súbor sa znova parsuje a validuje rovnako ako pri preview (preview je bezstavový). Poradie kontrol: veľkosť (413) → telo (400 `VALIDATION_ERROR`) → súbor (422 `IMPORT_FILE_INVALID`) → stĺpce (400 `IMPORT_COLUMNS_INVALID`) → zápis.
+
+### Telo požiadavky
+
+Schéma `importRequestSchema`.
+
+| Pole                | Typ     | Povinný | Popis                                                                                            |
+| ------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `fileName`          | string  | áno     | ako pri preview                                                                                  |
+| `content`           | string  | áno     | ako pri preview                                                                                  |
+| `columns`           | pole    | áno     | `{ columnIndex, languageId }` pre každý stĺpec jazyka zo súboru, aspoň jeden prvok               |
+| `createMissingKeys` | boolean | nie     | predvolene `true`; `false` = kľúče, ktoré projekt nemá, sa nevytvoria a ich hodnoty sa preskočia |
+
+### Pravidlá pre `columns`
+
+- Každý stĺpec jazyka zo súboru (`columnIndex` z preview, od 2) je uvedený **práve raz**.
+- `languageId: null` stĺpec preskočí (počíta sa v `skippedColumns`).
+- `languageId` musí byť jazyk tohto projektu a každý jazyk smie byť priradený iba jednému stĺpcu.
+- Aspoň jeden stĺpec musí mať jazyk.
+- Tag v hlavičke nehrá pri zápise rolu: stĺpec `UNKNOWN` (napr. `pl`) alebo `CATALOG` sa dá priradiť ľubovoľnému jazyku projektu.
+
+Porušenie ktoréhokoľvek pravidla vráti 400 `IMPORT_COLUMNS_INVALID` (bez `details`) a nič sa nezapíše.
+
+### Zlúčenie s dátami projektu
+
+- Kľúč sa páruje podľa `(namespace, kľúč)`. Chýbajúci kľúč sa vytvorí, ak `createMissingKeys` je `true`, inak sa jeho hodnoty preskočia. Kľúče, ktoré v súbore nie sú, ostávajú nedotknuté (nič sa nemaže).
+- Prázdna hodnota v súbore (`null`, `""`, prázdne pole) **nikdy nič nezapíše**: nezmaže vyplnený preklad a nevytvorí riadok s `null`.
+- Vyplnená hodnota sa vloží (preklad chýba alebo je `null`) alebo prepíše inú hodnotu (rozhodnutie 4). Zapísané riadky dostanú `updatedById` = prihlásený používateľ a `updatedAt` = čas importu.
+- Rovnaká hodnota sa nezapisuje, `updatedAt` aj `updatedById` ostanú pôvodné. Opakovaný import toho istého súboru preto vráti nulové počty.
+
+### Odpoveď 200
+
+Schéma `importResultSchema`. Počty sa rovnajú preview pre ten istý súbor a priradenie (pri `createMissingKeys: true`).
+
+| Pole                  | Popis                                                                         |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `keysCreated`         | počet vytvorených kľúčov (`keys.new` v preview)                               |
+| `translationsCreated` | vyplnené v súbore, prázdne alebo chýbajúce v projekte (súčet `new` v preview) |
+| `translationsUpdated` | vyplnené v súbore aj v projekte, iná hodnota (súčet `changed` v preview)      |
+| `skippedColumns`      | počet stĺpcov s `languageId: null`                                            |
+
+```json
+{ "keysCreated": 2, "translationsCreated": 9, "translationsUpdated": 1, "skippedColumns": 2 }
+```
+
+### Transakcia, zámok a dávky
+
+- Celý import je jedna transakcia (Prisma `$transaction`, `timeout` 60 s vrátane čakania na zámok, `maxWait` 10 s na spojenie z poolu). Pri chybe sa nezapíše nič.
+- Prvý príkaz je `pg_advisory_xact_lock(hashtextextended('import:' || projectId, 0))`: jeden `bigint` kľúč na projekt, zámok sa uvoľní koncom transakcie. Dva súbežné importy toho istého projektu sa zoradia za sebou, importy rôznych projektov bežia paralelne (kolízia hashu by iba zoradila dva projekty, nič by nepokazila). Prefix `import:` oddeľuje kľúč od prípadných iných advisory zámkov.
+- Až pod zámkom sa skontrolujú stĺpce a načítajú aktuálne hodnoty kľúčov zo súboru. Z nich sa vypočíta, čo sa zapíše, rovnakou funkciou ako `changes` v preview, takže počty sa nemôžu rozísť.
+- Kľúče aj preklady sa zapisujú po dávkach 5 000 riadkov cez `INSERT … SELECT FROM unnest(…)`: kľúče s `gen_random_uuid()` a `ON CONFLICT DO NOTHING`, preklady s `ON CONFLICT ("keyId", "languageId") DO UPDATE … WHERE value IS DISTINCT FROM EXCLUDED.value`. `updatedAt` nemá v DB default, preto ho SQL nastavuje explicitne (`now()`).
+
+### Chyby
+
+| HTTP | `code`                   | Kedy                                                                                                   |
+| ---- | ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| 400  | `VALIDATION_ERROR`       | ako pri preview, navyše chýbajúce alebo prázdne `columns`, `columnIndex` < 2, `languageId` nie je UUID |
+| 400  | `IMPORT_COLUMNS_INVALID` | porušené [pravidlá pre `columns`](#pravidlá-pre-columns)                                               |
+| 401  | `AUTH_UNAUTHENTICATED`   | bez session                                                                                            |
+| 403  | `CSRF_REJECTED`          | bez `Content-Type: application/json` alebo `X-Requested-With`                                          |
+| 404  | `NOT_FOUND`              | projekt mimo prístupu (aj neexistujúci alebo ID nie je UUID)                                           |
+| 413  | `IMPORT_FILE_TOO_LARGE`  | ako pri preview                                                                                        |
+| 422  | `IMPORT_FILE_INVALID`    | chyby súboru, rovnaké ako pri preview                                                                  |
+
 ## Limity
 
 | Limit                | Hodnota      | Kde                                                                                                                            |
@@ -151,17 +218,20 @@ Schéma `importPreviewResponseSchema`.
 | obsah súboru         | 10 MB        | `IMPORT_FILE_MAX_BYTES`, kontroluje backend v bajtoch pred validáciou tela (413), frontend pred odoslaním                      |
 | telo požiadavky      | 12 MB        | `express.json({ limit: '12mb' })` pre celý prefix `/api/projects/:projectId/imports` (aj budúce cesty pod ním), ostatné 100 kB |
 | nginx                | 12 MB        | `client_max_body_size 12m` v `location /api/` (predvolene má nginx 1 MB)                                                       |
-| kľúč                 | 2 000 znakov | `IMPORT_KEY_MAX_LENGTH`                                                                                                        |
+| kľúč                 | 2 000 bajtov | `IMPORT_KEY_MAX_BYTES`, v UTF-8                                                                                                |
+| namespace            | 100 znakov   | `IMPORT_NAMESPACE_MAX_LENGTH`                                                                                                  |
 | vypísané chyby       | 50           | `IMPORT_ISSUES_MAX`                                                                                                            |
 | vypísané upozornenia | 1 000        | `IMPORT_WARNINGS_MAX`                                                                                                          |
 
 Telo ciest importu sa parsuje až po overení session a prístupu k projektu, takže neprihlásený klient nedokáže poslať 12 MB na spracovanie. Rezerva 2 MB medzi obsahom a telom je pre JSON escapovanie (`"`, `\`, nové riadky). Súbor tesne pod 10 MB s množstvom takých znakov môže po serializácii do JSON prekročiť 12 MB; nginx potom odpovie vlastnou HTML stránkou 413 (nie chybovým kontraktom), preto frontend (míľnik D) musí pred odoslaním kontrolovať veľkosť serializovaného tela, nie iba súboru.
 
-Kľúč s 2 000 znakmi v cyrilike (≈ 4 kB v UTF-8) dnes neprejde unikátnym indexom `(projectId, namespace, name)` (limit btree ~2,7 kB na riadok indexu). Preview ho prijme, rieši sa pred zápisom importu.
+Kľúč sa meria v bajtoch, nie v znakoch, kvôli unikátnemu indexu `(projectId, namespace, name)`: btree unesie najviac ~2,7 kB na riadok indexu, takže 2 000 znakov v cyrilike (≈ 4 kB) by pri zápise skončilo chybou 500. Kľúč s 2 000 bajtmi spolu so 100-znakovým namespace sa do indexu zmestí (overené integračným testom).
 
 ## Výkon
 
 Integračný test: súbor s 2 500 kľúčmi v 9 jazykoch proti projektu s rovnakými kľúčmi a prekladmi, preview trvá lokálne okolo 90 ms. Kľúče a preklady sa načítajú jedným dotazom (`unnest` kľúčov zo súboru, spojenie cez unikátny index).
+
+Import súboru s 2 500 novými kľúčmi v 10 jazykoch (2 500 kľúčov a 25 000 prekladov) trvá lokálne 650 – 750 ms (integračný test, limit 5 s).
 
 ## Príklad (curl)
 
@@ -169,4 +239,17 @@ Integračný test: súbor s 2 500 kľúčmi v 9 jazykoch proti projektu s rovnak
 jq -n --rawfile content translations.csv '{ fileName: "translations.csv", content: $content }' \
 	| curl -i -b cookies.txt -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
 		--data-binary @- "http://localhost:8080/api/projects/<id projektu>/imports/preview"
+```
+
+Import: priradenie stĺpcov z preview (napr. `sk` → jazyk projektu, `pl` preskočiť).
+
+```bash
+jq -n --rawfile content translations.csv '{
+	fileName: "translations.csv",
+	content: $content,
+	columns: [{ columnIndex: 2, languageId: "<id jazyka sk>" }, { columnIndex: 3, languageId: null }],
+	createMissingKeys: true
+}' \
+	| curl -i -b cookies.txt -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
+		--data-binary @- "http://localhost:8080/api/projects/<id projektu>/imports"
 ```

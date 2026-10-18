@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { IMPORT_ISSUES_MAX, IMPORT_KEY_MAX_LENGTH } from '@locale/shared'
+import { IMPORT_ISSUES_MAX, IMPORT_KEY_MAX_BYTES, IMPORT_NAMESPACE_MAX_LENGTH } from '@locale/shared'
 
 import { parseCsv } from './csvParser'
 
@@ -145,7 +145,7 @@ describe('parseCsv', () => {
 	})
 
 	it('returns row issues in file order with line numbers and params', () => {
-		const longKey = 'k'.repeat(IMPORT_KEY_MAX_LENGTH + 1)
+		const longKey = 'k'.repeat(IMPORT_KEY_MAX_BYTES + 1)
 		const content = [
 			'Keys; en ; sk',
 			' Ahoj; Hello; Ahoj',
@@ -160,6 +160,7 @@ describe('parseCsv', () => {
 			'--bad name--',
 			'--..--',
 			'--a/b--',
+			`--${'n'.repeat(IMPORT_NAMESPACE_MAX_LENGTH + 1)}--`,
 		].join('\n')
 
 		expect(parseIssues(content)).toEqual({
@@ -168,27 +169,33 @@ describe('parseCsv', () => {
 				{ code: 'ROW_COLUMN_COUNT', line: 3, params: { expected: 3, actual: 4 } },
 				{ code: 'ROW_COLUMN_COUNT', line: 4, params: { expected: 3, actual: 2 } },
 				{ code: 'ROW_EMPTY_KEY', line: 5, column: 1 },
-				{ code: 'KEY_TOO_LONG', line: 6, column: 1, params: { max: IMPORT_KEY_MAX_LENGTH, length: IMPORT_KEY_MAX_LENGTH + 1 } },
+				{ code: 'KEY_TOO_LONG', line: 6, column: 1, params: { max: IMPORT_KEY_MAX_BYTES, length: IMPORT_KEY_MAX_BYTES + 1 } },
 				{ code: 'ROW_DUPLICATE_KEY', line: 9, column: 1, params: { key: 'Ahoj', namespace: 'loc', firstLine: 8 } },
 				{ code: 'NAMESPACE_INVALID', line: 10, params: { namespace: '' } },
 				{ code: 'NAMESPACE_INVALID', line: 11, params: { namespace: 'bad name' } },
 				{ code: 'NAMESPACE_INVALID', line: 12, params: { namespace: '..' } },
 				{ code: 'NAMESPACE_INVALID', line: 13, params: { namespace: 'a/b' } },
+				{ code: 'NAMESPACE_INVALID', line: 14, params: { namespace: 'n'.repeat(IMPORT_NAMESPACE_MAX_LENGTH + 1) } },
 			],
-			total: 9,
+			total: 10,
 		})
 	})
 
-	it('accepts a key of exactly the maximum length', () => {
-		const key = 'ж'.repeat(IMPORT_KEY_MAX_LENGTH)
-		expect(parseOk(`Keys; ru\n ${key}; Привет`).rows[0]?.key).toBe(key)
+	it('counts key length in UTF-8 bytes: Cyrillic takes 2 bytes per character, an emoji 4', () => {
+		const cyrillic = 'ж'.repeat(IMPORT_KEY_MAX_BYTES / 2)
+		expect(parseOk(`Keys; ru\n ${cyrillic}; Привет`).rows[0]?.key).toBe(cyrillic)
+		expect(parseIssues(`Keys; ru\n ${cyrillic}ж; Привет`).issues).toEqual([
+			{ code: 'KEY_TOO_LONG', line: 2, column: 1, params: { max: IMPORT_KEY_MAX_BYTES, length: IMPORT_KEY_MAX_BYTES + 2 } },
+		])
+		expect(parseOk(`Keys; en\n ${'\u{1F44D}'.repeat(IMPORT_KEY_MAX_BYTES / 4)}; a`).rows).toHaveLength(1)
+		expect(parseIssues(`Keys; en\n ${'\u{1F44D}'.repeat(IMPORT_KEY_MAX_BYTES / 4 + 1)}; a`).issues).toEqual([
+			{ code: 'KEY_TOO_LONG', line: 2, column: 1, params: { max: IMPORT_KEY_MAX_BYTES, length: IMPORT_KEY_MAX_BYTES + 4 } },
+		])
 	})
 
-	it('counts key length in code points, so an emoji is one character', () => {
-		expect(parseOk(`Keys; en\n ${'\u{1F44D}'.repeat(IMPORT_KEY_MAX_LENGTH)}; a`).rows).toHaveLength(1)
-		expect(parseIssues(`Keys; en\n ${'\u{1F44D}'.repeat(IMPORT_KEY_MAX_LENGTH + 1)}; a`).issues).toEqual([
-			{ code: 'KEY_TOO_LONG', line: 2, column: 1, params: { max: IMPORT_KEY_MAX_LENGTH, length: IMPORT_KEY_MAX_LENGTH + 1 } },
-		])
+	it(`accepts a namespace of ${IMPORT_NAMESPACE_MAX_LENGTH} characters`, () => {
+		const namespace = 'n'.repeat(IMPORT_NAMESPACE_MAX_LENGTH)
+		expect(parseOk(`Keys; en\n--${namespace}--\n a; b`).rows[0]?.namespace).toBe(namespace)
 	})
 
 	it('accepts namespaces with dots, dashes and underscores', () => {

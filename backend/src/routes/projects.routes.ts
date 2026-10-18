@@ -1,6 +1,7 @@
 import { Router } from 'express'
 
 import { type Config } from '../config/env'
+import { createPreviewImportController } from '../controllers/imports.controller'
 import {
 	createCreateProjectLanguageController,
 	createDeleteProjectLanguageController,
@@ -16,6 +17,7 @@ import { createCreateProjectController, createLeaveProjectController, createList
 import { createListTranslationsController } from '../controllers/translations.controller'
 import { type PrismaClient } from '../lib/prisma'
 import { createRequireAuth } from '../middleware/auth.middleware'
+import { importJsonBody } from '../middleware/jsonBody.middleware'
 import { createRequireProjectAccess } from '../middleware/projectAccess.middleware'
 
 export const createProjectsRouter = (prisma: PrismaClient, config: Config): Router => {
@@ -34,5 +36,6 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.post('/:projectId/members', requireProjectAccess, createCreateProjectMemberController(prisma))
 	router.delete('/:projectId/members/:userId', requireProjectAccess, createRemoveProjectMemberController(prisma))
 	router.get('/:projectId/translations', requireProjectAccess, createListTranslationsController(prisma))
+	router.post('/:projectId/imports/preview', requireProjectAccess, importJsonBody, createPreviewImportController(prisma))
 	return router
 }

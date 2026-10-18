@@ -24,13 +24,18 @@
 }
 
 .statusColumn {
-	width: 9.5rem;
+	width: 10rem;
 }
 
 .td {
 	padding: 0.875rem 1.75rem;
 	border-bottom: 1px solid var(--app-color-border-subtle);
 	vertical-align: middle;
+}
+
+/* 10rem minus 2 × 1rem leaves 128 px; the longest label (Untranslated, Nepřeložené) needs about 100 px. */
+.statusCell {
+	padding-inline: 1rem;
 }
 
 .row[data-status='UNTRANSLATED'] {
@@ -89,6 +94,8 @@
 }
 
 .status {
+	flex-shrink: 0;
+	max-width: none;
 	height: 1.4375rem;
 	padding-inline: 0.625rem;
 	font-size: var(--mantine-font-size-3xs);

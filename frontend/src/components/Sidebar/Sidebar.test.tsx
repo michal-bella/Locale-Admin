@@ -82,7 +82,7 @@ describe('Sidebar', () => {
 		expect(await screen.findByRole('button', { name: 'Prepnúť projekt, aktuálny Demo project' })).toBeInTheDocument()
 	})
 
-	it('keeps Preklady when switching projects', async () => {
+	it.each(['translations', 'languages'])('keeps /%s when switching projects', async (subPage) => {
 		const other = { ...PROJECT, id: '00000000-0000-4000-8000-000000000302', name: 'Demo project', slug: 'demo-project', primaryColor: '#FACC15' }
 		signedInAs(EDITOR_USER, {
 			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
@@ -91,12 +91,12 @@ describe('Sidebar', () => {
 			[`GET /projects/${other.id}/languages`]: { status: 200, data: [] },
 			...projectListRoute(PROJECT, other),
 		})
-		const router = renderApp(`/projects/${PROJECT.slug}/translations`)
+		const router = renderApp(`/projects/${PROJECT.slug}/${subPage}`)
 
 		fireEvent.click(await screen.findByRole('button', { name: 'Prepnúť projekt, aktuálny Booking Web' }))
 		fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: /Demo project/ }))
 
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${other.slug}/translations`))
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${other.slug}/${subPage}`))
 	})
 
 	it('marks the item of the current route as the current page', async () => {

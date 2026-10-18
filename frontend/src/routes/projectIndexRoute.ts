@@ -7,6 +7,6 @@ export const projectIndexRoute = createRoute({
 	getParentRoute: () => projectRoute,
 	path: '/',
 	beforeLoad: ({ params }) => {
-		redirect({ to: '/projects/$projectId/settings', params, replace: true, throw: true })
+		redirect({ to: '/projects/$projectSlug/settings', params, replace: true, throw: true })
 	},
 })

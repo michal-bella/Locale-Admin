@@ -17,7 +17,7 @@ Vite+ (`vp dev`, `vp build`, `vp test`), React 19, TypeScript strict, Mantine 9,
 | `api/`        | axios instance, query keys, query and mutation hooks                                                             |
 | `hooks/`      | shared hooks, one per file (`useXxx.ts`); create with the first hook                                             |
 | `lib/`        | `constants.ts`, `enum.ts`, i18n setup (`i18n.ts`); `utils.ts` when needed                                        |
-| `locales/`    | `sk.json`, `en.json` (nested keys `page.form.field`)                                                             |
+| `locales/`    | `sk.json`, `cs.json`, `en.json` (nested keys `page.form.field`)                                                  |
 | `styles/`     | Mantine theme, CSS variables, global CSS with layer order                                                        |
 | `assets/`     | `icons/` (source SVG for SVGR, `pnpm --filter frontend generate-icons`)                                          |
 | `types/`      | shared FE-only types (`i18next.d.ts`)                                                                            |
@@ -33,3 +33,4 @@ Vite+ (`vp dev`, `vp build`, `vp test`), React 19, TypeScript strict, Mantine 9,
 - All texts via `t()`. API errors are translated by `code` (`errors.<CODE>`, `validation.<CODE>`), never by `message`.
 - Use `type`, not `interface`. Enums and constants are `UPPER_CASE`.
 - No lodash, no date library (use `Intl`).
+- Row actions in lists and tables are explicit icon buttons (`RowAction`: icon, tooltip, accessible name with the row), never a `⋯` menu. The only `⋯` menu is the user menu.

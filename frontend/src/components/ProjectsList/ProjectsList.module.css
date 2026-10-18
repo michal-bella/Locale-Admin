@@ -13,7 +13,7 @@
 	outline-offset: 2px;
 }
 
-/* The name link covers the whole row (stretched link); the menu button sits above it. */
+/* The name link covers the whole row (stretched link); the action buttons sit above it. */
 .row {
 	position: relative;
 	padding: 1rem 1.25rem;
@@ -72,15 +72,19 @@
 	overflow-wrap: anywhere;
 }
 
-.trigger {
+.action {
 	position: relative;
 	z-index: 1;
-	flex-shrink: 0;
 	color: var(--app-color-muted);
 }
 
-.trigger:hover {
+.action:hover {
 	background-color: var(--app-color-surface);
+	color: var(--app-color-text-strong);
+}
+
+.action[data-variant='danger']:hover {
+	color: var(--mantine-color-error);
 }
 
 .state {

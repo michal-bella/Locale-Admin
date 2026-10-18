@@ -7,6 +7,8 @@ export type ProjectSettingsFormProps = {
 	isMember: boolean
 	/** Called after the user left the project. */
 	onLeft: () => void
+	/** Called with the saved settings, after the project list and settings were refetched. */
+	onSaved: (settings: ProjectSettings) => void
 	/** Moves focus to the first field when it turns true (after a successful retry replaced the focused retry button). */
 	focusFirstField?: boolean
 }

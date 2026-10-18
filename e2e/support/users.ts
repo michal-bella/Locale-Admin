@@ -16,7 +16,7 @@ export const newTestUserCredentials = (): Credentials => ({
 
 export type TestUser = Credentials & { id: string; createdAt: string }
 
-export type TestEditor = TestUser & { projectId: string }
+export type TestEditor = TestUser & { projectId: string; projectSlug: string }
 
 const withAdminApi = async <T>(request: APIRequest, baseURL: string | undefined, fn: (api: Awaited<ReturnType<APIRequest['newContext']>>) => Promise<T>) => {
 	const api = await request.newContext({ baseURL, storageState: STORAGE_STATE.ADMIN })
@@ -38,7 +38,7 @@ export const createEditor = (request: APIRequest, baseURL: string | undefined): 
 		const response = await api.post(projectMembersApi(project.id), { data: credentials, headers: MUTATION_HEADERS })
 		expect(response.status(), `POST ${projectMembersApi(project.id)}`).toBe(201)
 		const { id, createdAt } = (await response.json()) as { id: string; createdAt: string }
-		return { ...credentials, id, createdAt, projectId: project.id }
+		return { ...credentials, id, createdAt, projectId: project.id, projectSlug: project.slug }
 	})
 
 /** Creates an ADMIN through `POST /api/admin/users` as the ADMIN. */

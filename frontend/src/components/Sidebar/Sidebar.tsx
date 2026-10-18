@@ -1,6 +1,6 @@
 import { AppShell, Burger } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
-import { Link, type LinkProps, useParams } from '@tanstack/react-router'
+import { Link, type LinkProps, useMatch } from '@tanstack/react-router'
 import { type ComponentType, type SVGProps, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -46,7 +46,9 @@ const NavItem = ({ to, params, icon: Icon, iconClassName = '', label, onNavigate
 const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 	const { t } = useTranslation()
 	const { data: user } = useMeQuery()
-	const { projectId } = useParams({ strict: false })
+	const projectMatch = useMatch({ from: '/_authenticated/_app/projects/$projectSlug', shouldThrow: false })
+	const projectSlug = projectMatch?.params.projectSlug
+	const projectId = projectMatch?.loaderData?.projectId
 	// Only reads the cache: the project route loads the settings, and a project the user cannot open must not be refetched here.
 	const { data: project } = useQuery({ ...projectSettingsQueryOptions(projectId ?? ''), enabled: false })
 	const adminLabelId = useId()
@@ -60,23 +62,29 @@ const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 				</Link>
 				<Burger hiddenFrom='md' size='sm' opened={opened} onClick={onClose} aria-label={t('sidebar.closeNavigation')} />
 			</div>
-			{projectId && project && (
+			{projectSlug && project && (
 				<div className={classes.switcher}>
 					<ProjectSwitcher project={project} onNavigate={onClose} />
 				</div>
 			)}
 			<nav aria-label={t('sidebar.label')} className={classes.nav}>
-				{projectId && project ? (
+				{projectSlug && project ? (
 					<ul aria-label={project.name} className={classes.list}>
 						<NavItem
-							to='/projects/$projectId/settings'
-							params={{ projectId }}
+							to='/projects/$projectSlug/settings'
+							params={{ projectSlug }}
 							icon={Settings}
 							label={t('sidebar.projectSettings')}
 							onNavigate={onClose}
 						/>
-						<NavItem to='/projects/$projectId/languages' params={{ projectId }} icon={Globe} label={t('sidebar.languages')} onNavigate={onClose} />
-						<NavItem to='/projects/$projectId/members' params={{ projectId }} icon={Users} label={t('sidebar.members')} onNavigate={onClose} />
+						<NavItem
+							to='/projects/$projectSlug/languages'
+							params={{ projectSlug }}
+							icon={Globe}
+							label={t('sidebar.languages')}
+							onNavigate={onClose}
+						/>
+						<NavItem to='/projects/$projectSlug/members' params={{ projectSlug }} icon={Users} label={t('sidebar.members')} onNavigate={onClose} />
 					</ul>
 				) : (
 					<ul className={classes.list}>

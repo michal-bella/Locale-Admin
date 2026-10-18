@@ -1,4 +1,4 @@
-import { ActionIcon, Avatar, Button, Menu, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
+import { Avatar, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,8 +8,9 @@ import { getInitials, type ProjectMember } from '@locale/shared'
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectMembersQuery } from '@/api/projectMembers/projectMembersQuery'
-import { DotsHorizontal } from '@/components/Icons'
+import { UserMinus } from '@/components/Icons'
 import RemoveMemberModal from '@/components/RemoveMemberModal/RemoveMemberModal'
+import RowAction from '@/components/RowAction/RowAction'
 import { formatDate } from '@/lib/formatDate'
 
 import classes from './MembersTable.module.css'
@@ -17,38 +18,9 @@ import { type MembersTableProps } from './types'
 
 const SKELETON_ROWS = 3
 
-type RowActionsProps = { member: ProjectMember; onRemove: (member: ProjectMember, trigger: HTMLButtonElement | null) => void }
-
-const RowActions = ({ member, onRemove }: RowActionsProps) => {
-	const { t } = useTranslation()
-	const triggerRef = useRef<HTMLButtonElement>(null)
-
-	return (
-		<Menu position='bottom-end' width={200} radius='lg' shadow='md'>
-			<Menu.Target>
-				<ActionIcon
-					ref={triggerRef}
-					variant='transparent'
-					size={34}
-					radius='sm'
-					aria-label={t('membersPage.table.actions', { email: member.email })}
-					className={classes.menuButton}
-				>
-					<DotsHorizontal aria-hidden />
-				</ActionIcon>
-			</Menu.Target>
-			<Menu.Dropdown>
-				<Menu.Item color='red' onClick={() => onRemove(member, triggerRef.current)}>
-					{t('membersPage.table.remove')}
-				</Menu.Item>
-			</Menu.Dropdown>
-		</Menu>
-	)
-}
-
 /**
  * Members of a project in a card, same look and states as the users table. Every member can remove another one;
- * the own row has no menu, leaving goes through Opustiť projekt.
+ * the own row has no remove button, leaving goes through Opustiť projekt.
  */
 const MembersTable = ({ projectId }: MembersTableProps) => {
 	const { t, i18n } = useTranslation()
@@ -65,7 +37,7 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 		removeModal.open()
 	}
 
-	// Mantine returns focus to the item of the closed row menu; deferred so a removed row is already gone and the table gets focus instead.
+	// Deferred so a removed row is already gone and the table gets focus instead of its button.
 	const closeRemove = () => {
 		removeModal.close()
 		setTimeout(() => (triggerRef.current?.isConnected ? triggerRef.current : tableRef.current)?.focus())
@@ -152,7 +124,15 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 						<Text size='xs'>{formatDate(member.createdAt, i18n.language)}</Text>
 					</Table.Td>
 					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-						{member.id !== me?.id && <RowActions member={member} onRemove={openRemove} />}
+						{member.id !== me?.id && (
+							<RowAction
+								icon={UserMinus}
+								tooltip={t('membersPage.table.remove')}
+								label={t('membersPage.table.removeLabel', { email: member.email })}
+								danger
+								onClick={(event) => openRemove(member, event.currentTarget)}
+							/>
+						)}
 					</Table.Td>
 				</Table.Tr>
 			)

@@ -1,50 +1,50 @@
-import { expect, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
-test('switches SK/EN without a reload and keeps the choice after a reload', async ({ page }) => {
+const getSwitcher = (page: Page, label: string) => page.getByRole('combobox', { name: label, exact: true })
+
+const pickLanguage = async (page: Page, label: string, language: string) => {
+	await getSwitcher(page, label).click()
+	await page.getByRole('option', { name: language, exact: true }).click()
+}
+
+test('switches the UI language without a reload and keeps the choice after a reload', async ({ page }) => {
 	await page.goto('/admin/users')
 	await expect(page.getByRole('heading', { level: 1, name: 'Používatelia' })).toBeVisible()
 	await page.evaluate(() => Object.assign(window, { e2eNoReload: true }))
 
-	const switcher = page.getByRole('radiogroup', { name: 'Jazyk' })
-	await expect(switcher.getByRole('radio', { name: 'Slovenčina' })).toBeChecked()
-	// WebKit does not reliably click the visually hidden radio input; click its visible label text instead.
-	await switcher.getByText('EN', { exact: true }).click()
+	await expect(getSwitcher(page, 'Jazyk')).toHaveValue('Slovenčina')
+	await pickLanguage(page, 'Jazyk', 'English')
 
 	await expect(page.getByRole('heading', { level: 1, name: 'Users' })).toBeVisible()
 	await expect(page.getByRole('button', { name: 'User menu' })).toBeVisible()
-	await expect(page.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'English' })).toBeChecked()
+	await expect(getSwitcher(page, 'Language')).toHaveValue('English')
 	expect(await page.evaluate(() => 'e2eNoReload' in window)).toBe(true)
 	expect(await page.evaluate(() => localStorage.getItem('locale'))).toBe('en')
 
 	await page.reload()
 	await expect(page.getByRole('heading', { level: 1, name: 'Users' })).toBeVisible()
-	await expect(page.getByRole('img', { name: 'Notifications' })).toBeVisible()
+	await expect(getSwitcher(page, 'Language')).toHaveValue('English')
 
-	await page.getByRole('radiogroup', { name: 'Language' }).getByText('SK', { exact: true }).click()
+	await pickLanguage(page, 'Language', 'Slovenčina')
 	await expect(page.getByRole('heading', { level: 1, name: 'Používatelia' })).toBeVisible()
-	await expect(page.getByRole('radiogroup', { name: 'Jazyk' }).getByRole('radio', { name: 'Slovenčina' })).toBeChecked()
 	expect(await page.evaluate(() => localStorage.getItem('locale'))).toBe('sk')
 })
 
-test('shows a decorative flag in each language item and the EN label still switches the UI', async ({ page }) => {
+test('offers Slovak, Czech and English with decorative flags and switches to Czech', async ({ page }) => {
 	await page.goto('/admin/users')
 	await expect(page.getByRole('heading', { level: 1, name: 'Používatelia' })).toBeVisible()
 
-	const switcher = page.getByRole('radiogroup', { name: 'Jazyk' })
-	for (const { code, name } of [
-		{ code: 'SK', name: 'Slovenčina' },
-		{ code: 'EN', name: 'English' },
-	]) {
-		await expect(switcher.getByRole('radio', { name, exact: true })).toHaveCount(1)
-		const item = switcher.locator('label', { has: page.getByText(code, { exact: true }) })
-		const flag = item.locator('svg')
-		await expect(flag).toHaveCount(1)
+	await getSwitcher(page, 'Jazyk').click()
+	const options = page.getByRole('listbox', { name: 'Jazyk' }).getByRole('option')
+	await expect(options).toHaveText(['Slovenčina', 'Čeština', 'English'])
+	for (const option of await options.all()) {
+		const flag = option.locator('svg')
 		await expect(flag).toBeVisible()
-		expect(await flag.evaluate((svg) => svg.closest('[aria-hidden="true"]') !== null), `${code} flag is aria-hidden`).toBe(true)
+		await expect(flag).toHaveAttribute('aria-hidden', 'true')
 	}
 
-	await switcher.getByText('EN', { exact: true }).click()
-	await expect(page.getByRole('heading', { level: 1, name: 'Users' })).toBeVisible()
-	await expect(page.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'English', exact: true })).toBeChecked()
-	await expect(page.getByRole('button', { name: 'Switch to dark mode' })).toBeVisible()
+	await page.getByRole('option', { name: 'Čeština', exact: true }).click()
+	await expect(page.getByRole('heading', { level: 1, name: 'Uživatelé' })).toBeVisible()
+	await expect(page.getByRole('button', { name: 'Přepnout na tmavý režim' })).toBeVisible()
+	await expect(page.getByRole('table', { name: 'Seznam administrátorů' }).getByRole('cell').nth(1)).toHaveText(/^\d{1,2}\.\s?\d{1,2}\.\s?\d{4}$/)
 })

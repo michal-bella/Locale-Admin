@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import { type ProjectSettings } from '@locale/shared'
 
-import { ADMIN_USER, EDITOR_USER, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, EDITOR_USER, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const PROJECT: ProjectSettings = {
@@ -43,15 +43,15 @@ describe('Sidebar', () => {
 		signedInAs(EDITOR_USER, {
 			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 			[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [] },
-			'GET /projects': { status: 200, data: { projects: [] } },
+			...projectListRoute(PROJECT),
 		})
-		renderApp(`/projects/${PROJECT.id}/settings`)
+		renderApp(`/projects/${PROJECT.slug}/settings`)
 		const navigation = await findNavigation()
 
 		const project = within(await navigation.findByRole('list', { name: 'Booking Web' }))
 		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Nastavenia projektu', 'Jazyky', 'Členovia'])
-		expect(project.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('href', `/projects/${PROJECT.id}/languages`)
-		expect(project.getByRole('link', { name: 'Členovia' })).toHaveAttribute('href', `/projects/${PROJECT.id}/members`)
+		expect(project.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/languages`)
+		expect(project.getByRole('link', { name: 'Členovia' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/members`)
 		await waitFor(() => expect(project.getByRole('link', { name: 'Nastavenia projektu' })).toHaveAttribute('aria-current', 'page'))
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
@@ -63,12 +63,9 @@ describe('Sidebar', () => {
 			[`GET /projects/${other.id}/settings`]: { status: 200, data: other },
 			[`GET /projects/${PROJECT.id}/members`]: { status: 200, data: { members: [] } },
 			[`GET /projects/${other.id}/members`]: { status: 200, data: { members: [] } },
-			'GET /projects': {
-				status: 200,
-				data: { projects: [PROJECT, other].map(({ id, name, slug, primaryColor }) => ({ id, name, slug, primaryColor, isMember: true })) },
-			},
+			...projectListRoute(PROJECT, other),
 		})
-		const router = renderApp(`/projects/${PROJECT.id}/members`)
+		const router = renderApp(`/projects/${PROJECT.slug}/members`)
 		const switcher = await screen.findByRole('button', { name: 'Prepnúť projekt, aktuálny Booking Web' })
 
 		expect(switcher).toHaveTextContent('BWBooking Webbooking-web')
@@ -80,7 +77,7 @@ describe('Sidebar', () => {
 		expect(menu.getByRole('menuitem', { name: /Booking Web/ })).toHaveAttribute('aria-current', 'true')
 		fireEvent.click(menu.getByRole('menuitem', { name: /Demo project/ }))
 
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${other.id}/members`))
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${other.slug}/members`))
 		expect(await screen.findByRole('button', { name: 'Prepnúť projekt, aktuálny Demo project' })).toBeInTheDocument()
 	})
 

@@ -30,11 +30,11 @@ const ProjectSwitcher = ({ project, onNavigate }: ProjectSwitcherProps) => {
 	const navigate = useNavigate()
 	const pathname = useLocation({ select: (location) => location.pathname })
 	const { data } = useProjectsQuery()
-	const to = pathname.endsWith('/members') ? '/projects/$projectId/members' : '/projects/$projectId/settings'
+	const to = pathname.endsWith('/members') ? '/projects/$projectSlug/members' : '/projects/$projectSlug/settings'
 
-	const open = (projectId: string) => {
+	const open = (projectSlug: string) => {
 		onNavigate()
-		void navigate({ to, params: { projectId } })
+		void navigate({ to, params: { projectSlug } })
 	}
 
 	return (
@@ -65,7 +65,7 @@ const ProjectSwitcher = ({ project, onNavigate }: ProjectSwitcherProps) => {
 						leftSection={<ProjectAvatar name={item.name} primaryColor={item.primaryColor} size='sm' />}
 						aria-current={item.id === project.id ? 'true' : undefined}
 						className={classes.item}
-						onClick={() => open(item.id)}
+						onClick={() => open(item.slug)}
 					>
 						{item.name}
 					</Menu.Item>

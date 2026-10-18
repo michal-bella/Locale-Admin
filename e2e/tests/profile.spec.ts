@@ -153,7 +153,7 @@ test.describe('EDITOR', () => {
 		await expect(page.getByRole('heading', { level: 1, name: 'My profile' })).toBeVisible()
 		await expect(page.getByRole('button', { name: 'Save profile' })).toBeDisabled()
 		await expect(page.getByLabel('Interface language', { exact: true })).toHaveValue('English')
-		await expect(page.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'English' })).toBeChecked()
+		await expect(page.getByRole('combobox', { name: 'Language', exact: true })).toHaveValue('English')
 		await expect(page.getByText(/^Password was last changed /)).toBeVisible()
 		expect(await page.evaluate(() => localStorage.getItem('locale'))).toBe('en')
 		expect(await page.evaluate(() => 'e2eNoReload' in window)).toBe(true)

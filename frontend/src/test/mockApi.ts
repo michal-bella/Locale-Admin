@@ -1,6 +1,6 @@
 import { type AxiosAdapter, AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-import { type AuthUser, ROLE } from '@locale/shared'
+import { type AuthUser, type ProjectListItem, ROLE } from '@locale/shared'
 
 import http from '@/api/http'
 
@@ -34,6 +34,16 @@ export const apiError = (status: number, code: string, extra: { details?: unknow
 })
 
 /** Replaces the HTTP layer of the shared axios instance. Unknown routes answer 404. Returns the list of sent requests. */
+type ListedProject = Pick<ProjectListItem, 'id' | 'name' | 'slug' | 'primaryColor'> & { isMember?: boolean }
+
+export const projectListResponse = (...projects: ListedProject[]): MockResponse => ({
+	status: 200,
+	data: { projects: projects.map(({ id, name, slug, primaryColor, isMember = true }) => ({ id, name, slug, primaryColor, isMember })) },
+})
+
+/** `GET /projects` with these projects; project routes resolve the slug in the URL through it. */
+export const projectListRoute = (...projects: ListedProject[]): MockRoutes => ({ 'GET /projects': projectListResponse(...projects) })
+
 export const mockApi = (routes: MockRoutes) => {
 	const requests: InternalAxiosRequestConfig[] = []
 	const adapter: AxiosAdapter = (config) => {

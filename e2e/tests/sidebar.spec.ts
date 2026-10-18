@@ -65,7 +65,7 @@ test.describe('ADMIN', () => {
 		const other = await createProject(api, 'sidebar-other')
 		await api.dispose()
 
-		await page.goto(`/projects/${project.id}/settings`)
+		await page.goto(`/projects/${project.slug}/settings`)
 		const section = getMainNavigation(page).getByRole('list', { name: project.name })
 		const settings = section.getByRole('link', { name: 'Nastavenia projektu' })
 		const members = section.getByRole('link', { name: 'Členovia' })
@@ -73,7 +73,7 @@ test.describe('ADMIN', () => {
 		await expect(settings).toHaveAttribute('aria-current', 'page')
 
 		await members.click()
-		await expect(page).toHaveURL(`/projects/${project.id}/members`)
+		await expect(page).toHaveURL(`/projects/${project.slug}/members`)
 		await expect(page.getByRole('heading', { level: 1, name: 'Členovia' })).toBeVisible()
 		await expect(members).toHaveAttribute('aria-current', 'page')
 		await expect(settings).not.toHaveAttribute('aria-current')
@@ -83,7 +83,7 @@ test.describe('ADMIN', () => {
 		await expect(switcher).toContainText(project.slug)
 		await switcher.click()
 		await page.getByRole('menu').getByRole('menuitem', { name: other.name }).click()
-		await expect(page).toHaveURL(`/projects/${other.id}/members`)
+		await expect(page).toHaveURL(`/projects/${other.slug}/members`)
 		await expect(getSidebar(page).getByRole('button', { name: `Prepnúť projekt, aktuálny ${other.name}` })).toBeVisible()
 
 		await getSidebar(page)
@@ -106,9 +106,9 @@ test.describe('ADMIN', () => {
 	test('top bar next to the sidebar has the language and theme switchers and the bell, but no user menu', async ({ page }) => {
 		await page.goto('/profile')
 		const topBar = page.getByRole('banner')
-		await expect(topBar.getByRole('radiogroup', { name: 'Jazyk' })).toBeVisible()
+		await expect(topBar.getByRole('combobox', { name: 'Jazyk', exact: true })).toBeVisible()
 		await expect(topBar.getByRole('button', { name: 'Prepnúť na tmavý režim' })).toBeVisible()
-		await expect(topBar.getByRole('img', { name: 'Notifikácie' })).toBeVisible()
+		await expect(topBar.getByRole('img', { name: 'Notifikácie' })).toHaveCount(0)
 		await expect(topBar.getByRole('button', { name: 'Menu používateľa' })).toHaveCount(0)
 		await expect(topBar.getByRole('button', { name: 'Otvoriť navigáciu' })).toBeHidden()
 	})

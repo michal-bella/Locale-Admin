@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vite-plus/test'
 import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { installUnauthorizedInterceptor } from '@/api/unauthorizedInterceptor'
-import { ADMIN_USER, apiError, EDITOR_USER, mockApi, signedInAs, signedOut } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, mockApi, projectListRoute, signedInAs, signedOut } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 describe('route guards', () => {
@@ -42,18 +42,16 @@ describe('route guards', () => {
 	})
 
 	it('redirects a project URL to its settings', async () => {
-		const projectId = '00000000-0000-4000-8000-000000000601'
+		const project = { id: '00000000-0000-4000-8000-000000000601', name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C' }
 		signedInAs(EDITOR_USER, {
-			[`GET /projects/${projectId}/settings`]: {
-				status: 200,
-				data: { id: projectId, name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C', protectVariables: true, baseLanguageId: null },
-			},
-			[`GET /projects/${projectId}/languages`]: { status: 200, data: [] },
+			...projectListRoute(project),
+			[`GET /projects/${project.id}/settings`]: { status: 200, data: { ...project, protectVariables: true, baseLanguageId: null } },
+			[`GET /projects/${project.id}/languages`]: { status: 200, data: [] },
 		})
-		const router = renderApp(`/projects/${projectId}`)
+		const router = renderApp(`/projects/${project.slug}`)
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Nastavenia projektu' })).toBeInTheDocument()
-		expect(router.state.location.pathname).toBe(`/projects/${projectId}/settings`)
+		expect(router.state.location.pathname).toBe(`/projects/${project.slug}/settings`)
 	})
 
 	it('shows the users page to an ADMIN', async () => {

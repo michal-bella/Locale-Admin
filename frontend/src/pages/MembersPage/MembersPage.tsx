@@ -1,6 +1,6 @@
 import { Button } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useParams } from '@tanstack/react-router'
+import { useLoaderData } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import CreateMemberModal from '@/components/CreateMemberModal/CreateMemberModal'
@@ -11,7 +11,7 @@ import PageIntro from '@/components/PageIntro/PageIntro'
 /** Members of the project. Every member (and ADMIN) can create a new member; project roles come later. */
 const MembersPage = () => {
 	const { t } = useTranslation()
-	const { projectId } = useParams({ from: '/_authenticated/_app/projects/$projectId' })
+	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const [modalOpened, modal] = useDisclosure(false)
 
 	return (

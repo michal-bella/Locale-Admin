@@ -9,7 +9,7 @@ import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
 import i18n from '@/lib/i18n'
-import { ADMIN_USER, apiError, EDITOR_USER, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, projectListResponse, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -39,7 +39,7 @@ const SETTINGS: ProjectSettings = {
 
 const SETTINGS_URL = `/projects/${SETTINGS.id}/settings`
 
-const PAGE_PATH = `/projects/${SETTINGS.id}/settings`
+const PAGE_PATH = `/projects/${SETTINGS.slug}/settings`
 
 const LANGUAGES_URL = `/projects/${SETTINGS.id}/languages`
 
@@ -85,7 +85,7 @@ describe('ProjectSettingsPage', () => {
 		expect(screen.getByRole('heading', { level: 1, name: 'Nastavenia projektu' })).toBeInTheDocument()
 		expect(screen.getByLabelText('Názov projektu')).toHaveValue('B2B Admin')
 		expect(screen.getByLabelText('Slug projektu')).toHaveValue('b2b-admin')
-		expect(screen.getByLabelText('Slug projektu')).toHaveAccessibleDescription('Používa sa pri pomenovaní exportovaných súborov.')
+		expect(screen.getByLabelText('Slug projektu')).toHaveAccessibleDescription('Používa sa v adrese projektu a pri pomenovaní exportovaných súborov.')
 		expect(screen.getByLabelText('Primárna farba')).toHaveValue('#E83E8C')
 		expect(screen.getByLabelText('Základný jazyk')).toHaveValue('Slovak (sk)')
 		// Mantine renders the description inside the <label>; the braces come through a parameter, not i18next interpolation.
@@ -126,12 +126,21 @@ describe('ProjectSettingsPage', () => {
 		await waitFor(() => expect(screen.getByLabelText('Názov projektu')).toHaveFocus())
 	})
 
-	it('shows the project not-found page for a project the user cannot open', async () => {
-		signedInAs(EDITOR_USER, { [`GET ${SETTINGS_URL}`]: apiError(404, 'NOT_FOUND') })
+	it('shows the project not-found page for a slug that is not in the project list', async () => {
+		const requests = signedInAs(EDITOR_USER, projectListRoute())
 		renderApp(PAGE_PATH)
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Projekt sa nenašiel' })).toBeInTheDocument()
 		expect(screen.getByRole('link', { name: 'Späť na projekty' })).toHaveAttribute('href', '/')
+		// The cached list missed, so the loader asked for a fresh one before giving up.
+		expect(requests.filter((request) => request.url === '/projects')).toHaveLength(2)
+	})
+
+	it('shows the project not-found page when the settings answer 404', async () => {
+		signedInAs(EDITOR_USER, { ...projectListRoute(SETTINGS), [`GET ${SETTINGS_URL}`]: apiError(404, 'NOT_FOUND') })
+		renderApp(PAGE_PATH)
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Projekt sa nenašiel' })).toBeInTheDocument()
 	})
 
 	it('enables Save only when a value changes', async () => {
@@ -199,6 +208,7 @@ describe('ProjectSettingsPage', () => {
 		let current = SETTINGS
 		const requests = signedInAs(ADMIN_USER, {
 			...loaded(),
+			'GET /projects': () => projectListResponse(current),
 			[`GET ${SETTINGS_URL}`]: () => ({ status: 200, data: current }),
 			[`PATCH ${SETTINGS_URL}`]: () => {
 				current = saved
@@ -230,6 +240,28 @@ describe('ProjectSettingsPage', () => {
 		expect(screen.getByLabelText('Názov projektu')).toHaveValue('B2C iOS')
 		expect(screen.getByLabelText('Primárna farba')).toHaveValue('#1D4ED8')
 		await waitFor(() => expect(getSaveButton()).toBeDisabled())
+	})
+
+	it('moves to the URL with the new slug after saving it', async () => {
+		let current = SETTINGS
+		signedInAs(ADMIN_USER, {
+			...loaded(),
+			'GET /projects': () => projectListResponse(current),
+			[`GET ${SETTINGS_URL}`]: () => ({ status: 200, data: current }),
+			[`PATCH ${SETTINGS_URL}`]: () => {
+				current = { ...SETTINGS, slug: 'b2c-ios' }
+				return { status: 200, data: current }
+			},
+		})
+		const router = renderApp(PAGE_PATH)
+		await screen.findByLabelText('Názov projektu')
+
+		change('Slug projektu', 'b2c-ios')
+		fireEvent.click(getSaveButton())
+
+		await waitFor(() => expect(router.state.location.pathname).toBe('/projects/b2c-ios/settings'))
+		expect(await screen.findByLabelText('Slug projektu')).toHaveValue('b2c-ios')
+		expect(screen.queryByRole('heading', { name: 'Projekt sa nenašiel' })).not.toBeInTheDocument()
 	})
 
 	it('changes the base language from the select', async () => {
@@ -310,7 +342,7 @@ describe('ProjectSettingsPage', () => {
 		expect(select).toHaveAccessibleDescription('Projekt zatiaľ nemá žiadne jazyky. Pridať jazyk do projektu')
 
 		fireEvent.click(screen.getByRole('link', { name: 'Pridať jazyk do projektu' }))
-		await waitFor(() => expect(router.state.location.pathname).toBe(LANGUAGES_URL))
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${SETTINGS.slug}/languages`))
 	})
 
 	it('maps 409 SLUG_TAKEN to the slug field', async () => {

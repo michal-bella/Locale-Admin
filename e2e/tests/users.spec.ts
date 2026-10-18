@@ -108,8 +108,8 @@ test('created date follows the UI language (SK and EN)', async ({ page, playwrig
 	await expect(createdCell).toHaveText(/^\d{1,2}\.\s\d{1,2}\.\s\d{4}$/)
 	await expect(createdCell).toHaveText(formatCreatedAt(user.createdAt, 'sk-SK'))
 
-	// WebKit does not reliably click the visually hidden radio input; click its visible label text instead.
-	await page.getByRole('radiogroup', { name: 'Jazyk' }).getByText('EN', { exact: true }).click()
+	await page.getByRole('combobox', { name: 'Jazyk', exact: true }).click()
+	await page.getByRole('option', { name: 'English', exact: true }).click()
 	await expect(page.getByRole('table', { name: 'Administrator list' })).toBeVisible()
 	await expect(createdCell).toHaveText(/^\d{2}\/\d{2}\/\d{4}$/)
 	await expect(createdCell).toHaveText(formatCreatedAt(user.createdAt, 'en-GB'))
@@ -119,9 +119,8 @@ test('ADMIN deletes another admin, who can no longer log in; the own row has no 
 	const admin = await createAdmin(playwright.request, baseURL)
 	const table = await openUsersPage(page)
 
-	await expect(page.getByRole('button', { name: `Akcie administrátora ${ADMIN_EMAIL}` })).toHaveCount(0)
-	await page.getByRole('button', { name: `Akcie administrátora ${admin.email}` }).click()
-	await page.getByRole('menuitem', { name: 'Odstrániť' }).click()
+	await expect(page.getByRole('button', { name: `Odstrániť administrátora ${ADMIN_EMAIL}` })).toHaveCount(0)
+	await page.getByRole('button', { name: `Odstrániť administrátora ${admin.email}` }).click()
 	const dialog = page.getByRole('dialog', { name: 'Odstrániť administrátora' })
 	await expect(dialog).toContainText(`Naozaj chcete odstrániť účet ${admin.email}?`)
 	const deleted = page.waitForResponse((response) => response.url().endsWith(`/api/admin/users/${admin.id}`) && response.request().method() === 'DELETE')

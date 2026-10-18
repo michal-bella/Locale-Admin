@@ -28,9 +28,10 @@
 			"empty": "Zatiaľ nemáte žiadny projekt. Vytvorte prvý.",
 			"loadError": "Zoznam projektov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
-			"actions": "Akcie projektu {{name}}",
 			"settings": "Nastavenia",
-			"leave": "Opustiť projekt"
+			"leave": "Opustiť projekt",
+			"settingsLabel": "Nastavenia projektu {{name}}",
+			"leaveLabel": "Opustiť projekt {{name}}"
 		},
 		"createModal": {
 			"title": "Nový projekt",
@@ -43,7 +44,7 @@
 			"slug": {
 				"label": "Slug projektu",
 				"placeholder": "booking-web",
-				"hint": "Malé písmená, číslice a pomlčky. Použije sa v názvoch exportovaných súborov."
+				"hint": "Malé písmená, číslice a pomlčky. Použije sa v adrese projektu a v názvoch exportovaných súborov."
 			},
 			"languages": {
 				"label": "Jazyky",
@@ -110,7 +111,7 @@
 			"empty": "Zatiaľ tu nie sú žiadni administrátori.",
 			"loadError": "Zoznam administrátorov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
-			"actions": "Akcie administrátora {{email}}",
+			"deleteLabel": "Odstrániť administrátora {{email}}",
 			"actionsColumn": "Akcie",
 			"delete": "Odstrániť"
 		},
@@ -151,7 +152,7 @@
 			"empty": "Projekt zatiaľ nemá žiadnych členov.",
 			"loadError": "Zoznam členov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
-			"actions": "Akcie člena {{email}}",
+			"removeLabel": "Odobrať {{email}} z projektu",
 			"actionsColumn": "Akcie",
 			"remove": "Odobrať z projektu"
 		},
@@ -237,7 +238,7 @@
 			"label": "Zoznam jazykov",
 			"language": "Jazyk",
 			"base": "Základný",
-			"actions": "Akcie pre jazyk {{name}}",
+			"deleteLabel": "Odobrať jazyk {{name}}",
 			"actionsColumn": "Akcie",
 			"delete": "Odobrať",
 			"empty": "Projekt zatiaľ nemá žiadne jazyky.",
@@ -278,7 +279,7 @@
 			"name": "Názov projektu",
 			"slug": {
 				"label": "Slug projektu",
-				"description": "Používa sa pri pomenovaní exportovaných súborov."
+				"description": "Používa sa v adrese projektu a pri pomenovaní exportovaných súborov."
 			},
 			"primaryColor": {
 				"label": "Primárna farba",
@@ -307,19 +308,19 @@
 		"language": "Jazyk",
 		"languages": {
 			"sk": {
-				"label": "SK",
 				"name": "Slovenčina"
 			},
+			"cs": {
+				"name": "Čeština"
+			},
 			"en": {
-				"label": "EN",
 				"name": "English"
 			}
 		},
 		"theme": {
 			"toDark": "Prepnúť na tmavý režim",
 			"toLight": "Prepnúť na svetlý režim"
-		},
-		"notifications": "Notifikácie"
+		}
 	},
 	"sidebar": {
 		"label": "Hlavná navigácia",

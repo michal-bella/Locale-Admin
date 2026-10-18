@@ -1,4 +1,8 @@
-/* The ring keeps the white parts of the flags visible on the light segmented control. */
+.root {
+	width: 10rem;
+}
+
+/* The ring keeps the white parts of the flags visible on light surfaces. */
 .flag {
 	display: block;
 	flex-shrink: 0;

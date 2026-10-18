@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { type ProjectMember, type ProjectSettings } from '@locale/shared'
 
-import { apiError, EDITOR_USER, signedInAs } from '@/test/mockApi'
+import { apiError, EDITOR_USER, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const PROJECT: ProjectSettings = {
@@ -34,7 +34,10 @@ const NEW_MEMBER: ProjectMember = {
 
 const MEMBERS_URL = `/projects/${PROJECT.id}/members`
 
+const PAGE_PATH = `/projects/${PROJECT.slug}/members`
+
 const routes = (members: () => ProjectMember[]) => ({
+	...projectListRoute(PROJECT),
 	[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 	[`GET ${MEMBERS_URL}`]: () => ({ status: 200, data: { members: members() } }),
 })
@@ -60,7 +63,7 @@ describe('MembersPage', () => {
 			EDITOR_USER,
 			routes(() => [JANA]),
 		)
-		renderApp(MEMBERS_URL)
+		renderApp(PAGE_PATH)
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Členovia' })).toBeInTheDocument()
 		const table = within(screen.getByRole('table', { name: 'Zoznam členov' }))
@@ -80,7 +83,7 @@ describe('MembersPage', () => {
 				return { status: 201, data: NEW_MEMBER }
 			},
 		})
-		renderApp(MEMBERS_URL)
+		renderApp(PAGE_PATH)
 
 		fillAndSubmit(await openModal(), ' Nova@Firma.sk ', 'NewMemberPassword1')
 
@@ -93,7 +96,7 @@ describe('MembersPage', () => {
 
 	it('shows 409 EMAIL_TAKEN at the email field and keeps the modal open', async () => {
 		signedInAs(EDITOR_USER, { ...routes(() => [JANA]), [`POST ${MEMBERS_URL}`]: apiError(409, 'EMAIL_TAKEN') })
-		renderApp(MEMBERS_URL)
+		renderApp(PAGE_PATH)
 		const dialog = await openModal()
 
 		fillAndSubmit(dialog, 'jana.novakova@firma.sk', 'NewMemberPassword1')
@@ -107,7 +110,7 @@ describe('MembersPage', () => {
 			EDITOR_USER,
 			routes(() => [JANA]),
 		)
-		renderApp(MEMBERS_URL)
+		renderApp(PAGE_PATH)
 		const dialog = await openModal()
 
 		fillAndSubmit(dialog, 'not-an-email', 'short')
@@ -125,10 +128,10 @@ describe('RemoveMemberModal', () => {
 			EDITOR_USER,
 			routes(() => [JANA, OTHER]),
 		)
-		renderApp(MEMBERS_URL)
+		renderApp(PAGE_PATH)
 
-		expect(await screen.findByRole('button', { name: `Akcie člena ${OTHER.email}` })).toBeInTheDocument()
-		expect(screen.queryByRole('button', { name: `Akcie člena ${JANA.email}` })).not.toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: `Odobrať ${OTHER.email} z projektu` })).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: `Odobrať ${JANA.email} z projektu` })).not.toBeInTheDocument()
 	})
 
 	it('removes a member after confirmation and refetches the list', async () => {
@@ -141,10 +144,9 @@ describe('RemoveMemberModal', () => {
 				return { status: 204 }
 			},
 		})
-		renderApp(MEMBERS_URL)
+		renderApp(PAGE_PATH)
 
-		fireEvent.click(await screen.findByRole('button', { name: `Akcie člena ${OTHER.email}` }))
-		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odobrať z projektu' }))
+		fireEvent.click(await screen.findByRole('button', { name: `Odobrať ${OTHER.email} z projektu` }))
 		const dialog = await screen.findByRole('dialog', { name: 'Odobrať z projektu' })
 		expect(dialog).toHaveTextContent(`Naozaj chcete odobrať ${OTHER.email} z projektu?`)
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Odobrať' }))
@@ -157,10 +159,9 @@ describe('RemoveMemberModal', () => {
 	it('shows LAST_MEMBER as a notification and keeps the row', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		signedInAs(EDITOR_USER, { ...routes(() => [JANA, OTHER]), [`DELETE ${MEMBERS_URL}/${OTHER.id}`]: apiError(409, 'LAST_MEMBER') })
-		renderApp(MEMBERS_URL)
+		renderApp(PAGE_PATH)
 
-		fireEvent.click(await screen.findByRole('button', { name: `Akcie člena ${OTHER.email}` }))
-		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odobrať z projektu' }))
+		fireEvent.click(await screen.findByRole('button', { name: `Odobrať ${OTHER.email} z projektu` }))
 		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Odobrať z projektu' })).getByRole('button', { name: 'Odobrať' }))
 
 		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Projekt musí mať aspoň jedného člena.' })))

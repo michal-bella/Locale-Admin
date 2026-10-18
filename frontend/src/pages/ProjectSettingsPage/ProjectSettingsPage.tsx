@@ -1,5 +1,5 @@
 import { Button, Skeleton, Text } from '@mantine/core'
-import { useNavigate, useParams } from '@tanstack/react-router'
+import { useLoaderData, useNavigate, useParams } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -22,7 +22,8 @@ const SKELETON_HEIGHTS = [330, 152]
 const ProjectSettingsPage = () => {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
-	const { projectId } = useParams({ from: '/_authenticated/_app/projects/$projectId' })
+	const { projectSlug } = useParams({ from: '/_authenticated/_app/projects/$projectSlug' })
+	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { data: user } = useMeQuery()
 	const { data: projects } = useProjectsQuery()
 	const settingsQuery = useProjectSettingsQuery(projectId)
@@ -69,6 +70,11 @@ const ProjectSettingsPage = () => {
 				languages={languagesQuery.data}
 				isMember={isMember}
 				onLeft={() => void navigate({ to: '/' })}
+				onSaved={({ slug }) => {
+					if (slug !== projectSlug) {
+						void navigate({ to: '/projects/$projectSlug/settings', params: { projectSlug: slug }, replace: true })
+					}
+				}}
 				focusFirstField={retrySucceeded}
 			/>
 		)

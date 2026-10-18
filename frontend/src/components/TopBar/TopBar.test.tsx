@@ -5,14 +5,14 @@ import { ADMIN_USER, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 describe('TopBar', () => {
-	it('has the language and theme switchers and the bell, without the logo and the user menu next to the sidebar', async () => {
+	it('has the language and theme switchers, without the logo and the user menu next to the sidebar', async () => {
 		signedInAs(ADMIN_USER)
 		renderApp('/profile')
 		const topBar = within(await screen.findByRole('banner'))
 
-		expect(topBar.getByRole('radiogroup', { name: 'Jazyk' })).toBeInTheDocument()
+		expect(topBar.getByRole('combobox', { name: 'Jazyk' })).toBeInTheDocument()
 		expect(topBar.getByRole('button', { name: 'Prepnúť na tmavý režim' })).toBeInTheDocument()
-		expect(topBar.getByRole('img', { name: 'Notifikácie' })).toBeInTheDocument()
+		expect(topBar.queryByRole('img', { name: 'Notifikácie' })).not.toBeInTheDocument()
 		expect(topBar.queryByText('Locale')).not.toBeInTheDocument()
 		expect(topBar.queryByRole('button', { name: 'Menu používateľa' })).not.toBeInTheDocument()
 	})

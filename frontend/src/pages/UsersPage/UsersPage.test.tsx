@@ -299,8 +299,8 @@ describe('DeleteAdminModal', () => {
 		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, SELF]) })
 		renderApp('/admin/users')
 
-		expect(await screen.findByRole('button', { name: `Akcie administrátora ${MARTIN.email}` })).toBeInTheDocument()
-		expect(screen.queryByRole('button', { name: `Akcie administrátora ${SELF.email}` })).not.toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: `Odstrániť administrátora ${MARTIN.email}` })).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: `Odstrániť administrátora ${SELF.email}` })).not.toBeInTheDocument()
 	})
 
 	it('deletes an admin after confirmation, refetches the list and focuses the table', async () => {
@@ -315,8 +315,7 @@ describe('DeleteAdminModal', () => {
 		})
 		renderApp('/admin/users')
 
-		fireEvent.click(await screen.findByRole('button', { name: `Akcie administrátora ${MARTIN.email}` }))
-		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odstrániť' }))
+		fireEvent.click(await screen.findByRole('button', { name: `Odstrániť administrátora ${MARTIN.email}` }))
 		const dialog = await screen.findByRole('dialog', { name: 'Odstrániť administrátora' })
 		expect(dialog).toHaveTextContent(`Naozaj chcete odstrániť účet ${MARTIN.email}?`)
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Odstrániť' }))
@@ -331,8 +330,7 @@ describe('DeleteAdminModal', () => {
 		const requests = signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, SELF]) })
 		renderApp('/admin/users')
 
-		fireEvent.click(await screen.findByRole('button', { name: `Akcie administrátora ${MARTIN.email}` }))
-		fireEvent.click(await screen.findByRole('menuitem', { name: 'Odstrániť' }))
+		fireEvent.click(await screen.findByRole('button', { name: `Odstrániť administrátora ${MARTIN.email}` }))
 		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Odstrániť administrátora' })).getByRole('button', { name: 'Zrušiť' }))
 
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())

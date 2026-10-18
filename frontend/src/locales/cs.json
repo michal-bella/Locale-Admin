@@ -1,0 +1,370 @@
+{
+	"brand": {
+		"name": "Locale",
+		"tagline": "Workspace",
+		"copyright": "© {{year}} Locale"
+	},
+	"documentTitle": "{{page}} – Locale",
+	"notification": {
+		"close": "Zavřít oznámení"
+	},
+	"roles": {
+		"ADMIN": "Administrátor",
+		"EDITOR": "Člen"
+	},
+	"notFoundPage": {
+		"eyebrow": "Chyba 404",
+		"title": "Stránka nebyla nalezena",
+		"description": "Stránka, kterou hledáte, neexistuje nebo byla přesunuta.",
+		"backHome": "Zpět na úvod"
+	},
+	"projectsPage": {
+		"eyebrow": "Přehled",
+		"title": "Projekty",
+		"description": "Projekty, ve kterých jste členem.",
+		"createButton": "Nový projekt",
+		"list": {
+			"label": "Seznam projektů",
+			"empty": "Zatím nemáte žádný projekt. Vytvořte první.",
+			"loadError": "Seznam projektů se nepodařilo načíst.",
+			"retry": "Zkusit znovu",
+			"settings": "Nastavení",
+			"leave": "Opustit projekt",
+			"settingsLabel": "Nastavení projektu {{name}}",
+			"leaveLabel": "Opustit projekt {{name}}"
+		},
+		"createModal": {
+			"title": "Nový projekt",
+			"description": "Stanete se prvním členem projektu.",
+			"close": "Zavřít",
+			"name": {
+				"label": "Název projektu",
+				"placeholder": "Např. Booking Web"
+			},
+			"slug": {
+				"label": "Slug projektu",
+				"placeholder": "booking-web",
+				"hint": "Malá písmena, číslice a pomlčky. Použije se v adrese projektu a v názvech exportovaných souborů."
+			},
+			"languages": {
+				"label": "Jazyky",
+				"placeholder": "Vyhledejte jazyky",
+				"hint": "První vybraný jazyk bude základní, změnit ho můžete v nastavení projektu."
+			},
+			"cancel": "Zrušit",
+			"submit": "Vytvořit projekt",
+			"success": "Projekt {{name}} byl vytvořen."
+		}
+	},
+	"leaveProjectModal": {
+		"title": "Opustit projekt",
+		"message": "Opravdu chcete opustit projekt {{name}}? Zpět vás může přidat jiný člen.",
+		"close": "Zavřít",
+		"cancel": "Zrušit",
+		"confirm": "Opustit projekt",
+		"success": "Opustili jste projekt {{name}}."
+	},
+	"projectNotFoundPage": {
+		"eyebrow": "Chyba 404",
+		"title": "Projekt nebyl nalezen",
+		"description": "Projekt neexistuje nebo nejste jeho členem.",
+		"backHome": "Zpět na projekty"
+	},
+	"loginPage": {
+		"eyebrow": "Přihlášení",
+		"title": "Vítejte zpět",
+		"description": "Přihlaste se do svého překladového workspace.",
+		"form": {
+			"email": {
+				"label": "E-mail",
+				"placeholder": "jmeno@firma.cz"
+			},
+			"password": {
+				"label": "Heslo",
+				"placeholder": "••••••••"
+			},
+			"submit": "Přihlásit se",
+			"rateLimited": "Příliš mnoho pokusů. Zkuste to znovu za {{seconds}} s."
+		}
+	},
+	"forbiddenPage": {
+		"eyebrow": "Chyba 403",
+		"title": "Přístup odepřen",
+		"description": "K této stránce nemáte oprávnění.",
+		"backHome": "Zpět na úvod"
+	},
+	"errorPage": {
+		"eyebrow": "Chyba",
+		"title": "Něco se pokazilo",
+		"retry": "Zkusit znovu",
+		"backHome": "Zpět na úvod"
+	},
+	"usersPage": {
+		"eyebrow": "Správa",
+		"title": "Uživatelé",
+		"description": "Administrátoři, kteří spravují systém, jazyky a všechny projekty.",
+		"createButton": "Vytvořit administrátora",
+		"table": {
+			"label": "Seznam administrátorů",
+			"email": "E-mail",
+			"createdAt": "Vytvořen",
+			"empty": "Zatím zde nejsou žádní administrátoři.",
+			"loadError": "Seznam administrátorů se nepodařilo načíst.",
+			"retry": "Zkusit znovu",
+			"deleteLabel": "Odstranit administrátora {{email}}",
+			"actionsColumn": "Akce",
+			"delete": "Odstranit"
+		},
+		"createModal": {
+			"title": "Nový administrátor",
+			"description": "Zadejte e-mail a heslo pro nový administrátorský účet. Členy projektů vytvoříte na stránce Členové v projektu.",
+			"close": "Zavřít",
+			"email": {
+				"label": "E-mail",
+				"placeholder": "jmeno@firma.cz"
+			},
+			"password": {
+				"label": "Heslo",
+				"placeholder": "Min. {{min}} znaků"
+			},
+			"cancel": "Zrušit",
+			"submit": "Vytvořit administrátora",
+			"success": "Administrátor {{email}} byl vytvořen."
+		},
+		"deleteModal": {
+			"title": "Odstranit administrátora",
+			"message": "Opravdu chcete odstranit účet {{email}}? Smaže se i jeho přihlášení a členství v projektech. Akci nelze vrátit.",
+			"close": "Zavřít",
+			"cancel": "Zrušit",
+			"confirm": "Odstranit",
+			"success": "Administrátor {{email}} byl odstraněn."
+		}
+	},
+	"membersPage": {
+		"eyebrow": "Projekt",
+		"title": "Členové",
+		"description": "Uživatelé, kteří mají přístup k tomuto projektu.",
+		"createButton": "Přidat člena",
+		"table": {
+			"label": "Seznam členů",
+			"member": "Člen",
+			"joinedAt": "Přidán",
+			"empty": "Projekt zatím nemá žádné členy.",
+			"loadError": "Seznam členů se nepodařilo načíst.",
+			"retry": "Zkusit znovu",
+			"removeLabel": "Odebrat {{email}} z projektu",
+			"actionsColumn": "Akce",
+			"remove": "Odebrat z projektu"
+		},
+		"createModal": {
+			"title": "Nový člen",
+			"description": "Vytvoří nový účet, který bude mít přístup k tomuto projektu.",
+			"close": "Zavřít",
+			"email": {
+				"label": "E-mail",
+				"placeholder": "jmeno@firma.cz"
+			},
+			"password": {
+				"label": "Heslo",
+				"placeholder": "Min. {{min}} znaků"
+			},
+			"cancel": "Zrušit",
+			"submit": "Přidat člena",
+			"success": "Člen {{email}} byl přidán do projektu."
+		},
+		"removeModal": {
+			"title": "Odebrat z projektu",
+			"message": "Opravdu chcete odebrat {{email}} z projektu? Účet zůstane, zpět ho může přidat kterýkoli člen.",
+			"close": "Zavřít",
+			"cancel": "Zrušit",
+			"confirm": "Odebrat",
+			"success": "{{email}} byl odebrán z projektu."
+		}
+	},
+	"profilePage": {
+		"eyebrow": "Uživatelský účet",
+		"title": "Můj profil",
+		"description": "Spravujte své osobní údaje, předvolby a zabezpečení účtu.",
+		"loadError": "Profil se nepodařilo načíst.",
+		"retry": "Zkusit znovu",
+		"card": {
+			"changePhoto": "Změnit fotografii"
+		},
+		"personal": {
+			"title": "Osobní údaje",
+			"description": "Tyto informace uvidí ostatní členové vašich projektů.",
+			"firstName": "Jméno",
+			"lastName": "Příjmení",
+			"email": "E-mailová adresa",
+			"position": {
+				"label": "Pracovní pozice",
+				"placeholder": "Např. Product manager"
+			}
+		},
+		"preferences": {
+			"title": "Předvolby",
+			"description": "Přizpůsobte si jazyk a oznámení aplikace.",
+			"language": "Jazyk rozhraní",
+			"notifications": {
+				"title": "E-mailová oznámení",
+				"mentions": {
+					"label": "Zmínky a komentáře",
+					"description": "Když vás někdo označí u překladu."
+				},
+				"review": {
+					"label": "Překlady ke kontrole",
+					"description": "Souhrn nových překladů čekajících na kontrolu."
+				},
+				"importsExports": {
+					"label": "Importy a exporty",
+					"description": "Potvrzení o dokončení importu nebo exportu."
+				}
+			}
+		},
+		"security": {
+			"title": "Heslo a zabezpečení",
+			"passwordChanged": "Heslo bylo naposledy změněno {{relative}}.",
+			"changePassword": "Změnit heslo"
+		},
+		"save": "Uložit profil",
+		"saveSuccess": "Profil byl uložen."
+	},
+	"languagesPage": {
+		"eyebrow": "Lokalizace",
+		"title": "Jazyky",
+		"description": "Jazyky, do kterých se projekt překládá. Základní jazyk změníte v nastavení projektu.",
+		"addButton": "Přidat jazyk",
+		"table": {
+			"label": "Seznam jazyků",
+			"language": "Jazyk",
+			"base": "Základní",
+			"deleteLabel": "Odebrat jazyk {{name}}",
+			"actionsColumn": "Akce",
+			"delete": "Odebrat",
+			"empty": "Projekt zatím nemá žádné jazyky.",
+			"loadError": "Seznam jazyků se nepodařilo načíst.",
+			"retry": "Zkusit znovu"
+		},
+		"addModal": {
+			"title": "Přidat jazyk",
+			"description": "Vyberte jazyk ze seznamu podporovaných jazyků.",
+			"close": "Zavřít",
+			"language": {
+				"label": "Jazyk",
+				"placeholder": "Vyhledejte jazyk",
+				"nothingFound": "Žádný jazyk nebyl nalezen."
+			},
+			"cancel": "Zrušit",
+			"submit": "Přidat",
+			"success": "Jazyk {{name}} byl přidán."
+		},
+		"deleteModal": {
+			"title": "Odebrat jazyk",
+			"close": "Zavřít",
+			"message": "Opravdu chcete odebrat jazyk {{name}} ({{tag}}) z projektu?",
+			"cancel": "Zrušit",
+			"confirm": "Odebrat",
+			"success": "Jazyk {{name}} byl odebrán z projektu."
+		}
+	},
+	"projectSettingsPage": {
+		"eyebrow": "Konfigurace",
+		"title": "Nastavení projektu",
+		"description": "Základní údaje, identita projektu a pravidla překladů.",
+		"loadError": "Nastavení projektu se nepodařilo načíst.",
+		"retry": "Zkusit znovu",
+		"basics": {
+			"title": "Základní údaje",
+			"description": "Informace viditelné pro všechny členy projektu.",
+			"name": "Název projektu",
+			"slug": {
+				"label": "Slug projektu",
+				"description": "Používá se v adrese projektu a při pojmenování exportovaných souborů."
+			},
+			"primaryColor": {
+				"label": "Primární barva",
+				"preview": "Náhled"
+			},
+			"baseLanguage": {
+				"label": "Základní jazyk",
+				"placeholder": "Vyberte jazyk",
+				"empty": "Projekt zatím nemá žádné jazyky.",
+				"emptyLink": "Přidat jazyk do projektu"
+			}
+		},
+		"variables": {
+			"title": "Ochrana dynamických segmentů",
+			"description": "Proměnné budou při editaci automaticky rozpoznány a uzamčeny.",
+			"protect": {
+				"label": "Chránit výrazy {{example}}",
+				"description": "Uživatel může upravit text, ne název ani závorky proměnné."
+			}
+		},
+		"leave": "Opustit projekt",
+		"save": "Uložit změny",
+		"saveSuccess": "Nastavení projektu bylo uloženo."
+	},
+	"topBar": {
+		"language": "Jazyk",
+		"languages": {
+			"sk": {
+				"name": "Slovenčina"
+			},
+			"cs": {
+				"name": "Čeština"
+			},
+			"en": {
+				"name": "English"
+			}
+		},
+		"theme": {
+			"toDark": "Přepnout na tmavý režim",
+			"toLight": "Přepnout na světlý režim"
+		}
+	},
+	"sidebar": {
+		"label": "Hlavní navigace",
+		"allProjects": "Všechny projekty",
+		"languages": "Jazyky",
+		"admin": "Správa",
+		"users": "Uživatelé",
+		"projectSettings": "Nastavení projektu",
+		"members": "Členové",
+		"projectSwitcher": {
+			"label": "Přepnout projekt, aktuální {{name}}",
+			"projects": "Projekty"
+		},
+		"openNavigation": "Otevřít navigaci",
+		"closeNavigation": "Zavřít navigaci",
+		"home": "Locale – domovská stránka",
+		"userMenu": {
+			"label": "Menu uživatele",
+			"profile": "Můj profil",
+			"logout": "Odhlásit se"
+		}
+	},
+	"errors": {
+		"VALIDATION_ERROR": "Zkontrolujte vyplněné údaje.",
+		"AUTH_INVALID_CREDENTIALS": "Nesprávný e-mail nebo heslo.",
+		"AUTH_UNAUTHENTICATED": "Vaše přihlášení vypršelo. Přihlaste se znovu.",
+		"FORBIDDEN": "K této akci nemáte oprávnění.",
+		"CSRF_REJECTED": "Požadavek se nepodařilo ověřit. Obnovte stránku a zkuste to znovu.",
+		"NOT_FOUND": "Požadovaný záznam nebyl nalezen.",
+		"EMAIL_TAKEN": "Uživatel s tímto e-mailem již existuje.",
+		"LANGUAGE_TAKEN": "Tento jazyk je již přidán.",
+		"LANGUAGE_IS_BASE": "Základní jazyk nelze odstranit. Nejprve nastavte jiný základní jazyk.",
+		"SLUG_TAKEN": "Projekt s tímto slugem již existuje.",
+		"LAST_MEMBER": "Projekt musí mít alespoň jednoho člena.",
+		"SELF_DELETE": "Vlastní účet nemůžete odstranit.",
+		"RATE_LIMITED": "Příliš mnoho pokusů. Zkuste to znovu později.",
+		"INTERNAL_ERROR": "Nastala neočekávaná chyba. Zkuste to znovu.",
+		"UNKNOWN": "Nastala neznámá chyba. Zkuste to znovu."
+	},
+	"validation": {
+		"REQUIRED": "Toto pole je povinné.",
+		"INVALID_EMAIL": "Zadejte platný e-mail.",
+		"TOO_SHORT": "Zadejte alespoň {{min}} znaků.",
+		"TOO_LONG": "Zadejte nejvýše {{max}} znaků.",
+		"INVALID": "Neplatná hodnota."
+	}
+}

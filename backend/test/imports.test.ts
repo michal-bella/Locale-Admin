@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import request from 'supertest'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
 	ERROR_CODE,
@@ -622,6 +622,50 @@ describe('POST /api/projects/:projectId/imports', () => {
 		expect(values['/key 1500 en']).toBe(firstWonOrder ? 'second 1500' : 'first 1500')
 		expect(values['/key 500 en']).toBe('first 500')
 		expect(values['/key 2500 en']).toBe('second 2500')
+	})
+
+	it('waits for the project import lock and reads the project only after it gets it', async () => {
+		const app = createTestApp()
+		const { project, en, cookie } = await setup(app)
+		const prisma = getTestPrisma()
+		let release = () => {}
+		const released = new Promise<void>((resolve) => {
+			release = resolve
+		})
+		let lockTaken = () => {}
+		const locked = new Promise<void>((resolve) => {
+			lockTaken = resolve
+		})
+		// Holds the import lock and, like an earlier import, creates a key the waiting import must see as existing.
+		const holder = prisma.$transaction(
+			async (tx) => {
+				await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`import:${project.id}`}, 0))`
+				await tx.translationKey.create({ data: { projectId: project.id, name: 'a', translations: { create: { languageId: en.id, value: 'held' } } } })
+				lockTaken()
+				await released
+			},
+			{ timeout: 20_000 },
+		)
+		await locked
+
+		let settled = false
+		const pending = importOk(app, cookie, project.id, ['Keys; en', ' a; imported', ' b; B'], [{ columnIndex: 2, languageId: en.id }]).finally(() => {
+			settled = true
+		})
+		await vi.waitFor(async () => {
+			const [{ waiting }] = await prisma.$queryRaw<
+				[{ waiting: number }]
+			>`SELECT count(*)::int AS waiting FROM pg_locks WHERE locktype = 'advisory' AND NOT granted`
+			expect(waiting).toBe(1)
+		})
+
+		expect(settled).toBe(false)
+		expect(await countRows()).toMatchObject({ keys: 0, translations: 0 })
+
+		release()
+		await holder
+		expect(await pending).toEqual({ keysCreated: 1, translationsCreated: 1, translationsUpdated: 1, skippedColumns: 0 })
+		expect(await projectValues(project.id)).toEqual({ '/a en': 'imported', '/b en': 'B' })
 	})
 
 	describe('returns 400 IMPORT_COLUMNS_INVALID and writes nothing', () => {

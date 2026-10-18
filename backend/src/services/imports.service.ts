@@ -226,6 +226,8 @@ const batches = <T>(items: T[]): T[][] =>
 export const importFile = (prisma: PrismaClient, projectId: string, userId: string, file: ParsedFile, request: ImportRequest): Promise<ImportResult> =>
 	prisma.$transaction(
 		async (tx) => {
+			// Below the 60 s transaction timeout, so an import waiting behind another one fails cleanly (500) instead of hanging.
+			await tx.$executeRaw`SET LOCAL lock_timeout = '30s'`
 			// One bigint key per project; the `import:` prefix keeps it apart from other advisory locks. A hash collision only serializes two projects.
 			await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`import:${projectId}`}, 0))`
 

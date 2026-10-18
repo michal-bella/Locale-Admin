@@ -179,7 +179,7 @@ Porušenie ktoréhokoľvek pravidla vráti 400 `IMPORT_COLUMNS_INVALID` (bez `de
 
 ### Odpoveď 200
 
-Schéma `importResultSchema`. Počty sa rovnajú preview pre ten istý súbor a priradenie (pri `createMissingKeys: true`).
+Schéma `importResultSchema`. Počty sa rovnajú preview pre ten istý súbor iba vtedy, keď sa projekt medzitým nezmenil, `createMissingKeys` je `true` a priradenie stĺpcov je to, ktoré navrhlo preview (stĺpce `PROJECT` na svoj `languageId`, ostatné preskočené). Preview počíta zmeny iba pre stĺpce, ktorých tag zodpovedá jazyku projektu, a nové kľúče vždy; ručne priradený stĺpec (napr. `pl` → `cs`), iný jazyk pre stĺpec alebo `createMissingKeys: false` dajú iné počty ako preview.
 
 | Pole                  | Popis                                                                         |
 | --------------------- | ----------------------------------------------------------------------------- |
@@ -195,7 +195,8 @@ Schéma `importResultSchema`. Počty sa rovnajú preview pre ten istý súbor a 
 ### Transakcia, zámok a dávky
 
 - Celý import je jedna transakcia (Prisma `$transaction`, `timeout` 60 s vrátane čakania na zámok, `maxWait` 10 s na spojenie z poolu). Pri chybe sa nezapíše nič.
-- Prvý príkaz je `pg_advisory_xact_lock(hashtextextended('import:' || projectId, 0))`: jeden `bigint` kľúč na projekt, zámok sa uvoľní koncom transakcie. Dva súbežné importy toho istého projektu sa zoradia za sebou, importy rôznych projektov bežia paralelne (kolízia hashu by iba zoradila dva projekty, nič by nepokazila). Prefix `import:` oddeľuje kľúč od prípadných iných advisory zámkov.
+- Pred zámkom sa nastaví `SET LOCAL lock_timeout = '30s'` (pod 60 s timeoutom transakcie). Import, ktorý čaká za iným importom toho istého projektu dlhšie ako 30 s, skončí čisto chybou 500 `INTERNAL_ERROR` (kontrakt zatiaľ nemá kód „import prebieha“) a nič nezapíše; používateľ ho môže zopakovať.
+- Potom nasleduje `pg_advisory_xact_lock(hashtextextended('import:' || projectId, 0))`: jeden `bigint` kľúč na projekt, zámok sa uvoľní koncom transakcie. Dva súbežné importy toho istého projektu sa zoradia za sebou, importy rôznych projektov bežia paralelne (kolízia hashu by iba zoradila dva projekty, nič by nepokazila). Prefix `import:` oddeľuje kľúč od prípadných iných advisory zámkov.
 - Až pod zámkom sa skontrolujú stĺpce a načítajú aktuálne hodnoty kľúčov zo súboru. Z nich sa vypočíta, čo sa zapíše, rovnakou funkciou ako `changes` v preview, takže počty sa nemôžu rozísť.
 - Kľúče aj preklady sa zapisujú po dávkach 5 000 riadkov cez `INSERT … SELECT FROM unnest(…)`: kľúče s `gen_random_uuid()` a `ON CONFLICT DO NOTHING`, preklady s `ON CONFLICT ("keyId", "languageId") DO UPDATE … WHERE value IS DISTINCT FROM EXCLUDED.value`. `updatedAt` nemá v DB default, preto ho SQL nastavuje explicitne (`now()`).
 

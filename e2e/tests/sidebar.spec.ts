@@ -59,7 +59,7 @@ test.describe('ADMIN', () => {
 		await expect(getSidebar(page)).toHaveCount(0)
 	})
 
-	test('inside a project sees the switcher with Nastavenia projektu and Členovia; switching keeps the page', async ({ page, playwright }) => {
+	test('inside a project sees the switcher with Preklady, Nastavenia projektu and Členovia; switching keeps the page', async ({ page, playwright }) => {
 		const api = await newAdminApi(playwright.request)
 		const project = await createProject(api, 'sidebar')
 		const other = await createProject(api, 'sidebar-other')
@@ -69,7 +69,7 @@ test.describe('ADMIN', () => {
 		const section = getMainNavigation(page).getByRole('list', { name: project.name })
 		const settings = section.getByRole('link', { name: 'Nastavenia projektu' })
 		const members = section.getByRole('link', { name: 'Členovia' })
-		await expect(section.getByRole('link')).toHaveText(['Nastavenia projektu', 'Jazyky', 'Členovia'])
+		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Nastavenia projektu', 'Jazyky', 'Členovia'])
 		await expect(settings).toHaveAttribute('aria-current', 'page')
 
 		await members.click()

@@ -173,7 +173,15 @@
 		},
 		"deleteModal": {
 			"title": "Smazat projekt",
-			"message": "Opravdu chcete smazat projekt {{name}}? Smažou se i všechny jeho jazyky a členství. Účty členů zůstanou. Akci nelze vrátit.",
+			"message": "Opravdu chcete smazat projekt {{name}}? {{languages}} a projekt přijde o {{members}}. Účty členů zůstanou. Akci nelze vrátit.",
+			"languagesImpact_one": "Smaže se {{count}} jazyk",
+			"languagesImpact_few": "Smažou se {{count}} jazyky",
+			"languagesImpact_many": "Smaže se {{count}} jazyka",
+			"languagesImpact_other": "Smaže se {{count}} jazyků",
+			"membersImpact_one": "{{count}} člena",
+			"membersImpact_few": "{{count}} členy",
+			"membersImpact_many": "{{count}} člena",
+			"membersImpact_other": "{{count}} členů",
 			"slug": {
 				"label": "Pro potvrzení napište slug projektu {{slug}}"
 			},

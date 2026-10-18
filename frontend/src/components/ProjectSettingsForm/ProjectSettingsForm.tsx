@@ -30,7 +30,7 @@ const toFormValues = ({ name, slug, primaryColor, protectVariables, baseLanguage
  * Project settings page body (Figma 3:1557), also used in the edit modal on Projekty. "Uložiť zmeny" saves the whole form;
  * "Opustiť projekt" asks for confirmation.
  */
-const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, onSaved, onCancel, focusFirstField = false }: ProjectSettingsFormProps) => {
+const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, onSaved, onCancel, onNotFound, focusFirstField = false }: ProjectSettingsFormProps) => {
 	const { t } = useTranslation()
 	const updateSettings = useUpdateProjectSettingsMutation(settings.id)
 	const [leaveOpened, leaveModal] = useDisclosure(false)
@@ -81,6 +81,10 @@ const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, onSaved, o
 				}
 				if (code === ERROR_CODE.SLUG_TAKEN) {
 					setError('slug', { message: t('errors.SLUG_TAKEN') }, { shouldFocus: true })
+					return
+				}
+				if (code === ERROR_CODE.NOT_FOUND && onNotFound) {
+					onNotFound()
 					return
 				}
 				notifications.show({ color: 'red', message: t(`errors.${code}`) })

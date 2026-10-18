@@ -1,6 +1,6 @@
 import { Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type AdminProjectListItem } from '@locale/shared'
@@ -28,6 +28,7 @@ const AdminProjectsTable = () => {
 	const { data, isPending, isError, error, refetch, isRefetching } = useAdminProjectsQuery()
 	const tableRef = useRef<HTMLTableElement>(null)
 	const triggerRef = useRef<HTMLButtonElement | null>(null)
+	const focusTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 	const [editOpened, editModal] = useDisclosure(false)
 	const [editing, setEditing] = useState<AdminProjectListItem | null>(null)
 	const [deleteOpened, deleteModal] = useDisclosure(false)
@@ -47,8 +48,10 @@ const AdminProjectsTable = () => {
 	// Deferred so a deleted row is already gone and the table gets focus instead of its button.
 	const closeDelete = () => {
 		deleteModal.close()
-		setTimeout(() => (triggerRef.current?.isConnected ? triggerRef.current : tableRef.current)?.focus())
+		focusTimeoutRef.current = setTimeout(() => (triggerRef.current?.isConnected ? triggerRef.current : tableRef.current)?.focus())
 	}
+
+	useEffect(() => () => clearTimeout(focusTimeoutRef.current), [])
 
 	// A successful retry replaces the focused retry button with the rows.
 	const retry = async () => {

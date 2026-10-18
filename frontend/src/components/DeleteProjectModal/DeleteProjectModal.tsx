@@ -73,7 +73,14 @@ const DeleteProjectModal = ({ opened, project, onClose, onDeleted }: DeleteProje
 				</>
 			}
 		>
-			<Text size='sm'>{project && t('adminProjectsPage.deleteModal.message', { name: project.name })}</Text>
+			<Text size='sm'>
+				{project &&
+					t('adminProjectsPage.deleteModal.message', {
+						name: project.name,
+						languages: t('adminProjectsPage.deleteModal.languagesImpact', { count: project.languageCount }),
+						members: t('adminProjectsPage.deleteModal.membersImpact', { count: project.memberCount }),
+					})}
+			</Text>
 			<TextInput
 				data-autofocus
 				autoComplete='off'

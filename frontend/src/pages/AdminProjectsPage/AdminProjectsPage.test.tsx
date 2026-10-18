@@ -82,10 +82,10 @@ const typeSlug = (dialog: HTMLElement, value: string) =>
 	fireEvent.change(within(dialog).getByLabelText(`Pre potvrdenie napíšte slug projektu ${B2B.slug}`), { target: { value } })
 
 beforeAll(() => {
-	// The global 3 retries with backoff would delay the error state by seconds.
+	// The global 3 retries with backoff would delay the error state by seconds. The edit modal sets its own retry, so only the delay is removed there.
 	queryClient.setQueryDefaults(QUERY_KEYS.ADMIN.PROJECTS(), { retry: false })
-	queryClient.setQueryDefaults(QUERY_KEYS.PROJECTS.SETTINGS(B2B.id), { retry: false })
-	queryClient.setQueryDefaults(QUERY_KEYS.PROJECTS.LANGUAGES(B2B.id), { retry: false })
+	queryClient.setQueryDefaults(QUERY_KEYS.PROJECTS.SETTINGS(B2B.id), { retryDelay: 0 })
+	queryClient.setQueryDefaults(QUERY_KEYS.PROJECTS.LANGUAGES(B2B.id), { retryDelay: 0 })
 })
 
 afterEach(() => {
@@ -291,6 +291,53 @@ describe('EditProjectModal', () => {
 		expect(screen.getByRole('dialog', { name: 'Upraviť projekt' })).toBeInTheDocument()
 	})
 
+	it('on 404 while loading notifies once, closes without retrying and refreshes the list', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		let projects = [B2B]
+		const requests = signedInAs(ADMIN_USER, {
+			'GET /admin/projects': () => listResponse(projects),
+			...editRoutes,
+			[`GET ${SETTINGS_URL}`]: () => {
+				projects = []
+				return apiError(404, 'NOT_FOUND')
+			},
+		})
+		renderApp(PAGE_PATH)
+		fireEvent.click(await screen.findByRole('button', { name: `Upraviť projekt ${B2B.name}` }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(screen.queryByRole('button', { name: 'Skúsiť znova' })).not.toBeInTheDocument()
+		expect(show).toHaveBeenCalledTimes(1)
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Požadovaný záznam sa nenašiel.' }))
+		expect(await screen.findByText('Zatiaľ tu nie sú žiadne projekty.')).toBeInTheDocument()
+		expect(requests.filter((request) => request.url === SETTINGS_URL)).toHaveLength(1)
+		expect(adminListGets(requests)).toBe(2)
+	})
+
+	it('on 404 while saving notifies once, closes and refreshes the list', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		let projects = [B2B]
+		const requests = signedInAs(ADMIN_USER, {
+			'GET /admin/projects': () => listResponse(projects),
+			...editRoutes,
+			[`PATCH ${SETTINGS_URL}`]: () => {
+				projects = []
+				return apiError(404, 'NOT_FOUND')
+			},
+		})
+		renderApp(PAGE_PATH)
+		const dialog = await openEdit()
+
+		fireEvent.change(within(dialog).getByLabelText('Názov projektu'), { target: { value: 'B2C iOS' } })
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť zmeny' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(show).toHaveBeenCalledTimes(1)
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Požadovaný záznam sa nenašiel.' }))
+		expect(await screen.findByText('Zatiaľ tu nie sú žiadne projekty.')).toBeInTheDocument()
+		expect(adminListGets(requests)).toBe(2)
+	})
+
 	it('drops unsaved changes on Zrušiť without a request', async () => {
 		const requests = signedInAs(ADMIN_USER, { 'GET /admin/projects': listResponse([B2B]), ...editRoutes })
 		renderApp(PAGE_PATH)
@@ -321,7 +368,11 @@ describe('DeleteProjectModal', () => {
 		const dialog = await openDelete()
 		const confirm = within(dialog).getByRole('button', { name: 'Zmazať projekt' })
 
-		expect(within(dialog).getByText(/Naozaj chcete zmazať projekt B2B Admin\? Zmažú sa aj všetky jeho jazyky a členstvá/)).toBeInTheDocument()
+		expect(
+			within(dialog).getByText(
+				'Naozaj chcete zmazať projekt B2B Admin? Zmažú sa 3 jazyky a projekt stratí 5 členov. Účty členov ostanú. Akciu nie je možné vrátiť.',
+			),
+		).toBeInTheDocument()
 		expect(confirm).toBeDisabled()
 		typeSlug(dialog, 'b2b-admi')
 		expect(confirm).toBeDisabled()
@@ -336,6 +387,52 @@ describe('DeleteProjectModal', () => {
 		await waitFor(() => expect(within(getTable()).queryByText(B2B.name)).not.toBeInTheDocument())
 		expect(requests.filter((request) => request.method === 'delete')).toHaveLength(1)
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Projekt B2B Admin bol zmazaný.' }))
+	})
+
+	it.each([
+		[1, 1, 'Zmaže sa 1 jazyk a projekt stratí 1 člena.'],
+		[0, 2, 'Zmaže sa 0 jazykov a projekt stratí 2 členov.'],
+		[5, 12, 'Zmaže sa 5 jazykov a projekt stratí 12 členov.'],
+	])('states the impact of %i languages and %i members in sk', async (languageCount, memberCount, impact) => {
+		signedInAs(ADMIN_USER, { 'GET /admin/projects': listResponse([{ ...B2B, languageCount, memberCount }]) })
+		renderApp(PAGE_PATH)
+		const dialog = await openDelete()
+
+		expect(within(dialog).getByText(`Naozaj chcete zmazať projekt B2B Admin? ${impact} Účty členov ostanú. Akciu nie je možné vrátiť.`)).toBeInTheDocument()
+	})
+
+	it.each([
+		['cs', 'Smazat projekt', 1, 3, 'Smaže se 1 jazyk a projekt přijde o 3 členy.'],
+		['cs', 'Smazat projekt', 5, 1, 'Smaže se 5 jazyků a projekt přijde o 1 člena.'],
+		['en', 'Delete project', 1, 2, '1 language will be deleted and the project will lose 2 members.'],
+		['en', 'Delete project', 3, 1, '3 languages will be deleted and the project will lose 1 member.'],
+	])('states the impact in %s (%s, %i languages, %i members)', async (language, deleteLabel, languageCount, memberCount, impact) => {
+		await i18n.changeLanguage(language)
+		signedInAs(ADMIN_USER, { 'GET /admin/projects': listResponse([{ ...B2B, languageCount, memberCount }]) })
+		renderApp(PAGE_PATH)
+		fireEvent.click(await screen.findByRole('button', { name: `${deleteLabel} ${B2B.name}` }))
+
+		expect(await screen.findByText((text) => text.includes(impact))).toBeInTheDocument()
+	})
+
+	it('on 500 keeps the modal open with the typed slug and shows the error', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		signedInAs(ADMIN_USER, {
+			'GET /admin/projects': listResponse([B2B]),
+			[`DELETE /admin/projects/${B2B.id}`]: apiError(500, 'INTERNAL_ERROR'),
+		})
+		renderApp(PAGE_PATH)
+		const dialog = await openDelete()
+
+		typeSlug(dialog, B2B.slug)
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Zmazať projekt' }))
+
+		await waitFor(() =>
+			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Nastala neočakávaná chyba. Skúste to znova.' })),
+		)
+		expect(screen.getByRole('dialog', { name: 'Zmazať projekt' })).toBeInTheDocument()
+		expect(within(dialog).getByLabelText(`Pre potvrdenie napíšte slug projektu ${B2B.slug}`)).toHaveValue(B2B.slug)
+		await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Zmazať projekt' })).toBeEnabled())
 	})
 
 	it('clears the typed slug when closed', async () => {

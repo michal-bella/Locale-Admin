@@ -173,7 +173,11 @@
 		},
 		"deleteModal": {
 			"title": "Delete project",
-			"message": "Do you really want to delete the project {{name}}? All its languages and memberships are deleted too. Member accounts stay. This cannot be undone.",
+			"message": "Do you really want to delete the project {{name}}? {{languages}} and the project will lose {{members}}. Member accounts stay. This cannot be undone.",
+			"languagesImpact_one": "{{count}} language will be deleted",
+			"languagesImpact_other": "{{count}} languages will be deleted",
+			"membersImpact_one": "{{count}} member",
+			"membersImpact_other": "{{count}} members",
 			"slug": {
 				"label": "To confirm, type the project slug {{slug}}"
 			},

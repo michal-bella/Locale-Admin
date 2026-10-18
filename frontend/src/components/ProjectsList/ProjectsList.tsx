@@ -82,7 +82,7 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 						{getProjectInitials(project.name)}
 					</span>
 					<div className='flex min-w-0 flex-1 flex-col'>
-						<Link to='/projects/$projectSlug/settings' params={{ projectSlug: project.slug }} className={classes.name}>
+						<Link to='/projects/$projectSlug/translations' params={{ projectSlug: project.slug }} className={classes.name}>
 							{project.name}
 						</Link>
 						<Text component='span' size='xs' c='var(--app-color-muted)' className={classes.slug}>

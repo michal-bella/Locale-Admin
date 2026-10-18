@@ -128,7 +128,7 @@ describe('TranslationsPage', () => {
 
 		const headers = within(getTable())
 			.getAllByRole('columnheader')
-			.filter((header) => header.getAttribute('scope') !== 'colgroup')
+			.filter((header) => header.getAttribute('scope') !== 'rowgroup')
 			.map((header) => header.textContent)
 		expect(headers).toEqual(['Kľúč', 'slovenčina', 'English', 'Stav'])
 
@@ -264,6 +264,62 @@ describe('TranslationsPage', () => {
 			'# paths',
 			'Uložiť zmeny',
 		])
+	})
+
+	it('starts page 2 with a group header even when its group continues from page 1', async () => {
+		mockPage({
+			translations: response({
+				items: [item('loc', 'orders.empty.footer', 'Pätička', null), item('paths', 'Domov', 'Domov', 'Home')],
+				total: 52,
+				page: 2,
+			}),
+		})
+		renderApp(`${PAGE_PATH}?page=2`)
+		await screen.findByText('orders.empty.footer')
+
+		const [firstRow] = within(getTable()).getAllByRole('row').slice(1)
+		expect(firstRow).toHaveAttribute('data-group-header')
+		expect(firstRow).toHaveTextContent('loc:orders.empty')
+		expect(firstRow?.querySelector('th')).toHaveAttribute('scope', 'rowgroup')
+	})
+
+	it('hides group headers when sorted by last update', async () => {
+		mockPage()
+		renderApp(`${PAGE_PATH}?sort=UPDATED`)
+		await screen.findByText('orders.empty.title')
+
+		expect(getTable().querySelector('[data-group-header]')).toBeNull()
+	})
+
+	it('goes to the last page instead of showing no results for a page past the end', async () => {
+		const requests = mockPage({
+			translations: (config) => {
+				const { page } = config.params as { page: number }
+				return { status: 200, data: response({ total: 60, page, items: page > 2 ? [] : ITEMS }) }
+			},
+		})
+		const router = renderApp(`${PAGE_PATH}?page=99`)
+
+		await waitFor(() => expect(router.state.location.search).toEqual({ page: 2 }))
+		expect(await screen.findByText('orders.empty.title')).toBeInTheDocument()
+		expect(lastParams(requests)).toMatchObject({ page: 2 })
+		expect(screen.queryByText('Filtrom nezodpovedá žiadny kľúč.')).not.toBeInTheDocument()
+	})
+
+	it('keeps the namespace filter visible while it is active, even with one namespace', async () => {
+		mockPage({ translations: response({ namespaces: ['loc'] }) })
+		renderApp(`${PAGE_PATH}?namespace=paths`)
+		await screen.findByText('orders.empty.title')
+
+		expect(screen.getByRole('combobox', { name: 'Namespace' })).toBeInTheDocument()
+	})
+
+	it('limits the search to 200 characters', async () => {
+		mockPage()
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		expect(screen.getByRole('textbox', { name: 'Hľadať kľúč alebo preklad' })).toHaveAttribute('maxLength', '200')
 	})
 
 	it('marks untranslated rows for the red background', async () => {

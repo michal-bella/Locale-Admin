@@ -11,4 +11,6 @@ export type TranslationsTableProps = {
 	sourceLanguage?: Language
 	targetLanguage?: Language
 	onClearFilters: () => void
+	/** Group header rows only make sense when the sort keeps a group together (not for `UPDATED`). */
+	showGroups: boolean
 }

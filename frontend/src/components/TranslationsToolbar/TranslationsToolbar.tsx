@@ -3,7 +3,7 @@ import { useDebouncedCallback } from '@mantine/hooks'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type Language, translationsSortSchema, translationStatusSchema } from '@locale/shared'
+import { type Language, TRANSLATIONS_SEARCH_MAX_LENGTH, translationsSortSchema, translationStatusSchema } from '@locale/shared'
 
 import { ArrowRight, Search } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
@@ -95,6 +95,7 @@ const TranslationsToolbar = ({
 					aria-label={t('translationsPage.toolbar.search.label')}
 					placeholder={t('translationsPage.toolbar.search.placeholder')}
 					leftSection={<Search aria-hidden />}
+					maxLength={TRANSLATIONS_SEARCH_MAX_LENGTH}
 					className={classes.search}
 					value={searchValue}
 					onChange={(event) => {
@@ -117,7 +118,8 @@ const TranslationsToolbar = ({
 					allowDeselect={false}
 					withScrollArea={false}
 				/>
-				{namespaceOptions.length > 1 && (
+				{/* An active filter stays visible even when the project has one namespace left. */}
+				{(namespaceOptions.length > 1 || namespace !== undefined) && (
 					<Select
 						aria-label={t('translationsPage.toolbar.namespace.label')}
 						placeholder={t('translationsPage.toolbar.namespace.placeholder')}

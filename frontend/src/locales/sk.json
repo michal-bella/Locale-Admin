@@ -267,6 +267,8 @@
 		"EMAIL_TAKEN": "Používateľ s týmto e-mailom už existuje.",
 		"LANGUAGE_TAKEN": "Tento jazyk je už pridaný.",
 		"LANGUAGE_IS_BASE": "Základný jazyk nie je možné odstrániť. Najprv nastavte iný základný jazyk.",
+		"SLUG_TAKEN": "Projekt s týmto slugom už existuje.",
+		"LAST_MEMBER": "Ste posledný člen projektu, nemôžete ho opustiť.",
 		"RATE_LIMITED": "Príliš veľa pokusov. Skúste to znova neskôr.",
 		"INTERNAL_ERROR": "Nastala neočakávaná chyba. Skúste to znova.",
 		"UNKNOWN": "Nastala neznáma chyba. Skúste to znova."

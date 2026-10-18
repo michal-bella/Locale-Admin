@@ -267,6 +267,8 @@
 		"EMAIL_TAKEN": "A user with this email already exists.",
 		"LANGUAGE_TAKEN": "This language has already been added.",
 		"LANGUAGE_IS_BASE": "The base language cannot be deleted. Set another base language first.",
+		"SLUG_TAKEN": "A project with this slug already exists.",
+		"LAST_MEMBER": "You are the last member of the project and cannot leave it.",
 		"RATE_LIMITED": "Too many attempts. Please try again later.",
 		"INTERNAL_ERROR": "An unexpected error occurred. Please try again.",
 		"UNKNOWN": "An unknown error occurred. Please try again."

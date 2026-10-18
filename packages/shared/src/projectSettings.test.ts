@@ -31,7 +31,6 @@ describe('updateProjectSettingsRequestSchema', () => {
 			{ path: 'slug', code: VALIDATION_CODE.REQUIRED },
 			{ path: 'primaryColor', code: VALIDATION_CODE.REQUIRED },
 			{ path: 'protectVariables', code: VALIDATION_CODE.REQUIRED },
-			{ path: 'baseLanguageId', code: VALIDATION_CODE.REQUIRED },
 		])
 	})
 
@@ -54,6 +53,11 @@ describe('updateProjectSettingsRequestSchema', () => {
 
 	it.each(['#FFF', 'E83E8C', 'red', '#E83E8G'])('rejects the color %j', (primaryColor) => {
 		expect(issuesOf({ ...VALID_REQUEST, primaryColor })).toEqual([{ path: 'primaryColor', code: VALIDATION_CODE.INVALID }])
+	})
+
+	it('accepts a request without the base language', () => {
+		const { baseLanguageId: _, ...withoutBaseLanguage } = VALID_REQUEST
+		expect(updateProjectSettingsRequestSchema.parse(withoutBaseLanguage)).toEqual(withoutBaseLanguage)
 	})
 
 	it('rejects a base language id that is not a UUID', () => {

@@ -3,7 +3,8 @@ import { createHash } from 'node:crypto'
 import pg from 'pg'
 
 import { getDatabaseUrl } from './env'
-import { TEST_EDITOR_EMAIL_PREFIX } from './users'
+import { TEST_PROJECT_SLUG_PREFIX } from './projects'
+import { TEST_USER_EMAIL_PREFIX } from './users'
 
 export const withDb = async <T>(fn: (client: pg.Client) => Promise<T>): Promise<T> => {
 	const client = new pg.Client({ connectionString: getDatabaseUrl() })
@@ -16,7 +17,7 @@ export const withDb = async <T>(fn: (client: pg.Client) => Promise<T>): Promise<
 }
 
 /** SQL `LIKE` pattern matching every user created by the suite. */
-export const TEST_EDITOR_EMAIL_PATTERN = `${TEST_EDITOR_EMAIL_PREFIX}%@example.com`
+export const TEST_USER_EMAIL_PATTERN = `${TEST_USER_EMAIL_PREFIX}%@example.com`
 
 export const hashSessionToken = (token: string) => createHash('sha256').update(token).digest('hex')
 
@@ -32,9 +33,16 @@ export const getLastLoginAt = (email: string) =>
 		return result.rows[0]?.lastLoginAt ?? null
 	})
 
-/** Deletes every EDITOR created by the suite; their sessions cascade. There is no DELETE endpoint in phase 1. */
-export const deleteTestEditors = () =>
+/** Deletes every user (members and admins) created by the suite; their sessions and memberships cascade. There is no DELETE endpoint yet. */
+export const deleteTestUsers = () =>
 	withDb(async (client) => {
-		const result = await client.query(`DELETE FROM "User" WHERE role = 'EDITOR' AND email LIKE $1`, [TEST_EDITOR_EMAIL_PATTERN])
+		const result = await client.query(`DELETE FROM "User" WHERE email LIKE $1`, [TEST_USER_EMAIL_PATTERN])
+		return result.rowCount ?? 0
+	})
+
+/** Deletes every project created by the suite; memberships cascade. There is no DELETE endpoint yet. */
+export const deleteTestProjects = () =>
+	withDb(async (client) => {
+		const result = await client.query(`DELETE FROM "Project" WHERE slug LIKE $1`, [`${TEST_PROJECT_SLUG_PREFIX}%`])
 		return result.rowCount ?? 0
 	})

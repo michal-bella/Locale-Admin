@@ -1,10 +1,11 @@
 import { type APIRequestContext, expect, type Page, test } from '@playwright/test'
 
-import { MUTATION_HEADERS, readApiError } from '../support/api'
-import { ANONYMOUS, STORAGE_STATE } from '../support/auth'
-import { acquireLanguagesLock, type Language, listLanguages, newAdminApi } from '../support/languages'
+import { readApiError } from '../support/api'
+import { ANONYMOUS, loginViaUi } from '../support/auth'
+import { acquireLanguagesLock, type Language, listLanguages, newAdminApi, restoreBaseLanguage } from '../support/languages'
 import { getMainNavigation } from '../support/layout'
-import { getProjectSettings, PROJECT_API, type ProjectSettings, restoreProjectSettings } from '../support/project-settings'
+import { createProject, getProjectSettings, projectSettingsApi, type ProjectSettings } from '../support/projects'
+import { createEditor, type TestEditor } from '../support/users'
 
 const PAGE_HEADING = { level: 1, name: 'Nastavenia projektu' } as const
 const SAVE_SUCCESS = 'Nastavenia projektu boli uložené.'
@@ -30,19 +31,27 @@ const getForm = (page: Page) => ({
 	leave: page.getByRole('button', { name: 'Opustiť projekt' }),
 })
 
-const openProjectSettingsPage = async (page: Page) => {
-	await page.goto('/project-settings')
+const settingsPath = (projectId: string) => `/projects/${projectId}/settings`
+
+const openProjectSettingsPage = async (page: Page, projectId: string) => {
+	await page.goto(settingsPath(projectId))
 	await expect(page.getByRole('heading', PAGE_HEADING)).toBeVisible()
 	await expect(getForm(page).save).toBeVisible()
 }
 
-const expectFormValues = async (page: Page, settings: Omit<ProjectSettings, 'id' | 'baseLanguageId'>, baseLanguage: Language) => {
+/** Settings without the global base language, which tests that do not hold the languages lock must not compare. */
+const omitBase = ({ baseLanguageId: _, ...settings }: ProjectSettings) => settings
+
+/** The base language is global and may move under tests that do not hold the languages lock, so it is checked only when given. */
+const expectFormValues = async (page: Page, settings: Omit<ProjectSettings, 'id' | 'baseLanguageId'>, baseLanguage?: Language) => {
 	const form = getForm(page)
 	await expect(form.name).toHaveValue(settings.name)
 	await expect(form.slug).toHaveValue(settings.slug)
 	await expect(form.color).toHaveValue(settings.primaryColor)
 	await expect(form.preview).toHaveCSS('background-color', hexToRgb(settings.primaryColor))
-	await expect(form.baseLanguage).toHaveValue(languageLabel(baseLanguage))
+	if (baseLanguage) {
+		await expect(form.baseLanguage).toHaveValue(languageLabel(baseLanguage))
+	}
 	if (settings.protectVariables) {
 		await expect(form.protectVariables).toBeChecked()
 	} else {
@@ -50,8 +59,8 @@ const expectFormValues = async (page: Page, settings: Omit<ProjectSettings, 'id'
 	}
 }
 
-const waitForProjectResponse = (page: Page, method: string) =>
-	page.waitForResponse((response) => response.url().endsWith(PROJECT_API) && response.request().method() === method)
+const waitForProjectResponse = (page: Page, projectId: string, method: string) =>
+	page.waitForResponse((response) => response.url().endsWith(projectSettingsApi(projectId)) && response.request().method() === method)
 
 const getLanguagesTable = (page: Page) => page.getByRole('table', { name: 'Zoznam jazykov' })
 
@@ -62,72 +71,44 @@ const getBaseBadge = (page: Page, tag: string) =>
 		.getByText('Základný', { exact: true })
 
 test.describe('ADMIN', () => {
-	// The project and the base language are shared with languages.spec and the other browser project: the lock serializes them.
+	// Each browser project works on its own test project; only the base language is shared, see the next describe.
 	test.describe.configure({ mode: 'serial' })
 
 	let api: APIRequestContext
-	let releaseLock: (() => Promise<void>) | undefined
-	let original: ProjectSettings | undefined
-	let languages: Language[]
-	let originalBase: Language
+	let original: ProjectSettings
+
+	const withoutBase = async (projectId: string) => omitBase(await getProjectSettings(api, projectId))
 
 	test.beforeAll(async ({ playwright }) => {
-		// Waiting for the other browser project to release the lock counts against this hook.
-		test.setTimeout(180_000)
-		releaseLock = await acquireLanguagesLock()
 		api = await newAdminApi(playwright.request)
-		original = await getProjectSettings(api)
-		languages = await listLanguages(api)
-		const base = languages.find(({ isBase }) => isBase)
-		expect(base, 'a base language in the DB').toBeDefined()
-		expect(original.baseLanguageId).toBe(base!.id)
-		originalBase = base!
+		original = await getProjectSettings(api, (await createProject(api, 'settings')).id)
 	})
 
 	test.afterAll(async () => {
-		try {
-			if (api) {
-				if (original) {
-					await restoreProjectSettings(api, original)
-					expect(await getProjectSettings(api)).toEqual(original)
-				}
-				await api.dispose()
-			}
-		} finally {
-			await releaseLock?.()
-		}
+		await api?.dispose()
 	})
 
-	test('opens Nastavenia projektu from the sidebar and sees the saved values prefilled', async ({ page }) => {
+	test('opens the project from the project list and sees the saved values prefilled', async ({ page }) => {
 		await page.goto('/')
-		const item = getMainNavigation(page).getByRole('list', { name: 'Správa' }).getByRole('link', { name: 'Nastavenia projektu' })
-		await expect(item).toHaveAttribute('href', '/project-settings')
-		await item.click()
-		await expect(page).toHaveURL('/project-settings')
+		await page.getByRole('list', { name: 'Zoznam projektov' }).getByRole('link', { name: original.name }).click()
+		await expect(page).toHaveURL(settingsPath(original.id))
 		await expect(page.getByRole('heading', PAGE_HEADING)).toBeVisible()
+		const item = getMainNavigation(page).getByRole('list', { name: original.name }).getByRole('link', { name: 'Nastavenia projektu' })
 		await expect(item).toHaveAttribute('aria-current', 'page')
 
-		await expectFormValues(page, original!, originalBase)
+		await expectFormValues(page, original)
 		await expect(getForm(page).save).toBeDisabled()
+		await expect(getForm(page).leave).toBeEnabled()
 	})
 
-	test('Opustiť projekt is disabled and explains why in a tooltip', async ({ page }) => {
-		await openProjectSettingsPage(page)
-		const { leave } = getForm(page)
-		await expect(leave).toBeVisible()
-		await expect(leave).toBeDisabled()
-		await leave.hover()
-		await expect(page.getByRole('tooltip')).toHaveText('Bude dostupné spolu so správou členov')
-	})
-
-	test('saves name, slug, color and the switch; the values stay after a reload', async ({ page }, testInfo) => {
+	test('saves name, slug, color and the switch; the values stay after a reload', async ({ page }) => {
 		const edited = {
-			name: `E2E Projekt ${testInfo.project.name}`,
-			slug: `e2e-projekt-${testInfo.project.name}`,
+			name: `${original.name} upravený`,
+			slug: `${original.slug}-x`,
 			primaryColor: '#1A2B3C',
-			protectVariables: !original!.protectVariables,
+			protectVariables: !original.protectVariables,
 		}
-		await openProjectSettingsPage(page)
+		await openProjectSettingsPage(page, original.id)
 		const form = getForm(page)
 
 		await form.name.fill(`  ${edited.name} `)
@@ -138,59 +119,29 @@ test.describe('ADMIN', () => {
 		await expect(form.preview).toHaveCSS('background-color', hexToRgb(edited.primaryColor))
 		await expect(form.save).toBeEnabled()
 
-		const patched = waitForProjectResponse(page, 'PATCH')
+		const patched = waitForProjectResponse(page, original.id, 'PATCH')
 		await form.save.click()
 		const response = await patched
 		expect(response.status()).toBe(200)
-		expect(await response.json()).toMatchObject({ ...edited, baseLanguageId: originalBase.id })
+		expect(await response.json()).toMatchObject(edited)
 		await expect(page.getByText(SAVE_SUCCESS)).toBeVisible()
-		await expectFormValues(page, edited, originalBase)
+		await expectFormValues(page, edited)
 		await expect(form.save).toBeDisabled()
+		await expect(getMainNavigation(page).getByRole('list', { name: edited.name })).toBeVisible()
 
 		await page.reload()
 		await expect(form.save).toBeVisible()
-		await expectFormValues(page, edited, originalBase)
-		expect(await getProjectSettings(api)).toEqual({ ...original, ...edited })
-
-		await restoreProjectSettings(api, original!)
-	})
-
-	test('changing the base language moves the Základný badge on /languages', async ({ page }) => {
-		const others = languages.filter(({ id }) => id !== originalBase.id)
-		const target = others.find(({ tag }) => tag === 'en') ?? others.find(({ tag }) => tag === 'sk') ?? others[0]
-		expect(target, 'another language to become the base').toBeDefined()
-
-		await openProjectSettingsPage(page)
-		const form = getForm(page)
-		await form.baseLanguage.click()
-		await page.getByRole('option', { name: new RegExp(`${escapeRegExp(languageLabel(target!))}$`) }).click()
-		await expect(form.baseLanguage).toHaveValue(languageLabel(target!))
-
-		const patched = waitForProjectResponse(page, 'PATCH')
-		await form.save.click()
-		expect((await patched).status()).toBe(200)
-		await expect(page.getByText(SAVE_SUCCESS)).toBeVisible()
-
-		await page.goto('/languages')
-		await expect(getLanguagesTable(page)).toHaveAttribute('aria-busy', 'false')
-		await expect(getBaseBadge(page, target!.tag)).toBeVisible()
-		await expect(getBaseBadge(page, originalBase.tag)).toHaveCount(0)
-		await expect(getLanguagesTable(page).getByText('Základný', { exact: true })).toHaveCount(1)
-		expect((await listLanguages(api)).filter(({ isBase }) => isBase).map(({ id }) => id)).toEqual([target!.id])
-
-		await restoreProjectSettings(api, original!)
-		await page.reload()
-		await expect(getLanguagesTable(page)).toHaveAttribute('aria-busy', 'false')
-		await expect(getBaseBadge(page, originalBase.tag)).toBeVisible()
-		await expect(getLanguagesTable(page).getByText('Základný', { exact: true })).toHaveCount(1)
+		await expectFormValues(page, edited)
+		expect(await withoutBase(original.id)).toEqual({ ...omitBase(original), ...edited })
+		original = { ...original, ...edited }
 	})
 
 	test('invalid name, slug and color show field errors and nothing is sent', async ({ page }) => {
-		await openProjectSettingsPage(page)
+		await openProjectSettingsPage(page, original.id)
 		const form = getForm(page)
 		const patches: string[] = []
 		page.on('request', (request) => {
-			if (request.method() === 'PATCH' && request.url().endsWith(PROJECT_API)) {
+			if (request.method() === 'PATCH' && request.url().endsWith(projectSettingsApi(original.id))) {
 				patches.push(request.url())
 			}
 		})
@@ -208,53 +159,144 @@ test.describe('ADMIN', () => {
 		await expect(form.color).toHaveAttribute('aria-invalid', 'true')
 		await expect(form.color).toHaveAccessibleDescription(INVALID)
 		// The preview keeps the last valid color.
-		await expect(form.preview).toHaveCSS('background-color', hexToRgb(original!.primaryColor))
+		await expect(form.preview).toHaveCSS('background-color', hexToRgb(original.primaryColor))
 		await expect(page.getByText(SAVE_SUCCESS)).toHaveCount(0)
 		expect(patches).toEqual([])
 
 		await page.reload()
 		await expect(form.save).toBeVisible()
-		await expectFormValues(page, original!, originalBase)
-		expect(await getProjectSettings(api)).toEqual(original)
+		await expectFormValues(page, original)
+		expect(await withoutBase(original.id)).toEqual(omitBase(original))
+	})
+
+	test('a slug of another project shows 409 at the slug field', async ({ page }) => {
+		const other = await createProject(api, 'taken')
+		await openProjectSettingsPage(page, original.id)
+		const form = getForm(page)
+
+		await form.slug.fill(other.slug)
+		const patched = waitForProjectResponse(page, original.id, 'PATCH')
+		await form.save.click()
+		expect((await patched).status()).toBe(409)
+
+		await expect(form.slug).toHaveAttribute('aria-invalid', 'true')
+		await expect(form.slug).toHaveAccessibleDescription(/Projekt s týmto slugom už existuje\./)
+		expect(await withoutBase(original.id)).toEqual(omitBase(original))
+	})
+})
+
+test.describe('ADMIN base language', () => {
+	// The base language is global and shared with languages.spec and the other browser project: the lock serializes them.
+	let api: APIRequestContext
+	let releaseLock: (() => Promise<void>) | undefined
+	let originalBase: Language | undefined
+
+	test.beforeAll(async ({ playwright }) => {
+		// Waiting for the other browser project to release the lock counts against this hook.
+		test.setTimeout(180_000)
+		releaseLock = await acquireLanguagesLock()
+		api = await newAdminApi(playwright.request)
+		originalBase = (await listLanguages(api)).find(({ isBase }) => isBase)
+	})
+
+	test.afterAll(async () => {
+		try {
+			if (api) {
+				if (originalBase) {
+					await restoreBaseLanguage(api, originalBase)
+				}
+				await api.dispose()
+			}
+		} finally {
+			await releaseLock?.()
+		}
+	})
+
+	test('changing the base language moves the Základný badge on /languages', async ({ page }) => {
+		const languages = await listLanguages(api)
+		expect(originalBase, 'a base language in the DB').toBeDefined()
+		const others = languages.filter(({ id }) => id !== originalBase!.id)
+		const target = others.find(({ tag }) => tag === 'en') ?? others.find(({ tag }) => tag === 'sk') ?? others[0]
+		expect(target, 'another language to become the base').toBeDefined()
+		const project = await createProject(api, 'base')
+
+		await openProjectSettingsPage(page, project.id)
+		const form = getForm(page)
+		await form.baseLanguage.click()
+		await page.getByRole('option', { name: new RegExp(`${escapeRegExp(languageLabel(target!))}$`) }).click()
+		await expect(form.baseLanguage).toHaveValue(languageLabel(target!))
+
+		const patched = waitForProjectResponse(page, project.id, 'PATCH')
+		await form.save.click()
+		expect((await patched).status()).toBe(200)
+		await expect(page.getByText(SAVE_SUCCESS)).toBeVisible()
+
+		await page.goto('/languages')
+		await expect(getLanguagesTable(page)).toHaveAttribute('aria-busy', 'false')
+		await expect(getBaseBadge(page, target!.tag)).toBeVisible()
+		await expect(getBaseBadge(page, originalBase!.tag)).toHaveCount(0)
+		await expect(getLanguagesTable(page).getByText('Základný', { exact: true })).toHaveCount(1)
+		expect((await listLanguages(api)).filter(({ isBase }) => isBase).map(({ id }) => id)).toEqual([target!.id])
 	})
 })
 
 test.describe('EDITOR', () => {
-	test.use({ storageState: STORAGE_STATE.EDITOR })
+	test.use({ storageState: ANONYMOUS })
 
-	test('does not see Nastavenia projektu in the sidebar', async ({ page }) => {
-		await page.goto('/')
-		await expect(getMainNavigation(page)).toBeAttached()
-		await expect(page.getByRole('link', { name: 'Nastavenia projektu' })).toHaveCount(0)
+	let editor: TestEditor
+
+	test.beforeEach(async ({ page, playwright, baseURL }) => {
+		editor = await createEditor(playwright.request, baseURL)
+		await loginViaUi(page, editor)
+		await expect(page).toHaveURL('/')
 	})
 
-	test('/project-settings shows the 403 page and the API returns 403', async ({ page }) => {
-		await page.goto('/project-settings')
-		await expect(page.getByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeVisible()
-		await expect(page).toHaveURL('/project-settings')
+	// That the BE rejects a member's base language change is covered by the integration tests; here only the UI.
+	test('a member saves the settings but cannot change the base language', async ({ page }) => {
+		const editorApi = page.request
+		await openProjectSettingsPage(page, editor.projectId)
+		const form = getForm(page)
+		const before = await getProjectSettings(editorApi, editor.projectId)
+
+		await expect(form.baseLanguage).toBeDisabled()
+		await expect(form.baseLanguage).toHaveAccessibleDescription('Základný jazyk je spoločný pre všetky projekty, mení ho iba administrátor.')
+		await form.name.fill(`${before.name} člen`)
+		const patched = waitForProjectResponse(page, editor.projectId, 'PATCH')
+		await form.save.click()
+		expect((await patched).status()).toBe(200)
+		await expect(page.getByText(SAVE_SUCCESS)).toBeVisible()
+		expect(omitBase(await getProjectSettings(editorApi, editor.projectId))).toEqual({ ...omitBase(before), name: `${before.name} člen` })
+	})
+
+	test('a project the member is not in shows Projekt sa nenašiel and the API returns 404', async ({ page, playwright }) => {
+		const adminApi = await newAdminApi(playwright.request)
+		const foreign = await createProject(adminApi, 'foreign')
+		await adminApi.dispose()
+
+		await page.goto(settingsPath(foreign.id))
+		await expect(page.getByRole('heading', { level: 1, name: 'Projekt sa nenašiel' })).toBeVisible()
+		await expect(page.getByRole('link', { name: 'Späť na projekty' })).toHaveAttribute('href', '/')
 		await expect(page.getByRole('heading', PAGE_HEADING)).toHaveCount(0)
-		await expect(page.getByRole('button', { name: 'Uložiť zmeny' })).toHaveCount(0)
 
-		const read = await page.request.get(PROJECT_API)
-		expect(read.status()).toBe(403)
-		expect((await readApiError(read)).code).toBe('FORBIDDEN')
-
-		// An empty body: even if the role check were missing, validation would reject it before anything is saved.
-		const update = await page.request.patch(PROJECT_API, { data: {}, headers: MUTATION_HEADERS })
-		expect(update.status()).toBe(403)
-		expect((await readApiError(update)).code).toBe('FORBIDDEN')
+		const read = await page.request.get(projectSettingsApi(foreign.id))
+		expect(read.status()).toBe(404)
+		expect((await readApiError(read)).code).toBe('NOT_FOUND')
 	})
 })
 
 test.describe('anonymous', () => {
 	test.use({ storageState: ANONYMOUS })
 
-	test('/project-settings redirects to /login and the API returns 401', async ({ page }) => {
-		await page.goto('/project-settings')
+	test('a project URL redirects to /login and the API returns 401', async ({ page, playwright }) => {
+		const adminApi = await newAdminApi(playwright.request)
+		const project = await createProject(adminApi, 'anonymous')
+		await adminApi.dispose()
+
+		await page.goto(settingsPath(project.id))
 		await expect(page).toHaveURL('/login')
 		await expect(page.getByRole('heading', { level: 1, name: 'Vitajte späť' })).toBeVisible()
 
-		const response = await page.request.get(PROJECT_API)
+		const response = await page.request.get(projectSettingsApi(project.id))
 		expect(response.status()).toBe(401)
 		expect((await readApiError(response)).code).toBe('AUTH_UNAUTHENTICATED')
 	})

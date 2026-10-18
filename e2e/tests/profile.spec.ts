@@ -59,7 +59,7 @@ test.describe('EDITOR with a dedicated user', () => {
 		await expect(sidebar.getByText(editor.email.slice(0, 2).toUpperCase(), { exact: true })).toBeVisible()
 		await expect(sidebar.getByText(editor.email, { exact: true })).toBeVisible()
 		await expect(page.getByRole('heading', { level: 2, name: editor.email })).toBeVisible()
-		await expect(page.getByRole('main').getByText('Editor', { exact: true })).toBeVisible()
+		await expect(page.getByRole('main').getByText('Člen', { exact: true })).toBeVisible()
 		await expect(firstName).toHaveValue('')
 		await expect(lastName).toHaveValue('')
 		await expect(save).toBeDisabled()

@@ -1,8 +1,9 @@
 import { test as teardown } from '@playwright/test'
 
-import { deleteTestEditors } from '../support/db'
+import { deleteTestProjects, deleteTestUsers } from '../support/db'
 
-teardown('delete test EDITOR users', async () => {
-	const deleted = await deleteTestEditors()
-	console.log(`Deleted ${deleted} test EDITOR user(s)`)
+teardown('delete test users and projects', async () => {
+	const users = await deleteTestUsers()
+	const projects = await deleteTestProjects()
+	console.log(`Deleted ${users} test user(s) and ${projects} test project(s)`)
 })

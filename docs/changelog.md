@@ -8,6 +8,14 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Preklady: dátový model a zoznam na čítanie (2026-10-18)
+
+- databáza: tabuľky `TranslationKey` (projekt, namespace, názov, unikátne v projekte + namespace) a `Translation` (kľúč + jazyk, `value` `null` = nepreložené), cascade z projektu, jazyka aj kľúča; seed pridá nový seedovaný projekt s ~30 vymyslenými kľúčmi v 2 namespace ([Databáza](./database.md))
+- zdieľaný kontrakt: `translationsQuerySchema`, `translationsResponseSchema`, stavy `TRANSLATED` / `UNTRANSLATED` (odvodené, neukladajú sa)
+- backend: `GET /api/projects/:projectId/translations` s vyhľadávaním (kľúč aj text), filtrom stavu a namespace, zoradením, stránkovaním a štatistikami pre cieľový jazyk ([API](./api/translations.md))
+- frontend: stránka Preklady (`/projects/<slug>/translations`) ako prvá položka sidebaru a predvolená stránka projektu, karty štatistík, filtre v URL, zoskupenie podľa namespace a prefixu kľúča, nepreložené riadky s červeným pozadím; Importovať je zatiaľ neaktívne ([Frontend](./frontend.md))
+- E2E: stránka Preklady, API smoke a axe kontrola v light aj dark režime
+
 ### Slug v URL projektu, čeština a akcie v tabuľkách (2026-10-18)
 
 - frontend: projekt má v URL slug namiesto id (`/projects/<slug>/settings`), API ostáva na id; po zmene slugu v nastaveniach sa URL prepíše na nový ([Frontend](./frontend.md))

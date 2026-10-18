@@ -12,18 +12,29 @@ const issuesOf = (input: unknown) => {
 
 describe('createProjectRequestSchema', () => {
 	it('trims values and drops unknown fields', () => {
-		expect(createProjectRequestSchema.parse({ name: ' Booking Web ', slug: ' booking-web ', primaryColor: '#000000' })).toEqual({
-			name: 'Booking Web',
-			slug: 'booking-web',
-		})
+		expect(createProjectRequestSchema.parse({ name: ' Booking Web ', slug: ' booking-web ', languageTags: ['sk', 'en'], primaryColor: '#000000' })).toEqual(
+			{
+				name: 'Booking Web',
+				slug: 'booking-web',
+				languageTags: ['sk', 'en'],
+			},
+		)
 	})
 
 	it('maps missing fields and an invalid slug to shared codes', () => {
 		expect(issuesOf({})).toEqual([
 			{ path: 'name', code: VALIDATION_CODE.REQUIRED },
 			{ path: 'slug', code: VALIDATION_CODE.REQUIRED },
+			{ path: 'languageTags', code: VALIDATION_CODE.REQUIRED },
 		])
-		expect(issuesOf({ name: 'Booking Web', slug: 'Booking Web' })).toEqual([{ path: 'slug', code: VALIDATION_CODE.INVALID }])
+		expect(issuesOf({ name: 'Booking Web', slug: 'Booking Web', languageTags: ['sk'] })).toEqual([{ path: 'slug', code: VALIDATION_CODE.INVALID }])
+	})
+
+	it('needs at least one catalog language without duplicates', () => {
+		const valid = { name: 'Booking Web', slug: 'booking-web' }
+		expect(issuesOf({ ...valid, languageTags: [] })).toEqual([{ path: 'languageTags', code: VALIDATION_CODE.REQUIRED }])
+		expect(issuesOf({ ...valid, languageTags: ['sk', 'sk'] })).toEqual([{ path: 'languageTags', code: VALIDATION_CODE.INVALID }])
+		expect(issuesOf({ ...valid, languageTags: ['fr'] })).toEqual([{ path: 'languageTags.0', code: VALIDATION_CODE.INVALID }])
 	})
 })
 

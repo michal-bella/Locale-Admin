@@ -5,8 +5,6 @@ import { describe, expect, it } from 'vitest'
 
 import { ERROR_CODE, ROLE, VALIDATION_CODE, errorResponseSchema, projectSettingsSchema, type LanguageTag } from '@locale/shared'
 
-import { getSupportedLanguage } from '../src/services/adminLanguages.service'
-
 import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
@@ -28,10 +26,8 @@ const loginWithRole = async (app: App, role: ROLE, memberOf?: string) => {
 	return loginAs(app, { email: user.email, password: TEST_PASSWORD })
 }
 
-const createLanguageRow = (tag: LanguageTag, { isBase = false }: { isBase?: boolean } = {}) => {
-	const { englishName, nativeName, flagCode } = getSupportedLanguage(tag)
-	return getTestPrisma().language.create({ data: { tag, englishName, nativeName, flagCode, isBase } })
-}
+const createLanguageRow = (projectId: string, tag: LanguageTag, { isBase = false }: { isBase?: boolean } = {}) =>
+	getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase } })
 
 const createProjectRow = (slug = 'b2b-admin') => getTestPrisma().project.create({ data: { name: 'B2B Admin', slug } })
 
@@ -46,15 +42,16 @@ const patchProject = (app: App, cookie: string, projectId: string, body: unknown
 
 const updateBody = (baseLanguageId?: string) => ({ name: 'B2C iOS', slug: 'b2c-ios', primaryColor: '#123ABC', protectVariables: false, baseLanguageId })
 
-const getBaseLanguageIds = async () => (await getTestPrisma().language.findMany({ where: { isBase: true } })).map(({ id }) => id)
+const getBaseLanguageIds = async (projectId: string) =>
+	(await getTestPrisma().projectLanguage.findMany({ where: { projectId, isBase: true } })).map(({ id }) => id)
 
 describe('GET /api/projects/:projectId/settings', () => {
 	it('returns the project settings with the base language to a member', async () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
 		const cookie = await loginWithRole(app, ROLE.EDITOR, project.id)
-		const sk = await createLanguageRow('sk', { isBase: true })
-		await createLanguageRow('en')
+		const sk = await createLanguageRow(project.id, 'sk', { isBase: true })
+		await createLanguageRow(project.id, 'en')
 
 		const res = await request(app).get(settingsUrl(project.id)).set('Cookie', cookie)
 
@@ -110,7 +107,7 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
-		const sk = await createLanguageRow('sk', { isBase: true })
+		const sk = await createLanguageRow(project.id, 'sk', { isBase: true })
 
 		const res = await patchProject(app, cookie, project.id, {
 			name: '  B2C iOS ',
@@ -129,7 +126,7 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 			primaryColor: '#12AB9F',
 			protectVariables: false,
 		})
-		expect(await getBaseLanguageIds()).toEqual([sk.id])
+		expect(await getBaseLanguageIds(project.id)).toEqual([sk.id])
 
 		const getRes = await request(app).get(settingsUrl(project.id)).set('Cookie', cookie)
 		expect(getRes.body).toEqual(expected)
@@ -139,7 +136,7 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
 		const cookie = await loginWithRole(app, ROLE.EDITOR, project.id)
-		const sk = await createLanguageRow('sk', { isBase: true })
+		const sk = await createLanguageRow(project.id, 'sk', { isBase: true })
 
 		const withoutBase = await patchProject(app, cookie, project.id, updateBody())
 		const withCurrentBase = await patchProject(app, cookie, project.id, { ...updateBody(sk.id), name: 'B2C Android' })
@@ -150,47 +147,49 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 		expect(projectSettingsSchema.parse(withCurrentBase.body)).toMatchObject({ name: 'B2C Android', baseLanguageId: sk.id })
 	})
 
-	it('returns 403 FORBIDDEN when a member changes the base language and saves nothing', async () => {
+	it('moves the base flag to another language of the project for a member', async () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
 		const cookie = await loginWithRole(app, ROLE.EDITOR, project.id)
-		const sk = await createLanguageRow('sk', { isBase: true })
-		const en = await createLanguageRow('en')
-
-		const res = await patchProject(app, cookie, project.id, updateBody(en.id))
-
-		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
-		expect(await getTestPrisma().project.findUniqueOrThrow({ where: { id: project.id } })).toEqual(project)
-		expect(await getBaseLanguageIds()).toEqual([sk.id])
-	})
-
-	it('moves the base flag to another language for an ADMIN', async () => {
-		const app = createTestApp()
-		const project = await createProjectRow()
-		const cookie = await loginWithRole(app, ROLE.ADMIN)
-		const sk = await createLanguageRow('sk', { isBase: true })
-		const en = await createLanguageRow('en')
+		const sk = await createLanguageRow(project.id, 'sk', { isBase: true })
+		const en = await createLanguageRow(project.id, 'en')
 
 		const res = await patchProject(app, cookie, project.id, updateBody(en.id))
 
 		expect(res.status).toBe(200)
 		expect(projectSettingsSchema.parse(res.body).baseLanguageId).toBe(en.id)
-		expect(await getBaseLanguageIds()).toEqual([en.id])
-		expect((await getTestPrisma().language.findUniqueOrThrow({ where: { id: sk.id } })).isBase).toBe(false)
+		expect(await getBaseLanguageIds(project.id)).toEqual([en.id])
+		expect((await getTestPrisma().projectLanguage.findUniqueOrThrow({ where: { id: sk.id } })).isBase).toBe(false)
+	})
+
+	it('returns 400 VALIDATION_ERROR for a language of another project and keeps both bases', async () => {
+		const app = createTestApp()
+		const project = await createProjectRow()
+		const other = await createProjectRow('b2c-ios')
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const sk = await createLanguageRow(project.id, 'sk', { isBase: true })
+		const foreign = await createLanguageRow(other.id, 'en', { isBase: true })
+
+		const res = await patchProject(app, cookie, project.id, updateBody(foreign.id))
+
+		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(errorResponseSchema.parse(res.body).error.details).toEqual([{ path: 'baseLanguageId', code: VALIDATION_CODE.INVALID }])
+		expect(await getBaseLanguageIds(project.id)).toEqual([sk.id])
+		expect(await getBaseLanguageIds(other.id)).toEqual([foreign.id])
 	})
 
 	it('returns 400 VALIDATION_ERROR for an unknown baseLanguageId and saves nothing', async () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
-		const sk = await createLanguageRow('sk', { isBase: true })
+		const sk = await createLanguageRow(project.id, 'sk', { isBase: true })
 
 		const res = await patchProject(app, cookie, project.id, updateBody(randomUUID()))
 
 		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
 		expect(errorResponseSchema.parse(res.body).error.details).toEqual([{ path: 'baseLanguageId', code: VALIDATION_CODE.INVALID }])
 		expect(await getTestPrisma().project.findUniqueOrThrow({ where: { id: project.id } })).toEqual(project)
-		expect(await getBaseLanguageIds()).toEqual([sk.id])
+		expect(await getBaseLanguageIds(project.id)).toEqual([sk.id])
 	})
 
 	it('returns 400 VALIDATION_ERROR with details for an invalid body', async () => {

@@ -2,17 +2,7 @@ import { type APIRequestContext, expect, test } from '@playwright/test'
 
 import { type AdminUser, MUTATION_HEADERS, readApiError } from '../support/api'
 import { ANONYMOUS, STORAGE_STATE } from '../support/auth'
-import {
-	acquireLanguagesLock,
-	deleteLanguageIfPresent,
-	deleteLeftoverTestLanguages,
-	type Language,
-	LANGUAGES_API,
-	LANGUAGES_LIST_API,
-	listLanguages,
-	newAdminApi,
-	TEST_LANGUAGE,
-} from '../support/languages'
+import { type Language, listLanguages, projectLanguagesApi } from '../support/languages'
 import {
 	createProject,
 	listProjects,
@@ -182,175 +172,63 @@ test.describe('/api/profile', () => {
 	})
 })
 
-test.describe('anonymous languages', () => {
-	test.use({ storageState: ANONYMOUS })
-
-	test('GET /api/languages and POST /api/admin/languages return 401 AUTH_UNAUTHENTICATED', async ({ request }) => {
-		const list = await request.get(LANGUAGES_LIST_API)
-		expect(list.status()).toBe(401)
-		expect((await readApiError(list)).code).toBe('AUTH_UNAUTHENTICATED')
-
-		const create = await request.post(LANGUAGES_API, { data: { tag: TEST_LANGUAGE.apiSmoke.tag }, headers: MUTATION_HEADERS })
-		expect(create.status()).toBe(401)
-		expect((await readApiError(create)).code).toBe('AUTH_UNAUTHENTICATED')
-	})
-})
-
-test.describe('EDITOR languages', () => {
-	test.use({ storageState: STORAGE_STATE.EDITOR })
-
-	test('GET /api/languages returns the list; POST and DELETE under /api/admin return 403 FORBIDDEN', async ({ request, playwright }) => {
-		expect((await listLanguages(request)).length).toBeGreaterThan(0)
-
-		const create = await request.post(LANGUAGES_API, { data: { tag: TEST_LANGUAGE.apiSmoke.tag }, headers: MUTATION_HEADERS })
-		expect(create.status()).toBe(403)
-		expect((await readApiError(create)).code).toBe('FORBIDDEN')
-
-		const admin = await newAdminApi(playwright.request)
-		const [first] = await listLanguages(admin)
-		await admin.dispose()
-		expect(first, 'at least one language (seed adds sk and en)').toBeDefined()
-		const remove = await request.delete(`${LANGUAGES_API}/${first!.id}`, { data: {}, headers: MUTATION_HEADERS })
-		expect(remove.status()).toBe(403)
-		expect((await readApiError(remove)).code).toBe('FORBIDDEN')
-	})
-})
-
-test.describe('ADMIN /api/admin/languages', () => {
-	// Shares the catalog and the base flag with languages.spec.ts; the lock keeps the base from moving during these checks.
-	test.describe.configure({ mode: 'serial' })
+test.describe('/api/projects/:projectId/languages', () => {
 	test.use({ storageState: STORAGE_STATE.ADMIN })
 
-	const { tag, englishName, nativeName, flagCode } = TEST_LANGUAGE.apiSmoke
-	let releaseLock: (() => Promise<void>) | undefined
-	let created: Language
+	test('lists, adds and removes languages of a project with the error contract; the global endpoints are gone', async ({ request, playwright, baseURL }) => {
+		const project = await createProject(request, 'smoke-languages', ['sk', 'en'])
+		const url = projectLanguagesApi(project.id)
 
-	test.beforeAll(async ({ playwright }) => {
-		test.setTimeout(180_000)
-		releaseLock = await acquireLanguagesLock()
-		const api = await newAdminApi(playwright.request)
-		await deleteLeftoverTestLanguages(api)
-		await api.dispose()
-	})
+		const languages = await listLanguages(request, project.id)
+		expect(languages.map(({ tag, isBase }) => ({ tag, isBase }))).toEqual([
+			{ tag: 'sk', isBase: true },
+			{ tag: 'en', isBase: false },
+		])
 
-	test.afterAll(async ({ playwright }) => {
-		try {
-			const api = await newAdminApi(playwright.request)
-			await deleteLanguageIfPresent(api, tag)
-			await api.dispose()
-		} finally {
-			await releaseLock?.()
-		}
-	})
+		const created = await request.post(url, { data: { tag: 'ro', englishName: 'Ignored', isBase: true }, headers: MUTATION_HEADERS })
+		expect(created.status()).toBe(201)
+		const romanian = (await created.json()) as Language
+		expect(romanian).toEqual({
+			id: expect.any(String),
+			tag: 'ro',
+			englishName: 'Romanian',
+			nativeName: 'română',
+			flagCode: 'ro',
+			isBase: false,
+			createdAt: expect.any(String),
+		})
 
-	test('GET lists exactly one base language first, the rest sorted by tag', async ({ request }) => {
-		const languages = await listLanguages(request)
-		expect(languages.filter(({ isBase }) => isBase)).toHaveLength(1)
-		expect(languages[0]!.isBase).toBe(true)
-		const rest = languages.slice(1).map((language) => language.tag)
-		expect(rest).toEqual([...rest].sort())
-		for (const language of languages) {
-			expect(language).toEqual({
-				id: expect.any(String),
-				tag: expect.any(String),
-				englishName: expect.any(String),
-				nativeName: expect.any(String),
-				flagCode: expect.any(String),
-				isBase: expect.any(Boolean),
-				createdAt: expect.any(String),
-			})
-		}
-	})
-
-	test('POST without X-Requested-With returns 403 CSRF_REJECTED and adds nothing', async ({ request }) => {
-		const response = await request.post(LANGUAGES_API, { data: { tag } })
-		expect(response.status()).toBe(403)
-		expect((await readApiError(response)).code).toBe('CSRF_REJECTED')
-		expect((await listLanguages(request)).map((language) => language.tag)).not.toContain(tag)
-	})
-
-	test('POST with a tag outside the catalog or without a tag returns 400', async ({ request }) => {
-		for (const data of [{ tag: 'xx' }, {}]) {
-			const response = await request.post(LANGUAGES_API, { data, headers: MUTATION_HEADERS })
-			expect(response.status()).toBe(400)
-			const error = await readApiError(response)
-			expect(error.code).toBe('VALIDATION_ERROR')
-			expect(error.details).toEqual([{ path: 'tag', code: 'INVALID' }])
-		}
-	})
-
-	test('POST adds a language with names and flag from the catalog (201), a second POST returns 409 LANGUAGE_TAKEN', async ({ request }) => {
-		const response = await request.post(LANGUAGES_API, { data: { tag, englishName: 'Ignored', isBase: true }, headers: MUTATION_HEADERS })
-		expect(response.status()).toBe(201)
-		created = (await response.json()) as Language
-		expect(created).toEqual({ id: expect.any(String), tag, englishName, nativeName, flagCode, isBase: false, createdAt: expect.any(String) })
-		expect((await listLanguages(request)).find(({ id }) => id === created.id)).toEqual(created)
-
-		const duplicate = await request.post(LANGUAGES_API, { data: { tag }, headers: MUTATION_HEADERS })
+		const duplicate = await request.post(url, { data: { tag: 'ro' }, headers: MUTATION_HEADERS })
 		expect(duplicate.status()).toBe(409)
 		expect((await readApiError(duplicate)).code).toBe('LANGUAGE_TAKEN')
-	})
-
-	test('PATCH saves trimmed names and ignores the tag; invalid body returns 400, missing CSRF header 403', async ({ request }) => {
-		const url = `${LANGUAGES_API}/${created.id}`
-		const update = await request.patch(url, {
-			data: { englishName: '  Romanian E2E ', nativeName: 'română', flagCode: 'ro', tag: 'bg' },
-			headers: MUTATION_HEADERS,
-		})
-		expect(update.status()).toBe(200)
-		const expected = { ...created, englishName: 'Romanian E2E' }
-		expect(await update.json()).toEqual(expected)
-
-		const invalid = await request.patch(url, {
-			data: { englishName: ' ', nativeName: 'a'.repeat(101), flagCode: 'us', isBase: false },
-			headers: MUTATION_HEADERS,
-		})
+		const invalid = await request.post(url, { data: { tag: 'xx' }, headers: MUTATION_HEADERS })
 		expect(invalid.status()).toBe(400)
-		const error = await readApiError(invalid)
-		expect(error.code).toBe('VALIDATION_ERROR')
-		expect(error.details).toEqual(
-			expect.arrayContaining([
-				{ path: 'englishName', code: 'REQUIRED' },
-				{ path: 'nativeName', code: 'TOO_LONG', params: { max: 100 } },
-				{ path: 'flagCode', code: 'INVALID' },
-				{ path: 'isBase', code: 'INVALID' },
-			]),
-		)
-
-		const withoutCsrfHeader = await request.patch(url, { data: { englishName: 'X', nativeName: 'Y', flagCode: 'ro' } })
-		expect(withoutCsrfHeader.status()).toBe(403)
-		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
-		expect((await listLanguages(request)).find(({ id }) => id === created.id)).toEqual(expected)
-	})
-
-	test('DELETE of the base language returns 409 LANGUAGE_IS_BASE and keeps it', async ({ request }) => {
-		const base = (await listLanguages(request)).find(({ isBase }) => isBase)
-		expect(base, 'a base language').toBeDefined()
-		const response = await request.delete(`${LANGUAGES_API}/${base!.id}`, { data: {}, headers: MUTATION_HEADERS })
-		expect(response.status()).toBe(409)
-		expect((await readApiError(response)).code).toBe('LANGUAGE_IS_BASE')
-		expect((await listLanguages(request)).find(({ id }) => id === base!.id)?.isBase).toBe(true)
-	})
-
-	test('DELETE without X-Requested-With returns 403, then 204, then 404 for the same and a non-UUID id', async ({ request }) => {
-		const url = `${LANGUAGES_API}/${created.id}`
-		const withoutCsrfHeader = await request.delete(url, { data: {} })
+		expect((await readApiError(invalid)).details).toEqual([{ path: 'tag', code: 'INVALID' }])
+		const withoutCsrfHeader = await request.post(url, { data: { tag: 'hu' } })
 		expect(withoutCsrfHeader.status()).toBe(403)
 		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
 
-		const response = await request.delete(url, { data: {}, headers: MUTATION_HEADERS })
-		expect(response.status()).toBe(204)
-		expect(await response.text()).toBe('')
-		expect((await listLanguages(request)).map((language) => language.id)).not.toContain(created.id)
-
-		for (const missing of [url, `${LANGUAGES_API}/not-a-uuid`]) {
+		const base = languages.find(({ isBase }) => isBase)!
+		const deleteBase = await request.delete(`${url}/${base.id}`, { data: {}, headers: MUTATION_HEADERS })
+		expect(deleteBase.status()).toBe(409)
+		expect((await readApiError(deleteBase)).code).toBe('LANGUAGE_IS_BASE')
+		const deleted = await request.delete(`${url}/${romanian.id}`, { data: {}, headers: MUTATION_HEADERS })
+		expect(deleted.status()).toBe(204)
+		for (const missing of [`${url}/${romanian.id}`, `${url}/not-a-uuid`]) {
 			const notFound = await request.delete(missing, { data: {}, headers: MUTATION_HEADERS })
 			expect(notFound.status()).toBe(404)
 			expect((await readApiError(notFound)).code).toBe('NOT_FOUND')
 		}
-		const patchMissing = await request.patch(url, { data: { englishName, nativeName, flagCode }, headers: MUTATION_HEADERS })
-		expect(patchMissing.status()).toBe(404)
-		expect((await readApiError(patchMissing)).code).toBe('NOT_FOUND')
+
+		for (const gone of ['/api/languages', '/api/admin/languages']) {
+			expect((await request.get(gone)).status()).toBe(404)
+		}
+
+		const anonymous = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
+		const unauthenticated = await anonymous.get(url)
+		expect(unauthenticated.status()).toBe(401)
+		expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
+		await anonymous.dispose()
 	})
 })
 
@@ -379,7 +257,7 @@ test.describe('/api/projects as a member', () => {
 
 		const created = await createProject(request, 'smoke')
 		expect(created).toMatchObject({ isMember: true, primaryColor: '#E83E8C' })
-		const duplicate = await request.post(PROJECTS_API, { data: { name: 'Duplicate', slug: created.slug }, headers: MUTATION_HEADERS })
+		const duplicate = await request.post(PROJECTS_API, { data: { name: 'Duplicate', slug: created.slug, languageTags: ['sk'] }, headers: MUTATION_HEADERS })
 		expect(duplicate.status()).toBe(409)
 		expect((await readApiError(duplicate)).code).toBe('SLUG_TAKEN')
 

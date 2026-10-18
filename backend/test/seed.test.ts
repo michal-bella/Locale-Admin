@@ -5,7 +5,7 @@ import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 
 import { ROLE } from '../src/generated/prisma/enums'
-import { SEED_ADMIN_EMAIL, SEED_PROJECT, seedAdmin, seedLanguages, seedProject } from '../src/services/seed.service'
+import { SEED_ADMIN_EMAIL, SEED_PROJECT, seedAdmin, seedProject } from '../src/services/seed.service'
 
 import { getTestDatabaseUrl, getTestPrisma } from './helpers/db'
 import { createUser } from './helpers/users'
@@ -30,31 +30,6 @@ describe('seedAdmin', () => {
 	})
 })
 
-describe('seedLanguages', () => {
-	it('creates sk as the base and en in an empty table and changes nothing on the second run', async () => {
-		const prisma = getTestPrisma()
-
-		await expect(seedLanguages(prisma)).resolves.toBe('created')
-		const created = await prisma.language.findMany({ orderBy: { tag: 'asc' } })
-		expect(created).toMatchObject([
-			{ tag: 'en', englishName: 'English', nativeName: 'English', flagCode: 'gb', isBase: false },
-			{ tag: 'sk', englishName: 'Slovak', nativeName: 'slovenčina', flagCode: 'sk', isBase: true },
-		])
-
-		await expect(seedLanguages(prisma)).resolves.toBe('exists')
-		await expect(prisma.language.findMany({ orderBy: { tag: 'asc' } })).resolves.toEqual(created)
-	})
-
-	it('changes nothing when the table already has a language', async () => {
-		const prisma = getTestPrisma()
-		const ru = await prisma.language.create({ data: { tag: 'ru', englishName: 'Russian', nativeName: 'русский', flagCode: 'ru', isBase: true } })
-
-		await expect(seedLanguages(prisma)).resolves.toBe('exists')
-
-		await expect(prisma.language.findMany()).resolves.toEqual([ru])
-	})
-})
-
 describe('seedProject', () => {
 	it('creates the project with only the seeded admin as a member and changes nothing on the second run', async () => {
 		const prisma = getTestPrisma()
@@ -63,12 +38,23 @@ describe('seedProject', () => {
 		const admin = await prisma.user.findUniqueOrThrow({ where: { email: SEED_ADMIN_EMAIL } })
 
 		await expect(seedProject(prisma)).resolves.toBe('created')
-		const created = await prisma.project.findMany({ include: { members: true } })
-		expect(created).toMatchObject([{ ...SEED_PROJECT, primaryColor: '#E83E8C', protectVariables: true, members: [{ userId: admin.id }] }])
+		const created = await prisma.project.findMany({ include: { members: true, languages: { orderBy: { tag: 'asc' } } } })
+		expect(created).toMatchObject([
+			{
+				...SEED_PROJECT,
+				primaryColor: '#E83E8C',
+				protectVariables: true,
+				members: [{ userId: admin.id }],
+				languages: [
+					{ tag: 'en', isBase: false },
+					{ tag: 'sk', isBase: true },
+				],
+			},
+		])
 		expect(created[0]?.members).toHaveLength(1)
 
 		await expect(seedProject(prisma)).resolves.toBe('exists')
-		await expect(prisma.project.findMany({ include: { members: true } })).resolves.toEqual(created)
+		await expect(prisma.project.findMany({ include: { members: true, languages: { orderBy: { tag: 'asc' } } } })).resolves.toEqual(created)
 	})
 
 	it('changes nothing when the table already has a project', async () => {
@@ -89,7 +75,7 @@ describe('seed script', () => {
 
 		expect(stdout).toContain('created')
 		await expect(getTestPrisma().user.count()).resolves.toBe(1)
-		await expect(getTestPrisma().language.count()).resolves.toBe(2)
+		await expect(getTestPrisma().projectLanguage.count()).resolves.toBe(2)
 		await expect(getTestPrisma().project.count()).resolves.toBe(1)
 		await expect(getTestPrisma().projectMember.count()).resolves.toBe(1)
 	})

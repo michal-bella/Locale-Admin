@@ -10,12 +10,12 @@ export const useUpdateProjectSettingsMutation = (projectId: string) => {
 
 	return useMutation({
 		mutationFn: async (body: UpdateProjectSettingsRequest) => (await http.patch<ProjectSettings>(`/projects/${projectId}/settings`, body)).data,
-		// A new base language moves the base flag on the Languages page too; name and color show in the project list.
+		// A new base language moves the base badge on the project's Languages page; name and color show in the project list.
 		onSuccess: () =>
 			Promise.all([
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.SETTINGS(projectId) }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.LIST() }),
-				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.LANGUAGES() }),
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.LANGUAGES(projectId) }),
 			]),
 	})
 }

@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, TextInput } from '@mantine/core'
+import { Button, MultiSelect, TextInput } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { type CreateProjectRequest, createProjectRequestSchema, ERROR_CODE, toValidationCode } from '@locale/shared'
@@ -12,11 +12,16 @@ import getApiErrorCode from '@/api/getApiErrorCode'
 import getApiErrorDetails from '@/api/getApiErrorDetails'
 import { useCreateProjectMutation } from '@/api/projects/useCreateProjectMutation'
 import AppModal from '@/components/AppModal/AppModal'
+import { ChevronDown } from '@/components/Icons'
+import { getLanguageOptions, renderLanguageOption } from '@/lib/languageOptions'
 import { toSlug } from '@/lib/utils'
 
 import { type CreateProjectModalProps } from './types'
 
-/** "Nový projekt": name and slug. The slug follows the name until the user edits it. On success opens the new project. */
+/**
+ * "Nový projekt": name, slug and languages. The slug follows the name until the user edits it; the first chosen language is the base.
+ * On success opens the new project.
+ */
 const CreateProjectModal = ({ opened, onClose }: CreateProjectModalProps) => {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
@@ -29,6 +34,7 @@ const CreateProjectModal = ({ opened, onClose }: CreateProjectModalProps) => {
 		setError,
 		setValue,
 		reset,
+		control,
 		formState: { errors },
 	} = useForm({
 		resolver: zodResolver(createProjectRequestSchema, {
@@ -38,7 +44,7 @@ const CreateProjectModal = ({ opened, onClose }: CreateProjectModalProps) => {
 				return t(`validation.${code}`, params)
 			},
 		}),
-		defaultValues: { name: '', slug: '' },
+		defaultValues: { name: '', slug: '', languageTags: [] },
 	})
 
 	const resetAndClose = () => {
@@ -124,6 +130,32 @@ const CreateProjectModal = ({ opened, onClose }: CreateProjectModalProps) => {
 				inputWrapperOrder={['label', 'input', 'description', 'error']}
 				error={errors.slug?.message}
 				{...register('slug', { onChange: () => setSlugEdited(true) })}
+			/>
+			<Controller
+				control={control}
+				name='languageTags'
+				render={({ field }) => (
+					<MultiSelect
+						ref={field.ref}
+						searchable
+						hidePickedOptions
+						// Enter after typing picks the first match instead of submitting the form.
+						selectFirstOptionOnChange
+						label={t('projectsPage.createModal.languages.label')}
+						description={t('projectsPage.createModal.languages.hint')}
+						placeholder={field.value.length === 0 ? t('projectsPage.createModal.languages.placeholder') : undefined}
+						nothingFoundMessage={t('languagesPage.addModal.language.nothingFound')}
+						inputWrapperOrder={['label', 'input', 'description', 'error']}
+						data={getLanguageOptions()}
+						renderOption={renderLanguageOption}
+						value={field.value}
+						onChange={field.onChange}
+						onBlur={field.onBlur}
+						error={errors.languageTags?.message}
+						rightSection={<ChevronDown aria-hidden />}
+						rightSectionPointerEvents='none'
+					/>
+				)}
 			/>
 		</AppModal>
 	)

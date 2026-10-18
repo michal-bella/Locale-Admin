@@ -12,7 +12,7 @@ const COLOR_CONTRAST = 'color-contrast'
 /** `path` is a function for pages of a project: it creates a test project as the ADMIN and returns its URL. */
 type Screen = { name: string; path: string | ((request: APIRequest) => Promise<string>); ready: (page: Page) => Promise<void>; anonymous?: boolean }
 
-const inNewProject = (page: 'settings' | 'members') => async (request: APIRequest) => {
+const inNewProject = (page: 'settings' | 'languages' | 'members') => async (request: APIRequest) => {
 	const api = await newAdminApi(request)
 	try {
 		return `/projects/${(await createProject(api, 'a11y')).id}/${page}`
@@ -39,8 +39,8 @@ const SCREENS: Screen[] = [
 		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam administrátorov' })).toHaveAttribute('aria-busy', 'false'),
 	},
 	{
-		name: 'languages',
-		path: '/languages',
+		name: 'project languages',
+		path: inNewProject('languages'),
 		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam jazykov' })).toHaveAttribute('aria-busy', 'false'),
 	},
 	{

@@ -1,15 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { toValidationIssues, VALIDATION_CODE } from './errors'
-import {
-	createLanguageRequestSchema,
-	LANGUAGE_FLAG_CODES,
-	LANGUAGE_NAME_MAX_LENGTH,
-	LANGUAGE_TAGS,
-	languageSchema,
-	SUPPORTED_LANGUAGES,
-	updateLanguageRequestSchema,
-} from './languages'
+import { createLanguageRequestSchema, LANGUAGE_FLAG_CODES, LANGUAGE_TAGS, languageSchema, SUPPORTED_LANGUAGES } from './languages'
 
 describe('SUPPORTED_LANGUAGES', () => {
 	it('has 9 languages with unique tags and flags', () => {
@@ -31,38 +23,6 @@ describe('createLanguageRequestSchema', () => {
 
 		const unsupported = createLanguageRequestSchema.safeParse({ tag: 'fr' })
 		expect(unsupported.success ? [] : toValidationIssues(unsupported.error)).toEqual([{ path: 'tag', code: VALIDATION_CODE.INVALID }])
-	})
-})
-
-describe('updateLanguageRequestSchema', () => {
-	it('trims names and drops the tag', () => {
-		expect(updateLanguageRequestSchema.parse({ englishName: ' Slovak ', nativeName: ' slovenčina ', flagCode: 'sk', isBase: true, tag: 'cs' })).toEqual({
-			englishName: 'Slovak',
-			nativeName: 'slovenčina',
-			flagCode: 'sk',
-			isBase: true,
-		})
-	})
-
-	it('maps missing, blank and too long names and an unknown flag to shared codes', () => {
-		const missing = updateLanguageRequestSchema.safeParse({})
-		expect(missing.success ? [] : toValidationIssues(missing.error)).toEqual([
-			{ path: 'englishName', code: VALIDATION_CODE.REQUIRED },
-			{ path: 'nativeName', code: VALIDATION_CODE.REQUIRED },
-			{ path: 'flagCode', code: VALIDATION_CODE.INVALID },
-		])
-
-		const invalid = updateLanguageRequestSchema.safeParse({ englishName: '   ', nativeName: 'a'.repeat(LANGUAGE_NAME_MAX_LENGTH + 1), flagCode: 'fr' })
-		expect(invalid.success ? [] : toValidationIssues(invalid.error)).toEqual([
-			{ path: 'englishName', code: VALIDATION_CODE.REQUIRED },
-			{ path: 'nativeName', code: VALIDATION_CODE.TOO_LONG, params: { max: LANGUAGE_NAME_MAX_LENGTH } },
-			{ path: 'flagCode', code: VALIDATION_CODE.INVALID },
-		])
-	})
-
-	it('does not allow turning the base flag off', () => {
-		const result = updateLanguageRequestSchema.safeParse({ englishName: 'Slovak', nativeName: 'slovenčina', flagCode: 'sk', isBase: false })
-		expect(result.success ? [] : toValidationIssues(result.error)).toEqual([{ path: 'isBase', code: VALIDATION_CODE.INVALID }])
 	})
 })
 

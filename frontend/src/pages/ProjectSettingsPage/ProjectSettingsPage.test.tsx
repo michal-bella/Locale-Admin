@@ -41,9 +41,11 @@ const SETTINGS_URL = `/projects/${SETTINGS.id}/settings`
 
 const PAGE_PATH = `/projects/${SETTINGS.id}/settings`
 
+const LANGUAGES_URL = `/projects/${SETTINGS.id}/languages`
+
 const loaded = (settings: ProjectSettings = SETTINGS, languages: Language[] = [SLOVAK, ENGLISH], isMember = true) => ({
 	[`GET ${SETTINGS_URL}`]: { status: 200, data: settings },
-	'GET /languages': { status: 200, data: languages },
+	[`GET ${LANGUAGES_URL}`]: { status: 200, data: languages },
 	'GET /projects': {
 		status: 200,
 		data: { projects: [{ id: settings.id, name: settings.name, slug: settings.slug, primaryColor: settings.primaryColor, isMember }] },
@@ -68,7 +70,7 @@ const bodyOf = (request: InternalAxiosRequestConfig | undefined) => JSON.parse(r
 beforeAll(() => {
 	// The global 3 retries with backoff would delay the error state by seconds.
 	queryClient.setQueryDefaults(QUERY_KEYS.PROJECTS.SETTINGS(SETTINGS.id), { retry: false })
-	queryClient.setQueryDefaults(QUERY_KEYS.LANGUAGES(), { retry: false })
+	queryClient.setQueryDefaults(QUERY_KEYS.PROJECTS.LANGUAGES(SETTINGS.id), { retry: false })
 })
 
 afterEach(() => {
@@ -95,7 +97,7 @@ describe('ProjectSettingsPage', () => {
 	it('shows skeleton cards while the languages load', async () => {
 		signedInAs(ADMIN_USER, loaded())
 		const adapter = http.defaults.adapter as AxiosAdapter
-		http.defaults.adapter = (config) => (config.url === '/languages' ? new Promise(() => undefined) : adapter(config))
+		http.defaults.adapter = (config) => (config.url === LANGUAGES_URL ? new Promise(() => undefined) : adapter(config))
 		renderApp(PAGE_PATH)
 
 		await screen.findByRole('heading', { level: 1, name: 'Nastavenia projektu' })
@@ -107,7 +109,7 @@ describe('ProjectSettingsPage', () => {
 		let backendUp = false
 		signedInAs(ADMIN_USER, {
 			...loaded(),
-			'GET /languages': () => (backendUp ? { status: 200, data: [SLOVAK, ENGLISH] } : apiError(500, 'INTERNAL_ERROR')),
+			[`GET ${LANGUAGES_URL}`]: () => (backendUp ? { status: 200, data: [SLOVAK, ENGLISH] } : apiError(500, 'INTERNAL_ERROR')),
 		})
 		renderApp(PAGE_PATH)
 
@@ -222,7 +224,7 @@ describe('ProjectSettingsPage', () => {
 			protectVariables: false,
 			baseLanguageId: SLOVAK.id,
 		})
-		expect(requests.filter((request) => request.method === 'get' && request.url === '/languages')).toHaveLength(2)
+		expect(requests.filter((request) => request.method === 'get' && request.url === LANGUAGES_URL)).toHaveLength(2)
 		// The route loader and the page each fetched once on entry; the save adds one refetch.
 		expect(settingsGets()).toBe(3)
 		expect(screen.getByLabelText('Názov projektu')).toHaveValue('B2C iOS')
@@ -297,7 +299,7 @@ describe('ProjectSettingsPage', () => {
 		expect(patches).toHaveLength(1)
 	})
 
-	it('disables the base language select and links to Jazyky when there are no languages', async () => {
+	it('disables the base language select and links to the Jazyky page of the project when there are no languages', async () => {
 		signedInAs(ADMIN_USER, loaded({ ...SETTINGS, baseLanguageId: null }, []))
 		const router = renderApp(PAGE_PATH)
 		await screen.findByLabelText('Názov projektu')
@@ -305,10 +307,10 @@ describe('ProjectSettingsPage', () => {
 		const select = screen.getByLabelText('Základný jazyk')
 		expect(select).toBeDisabled()
 		expect(select).toHaveValue('')
-		expect(select).toHaveAccessibleDescription('Zatiaľ nemáte žiadne jazyky. Pridať jazyk')
+		expect(select).toHaveAccessibleDescription('Projekt zatiaľ nemá žiadne jazyky. Pridať jazyk do projektu')
 
-		fireEvent.click(screen.getByRole('link', { name: 'Pridať jazyk' }))
-		await waitFor(() => expect(router.state.location.pathname).toBe('/languages'))
+		fireEvent.click(screen.getByRole('link', { name: 'Pridať jazyk do projektu' }))
+		await waitFor(() => expect(router.state.location.pathname).toBe(LANGUAGES_URL))
 	})
 
 	it('maps 409 SLUG_TAKEN to the slug field', async () => {
@@ -382,19 +384,17 @@ describe('ProjectSettingsPage', () => {
 		expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
 	})
 
-	it('lets a member save the settings without changing the base language', async () => {
-		const requests = signedInAs(EDITOR_USER, { ...loaded(), [`PATCH ${SETTINGS_URL}`]: { status: 200, data: { ...SETTINGS, name: 'B2C iOS' } } })
+	it('lets a member change the base language of the project', async () => {
+		const requests = signedInAs(EDITOR_USER, { ...loaded(), [`PATCH ${SETTINGS_URL}`]: { status: 200, data: { ...SETTINGS, baseLanguageId: ENGLISH.id } } })
 		await renderSettings()
 
 		const select = screen.getByLabelText('Základný jazyk')
-		expect(select).toBeDisabled()
-		expect(select).toHaveValue('Slovak (sk)')
-		expect(select).toHaveAccessibleDescription('Základný jazyk je spoločný pre všetky projekty, mení ho iba administrátor.')
-
-		change('Názov projektu', 'B2C iOS')
+		expect(select).toBeEnabled()
+		fireEvent.click(select)
+		fireEvent.click(await screen.findByRole('option', { name: 'English (en)' }))
 		fireEvent.click(getSaveButton())
 
 		await waitFor(() => expect(patchesOf(requests)).toHaveLength(1))
-		expect(bodyOf(patchesOf(requests)[0])).toMatchObject({ name: 'B2C iOS', baseLanguageId: SLOVAK.id })
+		expect(bodyOf(patchesOf(requests)[0])).toMatchObject({ baseLanguageId: ENGLISH.id })
 	})
 })

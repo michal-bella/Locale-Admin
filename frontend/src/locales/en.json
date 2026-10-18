@@ -45,6 +45,11 @@
 				"placeholder": "booking-web",
 				"hint": "Lowercase letters, digits and hyphens. Used in the names of exported files."
 			},
+			"languages": {
+				"label": "Languages",
+				"placeholder": "Search languages",
+				"hint": "The first chosen language is the base one; you can change it in the project settings."
+			},
 			"cancel": "Cancel",
 			"submit": "Create project",
 			"success": "Project {{name}} has been created."
@@ -226,7 +231,7 @@
 	"languagesPage": {
 		"eyebrow": "Localization",
 		"title": "Languages",
-		"description": "Set the source language and manage the target languages of the project.",
+		"description": "Languages the project is translated into. Change the base language in the project settings.",
 		"addButton": "Add language",
 		"table": {
 			"label": "Language list",
@@ -234,9 +239,8 @@
 			"base": "Base",
 			"actions": "Actions for language {{name}}",
 			"actionsColumn": "Actions",
-			"edit": "Edit",
-			"delete": "Delete",
-			"empty": "You have no languages yet.",
+			"delete": "Remove",
+			"empty": "The project has no languages yet.",
 			"loadError": "The language list could not be loaded.",
 			"retry": "Try again"
 		},
@@ -253,32 +257,13 @@
 			"submit": "Add",
 			"success": "Language {{name}} has been added."
 		},
-		"settingsModal": {
-			"title": "Language settings",
-			"close": "Close",
-			"englishName": "English name",
-			"nativeName": "Native name",
-			"flag": "Flag",
-			"tag": {
-				"label": "Tag",
-				"description": "The tag cannot be changed."
-			},
-			"isBase": {
-				"label": "Base language",
-				"description": "The source language translations are made from. There is always exactly one base language."
-			},
-			"delete": "Delete language",
-			"cancel": "Cancel",
-			"submit": "Save",
-			"success": "Language {{name}} has been saved."
-		},
 		"deleteModal": {
-			"title": "Delete language",
+			"title": "Remove language",
 			"close": "Close",
-			"message": "Do you really want to delete the language {{name}} ({{tag}})?",
+			"message": "Do you really want to remove the language {{name}} ({{tag}}) from the project?",
 			"cancel": "Cancel",
-			"confirm": "Delete",
-			"success": "Language {{name}} has been deleted."
+			"confirm": "Remove",
+			"success": "The language {{name}} has been removed from the project."
 		}
 	},
 	"projectSettingsPage": {
@@ -302,9 +287,8 @@
 			"baseLanguage": {
 				"label": "Base language",
 				"placeholder": "Select a language",
-				"empty": "You have no languages yet.",
-				"emptyLink": "Add a language",
-				"adminOnly": "The base language is shared by all projects, only an administrator can change it."
+				"empty": "The project has no languages yet.",
+				"emptyLink": "Add a language to the project"
 			}
 		},
 		"variables": {

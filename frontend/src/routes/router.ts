@@ -7,10 +7,10 @@ import { appLayoutRoute } from '@/routes/appLayoutRoute'
 import { authenticatedRoute } from '@/routes/authenticatedRoute'
 import { homeLayoutRoute } from '@/routes/homeLayoutRoute'
 import { indexRoute } from '@/routes/indexRoute'
-import { languagesRoute } from '@/routes/languagesRoute'
 import { loginRoute } from '@/routes/loginRoute'
 import { profileRoute } from '@/routes/profileRoute'
 import { projectIndexRoute } from '@/routes/projectIndexRoute'
+import { projectLanguagesRoute } from '@/routes/projectLanguagesRoute'
 import { projectMembersRoute } from '@/routes/projectMembersRoute'
 import { projectRoute } from '@/routes/projectRoute'
 import { projectSettingsRoute } from '@/routes/projectSettingsRoute'
@@ -23,8 +23,7 @@ const routeTree = rootRoute.addChildren([
 		appLayoutRoute.addChildren([
 			profileRoute,
 			adminUsersRoute,
-			languagesRoute,
-			projectRoute.addChildren([projectIndexRoute, projectSettingsRoute, projectMembersRoute]),
+			projectRoute.addChildren([projectIndexRoute, projectSettingsRoute, projectLanguagesRoute, projectMembersRoute]),
 		]),
 	]),
 ])

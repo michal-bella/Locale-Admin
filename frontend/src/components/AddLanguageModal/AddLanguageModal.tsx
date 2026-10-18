@@ -1,35 +1,24 @@
-import { Button, Select, type SelectProps } from '@mantine/core'
+import { Button, Select } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { type FormEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ERROR_CODE, SUPPORTED_LANGUAGES } from '@locale/shared'
+import { ERROR_CODE } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import getApiErrorDetails from '@/api/getApiErrorDetails'
-import { useCreateLanguageMutation } from '@/api/languages/useCreateLanguageMutation'
+import { useCreateProjectLanguageMutation } from '@/api/projectLanguages/useCreateProjectLanguageMutation'
 import AppModal from '@/components/AppModal/AppModal'
 import { ChevronDown } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
+import { findSupportedLanguage, getLanguageOptions, renderLanguageOption } from '@/lib/languageOptions'
 
 import { type AddLanguageModalProps } from './types'
 
-const findSupportedLanguage = (tag: string | null) => SUPPORTED_LANGUAGES.find((language) => language.tag === tag)
-
-const renderOption: SelectProps['renderOption'] = ({ option }) => {
-	const language = findSupportedLanguage(option.value)
-	return (
-		<span className='flex items-center gap-2'>
-			{language && <LanguageFlag code={language.flagCode} size='sm' />}
-			{option.label}
-		</span>
-	)
-}
-
-/** "Pridať jazyk": a searchable select over the supported languages (searches English name, native name and tag). */
-const AddLanguageModal = ({ opened, onClose, languages }: AddLanguageModalProps) => {
+/** "Pridať jazyk" of a project: a searchable select over the supported languages (searches English name, native name and tag). */
+const AddLanguageModal = ({ projectId, opened, onClose, languages }: AddLanguageModalProps) => {
 	const { t } = useTranslation()
-	const createLanguage = useCreateLanguageMutation()
+	const createLanguage = useCreateProjectLanguageMutation(projectId)
 	const { isPending } = createLanguage
 	const [tag, setTag] = useState<string | null>(null)
 	const [fieldError, setFieldError] = useState<string>()
@@ -115,12 +104,8 @@ const AddLanguageModal = ({ opened, onClose, languages }: AddLanguageModalProps)
 					setFieldError(undefined)
 				}}
 				error={fieldError}
-				data={SUPPORTED_LANGUAGES.map((language) => ({
-					value: language.tag,
-					label: `${language.englishName} – ${language.nativeName} – ${language.tag}`,
-					disabled: addedTags.has(language.tag),
-				}))}
-				renderOption={renderOption}
+				data={getLanguageOptions(addedTags)}
+				renderOption={renderLanguageOption}
 				leftSection={selected && <LanguageFlag code={selected.flagCode} size='sm' />}
 				rightSection={<ChevronDown aria-hidden />}
 				rightSectionPointerEvents='none'

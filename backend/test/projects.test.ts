@@ -72,28 +72,36 @@ describe('GET /api/projects', () => {
 })
 
 describe('POST /api/projects', () => {
-	it('creates a project with trimmed values and makes the creator a member', async () => {
+	it('creates a project with trimmed values and its languages and makes the creator a member', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await login(app)
 
-		const res = await postProject(app, cookie, { name: ' Booking Web ', slug: ' booking-web ' })
+		const res = await postProject(app, cookie, { name: ' Booking Web ', slug: ' booking-web ', languageTags: ['en', 'sk'] })
 
 		expect(res.status).toBe(201)
 		const body = projectListItemSchema.strict().parse(res.body)
 		expect(body).toMatchObject({ name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C', isMember: true })
 		expect(await getTestPrisma().projectMember.findMany({ where: { projectId: body.id }, select: { userId: true } })).toEqual([{ userId: user.id }])
+		// The first chosen language is the base.
+		expect(
+			await getTestPrisma().projectLanguage.findMany({ where: { projectId: body.id }, select: { tag: true, isBase: true }, orderBy: { tag: 'asc' } }),
+		).toEqual([
+			{ tag: 'en', isBase: true },
+			{ tag: 'sk', isBase: false },
+		])
 	})
 
 	it('returns 400 VALIDATION_ERROR with details for an invalid body', async () => {
 		const app = createTestApp()
 		const { cookie } = await login(app)
 
-		const res = await postProject(app, cookie, { name: ' ', slug: 'Booking Web' })
+		const res = await postProject(app, cookie, { name: ' ', slug: 'Booking Web', languageTags: [] })
 
 		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
 		expect(errorResponseSchema.parse(res.body).error.details).toEqual([
 			{ path: 'name', code: VALIDATION_CODE.REQUIRED },
 			{ path: 'slug', code: VALIDATION_CODE.INVALID },
+			{ path: 'languageTags', code: VALIDATION_CODE.REQUIRED },
 		])
 		expect(await getTestPrisma().project.count()).toBe(0)
 	})
@@ -103,14 +111,18 @@ describe('POST /api/projects', () => {
 		const { cookie } = await login(app)
 		await createProjectRow('Booking Web', 'booking-web')
 
-		const res = await postProject(app, cookie, { name: 'Other', slug: 'booking-web' })
+		const res = await postProject(app, cookie, { name: 'Other', slug: 'booking-web', languageTags: ['sk'] })
 
 		expectErrorCode(res, 409, ERROR_CODE.SLUG_TAKEN)
 		expect(await getTestPrisma().project.count()).toBe(1)
+		expect(await getTestPrisma().projectLanguage.count()).toBe(0)
 	})
 
 	it('returns 401 AUTH_UNAUTHENTICATED without a session', async () => {
-		const res = await request(createTestApp()).post('/api/projects').set(CSRF_HEADERS).send({ name: 'A', slug: 'a' })
+		const res = await request(createTestApp())
+			.post('/api/projects')
+			.set(CSRF_HEADERS)
+			.send({ name: 'A', slug: 'a', languageTags: ['sk'] })
 
 		expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
 	})
@@ -119,7 +131,10 @@ describe('POST /api/projects', () => {
 		const app = createTestApp()
 		const { cookie } = await login(app)
 
-		const res = await request(app).post('/api/projects').set('Cookie', cookie).send({ name: 'A', slug: 'a' })
+		const res = await request(app)
+			.post('/api/projects')
+			.set('Cookie', cookie)
+			.send({ name: 'A', slug: 'a', languageTags: ['sk'] })
 
 		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
 		expect(await getTestPrisma().project.count()).toBe(0)

@@ -15,7 +15,7 @@ import classes from './ProjectBasicsSection.module.css'
 import { type ProjectBasicsSectionProps } from './types'
 
 /** "Základné údaje" (Figma 3:1600) with the base language row added under the primary color. */
-const ProjectBasicsSection = ({ register, control, errors, languages, savedColor, canChangeBaseLanguage }: ProjectBasicsSectionProps) => {
+const ProjectBasicsSection = ({ projectId, register, control, errors, languages, savedColor }: ProjectBasicsSectionProps) => {
 	const { t } = useTranslation()
 	const nameId = useId()
 	const slugId = useId()
@@ -106,19 +106,17 @@ const ProjectBasicsSection = ({ register, control, errors, languages, savedColor
 								onChange={(value) => value && field.onChange(value)}
 								onBlur={field.onBlur}
 								allowDeselect={false}
-								disabled={!hasLanguages || !canChangeBaseLanguage}
+								disabled={!hasLanguages}
 								placeholder={t('projectSettingsPage.basics.baseLanguage.placeholder')}
 								description={
-									!canChangeBaseLanguage
-										? t('projectSettingsPage.basics.baseLanguage.adminOnly')
-										: !hasLanguages && (
-												<>
-													{t('projectSettingsPage.basics.baseLanguage.empty')}{' '}
-													<Link to='/languages' className={classes.link}>
-														{t('projectSettingsPage.basics.baseLanguage.emptyLink')}
-													</Link>
-												</>
-											)
+									!hasLanguages && (
+										<>
+											{t('projectSettingsPage.basics.baseLanguage.empty')}{' '}
+											<Link to='/projects/$projectId/languages' params={{ projectId }} className={classes.link}>
+												{t('projectSettingsPage.basics.baseLanguage.emptyLink')}
+											</Link>
+										</>
+									)
 								}
 								inputWrapperOrder={['input', 'description', 'error']}
 								classNames={{ description: `${classes.hint} pt-1.5` }}

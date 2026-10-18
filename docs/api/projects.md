@@ -43,7 +43,7 @@ Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema
 
 ## POST /api/projects
 
-Telo (schéma `createProjectRequestSchema`): `{ "name": "Booking Web", "slug": "booking-web" }`. Validácia `name` a `slug` je rovnaká ako pri nastaveniach. Farba a ochrana premenných dostanú defaulty. Projekt aj členstvo tvorcu vzniknú naraz.
+Telo (schéma `createProjectRequestSchema`): `{ "name": "Booking Web", "slug": "booking-web", "languageTags": ["sk", "en"] }`. Validácia `name` a `slug` je rovnaká ako pri nastaveniach. `languageTags` sú tagy z katalógu, aspoň jeden a bez duplicít (`REQUIRED` / `INVALID`); prvý je základný jazyk. Farba a ochrana premenných dostanú defaulty. Projekt, jeho jazyky aj členstvo tvorcu vzniknú naraz.
 
 | HTTP | `code`             | Kedy                                      |
 | ---- | ------------------ | ----------------------------------------- |
@@ -67,18 +67,18 @@ Zmaže členstvo prihláseného používateľa. Posledný člen projekt opustiť
 
 Schéma `projectSettingsSchema`.
 
-| Pole               | Typ             | Popis                                                      |
-| ------------------ | --------------- | ---------------------------------------------------------- |
-| `id`               | UUID            | ID projektu                                                |
-| `name`             | string          | názov projektu                                             |
-| `slug`             | string          | slug projektu (malé písmená, číslice, pomlčky)             |
-| `primaryColor`     | string          | primárna farba `#RRGGBB` veľkými písmenami                 |
-| `protectVariables` | boolean         | chrániť výrazy `{{ variable }}` (zatiaľ sa iba ukladá)     |
-| `baseLanguageId`   | UUID alebo null | `id` základného jazyka, `null` keď neexistuje žiadny jazyk |
+| Pole               | Typ             | Popis                                                           |
+| ------------------ | --------------- | --------------------------------------------------------------- |
+| `id`               | UUID            | ID projektu                                                     |
+| `name`             | string          | názov projektu                                                  |
+| `slug`             | string          | slug projektu (malé písmená, číslice, pomlčky)                  |
+| `primaryColor`     | string          | primárna farba `#RRGGBB` veľkými písmenami                      |
+| `protectVariables` | boolean         | chrániť výrazy `{{ variable }}` (zatiaľ sa iba ukladá)          |
+| `baseLanguageId`   | UUID alebo null | `id` základného jazyka projektu, `null` keď projekt nemá jazyky |
 
 ### Základný jazyk
 
-Projekt nemá vlastný základný jazyk. `baseLanguageId` je `id` globálneho jazyka s `isBase: true` zo stránky Jazyky (viď [jazyky](./admin-languages.md#základný-jazyk)). Keďže je globálny, meniť ho môže iba `ADMIN`. Uloženie iného `baseLanguageId` presunie príznak `isBase` v tej istej transakcii ako uloženie projektu a s tým istým advisory zámkom ako `PATCH /api/admin/languages/:id`.
+`baseLanguageId` je `id` jazyka projektu s `isBase: true` (viď [jazyky projektu](./project-languages.md#základný-jazyk)). Meniť ho môže každý člen aj `ADMIN`. Uloženie iného `baseLanguageId` presunie príznak `isBase` v tej istej transakcii ako uloženie projektu, so zámkom riadku projektu.
 
 ### GET /api/projects/:projectId/settings
 
@@ -95,26 +95,25 @@ Telo (schéma `updateProjectSettingsRequestSchema`):
 - `name` sa upraví cez `trim()` a musí mať 1 až 100 znakov (`PROJECT_NAME_MAX_LENGTH`).
 - `slug` sa upraví cez `trim()`, musí mať 1 až 50 znakov (`PROJECT_SLUG_MAX_LENGTH`) a tvar `^[a-z0-9]+(?:-[a-z0-9]+)*$` (napr. `b2b-admin`).
 - `primaryColor` musí mať tvar `#RRGGBB` a uloží sa veľkými písmenami (`#e83e8c` → `#E83E8C`).
-- `baseLanguageId` je voliteľné. Ak chýba alebo sa rovná aktuálnemu základnému jazyku, nič sa nemení. Inak ho môže poslať iba `ADMIN` (`EDITOR` dostane 403) a musí to byť `id` existujúceho jazyka.
+- `baseLanguageId` je voliteľné. Ak chýba, základný jazyk sa nemení. Inak to musí byť `id` jazyka tohto projektu (inak 400 `baseLanguageId` / `INVALID`).
 
 | HTTP | `code`             | Kedy                                                          |
 | ---- | ------------------ | ------------------------------------------------------------- |
 | 200  |                    | nastavenia uložené, telo `ProjectSettings`                    |
 | 400  | `VALIDATION_ERROR` | nevalidné telo alebo neexistujúci jazyk, `details` podľa polí |
-| 403  | `FORBIDDEN`        | `EDITOR` mení základný jazyk, neuloží sa nič                  |
 | 404  | `NOT_FOUND`        | viď [Prístup k projektu](#prístup-k-projektu)                 |
 | 409  | `SLUG_TAKEN`       | slug má iný projekt                                           |
 
 Príklady `details` pri 400:
 
-| Situácia                                      | `details`                                                            |
-| --------------------------------------------- | -------------------------------------------------------------------- |
-| prázdny názov (aj iba medzery)                | `[{ "path": "name", "code": "REQUIRED" }]`                           |
-| príliš dlhý názov                             | `[{ "path": "name", "code": "TOO_LONG", "params": { "max": 100 } }]` |
-| slug s veľkými písmenami, medzerou alebo `--` | `[{ "path": "slug", "code": "INVALID" }]`                            |
-| farba `#FFF` alebo `red`                      | `[{ "path": "primaryColor", "code": "INVALID" }]`                    |
-| chýbajúce `protectVariables`                  | `[{ "path": "protectVariables", "code": "REQUIRED" }]`               |
-| `baseLanguageId` nie je UUID alebo neexistuje | `[{ "path": "baseLanguageId", "code": "INVALID" }]`                  |
+| Situácia                                                 | `details`                                                            |
+| -------------------------------------------------------- | -------------------------------------------------------------------- |
+| prázdny názov (aj iba medzery)                           | `[{ "path": "name", "code": "REQUIRED" }]`                           |
+| príliš dlhý názov                                        | `[{ "path": "name", "code": "TOO_LONG", "params": { "max": 100 } }]` |
+| slug s veľkými písmenami, medzerou alebo `--`            | `[{ "path": "slug", "code": "INVALID" }]`                            |
+| farba `#FFF` alebo `red`                                 | `[{ "path": "primaryColor", "code": "INVALID" }]`                    |
+| chýbajúce `protectVariables`                             | `[{ "path": "protectVariables", "code": "REQUIRED" }]`               |
+| `baseLanguageId` nie je UUID alebo nie je jazyk projektu | `[{ "path": "baseLanguageId", "code": "INVALID" }]`                  |
 
 ## Členovia
 
@@ -160,7 +159,7 @@ curl -i -c cookies.txt -X POST http://localhost:8080/api/auth/login \
 curl -i -b cookies.txt http://localhost:8080/api/projects
 curl -i -b cookies.txt -X POST http://localhost:8080/api/projects \
   -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
-  -d '{"name":"Booking Web","slug":"booking-web"}'
+  -d '{"name":"Booking Web","slug":"booking-web","languageTags":["sk","en"]}'
 curl -i -b cookies.txt -X POST http://localhost:8080/api/projects/<id projektu>/members \
   -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
   -d '{"email":"meno@firma.sk","password":"••••••••"}'

@@ -2,7 +2,7 @@ import { type APIRequestContext, expect, type Page, test } from '@playwright/tes
 
 import { readApiError } from '../support/api'
 import { ANONYMOUS, loginViaUi } from '../support/auth'
-import { acquireLanguagesLock, type Language, listLanguages, newAdminApi, restoreBaseLanguage } from '../support/languages'
+import { type Language, listLanguages, newAdminApi } from '../support/languages'
 import { getMainNavigation } from '../support/layout'
 import { createProject, getProjectSettings, projectSettingsApi, type ProjectSettings } from '../support/projects'
 import { createEditor, type TestEditor } from '../support/users'
@@ -39,10 +39,10 @@ const openProjectSettingsPage = async (page: Page, projectId: string) => {
 	await expect(getForm(page).save).toBeVisible()
 }
 
-/** Settings without the global base language, which tests that do not hold the languages lock must not compare. */
+/** Settings without the base language, for comparisons that only care about the edited fields. */
 const omitBase = ({ baseLanguageId: _, ...settings }: ProjectSettings) => settings
 
-/** The base language is global and may move under tests that do not hold the languages lock, so it is checked only when given. */
+/** The base language is checked only when given. */
 const expectFormValues = async (page: Page, settings: Omit<ProjectSettings, 'id' | 'baseLanguageId'>, baseLanguage?: Language) => {
 	const form = getForm(page)
 	await expect(form.name).toHaveValue(settings.name)
@@ -186,57 +186,29 @@ test.describe('ADMIN', () => {
 })
 
 test.describe('ADMIN base language', () => {
-	// The base language is global and shared with languages.spec and the other browser project: the lock serializes them.
-	let api: APIRequestContext
-	let releaseLock: (() => Promise<void>) | undefined
-	let originalBase: Language | undefined
-
-	test.beforeAll(async ({ playwright }) => {
-		// Waiting for the other browser project to release the lock counts against this hook.
-		test.setTimeout(180_000)
-		releaseLock = await acquireLanguagesLock()
-		api = await newAdminApi(playwright.request)
-		originalBase = (await listLanguages(api)).find(({ isBase }) => isBase)
-	})
-
-	test.afterAll(async () => {
-		try {
-			if (api) {
-				if (originalBase) {
-					await restoreBaseLanguage(api, originalBase)
-				}
-				await api.dispose()
-			}
-		} finally {
-			await releaseLock?.()
-		}
-	})
-
-	test('changing the base language moves the Základný badge on /languages', async ({ page }) => {
-		const languages = await listLanguages(api)
-		expect(originalBase, 'a base language in the DB').toBeDefined()
-		const others = languages.filter(({ id }) => id !== originalBase!.id)
-		const target = others.find(({ tag }) => tag === 'en') ?? others.find(({ tag }) => tag === 'sk') ?? others[0]
-		expect(target, 'another language to become the base').toBeDefined()
-		const project = await createProject(api, 'base')
+	test('changing the base language moves the Základný badge on the Jazyky page of the project only', async ({ page, playwright }) => {
+		const api = await newAdminApi(playwright.request)
+		const project = await createProject(api, 'base', ['sk', 'en'])
+		const other = await createProject(api, 'base-other', ['sk', 'en'])
+		const english = (await listLanguages(api, project.id)).find(({ tag }) => tag === 'en')!
 
 		await openProjectSettingsPage(page, project.id)
 		const form = getForm(page)
+		await expect(form.baseLanguage).toHaveValue('Slovak (sk)')
 		await form.baseLanguage.click()
-		await page.getByRole('option', { name: new RegExp(`${escapeRegExp(languageLabel(target!))}$`) }).click()
-		await expect(form.baseLanguage).toHaveValue(languageLabel(target!))
-
+		await page.getByRole('option', { name: new RegExp(`${escapeRegExp(languageLabel(english))}$`) }).click()
 		const patched = waitForProjectResponse(page, project.id, 'PATCH')
 		await form.save.click()
 		expect((await patched).status()).toBe(200)
 		await expect(page.getByText(SAVE_SUCCESS)).toBeVisible()
 
-		await page.goto('/languages')
+		await page.goto(`/projects/${project.id}/languages`)
 		await expect(getLanguagesTable(page)).toHaveAttribute('aria-busy', 'false')
-		await expect(getBaseBadge(page, target!.tag)).toBeVisible()
-		await expect(getBaseBadge(page, originalBase!.tag)).toHaveCount(0)
-		await expect(getLanguagesTable(page).getByText('Základný', { exact: true })).toHaveCount(1)
-		expect((await listLanguages(api)).filter(({ isBase }) => isBase).map(({ id }) => id)).toEqual([target!.id])
+		await expect(getBaseBadge(page, 'en')).toBeVisible()
+		await expect(getBaseBadge(page, 'sk')).toHaveCount(0)
+		// The base language is per project now: the other project keeps sk.
+		expect((await listLanguages(api, other.id)).filter(({ isBase }) => isBase).map(({ tag }) => tag)).toEqual(['sk'])
+		await api.dispose()
 	})
 })
 
@@ -251,15 +223,13 @@ test.describe('EDITOR', () => {
 		await expect(page).toHaveURL('/')
 	})
 
-	// That the BE rejects a member's base language change is covered by the integration tests; here only the UI.
-	test('a member saves the settings but cannot change the base language', async ({ page }) => {
+	test('a member saves the settings of an own project', async ({ page }) => {
 		const editorApi = page.request
 		await openProjectSettingsPage(page, editor.projectId)
 		const form = getForm(page)
 		const before = await getProjectSettings(editorApi, editor.projectId)
 
-		await expect(form.baseLanguage).toBeDisabled()
-		await expect(form.baseLanguage).toHaveAccessibleDescription('Základný jazyk je spoločný pre všetky projekty, mení ho iba administrátor.')
+		await expect(form.baseLanguage).toBeEnabled()
 		await form.name.fill(`${before.name} člen`)
 		const patched = waitForProjectResponse(page, editor.projectId, 'PATCH')
 		await form.save.click()

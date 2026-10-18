@@ -34,31 +34,24 @@ const expectUserBlock = async (page: Page, role: string) => {
 test.describe('ADMIN', () => {
 	test.use({ storageState: STORAGE_STATE.ADMIN })
 
-	test('outside a project sees Všetky projekty and, under Správa, Používatelia and Jazyky; the current link has aria-current', async ({ page }) => {
+	test('outside a project sees Všetky projekty and, under Správa, Používatelia; the current link has aria-current', async ({ page }) => {
 		await page.goto('/profile')
 		const navigation = getMainNavigation(page)
 		const admin = navigation.getByRole('list', { name: 'Správa' })
 		const allProjects = navigation.getByRole('link', { name: 'Všetky projekty' })
 		const users = admin.getByRole('link', { name: 'Používatelia' })
-		const languages = admin.getByRole('link', { name: 'Jazyky' })
 
-		await expect(navigation.getByRole('link')).toHaveCount(3)
-		await expect(admin.getByRole('link')).toHaveText(['Používatelia', 'Jazyky'])
+		await expect(navigation.getByRole('link')).toHaveCount(2)
+		await expect(admin.getByRole('link')).toHaveText(['Používatelia'])
 		await expect(allProjects).toHaveAttribute('href', '/')
 		await expect(users).toHaveAttribute('href', '/admin/users')
-		await expect(languages).toHaveAttribute('href', '/languages')
-
-		await languages.click()
-		await expect(page).toHaveURL('/languages')
-		await expect(page.getByRole('heading', { level: 1, name: 'Jazyky' })).toBeVisible()
-		await expect(languages).toHaveAttribute('aria-current', 'page')
 		await expect(users).not.toHaveAttribute('aria-current')
 
 		await users.click()
 		await expect(page).toHaveURL('/admin/users')
 		await expect(page.getByRole('heading', { level: 1, name: 'Používatelia' })).toBeVisible()
 		await expect(users).toHaveAttribute('aria-current', 'page')
-		await expect(languages).not.toHaveAttribute('aria-current')
+		await expect(allProjects).not.toHaveAttribute('aria-current')
 
 		await allProjects.click()
 		await expect(page).toHaveURL('/')
@@ -76,7 +69,7 @@ test.describe('ADMIN', () => {
 		const section = getMainNavigation(page).getByRole('list', { name: project.name })
 		const settings = section.getByRole('link', { name: 'Nastavenia projektu' })
 		const members = section.getByRole('link', { name: 'Členovia' })
-		await expect(section.getByRole('link')).toHaveText(['Nastavenia projektu', 'Členovia'])
+		await expect(section.getByRole('link')).toHaveText(['Nastavenia projektu', 'Jazyky', 'Členovia'])
 		await expect(settings).toHaveAttribute('aria-current', 'page')
 
 		await members.click()

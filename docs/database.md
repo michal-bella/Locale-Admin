@@ -12,17 +12,17 @@ PostgreSQL 17, Prisma 7 s driver adapterom `@prisma/adapter-pg`. Schéma je v `b
 
 ### User
 
-| Pole                     | Typ                | Poznámka                                                                                |
-| ------------------------ | ------------------ | --------------------------------------------------------------------------------------- |
-| `id`                     | UUID               | PK                                                                                      |
-| `email`                  | string, unique     | uložený normalizovaný (`trim()` + malé písmená)                                         |
-| `passwordHash`           | string             | argon2id, nikdy sa nevracia v API                                                       |
-| `role`                   | enum `ROLE`        | `ADMIN` alebo `EDITOR`, default `EDITOR`; `POST /api/admin/users` zakladá vždy `EDITOR` |
-| `firstName`, `lastName`  | string, nullable   | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                  |
-| `isActive`               | boolean            | default `true`, neaktívny user sa neprihlási                                            |
-| `lastLoginAt`            | datetime, nullable | nastaví sa pri úspešnom logine                                                          |
-| `passwordChangedAt`      | datetime           | default čas vytvorenia                                                                  |
-| `createdAt`, `updatedAt` | datetime           |                                                                                         |
+| Pole                     | Typ                | Poznámka                                                                                                           |
+| ------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `id`                     | UUID               | PK                                                                                                                 |
+| `email`                  | string, unique     | uložený normalizovaný (`trim()` + malé písmená)                                                                    |
+| `passwordHash`           | string             | argon2id, nikdy sa nevracia v API                                                                                  |
+| `role`                   | enum `ROLE`        | `ADMIN` alebo `EDITOR`, default `EDITOR`; `POST /api/admin/users` zakladá `ADMIN`, členov zakladá stránka Členovia |
+| `firstName`, `lastName`  | string, nullable   | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                                             |
+| `isActive`               | boolean            | default `true`, neaktívny user sa neprihlási                                                                       |
+| `lastLoginAt`            | datetime, nullable | nastaví sa pri úspešnom logine                                                                                     |
+| `passwordChangedAt`      | datetime           | default čas vytvorenia                                                                                             |
+| `createdAt`, `updatedAt` | datetime           |                                                                                                                    |
 
 ### Session
 
@@ -46,23 +46,23 @@ Server-side session pre prihlásenie. Jeden riadok = jedno prihlásenie v jednom
 
 Indexy: `userId`, `expiresAt`.
 
-### Language
+### ProjectLanguage
 
-Jazyk, do ktorého sa prekladá. Kým neexistujú projekty, je to jeden globálny zoznam. Tag aj predvolené názvy a vlajka sú z katalógu `SUPPORTED_LANGUAGES` v `packages/shared`. Správanie API je v [API: jazyky](./api/admin-languages.md).
+Jazyk projektu, do ktorého sa projekt prekladá. Ukladá sa iba tag, anglický a pôvodný názov a vlajku dopĺňa backend z katalógu `SUPPORTED_LANGUAGES` v `packages/shared` (upraviť sa nedajú). Správanie API je v [API: jazyky projektu](./api/project-languages.md).
 
-| Pole                     | Typ            | Poznámka                                                          |
-| ------------------------ | -------------- | ----------------------------------------------------------------- |
-| `id`                     | UUID           | PK                                                                |
-| `tag`                    | string, unique | tag z katalógu (`sk`, `en`, `de-AT`, ...), po vytvorení sa nemení |
-| `englishName`            | string         | anglický názov, pri vytvorení z katalógu, ADMIN ho môže upraviť   |
-| `nativeName`             | string         | pôvodný názov, pri vytvorení z katalógu, ADMIN ho môže upraviť    |
-| `flagCode`               | string         | ISO 3166-1 kód krajiny malými písmenami (`sk`, `gb`, `at`)        |
-| `isBase`                 | boolean        | default `false`, základný jazyk; prvý pridaný jazyk je základný   |
-| `createdAt`, `updatedAt` | datetime       |                                                                   |
+| Pole        | Typ      | Poznámka                                                                  |
+| ----------- | -------- | ------------------------------------------------------------------------- |
+| `id`        | UUID     | PK                                                                        |
+| `projectId` | UUID     | FK na `Project`, pri zmazaní projektu sa zmaže                            |
+| `tag`       | string   | tag z katalógu (`sk`, `en`, `de-AT`, ...), v projekte unikátny            |
+| `isBase`    | boolean  | default `false`, základný jazyk projektu; prvý jazyk projektu je základný |
+| `createdAt` | datetime |                                                                           |
 
-Indexy: unikátny `tag` a čiastočný unikátny index `Language_isBase_key` na `isBase` s podmienkou `WHERE "isBase"`. Ten zaručí, že základný jazyk je najviac jeden. Prisma ho v `schema.prisma` nevie vyjadriť, je ručne pridaný v migrácii `add_language` (a `prisma migrate dev` ho nemaže).
+Indexy: unikátna dvojica (`projectId`, `tag`) a čiastočný unikátny index `ProjectLanguage_projectId_isBase_key` na `projectId` s podmienkou `WHERE "isBase"`, ktorý zaručí najviac jeden základný jazyk v projekte. Prisma ho v `schema.prisma` nevie vyjadriť, je ručne pridaný v migrácii `project_languages`.
 
-Zápisy, ktoré čítajú alebo presúvajú príznak `isBase` (vytvorenie, `PATCH` s `isBase: true`, odstránenie, uloženie nastavení projektu cez `setBaseLanguage`), berú v transakcii advisory zámok `pg_advisory_xact_lock` s konštantným kľúčom (`BASE_LANGUAGE_LOCK_KEY` v `adminLanguages.service.ts`). Pri READ COMMITTED by inak súbežné požiadavky narazili na index `Language_isBase_key`.
+Zápisy, ktoré čítajú alebo presúvajú príznak `isBase` (pridanie, odobratie, zmena základného jazyka v nastaveniach cez `setBaseLanguage`), zamknú v transakcii riadok projektu (`SELECT … FOR UPDATE`). Pri READ COMMITTED by inak súbežné požiadavky v jednom projekte narazili na čiastočný index.
+
+Do 2026-10-18 boli jazyky globálne (tabuľka `Language`, spravoval ich ADMIN). Migrácia `project_languages` dala každému existujúcemu projektu kópiu všetkých dovtedajších jazykov aj s príznakom základného jazyka a tabuľku `Language` zmazala.
 
 ### Project
 
@@ -77,7 +77,7 @@ Projekt (jeden prekladový hárok). Projekty vytvárajú používatelia na index
 | `protectVariables`       | boolean        | default `true`, chrániť výrazy `{{ variable }}`; zatiaľ sa iba ukladá |
 | `createdAt`, `updatedAt` | datetime       |                                                                       |
 
-Projekt nemá vlastný základný jazyk, používa globálny `Language.isBase`.
+Každý projekt má vlastné jazyky a vlastný základný jazyk (`ProjectLanguage`).
 
 ### ProjectMember
 
@@ -96,6 +96,7 @@ erDiagram
     User ||--o{ Session : "má"
     User ||--o{ ProjectMember : "je členom"
     Project ||--o{ ProjectMember : "má"
+    Project ||--o{ ProjectLanguage : "prekladá sa do"
     User {
         uuid id PK
         string email UK
@@ -117,15 +118,12 @@ erDiagram
         datetime lastUsedAt
         datetime expiresAt
     }
-    Language {
+    ProjectLanguage {
         uuid id PK
-        string tag UK
-        string englishName
-        string nativeName
-        string flagCode
+        uuid projectId FK
+        string tag
         boolean isBase
         datetime createdAt
-        datetime updatedAt
     }
     Project {
         uuid id PK
@@ -159,12 +157,11 @@ V produkčnom stacku backend pri štarte spustí `prisma migrate deploy`, potom 
 
 ## Seed
 
-Seed (`backend/prisma/seed.ts`) vytvorí admina `michal.bella@goodrequest.com` s rolou `ADMIN`, jazyky `sk` (základný) a `en` a projekt `B2B Admin`.
+Seed (`backend/prisma/seed.ts`) vytvorí admina `michal.bella@goodrequest.com` s rolou `ADMIN` a projekt `B2B Admin` s jazykmi `sk` (základný) a `en`.
 
 - Heslo je z ENV `SEED_ADMIN_PASSWORD` a musí spĺňať pravidlá hesla z `packages/shared` (8 až 128 znakov). Ak chýba alebo je nevalidné, seed skončí s chybou a nič nevytvorí.
 - Seed je idempotentný: ak admin s týmto emailom existuje, nemení nič (ani heslo, ani rolu). Zmena `SEED_ADMIN_PASSWORD` v `.env` existujúceho admina neovplyvní. Lokálne sa admin obnoví cez `pnpm db:reset`.
-- Jazyky `sk` (základný) a `en` s názvami a vlajkou z katalógu seed vytvorí iba do prázdnej tabuľky `Language`. Ak v nej je aspoň jeden jazyk, nemení nič. Seed beží pri každom štarte backend kontajnera, takže jazyk, ktorý ADMIN odstránil, sa po reštarte neobjaví. Lokálne sa jazyky obnovia cez `pnpm db:reset`.
-- Projekt `B2B Admin` so slugom `b2b-admin` (farba a ochrana premenných z defaultov) seed vytvorí iba do prázdnej tabuľky `Project` a jeho jediným členom urobí seedovaného admina. Ak projekt existuje, nemení nič, takže zmeny ADMIN-a v nastaveniach projektu ostanú aj po reštarte.
+- Projekt `B2B Admin` so slugom `b2b-admin` (farba a ochrana premenných z defaultov) seed vytvorí iba do prázdnej tabuľky `Project` s jazykmi `sk` (základný) a `en` a jeho jediným členom urobí seedovaného admina. Ak projekt existuje, nemení nič, takže zmeny ADMIN-a v nastaveniach projektu ostanú aj po reštarte.
 
 ## Test databáza
 

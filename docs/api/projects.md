@@ -121,13 +121,15 @@ Príklady `details` pri 400:
 
 Vráti `200 { members: ProjectMember[] }` (schéma `projectMemberListResponseSchema`) zoradené podľa dátumu pridania do projektu od najstaršieho.
 
-| Pole        | Typ               | Popis                        |
-| ----------- | ----------------- | ---------------------------- |
-| `id`        | UUID              | ID používateľa               |
-| `email`     | string            | e-mail                       |
-| `firstName` | string alebo null | meno                         |
-| `lastName`  | string alebo null | priezvisko                   |
-| `createdAt` | ISO dátum         | kedy sa stal členom projektu |
+| Pole           | Typ                | Popis                                                               |
+| -------------- | ------------------ | ------------------------------------------------------------------- |
+| `id`           | UUID               | ID používateľa                                                      |
+| `email`        | string             | e-mail                                                              |
+| `firstName`    | string alebo null  | meno                                                                |
+| `lastName`     | string alebo null  | priezvisko                                                          |
+| `role`         | `ADMIN` / `EDITOR` | globálna rola používateľa                                           |
+| `projectCount` | number             | počet projektov, v ktorých je členom (ako v `GET /api/admin/users`) |
+| `createdAt`    | ISO dátum          | kedy sa stal členom projektu                                        |
 
 ### POST /api/projects/:projectId/members
 

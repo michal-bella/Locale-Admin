@@ -33,11 +33,12 @@ const postMember = (app: App, cookie: string, projectId: string, body: unknown) 
 		.send(body as object)
 
 describe('GET /api/projects/:projectId/members', () => {
-	it('returns the members oldest first without passwordHash or role', async () => {
+	it('returns the members oldest first with role and projectCount and without passwordHash', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await login(app)
 		const { user: other } = await createUser({ firstName: 'Jana', lastName: 'Nováková' })
 		const project = await createProjectRow()
+		await getTestPrisma().project.create({ data: { name: 'B', slug: 'b', members: { create: [{ userId: other.id }] } } })
 		await getTestPrisma().projectMember.create({ data: { projectId: project.id, userId: user.id, createdAt: new Date('2026-01-01T00:00:00Z') } })
 		await getTestPrisma().projectMember.create({ data: { projectId: project.id, userId: other.id, createdAt: new Date('2026-02-01T00:00:00Z') } })
 
@@ -46,8 +47,16 @@ describe('GET /api/projects/:projectId/members', () => {
 		expect(res.status).toBe(200)
 		const { members } = projectMemberListResponseSchema.extend({ members: projectMemberSchema.strict().array() }).strict().parse(res.body)
 		expect(members).toEqual([
-			{ id: user.id, email: user.email, firstName: null, lastName: null, createdAt: '2026-01-01T00:00:00.000Z' },
-			{ id: other.id, email: other.email, firstName: 'Jana', lastName: 'Nováková', createdAt: '2026-02-01T00:00:00.000Z' },
+			{ id: user.id, email: user.email, firstName: null, lastName: null, role: ROLE.EDITOR, projectCount: 1, createdAt: '2026-01-01T00:00:00.000Z' },
+			{
+				id: other.id,
+				email: other.email,
+				firstName: 'Jana',
+				lastName: 'Nováková',
+				role: ROLE.EDITOR,
+				projectCount: 2,
+				createdAt: '2026-02-01T00:00:00.000Z',
+			},
 		])
 	})
 

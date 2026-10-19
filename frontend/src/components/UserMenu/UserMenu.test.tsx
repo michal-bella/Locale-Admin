@@ -30,7 +30,7 @@ describe('UserMenu', () => {
 
 		expect(await sidebar.findByText('JA')).toBeInTheDocument()
 		expect(sidebar.getByText(EDITOR_USER.email)).toBeInTheDocument()
-		expect(sidebar.getByText('Člen')).toBeInTheDocument()
+		expect(sidebar.getByText('Editor')).toBeInTheDocument()
 	})
 
 	it('has only the profile link and logout in the menu', async () => {

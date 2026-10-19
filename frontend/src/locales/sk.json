@@ -10,7 +10,7 @@
 	},
 	"roles": {
 		"ADMIN": "Administrátor",
-		"EDITOR": "Člen"
+		"EDITOR": "Editor"
 	},
 	"notFoundPage": {
 		"eyebrow": "Chyba 404",
@@ -519,13 +519,17 @@
 		"table": {
 			"label": "Zoznam členov",
 			"member": "Člen",
+			"role": "Rola",
+			"projects": "Projekty",
 			"joinedAt": "Pridaný",
 			"empty": "Projekt zatiaľ nemá žiadnych členov.",
 			"loadError": "Zoznam členov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
 			"removeLabel": "Odobrať {{email}} z projektu",
 			"actionsColumn": "Akcie",
-			"remove": "Odobrať z projektu"
+			"remove": "Odobrať z projektu",
+			"open": "Otvoriť",
+			"openLabel": "Otvoriť používateľa {{email}}"
 		},
 		"addModal": {
 			"title": "Pridať člena",

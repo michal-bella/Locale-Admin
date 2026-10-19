@@ -434,7 +434,7 @@ test.describe('/api/projects/:projectId/translations', () => {
 			],
 			total: 4,
 			page: 1,
-			pageSize: 50,
+			pageSize: 20,
 			stats: { totalKeys: 4, translated: 2, untranslated: 2 },
 			namespaces: ['loc', 'paths'],
 		})

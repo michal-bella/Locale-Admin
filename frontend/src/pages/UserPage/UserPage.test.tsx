@@ -91,7 +91,7 @@ describe('UserPage', () => {
 		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
 		expect(within(card).getByRole('heading', { level: 2, name: JANA.email })).toBeInTheDocument()
 		expect(within(card).getByText('JA')).toBeInTheDocument()
-		expect(within(card).getByText('Člen')).toBeInTheDocument()
+		expect(within(card).getByText('Editor')).toBeInTheDocument()
 		expect(within(card).getByText('Vytvorený 3. 10. 2026')).toBeInTheDocument()
 
 		const table = within(getProjectsTable())

@@ -184,7 +184,7 @@ describe('TranslationsPage', () => {
 		expect(within(getRow('orders.empty.title')).getByText('Bez prekladu')).toBeInTheDocument()
 	})
 
-	it('asks for the base language → first other language, untranslated first, page 1 of 50 by default', async () => {
+	it('asks for the base language → first other language, untranslated first, page 1 of 20 by default', async () => {
 		const requests = mockPage({ languages: [SLOVAK, CZECH, ENGLISH] })
 		renderApp(PAGE_PATH)
 

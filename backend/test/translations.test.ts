@@ -130,7 +130,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			],
 			total: 4,
 			page: 1,
-			pageSize: 50,
+			pageSize: 20,
 			stats: { totalKeys: 4, translated: 2, untranslated: 2 },
 			namespaces: ['loc', 'paths'],
 		})
@@ -302,7 +302,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			items: [],
 			total: 0,
 			page: 1,
-			pageSize: 50,
+			pageSize: 20,
 			stats: { totalKeys: 0, translated: 0, untranslated: 0 },
 			namespaces: [],
 		})
@@ -371,7 +371,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 				items: [],
 				total: 0,
 				page: 1,
-				pageSize: 50,
+				pageSize: 20,
 				stats: { totalKeys: 0, translated: 0, untranslated: 0 },
 				namespaces: [],
 			})

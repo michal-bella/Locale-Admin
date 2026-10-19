@@ -29,7 +29,7 @@ test('ADMIN creates an admin who can then log in and sees Používatelia', async
 	const dialog = await openCreateModal(page)
 	await dialog.getByLabel('E-mail', { exact: true }).fill(credentials.email)
 	await dialog.getByLabel('Heslo', { exact: true }).fill(credentials.password)
-	await expect(dialog.getByRole('radio', { name: 'Člen' })).toBeChecked()
+	await expect(dialog.getByRole('radio', { name: 'Editor' })).toBeChecked()
 	// The SegmentedControl radio is visually hidden, so the label is clicked instead of check().
 	await dialog.getByText('Administrátor', { exact: true }).click()
 	await expect(dialog.getByRole('radio', { name: 'Administrátor' })).toBeChecked()
@@ -108,7 +108,7 @@ test('ADMIN creates a member who logs in and has no Používatelia', async ({ pa
 	const createResponse = page.waitForResponse((response) => response.url().endsWith('/api/admin/users') && response.request().method() === 'POST')
 	await dialog.getByRole('button', { name: 'Vytvoriť používateľa' }).click()
 	expect((await createResponse).status()).toBe(201)
-	await expect(table.getByRole('row').filter({ hasText: credentials.email }).getByRole('cell').nth(1)).toHaveText('Člen')
+	await expect(table.getByRole('row').filter({ hasText: credentials.email }).getByRole('cell').nth(1)).toHaveText('Editor')
 
 	const context = await browser.newContext({ baseURL, storageState: ANONYMOUS })
 	const memberPage = await context.newPage()
@@ -126,7 +126,7 @@ test('lists members with their role and project count', async ({ page, playwrigh
 	const table = await openUsersPage(page)
 
 	const cellsOf = (email: string) => table.getByRole('row').filter({ hasText: email }).getByRole('cell')
-	await expect(cellsOf(editor.email).nth(1)).toHaveText('Člen')
+	await expect(cellsOf(editor.email).nth(1)).toHaveText('Editor')
 	await expect(cellsOf(editor.email).nth(2)).toHaveText('1')
 	await expect(cellsOf(member.email).nth(2)).toHaveText('0')
 	await expect(cellsOf(admin.email).nth(1)).toHaveText('Administrátor')

@@ -1,6 +1,7 @@
 import { ERROR_CODE, type AddProjectMemberRequest, type ProjectMember } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
+import { ROLE_FROM_PRISMA } from '../lib/authUser'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 
@@ -8,11 +9,13 @@ import { isPrismaError } from './projects.service'
 
 const MEMBER_SELECT = {
 	createdAt: true,
-	user: { select: { id: true, email: true, firstName: true, lastName: true } },
+	user: { select: { id: true, email: true, firstName: true, lastName: true, role: true, _count: { select: { projectMemberships: true } } } },
 } satisfies Prisma.ProjectMemberSelect
 
-const toProjectMember = ({ createdAt, user }: Prisma.ProjectMemberGetPayload<{ select: typeof MEMBER_SELECT }>): ProjectMember => ({
+const toProjectMember = ({ createdAt, user: { _count, role, ...user } }: Prisma.ProjectMemberGetPayload<{ select: typeof MEMBER_SELECT }>): ProjectMember => ({
 	...user,
+	role: ROLE_FROM_PRISMA[role],
+	projectCount: _count.projectMemberships,
 	createdAt: createdAt.toISOString(),
 })
 

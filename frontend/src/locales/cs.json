@@ -10,7 +10,7 @@
 	},
 	"roles": {
 		"ADMIN": "Administrátor",
-		"EDITOR": "Člen"
+		"EDITOR": "Editor"
 	},
 	"notFoundPage": {
 		"eyebrow": "Chyba 404",
@@ -519,13 +519,17 @@
 		"table": {
 			"label": "Seznam členů",
 			"member": "Člen",
+			"role": "Role",
+			"projects": "Projekty",
 			"joinedAt": "Přidán",
 			"empty": "Projekt zatím nemá žádné členy.",
 			"loadError": "Seznam členů se nepodařilo načíst.",
 			"retry": "Zkusit znovu",
 			"removeLabel": "Odebrat {{email}} z projektu",
 			"actionsColumn": "Akce",
-			"remove": "Odebrat z projektu"
+			"remove": "Odebrat z projektu",
+			"open": "Otevřít",
+			"openLabel": "Otevřít uživatele {{email}}"
 		},
 		"addModal": {
 			"title": "Přidat člena",

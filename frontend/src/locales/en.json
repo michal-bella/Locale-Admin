@@ -10,7 +10,7 @@
 	},
 	"roles": {
 		"ADMIN": "Administrator",
-		"EDITOR": "Member"
+		"EDITOR": "Editor"
 	},
 	"notFoundPage": {
 		"eyebrow": "Error 404",
@@ -513,13 +513,17 @@
 		"table": {
 			"label": "Member list",
 			"member": "Member",
+			"role": "Role",
+			"projects": "Projects",
 			"joinedAt": "Added",
 			"empty": "The project has no members yet.",
 			"loadError": "The member list could not be loaded.",
 			"retry": "Try again",
 			"removeLabel": "Remove {{email}} from the project",
 			"actionsColumn": "Actions",
-			"remove": "Remove from project"
+			"remove": "Remove from project",
+			"open": "Open",
+			"openLabel": "Open user {{email}}"
 		},
 		"addModal": {
 			"title": "Add member",

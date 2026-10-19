@@ -17,6 +17,14 @@
 	color: var(--app-color-muted);
 }
 
+.roleColumn {
+	width: 9rem;
+}
+
+.projectsColumn {
+	width: 7rem;
+}
+
 .joinedColumn {
 	width: 11.25rem;
 }
@@ -46,10 +54,10 @@
 }
 
 .actionsColumn {
-	width: 4.625rem;
+	width: 7rem;
 }
 
 .actionsCell {
 	padding-inline: 0 1.25rem;
-	text-align: center;
+	white-space: nowrap;
 }

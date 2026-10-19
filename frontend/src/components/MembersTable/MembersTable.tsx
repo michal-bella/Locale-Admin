@@ -8,8 +8,9 @@ import { getInitials, type ProjectMember, ROLE } from '@locale/shared'
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectMembersQuery } from '@/api/projectMembers/projectMembersQuery'
-import { UserMinus } from '@/components/Icons'
+import { ArrowRight, UserMinus } from '@/components/Icons'
 import RemoveMemberModal from '@/components/RemoveMemberModal/RemoveMemberModal'
+import RoleBadge from '@/components/RoleBadge/RoleBadge'
 import RowAction from '@/components/RowAction/RowAction'
 import { formatDate } from '@/lib/formatDate'
 
@@ -19,9 +20,10 @@ import { type MembersTableProps } from './types'
 const SKELETON_ROWS = 3
 
 /**
- * Members of a project in a card, same look and states as the users table. Only an ADMIN removes members; the actions
- * column stays for a member so the layout does not depend on the role. The own row has no remove button, leaving goes
- * through Opustiť projekt.
+ * Members of a project in a card with the same columns, look and states as the users table. A member sees the role and
+ * project count too; only an ADMIN opens the user detail (the route is ADMIN only) and removes members, the actions
+ * column stays so the layout does not depend on the role. The own row has no remove button, leaving goes through
+ * Opustiť projekt.
  */
 const MembersTable = ({ projectId }: MembersTableProps) => {
 	const { t, i18n } = useTranslation()
@@ -55,7 +57,7 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr className={classes.tr}>
-			<Table.Td colSpan={3} className={`${classes.td} ${classes.state}`}>
+			<Table.Td colSpan={5} className={`${classes.td} ${classes.state}`}>
 				{content}
 			</Table.Td>
 		</Table.Tr>
@@ -70,6 +72,12 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 							<Skeleton circle height={32} />
 							<Skeleton height={12} width='40%' radius='sm' />
 						</div>
+					</Table.Td>
+					<Table.Td className={classes.td}>
+						<Skeleton height={22} width='4rem' radius='xl' />
+					</Table.Td>
+					<Table.Td className={classes.td}>
+						<Skeleton height={12} width='1.5rem' radius='sm' />
 					</Table.Td>
 					<Table.Td className={classes.td}>
 						<Skeleton height={12} width='60%' radius='sm' />
@@ -123,17 +131,34 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 						</div>
 					</Table.Td>
 					<Table.Td className={classes.td}>
+						<RoleBadge role={member.role} />
+					</Table.Td>
+					<Table.Td className={classes.td}>
+						<Text size='sm'>{member.projectCount}</Text>
+					</Table.Td>
+					<Table.Td className={classes.td}>
 						<Text size='xs'>{formatDate(member.createdAt, i18n.language)}</Text>
 					</Table.Td>
 					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-						{isAdmin && member.id !== me.id && (
-							<RowAction
-								icon={UserMinus}
-								tooltip={t('membersPage.table.remove')}
-								label={t('membersPage.table.removeLabel', { email: member.email })}
-								danger
-								onClick={(event) => openRemove(member, event.currentTarget)}
-							/>
+						{isAdmin && (
+							<div className='flex items-center justify-end gap-1'>
+								<RowAction
+									icon={ArrowRight}
+									tooltip={t('membersPage.table.open')}
+									label={t('membersPage.table.openLabel', { email: member.email })}
+									to='/admin/users/$userId'
+									params={{ userId: member.id }}
+								/>
+								{member.id !== me.id && (
+									<RowAction
+										icon={UserMinus}
+										tooltip={t('membersPage.table.remove')}
+										label={t('membersPage.table.removeLabel', { email: member.email })}
+										danger
+										onClick={(event) => openRemove(member, event.currentTarget)}
+									/>
+								)}
+							</div>
 						)}
 					</Table.Td>
 				</Table.Tr>
@@ -147,6 +172,8 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('membersPage.table.member')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.roleColumn}`}>{t('membersPage.table.role')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.projectsColumn}`}>{t('membersPage.table.projects')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.joinedColumn}`}>{t('membersPage.table.joinedAt')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
 							<VisuallyHidden>{t('membersPage.table.actionsColumn')}</VisuallyHidden>

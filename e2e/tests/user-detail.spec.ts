@@ -23,7 +23,7 @@ test('ADMIN opens a user from the table, adds them to a project, removes them fr
 
 	const card = page.getByRole('region', { name: 'Účet používateľa' })
 	await expect(card.getByRole('heading', { level: 2, name: editor.email })).toBeVisible()
-	await expect(card).toContainText('Člen')
+	await expect(card).toContainText('Editor')
 	await expect(card).toContainText(`Vytvorený ${formatCreatedAt(editor.createdAt)}`)
 	const projects = page.getByRole('table', { name: 'Projekty používateľa' })
 	const firstRow = projects.getByRole('row').filter({ hasText: editor.projectSlug })

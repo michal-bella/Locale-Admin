@@ -16,7 +16,7 @@ import {
 	TEST_PROJECT_SLUG_PREFIX,
 } from '../support/projects'
 import { insertTranslationKeys, listTranslations, projectTranslationsApi, translationApi, translationKeyApi } from '../support/translations'
-import { createEditor, newTestUserCredentials } from '../support/users'
+import { addMember, createEditor, createMember, newTestUserCredentials } from '../support/users'
 
 const CREDENTIALS = { email: 'csrf-check@example.com', password: 'irrelevant' }
 
@@ -52,7 +52,7 @@ test.describe('anonymous', () => {
 		expect(list.status()).toBe(401)
 		expect((await readApiError(list)).code).toBe('AUTH_UNAUTHENTICATED')
 
-		const create = await request.post('/api/admin/users', { data: newTestUserCredentials(), headers: MUTATION_HEADERS })
+		const create = await request.post('/api/admin/users', { data: { ...newTestUserCredentials(), role: 'EDITOR' }, headers: MUTATION_HEADERS })
 		expect(create.status()).toBe(401)
 		expect((await readApiError(create)).code).toBe('AUTH_UNAUTHENTICATED')
 	})
@@ -61,7 +61,7 @@ test.describe('anonymous', () => {
 test.describe('ADMIN /api/admin/users', () => {
 	test.use({ storageState: STORAGE_STATE.ADMIN })
 
-	test('POST creates an ADMIN with a normalized email even when the body asks for EDITOR', async ({ request }) => {
+	test('POST creates a user with the given role and a normalized email, GET lists everyone newest first', async ({ request }) => {
 		const credentials = newTestUserCredentials()
 		const response = await request.post('/api/admin/users', {
 			data: { ...credentials, email: `  ${credentials.email.toUpperCase()} `, role: 'EDITOR' },
@@ -69,18 +69,18 @@ test.describe('ADMIN /api/admin/users', () => {
 		})
 		expect(response.status()).toBe(201)
 		const body = (await response.json()) as Record<string, unknown>
-		expect(body).toEqual({ id: expect.any(String), email: credentials.email, role: 'ADMIN', createdAt: expect.any(String) })
+		expect(body).toEqual({ id: expect.any(String), email: credentials.email, role: 'EDITOR', projectCount: 0, createdAt: expect.any(String) })
 		expect(new Date(body.createdAt as string).toISOString()).toBe(body.createdAt)
 
 		const users = ((await (await request.get('/api/admin/users')).json()) as { users: AdminUser[] }).users
 		expect(users.find(({ id }) => id === body.id)).toEqual(body)
 		const createdAts = users.map(({ createdAt }) => createdAt)
 		expect(createdAts).toEqual([...createdAts].sort().reverse())
-		expect(users.every(({ role }) => role === 'ADMIN')).toBe(true)
+		expect(users.some(({ role }) => role === 'ADMIN')).toBe(true)
 	})
 
 	test('POST with an invalid body returns 400 with details per field', async ({ request }) => {
-		const invalid = await request.post('/api/admin/users', { data: { email: 'not-an-email', password: 'short' }, headers: MUTATION_HEADERS })
+		const invalid = await request.post('/api/admin/users', { data: { email: 'not-an-email', password: 'short', role: 'OWNER' }, headers: MUTATION_HEADERS })
 		expect(invalid.status()).toBe(400)
 		const invalidError = await readApiError(invalid)
 		expect(invalidError.code).toBe('VALIDATION_ERROR')
@@ -88,6 +88,7 @@ test.describe('ADMIN /api/admin/users', () => {
 			expect.arrayContaining([
 				{ path: 'email', code: 'INVALID_EMAIL' },
 				{ path: 'password', code: 'TOO_SHORT', params: { min: 8 } },
+				{ path: 'role', code: 'INVALID' },
 			]),
 		)
 
@@ -99,6 +100,7 @@ test.describe('ADMIN /api/admin/users', () => {
 			expect.arrayContaining([
 				{ path: 'email', code: 'REQUIRED' },
 				{ path: 'password', code: 'REQUIRED' },
+				{ path: 'role', code: 'INVALID' },
 			]),
 		)
 	})
@@ -106,7 +108,7 @@ test.describe('ADMIN /api/admin/users', () => {
 	test('POST with an existing email in a different letter case returns 409 EMAIL_TAKEN', async ({ request, playwright, baseURL }) => {
 		const existing = await createEditor(playwright.request, baseURL)
 		const response = await request.post('/api/admin/users', {
-			data: { email: existing.email.toUpperCase(), password: newTestUserCredentials().password },
+			data: { email: existing.email.toUpperCase(), password: newTestUserCredentials().password, role: 'EDITOR' },
 			headers: MUTATION_HEADERS,
 		})
 		expect(response.status()).toBe(409)
@@ -115,7 +117,7 @@ test.describe('ADMIN /api/admin/users', () => {
 
 	test('POST without X-Requested-With returns 403 CSRF_REJECTED and creates nothing', async ({ request }) => {
 		const credentials = newTestUserCredentials()
-		const response = await request.post('/api/admin/users', { data: credentials })
+		const response = await request.post('/api/admin/users', { data: { ...credentials, role: 'EDITOR' } })
 		expect(response.status()).toBe(403)
 		expect((await readApiError(response)).code).toBe('CSRF_REJECTED')
 		expect(await listUserEmails(request)).not.toContain(credentials.email)
@@ -131,7 +133,7 @@ test.describe('EDITOR /api/admin/users', () => {
 		expect((await readApiError(list)).code).toBe('FORBIDDEN')
 
 		const credentials = newTestUserCredentials()
-		const create = await request.post('/api/admin/users', { data: credentials, headers: MUTATION_HEADERS })
+		const create = await request.post('/api/admin/users', { data: { ...credentials, role: 'EDITOR' }, headers: MUTATION_HEADERS })
 		expect(create.status()).toBe(403)
 		expect((await readApiError(create)).code).toBe('FORBIDDEN')
 
@@ -253,8 +255,13 @@ test.describe('anonymous /api/projects', () => {
 test.describe('/api/projects as a member', () => {
 	test.use({ storageState: ANONYMOUS })
 
-	test('a member sees only own projects, creates one, adds a member, leaves and cannot open a foreign project', async ({ request, playwright, baseURL }) => {
+	test('a member sees only own projects, creates one, lists members but cannot add or remove them, leaves and cannot open a foreign project', async ({
+		request,
+		playwright,
+		baseURL,
+	}) => {
 		const editor = await createEditor(playwright.request, baseURL)
+		const member = await createMember(playwright.request, baseURL)
 		const login = await request.post('/api/auth/login', { data: { email: editor.email, password: editor.password }, headers: MUTATION_HEADERS })
 		expect(login.status()).toBe(200)
 		expect((await listProjects(request)).map(({ id }) => id)).toEqual([editor.projectId])
@@ -269,12 +276,20 @@ test.describe('/api/projects as a member', () => {
 		expect(lastMember.status()).toBe(409)
 		expect((await readApiError(lastMember)).code).toBe('LAST_MEMBER')
 
-		const member = newTestUserCredentials()
-		const added = await request.post(projectMembersApi(created.id), { data: member, headers: MUTATION_HEADERS })
-		expect(added.status()).toBe(201)
-		expect(await added.json()).toEqual({ id: expect.any(String), email: member.email, firstName: null, lastName: null, createdAt: expect.any(String) })
+		const forbiddenAdd = await request.post(projectMembersApi(created.id), { data: { userId: member.id }, headers: MUTATION_HEADERS })
+		expect(forbiddenAdd.status()).toBe(403)
+		expect((await readApiError(forbiddenAdd)).code).toBe('FORBIDDEN')
+		const admin = await playwright.request.newContext({ baseURL, storageState: STORAGE_STATE.ADMIN })
+		await addMember(admin, created.id, member.id)
+		const alreadyMember = await admin.post(projectMembersApi(created.id), { data: { userId: member.id }, headers: MUTATION_HEADERS })
+		expect(alreadyMember.status()).toBe(409)
+		expect((await readApiError(alreadyMember)).code).toBe('ALREADY_MEMBER')
+		await admin.dispose()
 		const members = (await (await request.get(projectMembersApi(created.id))).json()) as { members: { email: string }[] }
 		expect(members.members.map(({ email }) => email)).toEqual([editor.email, member.email])
+		const forbiddenRemove = await request.delete(`${projectMembersApi(created.id)}/${member.id}`, { data: {}, headers: MUTATION_HEADERS })
+		expect(forbiddenRemove.status()).toBe(403)
+		expect((await readApiError(forbiddenRemove)).code).toBe('FORBIDDEN')
 
 		const left = await request.delete(projectMembershipApi(created.id), { data: {}, headers: MUTATION_HEADERS })
 		expect(left.status()).toBe(204)

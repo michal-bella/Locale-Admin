@@ -46,5 +46,5 @@ test('offers Slovak, Czech and English with decorative flags and switches to Cze
 	await page.getByRole('option', { name: 'Čeština', exact: true }).click()
 	await expect(page.getByRole('heading', { level: 1, name: 'Uživatelé' })).toBeVisible()
 	await expect(page.getByRole('button', { name: 'Přepnout na tmavý režim' })).toBeVisible()
-	await expect(page.getByRole('table', { name: 'Seznam administrátorů' }).getByRole('cell').nth(1)).toHaveText(/^\d{1,2}\.\s?\d{1,2}\.\s?\d{4}$/)
+	await expect(page.getByRole('table', { name: 'Seznam uživatelů' }).getByRole('cell').nth(3)).toHaveText(/^\d{1,2}\.\s?\d{1,2}\.\s?\d{4}$/)
 })

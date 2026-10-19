@@ -100,6 +100,8 @@ const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => 
 				ref={inputRef}
 				data-autofocus
 				searchable
+				// Focus comes back here after the nested CreateUserModal closes; the list must not open over the submit button.
+				openOnFocus={false}
 				label={t('membersPage.addModal.user.label')}
 				placeholder={t('membersPage.addModal.user.placeholder')}
 				nothingFoundMessage={t('membersPage.addModal.nothingFound')}

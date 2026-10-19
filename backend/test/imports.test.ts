@@ -302,22 +302,33 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 		expectErrorCode(res, 413, ERROR_CODE.VALIDATION_ERROR)
 	})
 
-	describe('checks access before parsing a large body', () => {
-		const largeBody = { fileName: 'a.csv', content: 'x'.repeat(13 * 1024 * 1024) }
+	describe('checks access before parsing the body', () => {
+		// A small malformed body instead of an oversized one: the server answers before the client finishes
+		// writing a multi-megabyte body, which resets the socket on the client side and makes the test flaky.
+		// Parsing this body gives 400, so any other status proves the parser ran after the access check.
+		const sendMalformed = (app: App, projectId: string, cookie?: string) => {
+			const req = request(app).post(`/api/projects/${projectId}/imports/preview`).set(CSRF_HEADERS).set('Content-Type', 'application/json')
+			return (cookie ? req.set('Cookie', cookie) : req).send('{"fileName": "a.csv", "content": ')
+		}
+
+		it('returns 400 for a member, so the parser does reject this body', async () => {
+			const app = createTestApp()
+			const { project, cookie } = await setup(app)
+
+			expectErrorCode(await sendMalformed(app, project.id, cookie), 400, ERROR_CODE.VALIDATION_ERROR)
+		})
 
 		it('returns 401 without a session', async () => {
 			const project = await createProject()
 
-			const res = await request(createTestApp()).post(`/api/projects/${project.id}/imports/preview`).set(CSRF_HEADERS).send(largeBody)
-
-			expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
+			expectErrorCode(await sendMalformed(createTestApp(), project.id), 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
 		})
 
 		it('returns 404 for a non-member', async () => {
 			const app = createTestApp()
 			const { project, cookie } = await setup(app, ROLE.EDITOR, { member: false })
 
-			expectErrorCode(await preview(app, cookie, project.id, largeBody), 404, ERROR_CODE.NOT_FOUND)
+			expectErrorCode(await sendMalformed(app, project.id, cookie), 404, ERROR_CODE.NOT_FOUND)
 		})
 	})
 

@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Detail používateľa s jeho projektmi (2026-10-19)
+
+- zdieľaný kontrakt: `adminUserDetailSchema = adminUserSchema.extend({ projects })`, položka projektu `adminUserProjectSchema { id, name, slug, primaryColor, joinedAt }`
+- backend: `GET /api/admin/users/:id` vráti používateľa s jeho projektmi zoradenými podľa názvu (`404 NOT_FOUND` pre neznáme id), pridanie a odobratie projektu používa existujúce `POST` a `DELETE /api/projects/:projectId/members` ([API](./api/admin-users.md))
+- frontend: stránka `/admin/users/$userId` (iba `ADMIN`) s kartou účtu (`UserCard`, `RoleBadge`), tabuľkou projektov s akciami Otvoriť členov a Odobrať z projektu (`UserProjectsTable`, `RemoveUserProjectModal`) a modálom Pridať do projektu so selectom projektov, v ktorých používateľ ešte nie je (`AddUserProjectModal`); riadok v tabuľke používateľov má akciu Otvoriť; kľúč `QUERY_KEYS.ADMIN.USER(id)` pod prefixom `ADMIN.USERS()` ([Frontend](./frontend.md#stránka-detail-používateľa))
+- E2E: `user-detail.spec.ts` (otvorenie z tabuľky, pridanie a odobratie projektu, odkaz na členov, neznáme id, 403 pre člena)
+
 ### Členovia projektu z existujúcich používateľov (2026-10-19)
 
 - zdieľaný kontrakt: `createUserRequestSchema` má povinné `role` (`ADMIN` / `EDITOR`), `adminUserSchema` má `projectCount`, `addProjectMemberRequestSchema { userId }` nahradil `createProjectMemberRequestSchema`, nový chybový kód `ALREADY_MEMBER` (409)

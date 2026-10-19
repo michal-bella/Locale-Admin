@@ -112,6 +112,8 @@ BE: `projectMembers.service.ts` `addProjectMember` (`projectMember.create` s `co
 
 ## Druhá časť: detail používateľa (po MVP)
 
+Hotové 2026-10-19 na vetve `feature/admin-user-detail` (viď [changelog](../changelog.md)).
+
 Stránka `/admin/users/$userId` (iba ADMIN): karta s emailom, rolou a dátumom, pod ňou tabuľka projektov používateľa s akciou Odobrať a tlačidlom Pridať do projektu (select z projektov, kde ešte nie je). Riadok v `UsersTable` dostane akciu Otvoriť (ikona šípky, ako v `AdminProjectsTable`).
 
 - Kontrakt: `adminUserDetailSchema = adminUserSchema.extend({ projects: z.array({ id, name, slug, primaryColor, joinedAt }) })`.

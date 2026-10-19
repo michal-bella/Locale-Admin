@@ -8,7 +8,7 @@ import UserMenu from '@/components/UserMenu/UserMenu'
 
 import classes from './HomeLayout.module.css'
 
-/** Layout of the project list: top bar with the brand and the user menu, no sidebar until a project is opened. */
+/** Layout of the project list: top bar with the brand instead of a sidebar, which needs an opened project. */
 const HomeLayout = () => {
 	const { t } = useTranslation()
 
@@ -20,7 +20,7 @@ const HomeLayout = () => {
 						<Brand />
 					</Link>
 				}
-				end={<UserMenu placement='header' />}
+				end={<UserMenu />}
 			/>
 			<AppShell.Main className='flex flex-col'>
 				<Outlet />

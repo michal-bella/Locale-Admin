@@ -3,7 +3,7 @@ import { expect, type Page, test } from '@playwright/test'
 import { MUTATION_HEADERS, readApiError } from '../support/api'
 import { ANONYMOUS, expectLoggedInHome, loginViaUi, STORAGE_STATE } from '../support/auth'
 import { ADMIN_EMAIL } from '../support/env'
-import { getSidebar, openUserMenu } from '../support/layout'
+import { openUserMenu } from '../support/layout'
 import { createEditor, type TestUser } from '../support/users'
 
 type Profile = { id: string; email: string; role: 'ADMIN' | 'EDITOR'; firstName: string | null; lastName: string | null; passwordChangedAt: string }
@@ -47,17 +47,17 @@ test.describe('EDITOR with a dedicated user', () => {
 		await expectLoggedInHome(page)
 	})
 
-	test('changes the name from the menu, the sidebar updates without a reload and the name persists', async ({ page }) => {
+	test('changes the name from the menu, the top bar updates without a reload and the name persists', async ({ page }) => {
 		await openProfileFromMenu(page)
 		await page.evaluate(() => Object.assign(window, { e2eNoReload: true }))
 
-		const sidebar = getSidebar(page)
+		const topBar = page.getByRole('banner')
 		const firstName = page.getByLabel('Meno', { exact: true })
 		const lastName = page.getByLabel('Priezvisko', { exact: true })
 		const save = page.getByRole('button', { name: 'Uložiť profil' })
 
-		await expect(sidebar.getByText(editor.email.slice(0, 2).toUpperCase(), { exact: true })).toBeVisible()
-		await expect(sidebar.getByText(editor.email, { exact: true })).toBeVisible()
+		await expect(topBar.getByText(editor.email.slice(0, 2).toUpperCase(), { exact: true })).toBeVisible()
+		await expect(topBar.getByText(editor.email, { exact: true })).toBeVisible()
 		await expect(page.getByRole('heading', { level: 2, name: editor.email })).toBeVisible()
 		await expect(page.getByRole('main').getByText('Editor', { exact: true })).toBeVisible()
 		await expect(firstName).toHaveValue('')
@@ -72,9 +72,9 @@ test.describe('EDITOR with a dedicated user', () => {
 		expect((await patch).status()).toBe(200)
 
 		await expect(page.getByText('Profil bol uložený.')).toBeVisible()
-		await expect(sidebar.getByText('ĽŠ', { exact: true })).toBeVisible()
-		await expect(sidebar.getByText('Ľubomír Šťastný', { exact: true })).toBeVisible()
-		await expect(sidebar.getByText(editor.email, { exact: true })).toHaveCount(0)
+		await expect(topBar.getByText('ĽŠ', { exact: true })).toBeVisible()
+		await expect(topBar.getByText('Ľubomír Šťastný', { exact: true })).toBeVisible()
+		await expect(topBar.getByText(editor.email, { exact: true })).toHaveCount(0)
 		await expect(page.getByRole('heading', { level: 2, name: 'Ľubomír Šťastný' })).toBeVisible()
 		await expect(firstName).toHaveValue('Ľubomír')
 		await expect(save).toBeDisabled()
@@ -84,7 +84,7 @@ test.describe('EDITOR with a dedicated user', () => {
 		await expect(page.getByRole('heading', PROFILE_HEADING)).toBeVisible()
 		await expect(page.getByLabel('Meno', { exact: true })).toHaveValue('Ľubomír')
 		await expect(page.getByLabel('Priezvisko', { exact: true })).toHaveValue('Šťastný')
-		await expect(getSidebar(page).getByText('ĽŠ', { exact: true })).toBeVisible()
+		await expect(topBar.getByText('ĽŠ', { exact: true })).toBeVisible()
 		expect(await getProfile(page)).toMatchObject({ email: editor.email, role: 'EDITOR', firstName: 'Ľubomír', lastName: 'Šťastný' })
 	})
 
@@ -122,10 +122,9 @@ test.describe('EDITOR', () => {
 		const email = page.getByLabel('E-mailová adresa', { exact: true })
 		await expect(email).toHaveValue(profile.email)
 		await expect(email).toBeDisabled()
-		const position = page.getByLabel('Pracovná pozícia', { exact: true })
-		await expect(position).toHaveValue('')
-		await expect(position).toHaveAttribute('placeholder', 'Napr. Product manager')
-		await expect(position).toBeDisabled()
+		const role = page.getByLabel('Rola', { exact: true })
+		await expect(role).toHaveValue('Editor')
+		await expect(role).toBeDisabled()
 
 		for (const name of [/^Zmienky a komentáre/, /^Preklady na kontrolu/, /^Importy a exporty/]) {
 			const toggle = page.getByRole('switch', { name })

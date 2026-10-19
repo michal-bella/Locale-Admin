@@ -23,7 +23,7 @@ const getSaveButton = () => screen.getByRole('button', { name: 'Uložiť profil'
 
 const getMain = () => within(screen.getByRole('main'))
 
-const getSidebar = () => within(screen.getByRole('complementary'))
+const getTopBar = () => within(screen.getByRole('banner'))
 
 const renderProfile = async () => {
 	renderApp('/profile')
@@ -53,7 +53,7 @@ describe('ProfilePage', () => {
 		expect(screen.getByLabelText('Meno')).toHaveValue('Martin')
 		expect(screen.getByLabelText('Priezvisko')).toHaveValue('Kováč')
 		expect(screen.getByRole('heading', { level: 2, name: 'Martin Kováč' })).toBeInTheDocument()
-		expect(getMain().getByText('Administrátor')).toBeInTheDocument()
+		expect(getMain().getByText('Administrátor', { selector: 'p' })).toBeInTheDocument()
 		expect(screen.getByText('Heslo bolo naposledy zmenené pred 3 mesiacmi.')).toBeInTheDocument()
 	})
 
@@ -64,7 +64,9 @@ describe('ProfilePage', () => {
 		expect(screen.getByLabelText('Meno')).toHaveValue('')
 		expect(screen.getByLabelText('Priezvisko')).toHaveValue('')
 		expect(screen.getByRole('heading', { level: 2, name: EDITOR_USER.email })).toBeInTheDocument()
-		expect(getMain().getByText('Editor')).toBeInTheDocument()
+		expect(getMain().getByText('Editor', { selector: 'p' })).toBeInTheDocument()
+		expect(screen.getByRole('combobox', { name: 'Rola' })).toHaveValue('Editor')
+		expect(screen.getByRole('combobox', { name: 'Rola' })).toBeDisabled()
 	})
 
 	it('shows the controls outside the MVP as disabled', async () => {
@@ -73,9 +75,8 @@ describe('ProfilePage', () => {
 
 		expect(screen.getByLabelText('E-mailová adresa')).toBeDisabled()
 		expect(screen.getByLabelText('E-mailová adresa')).toHaveValue(ADMIN_USER.email)
-		expect(screen.getByLabelText('Pracovná pozícia')).toBeDisabled()
-		expect(screen.getByLabelText('Pracovná pozícia')).toHaveValue('')
-		expect(screen.getByLabelText('Pracovná pozícia')).toHaveAttribute('placeholder', 'Napr. Product manager')
+		expect(screen.getByRole('combobox', { name: 'Rola' })).toHaveValue('Administrátor')
+		expect(screen.getByRole('combobox', { name: 'Rola' })).toBeEnabled()
 		const switches = within(screen.getByRole('group', { name: 'E-mailové oznámenia' })).getAllByRole('switch')
 		expect(switches).toHaveLength(3)
 		switches.forEach((toggle) => {
@@ -146,29 +147,66 @@ describe('ProfilePage', () => {
 		expect(screen.getByLabelText('Meno')).toHaveValue('Peter')
 	})
 
-	it('saves the trimmed names, notifies and updates the card and the sidebar user block', async () => {
+	it('saves the trimmed names, notifies and updates the card and the top-bar user block', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		const requests = signedInAs(ADMIN_USER, {
 			'GET /profile': { status: 200, data: ADMIN_PROFILE },
 			'PATCH /profile': { status: 200, data: { ...ADMIN_PROFILE, firstName: 'Peter', lastName: 'Novák' } },
 		})
 		await renderProfile()
-		expect(getSidebar().getByText('MK')).toBeInTheDocument()
-		expect(getSidebar().getByText('Martin Kováč')).toBeInTheDocument()
+		expect(getTopBar().getByText('MK')).toBeInTheDocument()
+		expect(getTopBar().getByText('Martin Kováč')).toBeInTheDocument()
 
 		fillNames('  Peter ', 'Novák  ')
 		fireEvent.click(getSaveButton())
 
 		expect(await screen.findByRole('heading', { level: 2, name: 'Peter Novák' })).toBeInTheDocument()
-		expect(getSidebar().getByText('PN')).toBeInTheDocument()
-		expect(getSidebar().getByText('Peter Novák')).toBeInTheDocument()
+		expect(getTopBar().getByText('PN')).toBeInTheDocument()
+		expect(getTopBar().getByText('Peter Novák')).toBeInTheDocument()
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Profil bol uložený.' }))
 		const patches = requests.filter((request) => request.method === 'patch' && request.url === '/profile')
 		expect(patches).toHaveLength(1)
-		expect(JSON.parse(patches[0]?.data as string)).toEqual({ firstName: 'Peter', lastName: 'Novák' })
+		expect(JSON.parse(patches[0]?.data as string)).toEqual({ firstName: 'Peter', lastName: 'Novák', role: 'ADMIN' })
 		expect(screen.getByLabelText('Meno')).toHaveValue('Peter')
 		await waitFor(() => expect(getSaveButton()).toBeDisabled())
 		expect(requests.filter((request) => request.url === '/auth/me')).toHaveLength(1)
+	})
+
+	it('lets an admin pick the Editor role and saves it with the names', async () => {
+		const requests = signedInAs(ADMIN_USER, {
+			'GET /profile': { status: 200, data: ADMIN_PROFILE },
+			'PATCH /profile': { status: 200, data: { ...ADMIN_PROFILE, role: 'EDITOR' } },
+		})
+		await renderProfile()
+
+		fireEvent.click(screen.getByRole('combobox', { name: 'Rola' }))
+		const options = await screen.findAllByRole('option')
+		expect(options.map((option) => option.textContent)).toEqual(['Administrátor', 'Editor'])
+		fireEvent.click(screen.getByRole('option', { name: 'Editor' }))
+		expect(getSaveButton()).toBeEnabled()
+		fireEvent.click(getSaveButton())
+
+		await waitFor(() => expect(getMain().getByText('Editor', { selector: 'p' })).toBeInTheDocument())
+		const patches = requests.filter((request) => request.method === 'patch' && request.url === '/profile')
+		expect(patches).toHaveLength(1)
+		expect(JSON.parse(patches[0]?.data as string)).toEqual({ firstName: 'Martin', lastName: 'Kováč', role: 'EDITOR' })
+		expect(screen.getByRole('combobox', { name: 'Rola' })).toHaveValue('Editor')
+		expect(screen.getByRole('combobox', { name: 'Rola' })).toBeDisabled()
+	})
+
+	it('shows the last admin error as a notification', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		signedInAs(ADMIN_USER, { 'GET /profile': { status: 200, data: ADMIN_PROFILE }, 'PATCH /profile': apiError(409, 'LAST_ADMIN') })
+		await renderProfile()
+
+		fireEvent.click(screen.getByRole('combobox', { name: 'Rola' }))
+		fireEvent.click(await screen.findByRole('option', { name: 'Editor' }))
+		fireEvent.click(getSaveButton())
+
+		await waitFor(() =>
+			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Posledný administrátor sa nemôže vzdať svojej roly.' })),
+		)
+		expect(getMain().getByText('Administrátor', { selector: 'p' })).toBeInTheDocument()
 	})
 
 	it('sends one request when the form is submitted twice while pending', async () => {
@@ -232,7 +270,12 @@ describe('ProfilePage', () => {
 
 		expect(screen.getByLabelText('Jazyk rozhrania')).toHaveValue('Slovenčina')
 		fireEvent.click(screen.getByLabelText('Jazyk rozhrania'))
-		fireEvent.click(await screen.findByRole('option', { name: 'English' }))
+		const options = await screen.findAllByRole('option')
+		expect(options.map((option) => option.textContent)).toEqual(['Slovenčina', 'Čeština', 'English'])
+		for (const option of options) {
+			expect(option.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+		}
+		fireEvent.click(screen.getByRole('option', { name: 'English' }))
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'My profile' })).toBeInTheDocument()
 		expect(screen.getByLabelText('Interface language')).toHaveValue('English')
@@ -247,7 +290,7 @@ describe('ProfilePage', () => {
 		renderApp('/profile')
 
 		expect(await screen.findByText('Password was last changed 3 months ago.')).toBeInTheDocument()
-		expect(getMain().getByText('Administrator')).toBeInTheDocument()
+		expect(getMain().getByText('Administrator', { selector: 'p' })).toBeInTheDocument()
 	})
 
 	it('opens from the user menu', async () => {

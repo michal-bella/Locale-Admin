@@ -9,6 +9,6 @@ export type TopBarProps = {
 	burgerRef?: Ref<HTMLButtonElement>
 	/** Left side, e.g. the brand when there is no sidebar. */
 	start?: ReactNode
-	/** Right side after the bell, e.g. the user menu when there is no sidebar. */
+	/** Right side after the theme switcher, the user menu in both layouts. */
 	end?: ReactNode
 }

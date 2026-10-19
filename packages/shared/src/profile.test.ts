@@ -5,11 +5,14 @@ import { toValidationIssues, VALIDATION_CODE } from './errors'
 import { PERSON_NAME_MAX_LENGTH, profileSchema, updatePreferencesRequestSchema, updateProfileRequestSchema } from './profile'
 
 describe('updateProfileRequestSchema', () => {
-	it('trims names and drops fields that are not editable', () => {
+	it('trims names, keeps the optional role and drops the email', () => {
 		expect(updateProfileRequestSchema.parse({ firstName: ' Martin ', lastName: ' Kováč ', email: 'other@firma.sk', role: ROLE.ADMIN })).toEqual({
 			firstName: 'Martin',
 			lastName: 'Kováč',
+			role: ROLE.ADMIN,
 		})
+		expect(updateProfileRequestSchema.parse({ firstName: 'Martin', lastName: 'Kováč' })).toEqual({ firstName: 'Martin', lastName: 'Kováč' })
+		expect(updateProfileRequestSchema.safeParse({ firstName: 'Martin', lastName: 'Kováč', role: 'OWNER' }).success).toBe(false)
 	})
 
 	it('maps missing, blank and too long names to shared codes', () => {

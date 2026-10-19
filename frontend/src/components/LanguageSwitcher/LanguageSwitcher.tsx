@@ -16,18 +16,27 @@ const LANGUAGE_FLAG = {
 	[LANGUAGE.EN]: GB,
 } as const satisfies Record<LANGUAGE, unknown>
 
+type Props = {
+	/** `topBar` (default) is the compact field with its own accessible name; `form` is a theme-sized field labelled by `id`. */
+	variant?: 'topBar' | 'form'
+	id?: string
+	className?: string
+}
+
 /** Switches the UI language without a reload; `lib/i18n` stores the choice in localStorage. */
-const LanguageSwitcher = () => {
+const LanguageSwitcher = ({ variant = 'topBar', id, className }: Props) => {
 	const { t, i18n } = useTranslation()
 	const language = isLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE
 	const Flag = LANGUAGE_FLAG[language]
+	const inTopBar = variant === 'topBar'
 
 	return (
 		<Select
-			className={classes.root}
+			id={id}
+			className={inTopBar ? classes.root : className}
 			// The theme's 44 px form inputs are too tall for the top bar; 38 px matches the theme switcher.
-			styles={{ wrapper: { '--input-height': rem(38), '--input-radius': 'var(--mantine-radius-md)' } }}
-			aria-label={t('topBar.language')}
+			styles={inTopBar ? { wrapper: { '--input-height': rem(38), '--input-radius': 'var(--mantine-radius-md)' } } : undefined}
+			aria-label={inTopBar ? t('topBar.language') : undefined}
 			value={language}
 			onChange={(value) => value && void i18n.changeLanguage(value)}
 			allowDeselect={false}

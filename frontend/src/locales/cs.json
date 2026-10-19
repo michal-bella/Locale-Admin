@@ -571,10 +571,7 @@
 			"firstName": "Jméno",
 			"lastName": "Příjmení",
 			"email": "E-mailová adresa",
-			"position": {
-				"label": "Pracovní pozice",
-				"placeholder": "Např. Product manager"
-			}
+			"role": "Role"
 		},
 		"preferences": {
 			"title": "Předvolby",
@@ -735,6 +732,7 @@
 		"LAST_MEMBER": "Projekt musí mít alespoň jednoho člena.",
 		"ALREADY_MEMBER": "Uživatel už je členem projektu.",
 		"SELF_DELETE": "Vlastní účet nemůžete odstranit.",
+		"LAST_ADMIN": "Poslední administrátor se nemůže vzdát své role.",
 		"IMPORT_FILE_INVALID": "Soubor obsahuje chyby. Opravte je a nahrajte ho znovu.",
 		"IMPORT_FILE_TOO_LARGE": "Soubor je příliš velký. Maximální velikost je 10 MB.",
 		"IMPORT_COLUMNS_INVALID": "Přiřazení sloupců k jazykům je neplatné. Zkontrolujte jazyky a zkuste to znovu.",

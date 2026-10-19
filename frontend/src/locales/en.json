@@ -565,10 +565,7 @@
 			"firstName": "First name",
 			"lastName": "Last name",
 			"email": "Email address",
-			"position": {
-				"label": "Job title",
-				"placeholder": "E.g. Product manager"
-			}
+			"role": "Role"
 		},
 		"preferences": {
 			"title": "Preferences",
@@ -729,6 +726,7 @@
 		"LAST_MEMBER": "A project must have at least one member.",
 		"ALREADY_MEMBER": "The user is already a member of the project.",
 		"SELF_DELETE": "You cannot delete your own account.",
+		"LAST_ADMIN": "The last administrator cannot give up the role.",
 		"IMPORT_FILE_INVALID": "The file contains errors. Fix them and upload it again.",
 		"IMPORT_FILE_TOO_LARGE": "The file is too large. The maximum size is 10 MB.",
 		"IMPORT_COLUMNS_INVALID": "The column-to-language mapping is invalid. Check the languages and try again.",

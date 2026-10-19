@@ -5,7 +5,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
-import { ERROR_CODE, type Profile, toValidationCode, type UpdateProfileRequest, updateProfileRequestSchema } from '@locale/shared'
+import { ERROR_CODE, type Profile, ROLE, toValidationCode, type UpdateProfileRequest, updateProfileRequestSchema } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import getApiErrorDetails from '@/api/getApiErrorDetails'
@@ -17,15 +17,16 @@ import SecuritySection from '@/components/SecuritySection/SecuritySection'
 
 import { type ProfileFormProps } from './types'
 
-const toFormValues = ({ firstName, lastName }: Profile): UpdateProfileRequest => ({ firstName: firstName ?? '', lastName: lastName ?? '' })
+const toFormValues = ({ firstName, lastName, role }: Profile): UpdateProfileRequest => ({ firstName: firstName ?? '', lastName: lastName ?? '', role })
 
-/** Profile page body (Figma 3:1762). "Uložiť profil" saves only the first and last name. */
+/** Profile page body (Figma 3:1762). "Uložiť profil" saves the first and last name and, for an ADMIN, the global role. */
 const ProfileForm = ({ profile, focusFirstField = false }: ProfileFormProps) => {
 	const { t } = useTranslation()
 	const updateProfile = useUpdateProfileMutation()
 	const { isPending } = updateProfile
 	const {
 		register,
+		control,
 		handleSubmit,
 		setError,
 		setFocus,
@@ -74,7 +75,7 @@ const ProfileForm = ({ profile, focusFirstField = false }: ProfileFormProps) => 
 	return (
 		<form onSubmit={(event) => void onSubmit(event)} noValidate className='flex flex-col gap-5'>
 			<ProfileCard profile={profile} />
-			<PersonalDetailsSection register={register} errors={errors} email={profile.email} />
+			<PersonalDetailsSection register={register} errors={errors} control={control} email={profile.email} canChangeRole={profile.role === ROLE.ADMIN} />
 			<PreferencesSection />
 			<SecuritySection passwordChangedAt={profile.passwordChangedAt} />
 			<div className='flex justify-end'>

@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Profil: jazyk ako v hornej lište a vlastná rola (2026-10-19)
+
+- frontend: **Jazyk rozhrania** na Môj profil je `LanguageSwitcher` vo variante `form`, takže má v možnostiach vlajky ako prepínač v hornej lište ([Frontend](./frontend.md#stránka-môj-profil))
+- API: `PATCH /api/profile` prijme voliteľné `role`; inú rolu môže poslať iba `ADMIN` (403 `FORBIDDEN`) a nie posledný (409 `LAST_ADMIN`) ([API](./api/profile.md#patch-apiprofile))
+- frontend: v Osobných údajoch nahradil disabled **Pracovná pozícia** select **Rola** (Administrátor / Editor); `ADMIN` si ju môže zmeniť, `EDITOR` ju vidí disabled
+- frontend: blok používateľa s menu `⋯` je v hornej lište na každej prihlásenej stránke (ako na zozname projektov), zo sidebaru zmizol ([Frontend](./frontend.md#používateľ-v-hornej-lište-usermenu))
+
 ### Členovia projektu ako tabuľka používateľov (2026-10-19)
 
 - API: `ProjectMember` v `GET /api/projects/:projectId/members` a `201 POST` nesie aj `role` a `projectCount` ([API](./api/projects.md#členovia))

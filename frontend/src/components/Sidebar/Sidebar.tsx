@@ -11,7 +11,6 @@ import { projectSettingsQueryOptions } from '@/api/projectSettings/projectSettin
 import Brand from '@/components/Brand/Brand'
 import { ArrowRight, Globe, Settings, Shield, Translate, Users } from '@/components/Icons'
 import ProjectSwitcher from '@/components/ProjectSwitcher/ProjectSwitcher'
-import UserMenu from '@/components/UserMenu/UserMenu'
 
 import classes from './Sidebar.module.css'
 import { type SidebarProps } from './types'
@@ -111,7 +110,6 @@ const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 					</>
 				)}
 			</nav>
-			<UserMenu onNavigate={onClose} />
 		</AppShell.Navbar>
 	)
 }

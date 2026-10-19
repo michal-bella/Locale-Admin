@@ -17,7 +17,7 @@ export const createUpdateProfileController =
 	(prisma: PrismaClient): RequestHandler =>
 	async (req, res) => {
 		const input = updateProfileRequestSchema.parse(req.body)
-		const body: Profile = await updateProfile(prisma, getAuth(req).user.id, input)
+		const body: Profile = await updateProfile(prisma, getAuth(req).user, input)
 		res.status(200).json(body)
 	}
 

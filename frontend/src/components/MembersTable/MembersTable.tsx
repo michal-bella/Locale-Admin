@@ -3,7 +3,7 @@ import { useDisclosure } from '@mantine/hooks'
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { getInitials, type ProjectMember } from '@locale/shared'
+import { getInitials, type ProjectMember, ROLE } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -19,8 +19,9 @@ import { type MembersTableProps } from './types'
 const SKELETON_ROWS = 3
 
 /**
- * Members of a project in a card, same look and states as the users table. Every member can remove another one;
- * the own row has no remove button, leaving goes through Opustiť projekt.
+ * Members of a project in a card, same look and states as the users table. Only an ADMIN removes members; the actions
+ * column stays for a member so the layout does not depend on the role. The own row has no remove button, leaving goes
+ * through Opustiť projekt.
  */
 const MembersTable = ({ projectId }: MembersTableProps) => {
 	const { t, i18n } = useTranslation()
@@ -30,6 +31,7 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 	const triggerRef = useRef<HTMLButtonElement | null>(null)
 	const [removeOpened, removeModal] = useDisclosure(false)
 	const [removing, setRemoving] = useState<ProjectMember | null>(null)
+	const isAdmin = me?.role === ROLE.ADMIN
 
 	const openRemove = (member: ProjectMember, trigger: HTMLButtonElement | null) => {
 		triggerRef.current = trigger
@@ -124,7 +126,7 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 						<Text size='xs'>{formatDate(member.createdAt, i18n.language)}</Text>
 					</Table.Td>
 					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-						{member.id !== me?.id && (
+						{isAdmin && member.id !== me.id && (
 							<RowAction
 								icon={UserMinus}
 								tooltip={t('membersPage.table.remove')}

@@ -11,4 +11,4 @@ export const adminUsersQueryOptions = queryOptions({
 	queryFn: async () => (await http.get<AdminUserListResponse>('/admin/users')).data,
 })
 
-export const useAdminUsersQuery = () => useQuery(adminUsersQueryOptions)
+export const useAdminUsersQuery = (enabled = true) => useQuery({ ...adminUsersQueryOptions, enabled })

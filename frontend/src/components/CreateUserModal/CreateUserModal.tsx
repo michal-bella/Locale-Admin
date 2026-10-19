@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, Modal, Text, TextInput } from '@mantine/core'
+import { Button, Input, Modal, SegmentedControl, Text, TextInput } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useForm } from 'react-hook-form'
+import { useId } from 'react'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
-import { type CreateUserRequest, createUserRequestSchema, ERROR_CODE, PASSWORD_MIN_LENGTH, toValidationCode } from '@locale/shared'
+import { type CreateUserRequest, createUserRequestSchema, ERROR_CODE, PASSWORD_MIN_LENGTH, ROLE, toValidationCode } from '@locale/shared'
 
 import { useCreateUserMutation } from '@/api/adminUsers/useCreateUserMutation'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -14,13 +15,15 @@ import { Close } from '@/components/Icons'
 import classes from './CreateUserModal.module.css'
 import { type CreateUserModalProps } from './types'
 
-/** "Nový používateľ" modal (Figma 28:191). A new user is always an EDITOR, so there is no role field. */
-const CreateUserModal = ({ opened, onClose }: CreateUserModalProps) => {
+/** "Nový používateľ" modal (Figma 28:191) with the global role (Admin / Člen). Members of projects are added from these users. */
+const CreateUserModal = ({ opened, onClose, defaultRole = ROLE.EDITOR, onCreated }: CreateUserModalProps) => {
 	const { t } = useTranslation()
+	const roleId = useId()
 	const createUser = useCreateUserMutation()
 	const { isPending } = createUser
 	const {
 		register,
+		control,
 		handleSubmit,
 		setError,
 		reset,
@@ -33,8 +36,9 @@ const CreateUserModal = ({ opened, onClose }: CreateUserModalProps) => {
 				return t(`validation.${code}`, params)
 			},
 		}),
-		defaultValues: { email: '', password: '' },
+		defaultValues: { email: '', password: '', role: defaultRole },
 	})
+	const role = useWatch({ control, name: 'role' })
 
 	const resetAndClose = () => {
 		reset()
@@ -56,6 +60,7 @@ const CreateUserModal = ({ opened, onClose }: CreateUserModalProps) => {
 			onSuccess: (user) => {
 				notifications.show({ color: 'green', message: t('usersPage.createModal.success', { email: user.email }) })
 				resetAndClose()
+				onCreated?.(user)
 			},
 			onError: (error) => {
 				const code = getApiErrorCode(error)
@@ -120,6 +125,31 @@ const CreateUserModal = ({ opened, onClose }: CreateUserModalProps) => {
 								error={errors.password?.message}
 								{...register('password')}
 							/>
+							<Input.Wrapper
+								id={roleId}
+								label={t('usersPage.createModal.role.label')}
+								description={t(`usersPage.createModal.role.description.${role}`)}
+								inputWrapperOrder={['label', 'input', 'description']}
+							>
+								<Controller
+									name='role'
+									control={control}
+									render={({ field }) => (
+										<SegmentedControl
+											aria-labelledby={`${roleId}-label`}
+											aria-describedby={`${roleId}-description`}
+											fullWidth
+											disabled={isPending}
+											value={field.value}
+											onChange={field.onChange}
+											data={[
+												{ value: ROLE.ADMIN, label: t('roles.ADMIN') },
+												{ value: ROLE.EDITOR, label: t('roles.EDITOR') },
+											]}
+										/>
+									)}
+								/>
+							</Input.Wrapper>
 						</div>
 						<div className={`${classes.footer} flex justify-end gap-2`}>
 							<Button variant='default' onClick={handleClose} disabled={isPending}>

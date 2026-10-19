@@ -19,6 +19,7 @@ const MEGABYTE = 1024 * 1024
 const ImportDropzone = ({ file, onSelect, disabled = false, error }: ImportDropzoneProps) => {
 	const { t, i18n } = useTranslation()
 	const inputId = useId()
+	const promptId = useId()
 	const hintId = useId()
 	const errorId = useId()
 	const [dragging, setDragging] = useState(false)
@@ -61,7 +62,7 @@ const ImportDropzone = ({ file, onSelect, disabled = false, error }: ImportDropz
 					className={classes.input}
 					disabled={disabled}
 					aria-label={t('importModal.dropzone.label')}
-					aria-describedby={error ? `${hintId} ${errorId}` : hintId}
+					aria-describedby={error ? `${promptId} ${hintId} ${errorId}` : `${promptId} ${hintId}`}
 					aria-invalid={error ? true : undefined}
 					onChange={(event) => {
 						pick(event.target.files)
@@ -73,7 +74,7 @@ const ImportDropzone = ({ file, onSelect, disabled = false, error }: ImportDropz
 					<Upload aria-hidden width={22} height={22} />
 				</span>
 				<span className='flex flex-col gap-1.5'>
-					<Text component='span' size='sm' fw={600} c='var(--app-color-text-strong)' className={classes.prompt}>
+					<Text component='span' id={promptId} size='sm' fw={600} c='var(--app-color-text-strong)' className={classes.prompt}>
 						{file ? file.name : t('importModal.dropzone.prompt')}
 					</Text>
 					<Text component='span' id={hintId} size='xs'>

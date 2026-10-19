@@ -250,6 +250,8 @@
 			"skip": "Skip",
 			"skipButton": "Skip",
 			"addLanguage": "Add language",
+			"addLanguageLabel": "Add language {{tag}}",
+			"skipColumnLabel": "Skip column {{tag}}",
 			"notInProject": "Language {{tag}} is not in the project.",
 			"unknownLanguage": "Language {{tag}} is not in the catalog. Map the column to a project language or skip it.",
 			"warningsButton_one": "{{count}} warning for column {{tag}}",

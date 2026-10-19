@@ -1,7 +1,7 @@
 import { Button, Checkbox, Collapse, Text } from '@mantine/core'
-import { useDisclosure, useMediaQuery } from '@mantine/hooks'
+import { useDidUpdate, useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
-import { useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -66,6 +66,15 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 	const [addingTag, setAddingTag] = useState<string | null>(null)
 	const [importError, setImportError] = useState<string>()
 	const [placeholdersOpened, placeholders] = useDisclosure(false)
+	const stepRef = useRef<HTMLHeadingElement>(null)
+	const placeholdersId = useId()
+
+	// The footer button that triggered the step change is disabled or replaced, so focus would fall back to the body otherwise.
+	useDidUpdate(() => {
+		if (opened) {
+			stepRef.current?.focus()
+		}
+	}, [step])
 
 	const isPending = previewMutation.isPending || importMutation.isPending || createLanguage.isPending
 
@@ -264,7 +273,7 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 			fullScreen={isMobile}
 			footer={footer}
 		>
-			<Text size='xs' fw={600} tt='uppercase' className={classes.step} aria-live='polite'>
+			<Text component='h3' ref={stepRef} tabIndex={-1} size='xs' fw={600} tt='uppercase' className={classes.step}>
 				{step === 'UPLOAD' ? t('importModal.steps.upload') : t('importModal.steps.review')}
 			</Text>
 			{step === 'UPLOAD' && (
@@ -294,7 +303,7 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 						disabled={isPending}
 					/>
 					<div className={`${classes.summary} flex flex-col gap-2`}>
-						<Text size='sm' fw={700} c='var(--app-color-title)'>
+						<Text component='h4' size='sm' fw={700} c='var(--app-color-title)'>
 							{t('importModal.review.summary.title')}
 						</Text>
 						<ul className={classes.summaryList}>
@@ -316,11 +325,12 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 									className='self-start'
 									rightSection={<ChevronDown aria-hidden width={12} height={12} />}
 									aria-expanded={placeholdersOpened}
+									aria-controls={placeholdersId}
 									onClick={placeholders.toggle}
 								>
 									{t('importModal.review.summary.placeholderToggle', { count: placeholderMismatches.length })}
 								</Button>
-								<Collapse expanded={placeholdersOpened}>
+								<Collapse id={placeholdersId} expanded={placeholdersOpened}>
 									<ImportIssueList
 										title={t('importModal.review.summary.placeholderTitle')}
 										issues={placeholderMismatches}

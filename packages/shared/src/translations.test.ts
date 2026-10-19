@@ -16,7 +16,7 @@ describe('translationsQuerySchema', () => {
 	it('applies defaults and treats empty strings as no filter', () => {
 		expect(
 			translationsQuerySchema.parse({ sourceLanguageId: SOURCE_ID, targetLanguageId: TARGET_ID, search: '  ', status: '', namespace: '', sort: '' }),
-		).toEqual({ sourceLanguageId: SOURCE_ID, targetLanguageId: TARGET_ID, sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 50 })
+		).toEqual({ sourceLanguageId: SOURCE_ID, targetLanguageId: TARGET_ID, sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 20 })
 	})
 
 	it('coerces numbers from query strings and trims search', () => {
@@ -32,7 +32,7 @@ describe('translationsQuerySchema', () => {
 	})
 
 	it('accepts no languages (extended view) but not one of the two', () => {
-		expect(translationsQuerySchema.parse({ sourceLanguageId: '', targetLanguageId: '' })).toEqual({ sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 50 })
+		expect(translationsQuerySchema.parse({ sourceLanguageId: '', targetLanguageId: '' })).toEqual({ sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 20 })
 		const result = translationsQuerySchema.safeParse({ sourceLanguageId: SOURCE_ID })
 		expect(result.success ? [] : toValidationIssues(result.error)).toEqual([{ path: 'targetLanguageId', code: VALIDATION_CODE.REQUIRED }])
 	})

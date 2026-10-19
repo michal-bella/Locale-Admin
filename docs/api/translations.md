@@ -52,7 +52,7 @@ Parametre v query (schéma `translationsQuerySchema`). Prázdny reťazec znamen�
 | `namespace`        | string | nie     | presná zhoda namespace                                                                                 |
 | `sort`             | enum   | nie     | `UNTRANSLATED_FIRST` (predvolené), `KEY`, `UPDATED`                                                    |
 | `page`             | číslo  | nie     | od 1, predvolene 1                                                                                     |
-| `pageSize`         | číslo  | nie     | 1 až 100, predvolene 50                                                                                |
+| `pageSize`         | číslo  | nie     | 1 až 100, predvolene 20                                                                                |
 
 Znaky `%`, `_` a `\` vo vyhľadávaní sa berú doslovne. Hodnoty idú do SQL iba ako parametre.
 
@@ -112,7 +112,7 @@ Položka `items[]`:
 	],
 	"total": 1,
 	"page": 1,
-	"pageSize": 50,
+	"pageSize": 20,
 	"stats": { "totalKeys": 30, "translated": 18, "untranslated": 12 },
 	"namespaces": ["loc", "paths"]
 }

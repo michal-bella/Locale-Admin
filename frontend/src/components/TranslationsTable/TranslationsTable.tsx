@@ -8,6 +8,7 @@ import getApiErrorCode from '@/api/getApiErrorCode'
 import { Upload } from '@/components/Icons'
 import TranslationEditor from '@/components/TranslationEditor/TranslationEditor'
 import TranslationText from '@/components/TranslationText/TranslationText'
+import { formatDateTime } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 
 import classes from './TranslationsTable.module.css'
@@ -56,6 +57,12 @@ const TranslationsTable = ({
 		}
 	}
 
+	// Zrušiť filtre disappears with the rows that replace it, so the focus moves to the table instead of the body.
+	const clearFilters = () => {
+		onClearFilters()
+		tableRef.current?.focus()
+	}
+
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr>
 			<Table.Td colSpan={COLUMNS} className={`${classes.td} ${classes.state}`}>
@@ -75,7 +82,9 @@ const TranslationsTable = ({
 					{item.target.updatedAt && (
 						<>
 							<span aria-hidden className={classes.metaDot} />
-							<span>{formatRelativeTime(item.target.updatedAt, i18n.language, now, 'short')}</span>
+							<time dateTime={item.target.updatedAt} title={formatDateTime(item.target.updatedAt, i18n.language)}>
+								{formatRelativeTime(item.target.updatedAt, i18n.language, now, 'short')}
+							</time>
 						</>
 					)}
 				</span>
@@ -129,7 +138,7 @@ const TranslationsTable = ({
 		}
 		if (isError) {
 			return stateRow(
-				<div className='flex flex-col items-center gap-1'>
+				<div role='alert' className='flex flex-col items-center gap-1'>
 					<Text size='sm' fw={600} c='var(--app-color-text-strong)'>
 						{t('translationsPage.table.loadError')}
 					</Text>
@@ -154,7 +163,7 @@ const TranslationsTable = ({
 			return stateRow(
 				<div className='flex flex-col items-center gap-4'>
 					<Text size='sm'>{t('translationsPage.table.noResults')}</Text>
-					<Button variant='default' onClick={onClearFilters}>
+					<Button variant='default' onClick={clearFilters}>
 						{t('translationsPage.table.clearFilters')}
 					</Button>
 				</div>,

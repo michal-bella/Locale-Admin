@@ -95,6 +95,11 @@
 	font-weight: 600;
 }
 
+/* Mantine's light badge text (teal-9 on teal-1) is 4.3:1; a touch of black takes it over 4.5:1 without changing the tint. */
+[data-mantine-color-scheme='light'] .status {
+	color: color-mix(in srgb, var(--badge-color) 85%, var(--mantine-color-black));
+}
+
 .statusDot {
 	display: block;
 	width: 6px;

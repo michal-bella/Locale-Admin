@@ -52,7 +52,7 @@ const TranslationStats = ({ stats }: TranslationStatsProps) => {
 	const { t } = useTranslation()
 
 	return (
-		<div className='grid grid-cols-1 gap-3 md:grid-cols-3'>
+		<div aria-busy={stats === undefined} className='grid grid-cols-1 gap-3 md:grid-cols-3'>
 			<StatCard label={t('translationsPage.stats.totalKeys')} value={stats?.totalKeys} icon={Key} tone='brand' />
 			<StatCard
 				label={t('translationsPage.stats.translated')}

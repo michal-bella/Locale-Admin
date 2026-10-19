@@ -218,7 +218,10 @@
 			"totalKeys": "Celkom kľúčov",
 			"translated": "Preložené",
 			"missing": "Chýbajúce",
-			"progressLabel": "{{label}}: {{percent}} %"
+			"progressLabel": "{{label}}: {{percent}} %",
+			"showTranslated": "Zobraziť preložené",
+			"showMissing": "Zobraziť chýbajúce",
+			"showAll": "Zobraziť všetky"
 		},
 		"toolbar": {
 			"search": {

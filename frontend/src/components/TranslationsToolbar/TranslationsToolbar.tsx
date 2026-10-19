@@ -7,6 +7,7 @@ import { type Language, TRANSLATIONS_SEARCH_MAX_LENGTH, translationsSortSchema, 
 
 import { ArrowRight, Search } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
+import TranslationStatusBadge from '@/components/TranslationStatusBadge/TranslationStatusBadge'
 import { findSupportedLanguage } from '@/lib/languageOptions'
 
 import classes from './TranslationsToolbar.module.css'
@@ -25,6 +26,11 @@ const renderLanguageOption = ({ option }: ComboboxLikeRenderOptionInput<Combobox
 			{language && <span className={classes.optionHint}>{language.nativeName}</span>}
 		</span>
 	)
+}
+
+const renderStatusOption = ({ option }: ComboboxLikeRenderOptionInput<ComboboxItem>) => {
+	const parsed = translationStatusSchema.safeParse(option.value)
+	return parsed.success ? <TranslationStatusBadge status={parsed.data} /> : option.label
 }
 
 const LanguageSelect = ({
@@ -120,6 +126,7 @@ const TranslationsToolbar = ({
 					const parsed = translationStatusSchema.safeParse(value)
 					onChange({ status: parsed.success ? parsed.data : undefined })
 				}}
+				renderOption={renderStatusOption}
 				allowDeselect={false}
 				withScrollArea={false}
 			/>

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { IMPORT_KEY_MAX_BYTES } from './imports'
 import { PLURAL_VARIABLE_DEFAULT, PLURAL_VARIABLE_MAX_LENGTH, PLURAL_VARIABLE_PATTERN } from './plurals'
 
-export const TRANSLATIONS_PAGE_SIZE_DEFAULT = 50
+export const TRANSLATIONS_PAGE_SIZE_DEFAULT = 20
 
 export const TRANSLATIONS_PAGE_SIZE_MAX = 100
 

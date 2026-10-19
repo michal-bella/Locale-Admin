@@ -1,4 +1,6 @@
+/* Positioned so the VisuallyHidden label stays inside the button; otherwise its static position in a scrolled table widens the page. */
 .button {
+	position: relative;
 	display: block;
 	width: 100%;
 	padding: 0.5rem;
@@ -23,4 +25,12 @@
 .button:focus-visible {
 	outline: 2px solid var(--mantine-primary-color-filled);
 	outline-offset: 2px;
+}
+
+/* Long values stop at three lines with an ellipsis; the full text is edited in the modal. Clamping the button itself would let a fourth line peek through its padding. */
+.content {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+	overflow: hidden;
 }

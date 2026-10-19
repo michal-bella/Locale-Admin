@@ -32,3 +32,10 @@
 .track {
 	background-color: var(--app-color-border-subtle);
 }
+
+/* Sits flush with the label and value above it; the compact button would otherwise float 4 px to the right. */
+.filterButton {
+	align-self: flex-start;
+	margin-top: 0.25rem;
+	margin-inline-start: calc(var(--button-padding-x) * -1);
+}

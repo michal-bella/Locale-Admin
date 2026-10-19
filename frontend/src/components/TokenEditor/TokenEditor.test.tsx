@@ -177,7 +177,9 @@ describe('TokenEditor', () => {
 		expect(chips(renderEditor('# items').field)).toEqual([])
 	})
 
-	it('treats # as a chip for plural forms', () => {
-		expect(chips(renderEditor('# items', { pluralHash: true }).field)).toEqual(['#'])
+	it('treats # as a chip for plural forms and names it', () => {
+		const { field } = renderEditor('# items', { pluralHash: true })
+		expect(chips(field)).toEqual(['#'])
+		expect(field.querySelector('[data-token]')).toHaveAttribute('title', 'Číslo')
 	})
 })

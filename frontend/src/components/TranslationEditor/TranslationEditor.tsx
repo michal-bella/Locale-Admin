@@ -45,6 +45,7 @@ const TranslationEditor = ({ value, label, plural = null, onSave, children }: Tr
 	const rootRef = useRef<HTMLDivElement>(null)
 	const focusButtonRef = useRef(false)
 	const hintId = useId()
+	const lockedHintId = useId()
 	const errorId = useId()
 
 	useEffect(() => {
@@ -140,7 +141,7 @@ const TranslationEditor = ({ value, label, plural = null, onSave, children }: Tr
 			.filter(Boolean)
 			.join(' ')
 
-	const describedBy = mismatchMessage ? `${hintId} ${errorId}` : hintId
+	const describedBy = [hintId, lockedHintId, mismatchMessage && errorId].filter(Boolean).join(' ')
 
 	const field = (form: PluralForm, index: number) => (
 		<TokenEditor
@@ -174,12 +175,18 @@ const TranslationEditor = ({ value, label, plural = null, onSave, children }: Tr
 				<span id={hintId} className={classes.hint}>
 					{t('translationsPage.editor.hint')}
 				</span>
-				{saving && (
-					<span role='status' className={classes.saving}>
-						<Loader size='xs' />
-						<VisuallyHidden>{t('translationsPage.editor.saving')}</VisuallyHidden>
-					</span>
-				)}
+				<VisuallyHidden id={lockedHintId}>
+					{[t('translationsPage.editor.lockedHint'), plural && t('translationsPage.editor.hashHint')].filter(Boolean).join(' ')}
+				</VisuallyHidden>
+				{/* The live region exists before saving starts, otherwise screen readers may not announce it. */}
+				<span role='status' className={classes.saving}>
+					{saving && (
+						<>
+							<Loader size='xs' />
+							<VisuallyHidden>{t('translationsPage.editor.saving')}</VisuallyHidden>
+						</>
+					)}
+				</span>
 			</div>
 			{mismatchMessage && (
 				<span id={errorId} role='alert' className={classes.error}>

@@ -1,9 +1,10 @@
 import { type ClipboardEvent, type KeyboardEvent, useImperativeHandle, useLayoutEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import textClasses from '@/components/TranslationText/TranslationText.module.css'
 
 import classes from './TokenEditor.module.css'
-import { type ChipClassNames, render, selectionOffsets, serialize, setCaret } from './editorDom'
+import { type ChipClassNames, type ChipTitles, render, selectionOffsets, serialize, setCaret } from './editorDom'
 import { tokenize, tokenRanges } from './tokens'
 import { type TokenEditorProps } from './types'
 
@@ -29,6 +30,7 @@ const TokenEditor = ({
 	className,
 	ref,
 }: TokenEditorProps) => {
+	const { t } = useTranslation()
 	const rootRef = useRef<HTMLDivElement>(null)
 	const renderedRef = useRef<string | null>(null)
 	const composingRef = useRef(false)
@@ -36,13 +38,14 @@ const TokenEditor = ({
 	useImperativeHandle(ref, () => rootRef.current as HTMLDivElement)
 
 	const tokens = (text: string) => tokenize(text, { tags: true, hash: pluralHash })
+	const chipTitles: ChipTitles = { hash: t('translationsPage.plural.hash') }
 
 	const commit = (next: string, caret: number) => {
 		const root = rootRef.current
 		if (!root) {
 			return
 		}
-		render(root, tokens(next), CHIP_CLASS_NAMES)
+		render(root, tokens(next), CHIP_CLASS_NAMES, chipTitles)
 		renderedRef.current = next
 		setCaret(root, Math.min(caret, next.length))
 		onChange(next)
@@ -51,7 +54,7 @@ const TokenEditor = ({
 	useLayoutEffect(() => {
 		const root = rootRef.current
 		if (root && renderedRef.current !== value) {
-			render(root, tokens(value), CHIP_CLASS_NAMES)
+			render(root, tokens(value), CHIP_CLASS_NAMES, chipTitles)
 			renderedRef.current = value
 			if (root.ownerDocument.activeElement === root) {
 				setCaret(root, value.length)

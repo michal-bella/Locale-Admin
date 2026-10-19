@@ -142,7 +142,13 @@ const TranslationsPage = () => {
 					{t('translationsPage.importButton')}
 				</Button>
 			</div>
-			{!isError && <TranslationStats stats={isPending ? undefined : (data?.stats ?? { totalKeys: 0, translated: 0, untranslated: 0 })} />}
+			{!isError && (
+				<TranslationStats
+					stats={isPending ? undefined : (data?.stats ?? { totalKeys: 0, translated: 0, untranslated: 0 })}
+					status={search.status}
+					onStatusChange={(value) => updateSearch({ status: value })}
+				/>
+			)}
 			<div className={classes.card}>
 				<div className={classes.toolbar}>
 					<TranslationsToolbar

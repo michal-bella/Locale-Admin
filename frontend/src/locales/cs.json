@@ -218,7 +218,10 @@
 			"totalKeys": "Celkem klíčů",
 			"translated": "Přeložené",
 			"missing": "Chybějící",
-			"progressLabel": "{{label}}: {{percent}} %"
+			"progressLabel": "{{label}}: {{percent}} %",
+			"showTranslated": "Zobrazit přeložené",
+			"showMissing": "Zobrazit chybějící",
+			"showAll": "Zobrazit všechny"
 		},
 		"toolbar": {
 			"search": {
@@ -699,7 +702,7 @@
 		"adminProjects": "Projekty",
 		"users": "Uživatelé",
 		"translations": "Překlady",
-		"projectSettings": "Nastavení projektu",
+		"projectSettings": "Nastavení",
 		"members": "Členové",
 		"projectSwitcher": {
 			"label": "Přepnout projekt, aktuální {{name}}",

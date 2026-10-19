@@ -1,4 +1,4 @@
-import { Badge, Button, Skeleton, Table, Text } from '@mantine/core'
+import { Button, Skeleton, Table, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { Fragment, type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +13,7 @@ import { Edit, Upload } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import RowAction from '@/components/RowAction/RowAction'
 import TranslationCell from '@/components/TranslationCell/TranslationCell'
+import TranslationStatusBadge from '@/components/TranslationStatusBadge/TranslationStatusBadge'
 import TranslationValue from '@/components/TranslationValue/TranslationValue'
 import { formatDateTime } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
@@ -157,22 +158,15 @@ const TranslationsTable = ({
 				) : (
 					<>
 						<Table.Td className={`${classes.td} ${classes.value}`}>
-							<TranslationValue value={source.value} pluralTag={item.plural ? sourceLanguage?.tag : undefined} />
+							<span className={classes.sourceValue}>
+								<TranslationValue value={source.value} pluralTag={item.plural ? sourceLanguage?.tag : undefined} />
+							</span>
 						</Table.Td>
 						<Table.Td className={`${classes.td} ${classes.value}`}>{targetLanguage && translationCell(item, targetLanguage)}</Table.Td>
 					</>
 				)}
 				<Table.Td className={statusClass}>
-					<Badge
-						variant='light'
-						color={item.status === 'TRANSLATED' ? 'teal' : 'red'}
-						radius='xl'
-						tt='none'
-						leftSection={<span aria-hidden className={classes.statusDot} />}
-						className={classes.status}
-					>
-						{t(`translationsPage.status.${item.status}`)}
-					</Badge>
+					<TranslationStatusBadge status={item.status} />
 				</Table.Td>
 			</Table.Tr>
 		)
@@ -273,8 +267,16 @@ const TranslationsTable = ({
 							))
 						) : (
 							<>
-								<Table.Th className={classes.th}>{sourceLanguage?.nativeName}</Table.Th>
-								<Table.Th className={classes.th}>{targetLanguage?.nativeName}</Table.Th>
+								{[sourceLanguage, targetLanguage].map((language, index) => (
+									<Table.Th key={language?.id ?? index} className={classes.th}>
+										{language && (
+											<span className={classes.languageHeader}>
+												<LanguageFlag code={language.flagCode} size='sm' />
+												{language.nativeName}
+											</span>
+										)}
+									</Table.Th>
+								))}
 							</>
 						)}
 						<Table.Th className={`${classes.th} ${classes.statusColumn} ${classes.statusCell} ${isExtended ? classes.stickyEnd : ''}`}>

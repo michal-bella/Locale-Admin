@@ -89,7 +89,7 @@ const response = (overrides: Partial<TranslationsResponse> = {}): TranslationsRe
 	items: ITEMS,
 	total: ITEMS.length,
 	page: 1,
-	pageSize: 50,
+	pageSize: 20,
 	stats: { totalKeys: 248, translated: 221, untranslated: 27 },
 	namespaces: ['loc', 'paths'],
 	...overrides,
@@ -194,7 +194,7 @@ describe('TranslationsPage', () => {
 			targetLanguageId: CZECH.id,
 			sort: 'UNTRANSLATED_FIRST',
 			page: 1,
-			pageSize: 50,
+			pageSize: 20,
 		})
 		expect(screen.getByRole('combobox', { name: 'Zdrojový jazyk' })).toHaveValue('SK')
 		expect(screen.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('CS')
@@ -221,7 +221,7 @@ describe('TranslationsPage', () => {
 			namespace: 'loc',
 			sort: 'KEY',
 			page: 2,
-			pageSize: 50,
+			pageSize: 20,
 		})
 		expect(screen.getByRole('textbox', { name: 'Hľadať kľúč alebo preklad' })).toHaveValue('welcome')
 		expect(screen.getByRole('combobox', { name: 'Stav' })).toHaveValue('Preložené')
@@ -233,7 +233,7 @@ describe('TranslationsPage', () => {
 		renderApp(`${PAGE_PATH}?status=REVIEW&sort=RANDOM&source=pl&page=0`)
 
 		await screen.findByText('orders.empty.title')
-		expect(lastParams(requests)).toEqual({ sourceLanguageId: SLOVAK.id, targetLanguageId: ENGLISH.id, sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 50 })
+		expect(lastParams(requests)).toEqual({ sourceLanguageId: SLOVAK.id, targetLanguageId: ENGLISH.id, sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 20 })
 	})
 
 	it('writes the search to the URL after typing stops and resets the page', async () => {
@@ -276,7 +276,7 @@ describe('TranslationsPage', () => {
 				namespace: 'paths',
 				sort: 'UPDATED',
 				page: 1,
-				pageSize: 50,
+				pageSize: 20,
 			}),
 		)
 
@@ -339,7 +339,7 @@ describe('TranslationsPage', () => {
 		const requests = mockPage({
 			translations: (config) => {
 				const { page } = config.params as { page: number }
-				return { status: 200, data: response({ total: 60, page, items: page > 2 ? [] : ITEMS }) }
+				return { status: 200, data: response({ total: 40, page, items: page > 2 ? [] : ITEMS }) }
 			},
 		})
 		const router = renderApp(`${PAGE_PATH}?page=99`)
@@ -465,7 +465,7 @@ describe('TranslationsPage', () => {
 		expect(await screen.findByText('orders.empty.title')).toBeInTheDocument()
 	})
 
-	it('paginates 50 per page and writes the page to the URL', async () => {
+	it('paginates 20 per page and writes the page to the URL', async () => {
 		const requests = mockPage({
 			translations: (config) => ({ status: 200, data: response({ total: 120, page: (config.params as { page: number }).page }) }),
 		})
@@ -488,7 +488,7 @@ describe('TranslationsPage', () => {
 
 	it('keeps the focus on Ďalšia when it reaches the last page and ignores further clicks', async () => {
 		const requests = mockPage({
-			translations: (config) => ({ status: 200, data: response({ total: 120, page: (config.params as { page: number }).page }) }),
+			translations: (config) => ({ status: 200, data: response({ total: 60, page: (config.params as { page: number }).page }) }),
 		})
 		const router = renderApp(`${PAGE_PATH}?page=2`)
 
@@ -1099,7 +1099,7 @@ describe('TranslationsPage extended view', () => {
 		await screen.findByText('orders.empty.title')
 
 		const params = lastParams(requests)
-		expect(params).toMatchObject({ sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 50 })
+		expect(params).toMatchObject({ sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 20 })
 		expect(params).not.toHaveProperty('sourceLanguageId')
 		expect(params).not.toHaveProperty('targetLanguageId')
 		expect(viewRadio('Všetky jazyky')).toBeChecked()

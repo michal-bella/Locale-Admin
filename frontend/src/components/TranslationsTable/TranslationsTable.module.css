@@ -4,7 +4,7 @@
 
 /* Focus scrolling treats the sticky columns as covered, so a cell focused with Tab never lands under them (WCAG 2.4.11). */
 .scrollExtended {
-	scroll-padding-inline: 20rem 10rem;
+	scroll-padding-inline: 16rem 8.5rem;
 }
 
 .table {
@@ -20,8 +20,8 @@
 }
 
 .keyColumnExtended {
-	width: 20rem;
-	min-width: 20rem;
+	width: 16rem;
+	min-width: 16rem;
 }
 
 .languageColumn {
@@ -77,11 +77,11 @@ th.stickyEnd {
 }
 
 .keyColumn {
-	width: 34%;
+	width: 26%;
 }
 
 .statusColumn {
-	width: 10rem;
+	width: 8.5rem;
 }
 
 .td {
@@ -90,7 +90,7 @@ th.stickyEnd {
 	vertical-align: middle;
 }
 
-/* 10rem minus 2 × 1rem leaves 128 px; the longest label (Untranslated, Nepřeložené) needs about 100 px. */
+/* 8.5rem minus 2 × 1rem leaves 104 px; the longest badge (Untranslated) is 99 px. */
 .statusCell {
 	padding-inline: 1rem;
 }
@@ -126,7 +126,10 @@ th.stickyEnd {
 .key {
 	flex: 1;
 	min-width: 0;
-	display: block;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
 	font-family: var(--mantine-font-family-monospace);
 	font-size: var(--mantine-font-size-xs);
 	font-weight: 600;
@@ -160,26 +163,12 @@ th.stickyEnd {
 	color: var(--app-color-text-strong);
 }
 
-.status {
-	flex-shrink: 0;
-	max-width: none;
-	height: 1.4375rem;
-	padding-inline: 0.625rem;
-	font-size: var(--mantine-font-size-3xs);
-	font-weight: 600;
-}
-
-/* Mantine's light badge text (teal-9 on teal-1) is 4.3:1; a touch of black takes it over 4.5:1 without changing the tint. */
-[data-mantine-color-scheme='light'] .status {
-	color: color-mix(in srgb, var(--badge-color) 85%, var(--mantine-color-black));
-}
-
-.statusDot {
-	display: block;
-	width: 6px;
-	height: 6px;
-	border-radius: 50%;
-	background-color: currentColor;
+/* The read-only source text in the compact view; the editable cells clamp themselves. */
+.sourceValue {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+	overflow: hidden;
 }
 
 .groupCell {

@@ -216,7 +216,10 @@
 			"totalKeys": "Total keys",
 			"translated": "Translated",
 			"missing": "Missing",
-			"progressLabel": "{{label}}: {{percent}} %"
+			"progressLabel": "{{label}}: {{percent}} %",
+			"showTranslated": "Show translated",
+			"showMissing": "Show missing",
+			"showAll": "Show all"
 		},
 		"toolbar": {
 			"search": {
@@ -693,7 +696,7 @@
 		"adminProjects": "Projects",
 		"users": "Users",
 		"translations": "Translations",
-		"projectSettings": "Project settings",
+		"projectSettings": "Settings",
 		"members": "Members",
 		"projectSwitcher": {
 			"label": "Switch project, current {{name}}",

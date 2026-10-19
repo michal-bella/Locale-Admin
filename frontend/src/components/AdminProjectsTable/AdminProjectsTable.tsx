@@ -165,7 +165,7 @@ const AdminProjectsTable = () => {
 							icon={ArrowRight}
 							tooltip={t('adminProjectsPage.table.open')}
 							label={t('adminProjectsPage.table.openLabel', { name: project.name })}
-							to='/projects/$projectSlug/settings'
+							to='/projects/$projectSlug/translations'
 							params={{ projectSlug: project.slug }}
 						/>
 						<RowAction

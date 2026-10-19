@@ -211,7 +211,7 @@ Vetva `feature/translations` z `main`, každý míľnik vo vlastnej session s co
 | C Zápis importu | hotové | 2026-10-18 |
 | D Import UI | hotové | 2026-10-19 |
 | E Úprava v riadku | hotové | 2026-10-19 |
-| F E2E, a11y, docs | rozpracované (docs, `translations-flow.spec.ts`, záverečný `pnpm verify` a `pnpm test:e2e`) | 2026-10-19 |
+| F E2E, a11y, docs | hotové (`pnpm verify` zelený, `pnpm test:e2e` 234 passed) | 2026-10-19 |
 
 Čo pribudlo v ktorom míľniku je v [changelogu](../changelog.md).
 

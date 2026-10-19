@@ -4,10 +4,11 @@ import { ROLE } from './auth'
 import { emailSchema } from './email'
 import { passwordSchema } from './password'
 
-/** Body of `POST /api/admin/users`. There is no role field: a new user is always an ADMIN. */
+/** Body of `POST /api/admin/users`. The only way to create a user; members of projects are added from existing users. */
 export const createUserRequestSchema = z.object({
 	email: emailSchema,
 	password: passwordSchema,
+	role: z.enum(ROLE),
 })
 
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>
@@ -17,12 +18,13 @@ export const adminUserSchema = z.object({
 	id: z.uuid(),
 	email: z.email(),
 	role: z.enum(ROLE),
+	projectCount: z.number().int(),
 	createdAt: z.iso.datetime(),
 })
 
 export type AdminUser = z.infer<typeof adminUserSchema>
 
-/** Body of `GET /api/admin/users`, sorted newest first. */
+/** Body of `GET /api/admin/users`: every user (ADMIN and EDITOR), sorted newest first. */
 export const adminUserListResponseSchema = z.object({
 	users: z.array(adminUserSchema),
 })

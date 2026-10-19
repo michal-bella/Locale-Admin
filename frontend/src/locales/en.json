@@ -639,6 +639,7 @@
 		"LANGUAGE_IS_BASE": "The base language cannot be deleted. Set another base language first.",
 		"SLUG_TAKEN": "A project with this slug already exists.",
 		"LAST_MEMBER": "A project must have at least one member.",
+		"ALREADY_MEMBER": "The user is already a member of the project.",
 		"SELF_DELETE": "You cannot delete your own account.",
 		"IMPORT_FILE_INVALID": "The file contains errors. Fix them and upload it again.",
 		"IMPORT_FILE_TOO_LARGE": "The file is too large. The maximum size is 10 MB.",

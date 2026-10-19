@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { toValidationIssues, VALIDATION_CODE } from './errors'
-import { createProjectRequestSchema, projectListItemSchema, projectMemberSchema } from './projects'
+import { addProjectMemberRequestSchema, createProjectRequestSchema, projectListItemSchema, projectMemberSchema } from './projects'
 
 const ID = '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d'
 
@@ -63,5 +63,21 @@ describe('projectMemberSchema', () => {
 			lastName: null,
 			createdAt: '2026-10-18T08:00:00.000Z',
 		})
+	})
+})
+
+describe('addProjectMemberRequestSchema', () => {
+	const issuesOf = (input: unknown) => {
+		const result = addProjectMemberRequestSchema.safeParse(input)
+		return result.success ? [] : toValidationIssues(result.error)
+	}
+
+	it('accepts a user id and drops unknown fields', () => {
+		expect(addProjectMemberRequestSchema.parse({ userId: ID, email: 'jana.novakova@firma.sk' })).toEqual({ userId: ID })
+	})
+
+	it('maps a missing or malformed user id to shared codes', () => {
+		expect(issuesOf({})).toEqual([{ path: 'userId', code: VALIDATION_CODE.REQUIRED }])
+		expect(issuesOf({ userId: 'not-a-uuid' })).toEqual([{ path: 'userId', code: VALIDATION_CODE.INVALID }])
 	})
 })

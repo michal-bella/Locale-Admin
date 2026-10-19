@@ -643,6 +643,7 @@
 		"LANGUAGE_IS_BASE": "Základní jazyk nelze odstranit. Nejprve nastavte jiný základní jazyk.",
 		"SLUG_TAKEN": "Projekt s tímto slugem již existuje.",
 		"LAST_MEMBER": "Projekt musí mít alespoň jednoho člena.",
+		"ALREADY_MEMBER": "Uživatel už je členem projektu.",
 		"SELF_DELETE": "Vlastní účet nemůžete odstranit.",
 		"IMPORT_FILE_INVALID": "Soubor obsahuje chyby. Opravte je a nahrajte ho znovu.",
 		"IMPORT_FILE_TOO_LARGE": "Soubor je příliš velký. Maximální velikost je 10 MB.",

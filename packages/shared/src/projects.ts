@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import { createUserRequestSchema } from './adminUsers'
 import { LANGUAGE_TAGS } from './languages'
 import { projectNameSchema, projectSlugSchema } from './projectSettings'
 
@@ -34,10 +33,12 @@ export const projectListResponseSchema = z.object({
 
 export type ProjectListResponse = z.infer<typeof projectListResponseSchema>
 
-/** Body of `POST /api/projects/:projectId/members`. Creates a new EDITOR user who is a member of the project. */
-export const createProjectMemberRequestSchema = createUserRequestSchema
+/** Body of `POST /api/projects/:projectId/members`: adds an existing user to the project. ADMIN only. */
+export const addProjectMemberRequestSchema = z.object({
+	userId: z.uuid(),
+})
 
-export type CreateProjectMemberRequest = z.infer<typeof createProjectMemberRequestSchema>
+export type AddProjectMemberRequest = z.infer<typeof addProjectMemberRequestSchema>
 
 /** One member in `GET /api/projects/:projectId/members` and the body of `201 POST`. `createdAt` is when the user joined the project. */
 export const projectMemberSchema = z.object({

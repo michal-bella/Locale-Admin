@@ -194,6 +194,7 @@
 			"label": "Preklad kľúča {{key}}, {{language}}",
 			"hint": "Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc.",
 			"saving": "Ukladá sa",
+			"saved": "Uložené: {{key}}",
 			"missing": "Chýbajú: {{list}}.",
 			"extra": "Navyše: {{list}}."
 		},

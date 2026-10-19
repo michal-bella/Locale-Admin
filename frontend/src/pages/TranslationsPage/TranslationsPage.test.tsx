@@ -550,6 +550,7 @@ describe('TranslationsPage inline edit', () => {
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: 'Welcome, {{name}}' })
 		const button = await within(getRow('dashboard.welcome')).findByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Welcome, {{name}}' })
 		expect(button).toHaveFocus()
+		expect(screen.getByRole('status')).toHaveTextContent('Uložené: dashboard.welcome')
 
 		const description = await openEditor('orders.empty.description', 'Preklad kľúča orders.empty.description, English: Bez prekladu')
 		fireEvent.change(description, { target: { value: 'New orders will show up here.' } })
@@ -559,6 +560,20 @@ describe('TranslationsPage inline edit', () => {
 		expect(puts()[1]?.url).toBe(putUrl(ITEMS[1]!.keyId))
 		expect(JSON.parse(puts()[1]?.data as string)).toEqual({ value: 'New orders will show up here.' })
 		await waitFor(() => expect(getRow('orders.empty.description')).toHaveAttribute('data-status', 'TRANSLATED'))
+		await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Uložené: orders.empty.description'))
+	})
+
+	it('does not announce a save that failed', async () => {
+		vi.spyOn(notifications, 'show')
+		mockEditing(apiError(500, 'INTERNAL_ERROR'))
+		renderApp(PAGE_PATH)
+
+		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
+		fireEvent.change(field, { target: { value: 'Broken' } })
+		blur(field)
+
+		await waitFor(() => expect(within(getRow('dashboard.welcome')).getByRole('button', { name: WELCOME_BUTTON })).toBeInTheDocument())
+		expect(screen.getByRole('status')).toHaveTextContent('')
 	})
 
 	it('does not save on plain Enter, Esc restores the value without a request', async () => {
@@ -592,7 +607,8 @@ describe('TranslationsPage inline edit', () => {
 		expect(screen.getByText('220')).toBeInTheDocument()
 		expect(screen.getByText('28')).toBeInTheDocument()
 		expect(field).toHaveAttribute('readonly')
-		expect(within(getRow('dashboard.welcome')).getByRole('status', { name: 'Ukladá sa' })).toBeInTheDocument()
+		// A live region announces its text content; `status` takes no name from content.
+		expect(within(getRow('dashboard.welcome')).getByRole('status')).toHaveTextContent('Ukladá sa')
 
 		release()
 

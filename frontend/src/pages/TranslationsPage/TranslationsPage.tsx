@@ -64,8 +64,11 @@ const TranslationsPage = () => {
 
 	// The status badge flips silently for a screen reader; the live region below says it. Clearing first makes a repeated save of the same key announce again.
 	const saveTranslation = async (keyId: string, value: string | null) => {
+		if (!listQuery) {
+			return
+		}
 		setSavedAnnouncement('')
-		const result = await updateTranslation.mutateAsync({ keyId, languageId: targetLanguage?.id ?? '', value })
+		const result = await updateTranslation.mutateAsync({ keyId, languageId: listQuery.targetLanguageId, value })
 		setSavedAnnouncement(t('translationsPage.editor.saved', { key: data?.items.find((item) => item.keyId === keyId)?.name ?? '' }))
 		return result
 	}

@@ -3,7 +3,7 @@ import { notifications } from '@mantine/notifications'
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type PlaceholderMismatchDetails, TRANSLATION_VALUE_MAX_LENGTH } from '@locale/shared'
+import { type PlaceholderMismatchDetails, TRANSLATION_VALUE_MAX_LENGTH, updateTranslationRequestSchema } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import getPlaceholderMismatch from '@/api/getPlaceholderMismatch'
@@ -15,18 +15,20 @@ const MAX_ROWS = 8
 
 type SaveTrigger = 'blur' | 'keyboard'
 
+type RejectedDraft = { draft: string; details: PlaceholderMismatchDetails }
+
 /**
  * Target cell of the translations table. The read-only value is a button (Enter/Space open the editor natively, Tab goes straight to the
  * next row's cell because nothing else in a row is focusable). Editing is a plain-text `Textarea`: blur and Ctrl/Cmd+Enter save, Esc
  * restores. Empty or whitespace-only text saves `null`. The field stays open and read-only with a loader while saving, so a
- * `PLACEHOLDER_MISMATCH` can show its message under the field; a blur after that error without a change discards the draft.
+ * `PLACEHOLDER_MISMATCH` can show its message under the field; a blur after that error with the same rejected text discards the draft.
  */
 const TranslationEditor = ({ value, label, onSave, children }: TranslationEditorProps) => {
 	const { t } = useTranslation()
 	const [editing, setEditing] = useState(false)
 	const [draft, setDraft] = useState('')
 	const [saving, setSaving] = useState(false)
-	const [mismatch, setMismatch] = useState<PlaceholderMismatchDetails | null>(null)
+	const [rejected, setRejected] = useState<RejectedDraft | null>(null)
 	const buttonRef = useRef<HTMLButtonElement>(null)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 	const focusButtonRef = useRef(false)
@@ -44,20 +46,20 @@ const TranslationEditor = ({ value, label, onSave, children }: TranslationEditor
 
 	const open = () => {
 		setDraft(value ?? '')
-		setMismatch(null)
+		setRejected(null)
 		setEditing(true)
 	}
 
 	// Focus returns to the button only when the user is still in the field (Esc, Ctrl+Enter), never after a blur.
 	const close = () => {
 		focusButtonRef.current = document.activeElement === textareaRef.current
-		setMismatch(null)
+		setRejected(null)
 		setEditing(false)
 	}
 
 	const save = async (trigger: SaveTrigger) => {
-		const next = draft.trim() === '' ? null : draft
-		if (next === value || (mismatch && trigger === 'blur')) {
+		const next = updateTranslationRequestSchema.parse({ value: draft }).value
+		if (next === value || (rejected?.draft === draft && trigger === 'blur')) {
 			close()
 			return
 		}
@@ -68,7 +70,7 @@ const TranslationEditor = ({ value, label, onSave, children }: TranslationEditor
 		} catch (error) {
 			const details = getPlaceholderMismatch(error)
 			if (details) {
-				setMismatch(details)
+				setRejected({ draft, details })
 			} else {
 				notifications.show({ color: 'red', message: t(`errors.${getApiErrorCode(error)}`) })
 				close()
@@ -100,11 +102,11 @@ const TranslationEditor = ({ value, label, onSave, children }: TranslationEditor
 	}
 
 	const mismatchMessage =
-		mismatch &&
+		rejected &&
 		[
 			t('errors.PLACEHOLDER_MISMATCH'),
-			mismatch.missing.length > 0 && t('translationsPage.editor.missing', { list: mismatch.missing.join(', ') }),
-			mismatch.extra.length > 0 && t('translationsPage.editor.extra', { list: mismatch.extra.join(', ') }),
+			rejected.details.missing.length > 0 && t('translationsPage.editor.missing', { list: rejected.details.missing.join(', ') }),
+			rejected.details.extra.length > 0 && t('translationsPage.editor.extra', { list: rejected.details.extra.join(', ') }),
 		]
 			.filter(Boolean)
 			.join(' ')

@@ -1,7 +1,7 @@
-import { Button } from '@mantine/core'
+import { Button, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { TRANSLATIONS_PAGE_SIZE_DEFAULT } from '@locale/shared'
@@ -60,6 +60,15 @@ const TranslationsPage = () => {
 	const translationsQuery = useTranslationsQuery(projectId, listQuery)
 	const data = translationsQuery.data
 	const updateTranslation = useUpdateTranslationMutation(projectId, listQuery)
+	const [savedAnnouncement, setSavedAnnouncement] = useState('')
+
+	// The status badge flips silently for a screen reader; the live region below says it. Clearing first makes a repeated save of the same key announce again.
+	const saveTranslation = async (keyId: string, value: string | null) => {
+		setSavedAnnouncement('')
+		const result = await updateTranslation.mutateAsync({ keyId, languageId: targetLanguage?.id ?? '', value })
+		setSavedAnnouncement(t('translationsPage.editor.saved', { key: data?.items.find((item) => item.keyId === keyId)?.name ?? '' }))
+		return result
+	}
 
 	const updateSearch = (patch: Partial<TranslationsSearch>, { resetPage = true } = {}) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch, ...(resetPage ? { page: undefined } : {}) }), replace: true })
@@ -129,9 +138,10 @@ const TranslationsPage = () => {
 					onClearFilters={clearFilters}
 					onImport={importModal.open}
 					showGroups={sort !== 'UPDATED'}
-					onSave={(keyId, value) => updateTranslation.mutateAsync({ keyId, languageId: targetLanguage?.id ?? '', value })}
+					onSave={saveTranslation}
 				/>
 			</div>
+			<VisuallyHidden role='status'>{savedAnnouncement}</VisuallyHidden>
 			{!isError && !isPastEnd && data && data.total > 0 && (
 				<TranslationsPagination
 					page={page}

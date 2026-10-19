@@ -194,6 +194,7 @@
 			"label": "Translation of key {{key}}, {{language}}",
 			"hint": "Save: Ctrl+Enter or click outside the field. Cancel: Esc.",
 			"saving": "Saving",
+			"saved": "Saved: {{key}}",
 			"missing": "Missing: {{list}}.",
 			"extra": "Extra: {{list}}."
 		},

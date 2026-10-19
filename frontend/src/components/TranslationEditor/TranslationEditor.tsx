@@ -124,8 +124,9 @@ const TranslationEditor = ({ value, label, onSave, children }: TranslationEditor
 			error={mismatchMessage && <span role='alert'>{mismatchMessage}</span>}
 			rightSection={
 				saving ? (
-					<span role='status' aria-label={t('translationsPage.editor.saving')}>
+					<span role='status'>
 						<Loader size='xs' />
+						<VisuallyHidden>{t('translationsPage.editor.saving')}</VisuallyHidden>
 					</span>
 				) : undefined
 			}

@@ -8,6 +8,12 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Preklady a import: záverečné E2E, prístupnosť a dokumentácia (2026-10-19)
+
+- E2E: `translations-flow.spec.ts` – celý tok import → pridanie chýbajúceho jazyka → preklad v riadku → filtre v URL → opakovaný import bez zmien; zdieľané pomocné funkcie stránky Preklady a modálu importu v `e2e/support/`
+- prístupnosť stránky Preklady: stránkovanie nestráca fokus na krajných stranách (`aria-disabled`), oznámenie počtu výsledkov po vyhľadávaní a filtroch (živý región), chybový stav ako `role="alert"`, čas poslednej zmeny ako `<time>` s úplným dátumom, tmavší text odznakov stavu v svetlom režime; otvorené: žltá výplň progress baru Chýbajúce (netextový kontrast 1,7 : 1, rozhodnutie dizajnu)
+- dokumentácia: prehľad, databáza, frontend, API a testovanie zosúladené s kódom, doménová tabuľka v `AGENTS.md` (limit kľúča v bajtoch, namespace, import), stav míľnikov v pláne
+
 ### Úprava prekladu v riadku (2026-10-19)
 
 - zdieľaný kontrakt: `updateTranslationRequestSchema` (`{ value }`, max. 10 000 znakov, prázdny text = `null`), chybové kódy `PLACEHOLDER_MISMATCH` (400, `details { missing, extra }`) a `TRANSLATION_KEY_NOT_FOUND` (404)

@@ -146,11 +146,12 @@ Konfigurácia má `fullyParallel: true`, `retries: 0` a timeout testu 30 s. Pri 
 
 Pravidlo `color-contrast` je zatiaľ vypnuté v hlavnom teste a beží v samostatných testoch označených `test.fixme` (v reporte sú preskočené). Dôvodom sú farby z dizajnu pod hranicou AA 4,5 : 1 (zmena je rozhodnutie dizajnu, nie testu):
 
-| Prvok                                                                    | Farby (svetlá / tmavá)                           | Kontrast (svetlá / tmavá) |
-| ------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------- |
-| primárne tlačidlo (Vytvoriť používateľa, Pridať jazyk), biely text 12 px | `#ffffff` na `#e83e8c`                           | 3,81 / 3,81               |
-| tagline pod logom, hlavičky tabuliek, meta text riadku jazyka, popisy xs | `#90a1b9` na bielej / `#62748e` na tmavom pozadí | 2,5–2,6 / 3,7–3,9         |
-| eyebrow nad nadpisom stránky, odznak ZÁKLADNÝ                            | `#d72f7c` na `#f7f8fb` / `#fdeef5`               | 4,31 / 4,08 (iba svetlá)  |
-| popis pod nadpisom stránky (14 px)                                       | `#62748e` na `#f7f8fb`                           | 4,48 (iba svetlá)         |
+| Prvok                                                                     | Farby (svetlá / tmavá)                           | Kontrast (svetlá / tmavá) |
+| ------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------- |
+| primárne tlačidlo (Vytvoriť používateľa, Pridať jazyk), biely text 12 px  | `#ffffff` na `#e83e8c`                           | 3,81 / 3,81               |
+| tagline pod logom, hlavičky tabuliek, meta text riadku jazyka, popisy xs  | `#90a1b9` na bielej / `#62748e` na tmavom pozadí | 2,5–2,6 / 3,7–3,9         |
+| eyebrow nad nadpisom stránky, odznak ZÁKLADNÝ                             | `#d72f7c` na `#f7f8fb` / `#fdeef5`               | 4,31 / 4,08 (iba svetlá)  |
+| popis pod nadpisom stránky (14 px)                                        | `#62748e` na `#f7f8fb`                           | 4,48 (iba svetlá)         |
+| výplň progress baru Chýbajúce (karta Preklady, netextový kontrast 1.4.11) | `#fab005` (yellow-6) na `slate-1`                | 1,70 (iba svetlá)         |
 
 Keď sa tokeny upravia, odstráňte `test.fixme` a `disableRules` v `accessibility.spec.ts`.

@@ -1,15 +1,16 @@
 import { z } from 'zod'
 
-import { authUserSchema, userPreferencesSchema } from './auth'
+import { authUserSchema, ROLE, userPreferencesSchema } from './auth'
 
 export const PERSON_NAME_MAX_LENGTH = 100
 
 export const personNameSchema = z.string().trim().min(1).max(PERSON_NAME_MAX_LENGTH)
 
-/** Body of `PATCH /api/profile`. Email and role are not editable, zod strips them. */
+/** Body of `PATCH /api/profile`. Email is not editable, zod strips it; only an `ADMIN` may send a different `role`. */
 export const updateProfileRequestSchema = z.object({
 	firstName: personNameSchema,
 	lastName: personNameSchema,
+	role: z.enum(ROLE).optional(),
 })
 
 export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>

@@ -6,12 +6,12 @@ notion_page_id:
 
 # Profil (`/api/profile`)
 
-Profil prihláseného používateľa: zobrazenie a úprava mena a priezviska a jeho preferencie (zobrazenie stránky Preklady). Email a rola sa tu meniť nedajú. Schémy sú v `packages/shared/src/profile.ts`.
+Profil prihláseného používateľa: zobrazenie a úprava mena, priezviska a (iba `ADMIN`) vlastnej globálnej roly a jeho preferencie (zobrazenie stránky Preklady). Email sa tu meniť nedá. Schémy sú v `packages/shared/src/profile.ts`.
 
 | Metóda  | Cesta                      | Prihlásenie        | Popis                                           |
 | ------- | -------------------------- | ------------------ | ----------------------------------------------- |
 | `GET`   | `/api/profile`             | `ADMIN` / `EDITOR` | profil prihláseného používateľa                 |
-| `PATCH` | `/api/profile`             | `ADMIN` / `EDITOR` | zmení meno a priezvisko, vráti profil           |
+| `PATCH` | `/api/profile`             | `ADMIN` / `EDITOR` | zmení meno, priezvisko a rolu, vráti profil     |
 | `PATCH` | `/api/profile/preferences` | `ADMIN` / `EDITOR` | zmení zobrazenie stránky Preklady, vráti profil |
 
 Router `/api/profile` je za `requireAuth`, rola sa nekontroluje. Bez session vráti 401 `AUTH_UNAUTHENTICATED` (viď [auth](./auth.md#oprávnenia)). Endpoint vždy pracuje s používateľom zo session, ID v tele ani v ceste nie je.
@@ -56,11 +56,12 @@ Vráti `200` s `Profile` prihláseného používateľa.
 Telo (schéma `updateProfileRequestSchema`):
 
 ```json
-{ "firstName": "Jana", "lastName": "Nováková" }
+{ "firstName": "Jana", "lastName": "Nováková", "role": "EDITOR" }
 ```
 
 - `firstName` aj `lastName` sú povinné, po `trim()` majú 1 až 100 znakov (`PERSON_NAME_MAX_LENGTH`). Ukladajú sa orezané.
-- Polia `email`, `role` a ďalšie v tele sa ignorujú (schéma ich nemá).
+- `role` (`ADMIN` / `EDITOR`) je voliteľná. Rovnaká ako aktuálna rola sa ignoruje; inú môže poslať iba `ADMIN` (inak 403 `FORBIDDEN`) a iba keď ostane aspoň jeden ďalší `ADMIN` (inak 409 `LAST_ADMIN`). Nová rola platí hneď aj pre `GET /api/auth/me` a oprávnenia ďalších požiadaviek.
+- Pole `email` a ďalšie v tele sa ignorujú (schéma ich nemá).
 - Mení iba prihláseného používateľa. Pri úspechu vráti `200` s novým `Profile`; nové meno vracia hneď aj `GET /api/auth/me`.
 
 | HTTP | `code`                 | Kedy                                                             |
@@ -68,7 +69,9 @@ Telo (schéma `updateProfileRequestSchema`):
 | 200  |                        | profil uložený, telo `Profile`                                   |
 | 400  | `VALIDATION_ERROR`     | nevalidné telo, `details` podľa polí (viď nižšie)                |
 | 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                   |
+| 403  | `FORBIDDEN`            | `EDITOR` poslal inú rolu, než má                                 |
 | 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo (viď [auth](./auth.md#csrf)) |
+| 409  | `LAST_ADMIN`           | posledný `ADMIN` sa chce vzdať roly                              |
 
 Príklady `details` pri 400:
 
@@ -77,6 +80,7 @@ Príklady `details` pri 400:
 | prázdne meno        | `[{ "path": "firstName", "code": "REQUIRED" }]`                                             |
 | meno dlhšie ako 100 | `[{ "path": "firstName", "code": "TOO_LONG", "params": { "max": 100 } }]`                   |
 | chýbajúce polia     | `[{ "path": "firstName", "code": "REQUIRED" }, { "path": "lastName", "code": "REQUIRED" }]` |
+| neznáma rola        | `[{ "path": "role", "code": "INVALID" }]`                                                   |
 
 ## PATCH /api/profile/preferences
 

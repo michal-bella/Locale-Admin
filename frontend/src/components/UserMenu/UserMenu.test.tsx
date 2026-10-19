@@ -7,30 +7,30 @@ import { renderApp } from '@/test/renderApp'
 
 const PREVIOUS_USER_DATA_KEY = ['test', 'previous-user-data']
 
-const getSidebar = async () => within(await screen.findByRole('complementary'))
+const getTopBar = async () => within(await screen.findByRole('banner'))
 
 const openMenu = async () => fireEvent.click(await screen.findByRole('button', { name: 'Menu používateľa' }))
 
 describe('UserMenu', () => {
-	it('shows initials, full name and role of an ADMIN in the sidebar', async () => {
+	it('shows initials, full name and role of an ADMIN in the top bar', async () => {
 		signedInAs(ADMIN_USER)
 		renderApp('/profile')
-		const sidebar = await getSidebar()
+		const topBar = await getTopBar()
 
-		expect(await sidebar.findByText('MK')).toBeInTheDocument()
-		expect(sidebar.getByText('Martin Kováč')).toBeInTheDocument()
-		expect(sidebar.getByText('Administrátor')).toBeInTheDocument()
-		expect(sidebar.getByRole('button', { name: 'Menu používateľa' })).toBeInTheDocument()
+		expect(await topBar.findByText('MK')).toBeInTheDocument()
+		expect(topBar.getByText('Martin Kováč')).toBeInTheDocument()
+		expect(topBar.getByText('Administrátor')).toBeInTheDocument()
+		expect(topBar.getByRole('button', { name: 'Menu používateľa' })).toBeInTheDocument()
 	})
 
 	it('shows the email instead of a missing name and the EDITOR role', async () => {
 		signedInAs(EDITOR_USER)
 		renderApp('/profile')
-		const sidebar = await getSidebar()
+		const topBar = await getTopBar()
 
-		expect(await sidebar.findByText('JA')).toBeInTheDocument()
-		expect(sidebar.getByText(EDITOR_USER.email)).toBeInTheDocument()
-		expect(sidebar.getByText('Editor')).toBeInTheDocument()
+		expect(await topBar.findByText('JA')).toBeInTheDocument()
+		expect(topBar.getByText(EDITOR_USER.email)).toBeInTheDocument()
+		expect(topBar.getByText('Editor')).toBeInTheDocument()
 	})
 
 	it('has only the profile link and logout in the menu', async () => {

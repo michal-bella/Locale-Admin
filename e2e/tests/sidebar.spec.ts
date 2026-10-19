@@ -25,10 +25,10 @@ const describeUser = ({ email, firstName, lastName }: Me) => {
 
 const expectUserBlock = async (page: Page, role: string) => {
 	const { initials, displayName } = describeUser(await getMe(page))
-	const sidebar = getSidebar(page)
-	await expect(sidebar.getByText(initials, { exact: true })).toBeVisible()
-	await expect(sidebar.getByText(displayName, { exact: true })).toBeVisible()
-	await expect(sidebar.getByText(role, { exact: true })).toBeVisible()
+	const topBar = page.getByRole('banner')
+	await expect(topBar.getByText(initials, { exact: true })).toBeVisible()
+	await expect(topBar.getByText(displayName, { exact: true })).toBeVisible()
+	await expect(topBar.getByText(role, { exact: true })).toBeVisible()
 }
 
 test.describe('ADMIN', () => {
@@ -116,13 +116,14 @@ test.describe('ADMIN', () => {
 		await expect(menu.getByRole('menuitem', { name: 'Môj profil' })).toHaveAttribute('href', '/profile')
 	})
 
-	test('top bar next to the sidebar has the language and theme switchers and the bell, but no user menu', async ({ page }) => {
+	test('top bar next to the sidebar has the language and theme switchers and the user menu, but no bell', async ({ page }) => {
 		await page.goto('/profile')
 		const topBar = page.getByRole('banner')
 		await expect(topBar.getByRole('combobox', { name: 'Jazyk', exact: true })).toBeVisible()
 		await expect(topBar.getByRole('button', { name: 'Prepnúť na tmavý režim' })).toBeVisible()
 		await expect(topBar.getByRole('img', { name: 'Notifikácie' })).toHaveCount(0)
-		await expect(topBar.getByRole('button', { name: 'Menu používateľa' })).toHaveCount(0)
+		await expect(topBar.getByRole('button', { name: 'Menu používateľa' })).toBeVisible()
+		await expect(getSidebar(page).getByRole('button', { name: 'Menu používateľa' })).toHaveCount(0)
 		await expect(topBar.getByRole('button', { name: 'Otvoriť navigáciu' })).toBeHidden()
 	})
 

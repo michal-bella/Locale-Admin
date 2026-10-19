@@ -11,10 +11,9 @@ import getApiErrorCode from '@/api/getApiErrorCode'
 import { DotsHorizontal } from '@/components/Icons'
 
 import classes from './UserMenu.module.css'
-import { type UserMenuProps } from './types'
 
-/** User block (Figma 3:1742): avatar, name, global role and the `⋯` menu. At the bottom of the sidebar or in the top bar of the project list. */
-const UserMenu = ({ onNavigate, placement = 'sidebar' }: UserMenuProps) => {
+/** User block (Figma 3:1742) at the right end of the top bar: avatar, name, global role and the `⋯` menu. */
+const UserMenu = () => {
 	const { t } = useTranslation()
 	const { data: user } = useMeQuery()
 	const logout = useLogoutMutation()
@@ -31,7 +30,7 @@ const UserMenu = ({ onNavigate, placement = 'sidebar' }: UserMenuProps) => {
 		})
 
 	return (
-		<div data-placement={placement} className={`${classes.root} flex items-center gap-3`}>
+		<div className={`${classes.root} flex items-center gap-3`}>
 			<Avatar aria-hidden size={32} radius='xl' color='var(--app-color-avatar)' variant='filled' classNames={{ placeholder: classes.initials }}>
 				{getInitials(user)}
 			</Avatar>
@@ -43,7 +42,7 @@ const UserMenu = ({ onNavigate, placement = 'sidebar' }: UserMenuProps) => {
 					{t(`roles.${user.role}`)}
 				</Text>
 			</div>
-			<Menu position={placement === 'sidebar' ? 'top-end' : 'bottom-end'} width={240} radius='lg' shadow='md'>
+			<Menu position='bottom-end' width={240} radius='lg' shadow='md'>
 				<Menu.Target>
 					<ActionIcon variant='transparent' size={32} radius='md' aria-label={t('sidebar.userMenu.label')} className={classes.trigger}>
 						<DotsHorizontal aria-hidden />
@@ -56,7 +55,7 @@ const UserMenu = ({ onNavigate, placement = 'sidebar' }: UserMenuProps) => {
 						</Text>
 					</Menu.Label>
 					<Menu.Divider />
-					<Menu.Item component={Link} to='/profile' onClick={onNavigate}>
+					<Menu.Item component={Link} to='/profile'>
 						{t('sidebar.userMenu.profile')}
 					</Menu.Item>
 					<Menu.Item onClick={handleLogout} disabled={logout.isPending}>

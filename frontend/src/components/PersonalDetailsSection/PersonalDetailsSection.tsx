@@ -1,12 +1,16 @@
-import { TextInput } from '@mantine/core'
+import { Select, TextInput } from '@mantine/core'
+import { Controller } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
+import { ROLE } from '@locale/shared'
+
+import { ChevronDown } from '@/components/Icons'
 import ProfileSection from '@/components/ProfileSection/ProfileSection'
 
 import { type PersonalDetailsSectionProps } from './types'
 
-/** "Osobné údaje" (Figma 3:1825). Only the names are editable; email and job title are shown disabled. */
-const PersonalDetailsSection = ({ register, errors, email }: PersonalDetailsSectionProps) => {
+/** "Osobné údaje" (Figma 3:1825). The names are editable, the email is shown disabled and the global role is a select an ADMIN may change. */
+const PersonalDetailsSection = ({ register, errors, control, email, canChangeRole }: PersonalDetailsSectionProps) => {
 	const { t } = useTranslation()
 
 	return (
@@ -15,7 +19,24 @@ const PersonalDetailsSection = ({ register, errors, email }: PersonalDetailsSect
 				<TextInput autoComplete='given-name' label={t('profilePage.personal.firstName')} error={errors.firstName?.message} {...register('firstName')} />
 				<TextInput autoComplete='family-name' label={t('profilePage.personal.lastName')} error={errors.lastName?.message} {...register('lastName')} />
 				<TextInput type='email' label={t('profilePage.personal.email')} defaultValue={email} disabled />
-				<TextInput label={t('profilePage.personal.position.label')} placeholder={t('profilePage.personal.position.placeholder')} disabled />
+				<Controller
+					control={control}
+					name='role'
+					render={({ field: { value, onChange, onBlur, ref } }) => (
+						<Select
+							ref={ref}
+							label={t('profilePage.personal.role')}
+							value={value ?? null}
+							onChange={(role) => role && onChange(role)}
+							onBlur={onBlur}
+							disabled={!canChangeRole}
+							allowDeselect={false}
+							rightSection={<ChevronDown aria-hidden />}
+							rightSectionPointerEvents='none'
+							data={Object.values(ROLE).map((role) => ({ value: role, label: t(`roles.${role}`) }))}
+						/>
+					)}
+				/>
 			</div>
 		</ProfileSection>
 	)

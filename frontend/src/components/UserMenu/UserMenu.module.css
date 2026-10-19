@@ -1,12 +1,7 @@
 .root {
-	margin-top: 0.75rem;
+	max-width: 15rem;
 	padding: 0.5rem;
 	border-radius: var(--mantine-radius-lg);
-}
-
-.root[data-placement='header'] {
-	margin-top: 0;
-	max-width: 15rem;
 }
 
 .initials {

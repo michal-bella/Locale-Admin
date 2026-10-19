@@ -5,7 +5,7 @@ import { ADMIN_USER, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 describe('TopBar', () => {
-	it('has the language and theme switchers, without the logo and the user menu next to the sidebar', async () => {
+	it('has the language and theme switchers and the user menu, without the logo next to the sidebar', async () => {
 		signedInAs(ADMIN_USER)
 		renderApp('/profile')
 		const topBar = within(await screen.findByRole('banner'))
@@ -14,7 +14,8 @@ describe('TopBar', () => {
 		expect(topBar.getByRole('button', { name: 'Prepnúť na tmavý režim' })).toBeInTheDocument()
 		expect(topBar.queryByRole('img', { name: 'Notifikácie' })).not.toBeInTheDocument()
 		expect(topBar.queryByText('Locale')).not.toBeInTheDocument()
-		expect(topBar.queryByRole('button', { name: 'Menu používateľa' })).not.toBeInTheDocument()
+		expect(topBar.getByRole('button', { name: 'Menu používateľa' })).toBeInTheDocument()
+		expect(within(screen.getByRole('complementary')).queryByRole('button', { name: 'Menu používateľa' })).not.toBeInTheDocument()
 	})
 
 	it('shows the logo and the user menu without a burger on the project list, which has no sidebar', async () => {

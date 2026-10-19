@@ -1,7 +1,8 @@
-import { type Profile, type UpdatePreferencesRequest, type UpdateProfileRequest } from '@locale/shared'
+import { type AuthUser, ERROR_CODE, type Profile, ROLE, type UpdatePreferencesRequest, type UpdateProfileRequest } from '@locale/shared'
 
 import { type Prisma, type User } from '../generated/prisma/client'
-import { type AuthUserRow, toAuthUser } from '../lib/authUser'
+import { type AuthUserRow, ROLE_TO_PRISMA, toAuthUser } from '../lib/authUser'
+import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 
 const PROFILE_SELECT = {
@@ -24,8 +25,24 @@ export const getProfile = async (prisma: PrismaClient, userId: string): Promise<
 	return toProfile(user)
 }
 
-export const updateProfile = async (prisma: PrismaClient, userId: string, { firstName, lastName }: UpdateProfileRequest): Promise<Profile> => {
-	const user = await prisma.user.update({ where: { id: userId }, data: { firstName, lastName }, select: PROFILE_SELECT })
+/** Only an ADMIN changes their own role, and never away from ADMIN when nobody else has it. */
+export const updateProfile = async (
+	prisma: PrismaClient,
+	me: Pick<AuthUser, 'id' | 'role'>,
+	{ firstName, lastName, role }: UpdateProfileRequest,
+): Promise<Profile> => {
+	const changesRole = role !== undefined && role !== me.role
+	if (changesRole && me.role !== ROLE.ADMIN) {
+		throw new AppError(403, ERROR_CODE.FORBIDDEN, 'Only an admin can change their role')
+	}
+	if (changesRole && (await prisma.user.count({ where: { role: ROLE_TO_PRISMA[ROLE.ADMIN] } })) <= 1) {
+		throw new AppError(409, ERROR_CODE.LAST_ADMIN, 'The last admin cannot give up the admin role')
+	}
+	const user = await prisma.user.update({
+		where: { id: me.id },
+		data: { firstName, lastName, ...(changesRole && { role: ROLE_TO_PRISMA[role] }) },
+		select: PROFILE_SELECT,
+	})
 	return toProfile(user)
 }
 

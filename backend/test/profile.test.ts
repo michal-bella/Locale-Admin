@@ -98,16 +98,57 @@ describe('PATCH /api/profile', () => {
 		expect(res.body).toMatchObject({ firstName: 'Jana', lastName: 'Nováková' })
 	})
 
-	it('ignores email and role in the body', async () => {
+	it('ignores the email in the body', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await loginWithUser(app)
 
-		const res = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', email: 'iny@firma.sk', role: ROLE.ADMIN })
+		const res = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', email: 'iny@firma.sk' })
 
 		expect(res.status).toBe(200)
 		expect(res.body).toMatchObject({ email: user.email, role: ROLE.EDITOR })
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
 		expect(stored).toMatchObject({ email: user.email, role: ROLE.EDITOR })
+	})
+
+	it('lets an admin change their role when another admin stays and GET /api/auth/me reflects it', async () => {
+		const app = createTestApp()
+		await createUser({ role: ROLE.ADMIN })
+		const { user, cookie } = await loginWithUser(app, { role: ROLE.ADMIN })
+
+		const res = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', role: ROLE.EDITOR })
+
+		expect(res.status).toBe(200)
+		expect(res.body).toMatchObject({ role: ROLE.EDITOR })
+		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
+		expect(stored.role).toBe(ROLE.EDITOR)
+		const me = await request(app).get('/api/auth/me').set('Cookie', cookie)
+		expect(me.body).toMatchObject({ role: ROLE.EDITOR })
+	})
+
+	it('returns 409 LAST_ADMIN when the only admin gives up the role', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await loginWithUser(app, { role: ROLE.ADMIN })
+
+		const res = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', role: ROLE.EDITOR })
+
+		expectErrorCode(res, 409, ERROR_CODE.LAST_ADMIN)
+		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
+		expect(stored).toMatchObject({ role: ROLE.ADMIN, firstName: null })
+	})
+
+	it('returns 403 FORBIDDEN when an editor sends another role and accepts their own role', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await loginWithUser(app)
+
+		const forbidden = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', role: ROLE.ADMIN })
+
+		expectErrorCode(forbidden, 403, ERROR_CODE.FORBIDDEN)
+		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
+		expect(stored).toMatchObject({ role: ROLE.EDITOR, firstName: null })
+
+		const same = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', role: ROLE.EDITOR })
+		expect(same.status).toBe(200)
+		expect(same.body).toMatchObject({ role: ROLE.EDITOR, firstName: 'Jana' })
 	})
 
 	it('changes only the session user', async () => {
@@ -134,6 +175,11 @@ describe('PATCH /api/profile', () => {
 			name: 'too long name',
 			body: { firstName: 'a'.repeat(101), lastName: 'Nováková' },
 			details: [{ path: 'firstName', code: VALIDATION_CODE.TOO_LONG, params: { max: 100 } }],
+		},
+		{
+			name: 'unknown role',
+			body: { firstName: 'Jana', lastName: 'Nováková', role: 'OWNER' },
+			details: [{ path: 'role', code: VALIDATION_CODE.INVALID }],
 		},
 		{
 			name: 'missing fields',

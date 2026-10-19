@@ -116,7 +116,7 @@ describe('TranslationsPage', () => {
 		expect(screen.getByRole('heading', { level: 1, name: 'Preklady' })).toBeInTheDocument()
 		expect(screen.getByText('Spravujte texty a preklady vášho projektu na jednom mieste.')).toBeInTheDocument()
 		expect(screen.getAllByText('Booking Web').length).toBeGreaterThan(0)
-		expect(screen.getByRole('button', { name: 'Importovať' })).toBeDisabled()
+		expect(screen.getByRole('button', { name: 'Importovať' })).toBeEnabled()
 		expect(screen.queryByRole('button', { name: 'Exportovať' })).not.toBeInTheDocument()
 
 		expect(screen.getByText('248')).toBeInTheDocument()
@@ -364,15 +364,18 @@ describe('TranslationsPage', () => {
 		expect(getTable()).toHaveAttribute('aria-busy', 'true')
 	})
 
-	it('shows the empty state with a disabled Importovať for a project without keys', async () => {
+	it('shows the empty state with Importovať that opens the import modal for a project without keys', async () => {
 		mockPage({ translations: response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0 }, namespaces: [] }) })
 		renderApp(PAGE_PATH)
 
 		expect(await screen.findByText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeInTheDocument()
 		const importButtons = screen.getAllByRole('button', { name: 'Importovať' })
 		expect(importButtons).toHaveLength(2)
-		importButtons.forEach((button) => expect(button).toBeDisabled())
+		importButtons.forEach((button) => expect(button).toBeEnabled())
 		expect(screen.queryByText(/Zobrazených/)).not.toBeInTheDocument()
+
+		fireEvent.click(importButtons[1]!)
+		expect(await screen.findByRole('dialog', { name: 'Importovať preklady' })).toBeInTheDocument()
 	})
 
 	it('shows the empty state without asking for translations when the project has no languages', async () => {

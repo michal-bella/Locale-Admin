@@ -18,6 +18,7 @@ const AppModal = ({
 	isPending = false,
 	inBackground = false,
 	size = 560,
+	fullScreen = false,
 	zIndex,
 }: AppModalProps) => {
 	const closable = !isPending && !inBackground
@@ -37,6 +38,7 @@ const AppModal = ({
 			trapFocus={!inBackground}
 			centered
 			size={size}
+			fullScreen={fullScreen}
 			radius='xl'
 			shadow='modal'
 			zIndex={zIndex}

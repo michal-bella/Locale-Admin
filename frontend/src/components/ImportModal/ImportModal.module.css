@@ -1,0 +1,39 @@
+.step {
+	letter-spacing: 0.1em;
+	color: var(--app-color-eyebrow);
+}
+
+.createKeys {
+	padding: 0.75rem;
+	border-radius: var(--mantine-radius-lg);
+	background-color: var(--app-color-warning-bg);
+}
+
+.createKeysLabel {
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 700;
+	line-height: var(--mantine-line-height-xs);
+	color: var(--app-color-warning-text);
+}
+
+.createKeysDescription {
+	margin-top: 0;
+	font-size: var(--mantine-font-size-xs);
+	line-height: var(--mantine-line-height-xs);
+	color: var(--app-color-warning-text);
+}
+
+.summary {
+	padding: 1rem 1.25rem;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-xl);
+	background-color: var(--app-color-surface-muted);
+}
+
+.summaryList {
+	margin: 0;
+	padding-left: 1.25rem;
+	font-size: var(--mantine-font-size-sm);
+	line-height: var(--mantine-line-height-md);
+	color: var(--app-color-text-strong);
+}

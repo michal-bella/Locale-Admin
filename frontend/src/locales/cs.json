@@ -250,6 +250,8 @@
 			"skip": "Přeskočit",
 			"skipButton": "Přeskočit",
 			"addLanguage": "Přidat jazyk",
+			"addLanguageLabel": "Přidat jazyk {{tag}}",
+			"skipColumnLabel": "Přeskočit sloupec {{tag}}",
 			"notInProject": "Jazyk {{tag}} není v projektu.",
 			"unknownLanguage": "Jazyk {{tag}} není v katalogu. Přiřaďte sloupec jazyku projektu nebo ho přeskočte.",
 			"warningsButton_one": "{{count}} upozornění pro sloupec {{tag}}",

@@ -1,5 +1,5 @@
 import { Button, Select, Table, Text } from '@mantine/core'
-import { Fragment, useState } from 'react'
+import { Fragment, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type ImportIssue, type ImportPreviewColumn } from '@locale/shared'
@@ -23,6 +23,7 @@ const COLUMN_WARNING_CODES = new Set<ImportIssue['code']>(['PLACEHOLDER_MISMATCH
 const ImportReviewTable = ({ preview, languages, mapping, onChange, onAddLanguage, addingTag, disabled }: ImportReviewTableProps) => {
 	const { t } = useTranslation()
 	const [expandedColumn, setExpandedColumn] = useState<number | null>(null)
+	const warningsId = useId()
 
 	const chosenIds = new Set(Object.values(mapping).filter((choice): choice is string => typeof choice === 'string'))
 
@@ -59,12 +60,20 @@ const ImportReviewTable = ({ preview, languages, mapping, onChange, onAddLanguag
 							variant='subtle'
 							loading={addingTag === column.tag}
 							disabled={disabled && addingTag !== column.tag}
+							aria-label={t('importModal.review.addLanguageLabel', { tag: column.tag })}
 							onClick={() => onAddLanguage(column.tag)}
 						>
 							{t('importModal.review.addLanguage')}
 						</Button>
 					)}
-					<Button size='compact-xs' variant='subtle' color='gray' disabled={disabled} onClick={() => onChange(column.columnIndex, null)}>
+					<Button
+						size='compact-xs'
+						variant='subtle'
+						color='gray'
+						disabled={disabled}
+						aria-label={t('importModal.review.skipColumnLabel', { tag: column.tag })}
+						onClick={() => onChange(column.columnIndex, null)}
+					>
 						{t('importModal.review.skipButton')}
 					</Button>
 				</span>
@@ -85,6 +94,7 @@ const ImportReviewTable = ({ preview, languages, mapping, onChange, onAddLanguag
 				leftSection={<AlertTriangle aria-hidden />}
 				rightSection={<ChevronDown aria-hidden width={12} height={12} data-expanded={expanded || undefined} className={classes.chevron} />}
 				aria-expanded={expanded}
+				aria-controls={expanded ? `${warningsId}-${column.columnIndex}` : undefined}
 				aria-label={t('importModal.review.warningsButton', { count: column.stats.warnings, tag: column.tag })}
 				onClick={() => setExpandedColumn(expanded ? null : column.columnIndex)}
 			>
@@ -150,7 +160,11 @@ const ImportReviewTable = ({ preview, languages, mapping, onChange, onAddLanguag
 								</Table.Tr>
 								{expandedColumn === column.columnIndex && (
 									<Table.Tr className={classes.tr}>
-										<Table.Td colSpan={COLUMN_COUNT} className={`${classes.td} ${classes.expanded}`}>
+										<Table.Td
+											id={`${warningsId}-${column.columnIndex}`}
+											colSpan={COLUMN_COUNT}
+											className={`${classes.td} ${classes.expanded}`}
+										>
 											<ImportIssueList
 												title={t('importModal.review.columnWarningsTitle', { tag: column.tag })}
 												issues={columnWarnings.slice(0, COLUMN_WARNINGS_MAX)}

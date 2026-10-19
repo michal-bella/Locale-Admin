@@ -254,7 +254,7 @@ describe('ImportModal step 2 (review)', () => {
 		renderApp(PAGE_PATH)
 		const dialog = await goToReview()
 
-		expect(within(dialog).getByText('Krok 2 z 2 · Kontrola')).toBeInTheDocument()
+		expect(within(dialog).getByRole('heading', { level: 3, name: 'Krok 2 z 2 · Kontrola' })).toHaveFocus()
 		const table = within(dialog).getByRole('table', { name: 'Stĺpce jazykov v súbore' })
 		expect(
 			within(table)
@@ -274,14 +274,17 @@ describe('ImportModal step 2 (review)', () => {
 		).toEqual(['5', '1', '1', '3 / 1'])
 		const ruRow = languageSelect(dialog, 'ru').closest('tr')!
 		expect(within(ruRow).getByText('Jazyk ru nie je v projekte.')).toBeInTheDocument()
-		expect(within(ruRow).getByRole('button', { name: 'Pridať jazyk' })).toBeInTheDocument()
-		expect(within(ruRow).getByRole('button', { name: 'Preskočiť' })).toBeInTheDocument()
+		expect(within(ruRow).getByRole('button', { name: 'Pridať jazyk ru' })).toBeInTheDocument()
+		expect(within(ruRow).getByRole('button', { name: 'Preskočiť stĺpec ru' })).toBeInTheDocument()
 		expect(within(ruRow).getByText('—')).toBeInTheDocument()
 
 		const warnings = within(skRow).getByRole('button', { name: '1 upozornenie pre stĺpec sk' })
 		expect(warnings).toHaveAttribute('aria-expanded', 'false')
 		fireEvent.click(warnings)
-		expect(within(table).getByText('Riadok 6, stĺpec 2: kľúč „Nový kľúč“ (common) nemá preklad v základnom jazyku sk')).toBeInTheDocument()
+		expect(warnings).toHaveAttribute('aria-expanded', 'true')
+		expect(document.getElementById(warnings.getAttribute('aria-controls')!)).toHaveTextContent(
+			'Riadok 6, stĺpec 2: kľúč „Nový kľúč“ (common) nemá preklad v základnom jazyku sk',
+		)
 
 		expect(within(dialog).getByText('2 nové kľúče')).toBeInTheDocument()
 		expect(within(dialog).getByText('1 preklad sa prepíše')).toBeInTheDocument()
@@ -304,7 +307,7 @@ describe('ImportModal step 2 (review)', () => {
 		renderApp(PAGE_PATH)
 		const dialog = await goToReview()
 
-		fireEvent.click(within(dialog).getByRole('button', { name: 'Pridať jazyk' }))
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Pridať jazyk ru' }))
 
 		await waitFor(() => expect(languageSelect(dialog, 'ru')).toHaveValue('Russian (ru)'))
 		expect(bodyOf(sent(requests, 'post', LANGUAGES_URL)[0])).toEqual({ tag: 'ru' })
@@ -320,7 +323,7 @@ describe('ImportModal step 2 (review)', () => {
 		renderApp(PAGE_PATH)
 		const dialog = await goToReview()
 
-		fireEvent.click(within(dialog).getByRole('button', { name: 'Preskočiť' }))
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Preskočiť stĺpec ru' }))
 		expect(languageSelect(dialog, 'ru')).toHaveValue('Preskočiť')
 		expect(within(dialog).queryByText('Jazyk ru nie je v projekte.')).not.toBeInTheDocument()
 		expect(within(dialog).getByRole('button', { name: 'Importovať' })).toBeEnabled()
@@ -418,7 +421,7 @@ describe('ImportModal step 2 (review)', () => {
 
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Späť' }))
 
-		expect(within(dialog).getByText('Krok 1 z 2 · Nahratie')).toBeInTheDocument()
+		expect(within(dialog).getByRole('heading', { level: 3, name: 'Krok 1 z 2 · Nahratie' })).toHaveFocus()
 		expect(within(dialog).getByText('preklady.csv')).toBeInTheDocument()
 		expect(within(dialog).getByRole('button', { name: 'Pokračovať na kontrolu' })).toBeEnabled()
 	})

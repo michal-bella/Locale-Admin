@@ -19,6 +19,7 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `GET`    | `/api/admin/projects`                                           | všetky projekty s počtami (ADMIN), [detail](./admin-projects.md)                  |
 | `DELETE` | `/api/admin/projects/:projectId`                                | zmazanie projektu (ADMIN), [detail](./admin-projects.md)                          |
 | `GET`    | `/api/admin/users`                                              | zoznam všetkých používateľov (ADMIN), [detail](./admin-users.md)                  |
+| `GET`    | `/api/admin/users/:id`                                          | detail používateľa s jeho projektmi (ADMIN), [detail](./admin-users.md)           |
 | `POST`   | `/api/admin/users`                                              | vytvorenie používateľa s rolou (ADMIN), [detail](./admin-users.md)                |
 | `DELETE` | `/api/admin/users/:id`                                          | odstránenie používateľa (ADMIN), [detail](./admin-users.md)                       |
 | `GET`    | `/api/projects`                                                 | projekty používateľa (ADMIN všetky), [detail](./projects.md)                      |

@@ -48,35 +48,16 @@
 	overflow-wrap: anywhere;
 }
 
-.badge {
-	height: 1.375rem;
-	padding: 1px 0.5rem 0;
-	border: 0;
-	font-size: var(--mantine-font-size-4xs);
-	font-weight: 700;
-	line-height: 1.5;
-}
-
-.badgeAdmin {
-	background-color: var(--app-color-brand-tint);
-	color: var(--app-color-eyebrow);
-}
-
-.badgeMember {
-	background-color: var(--app-color-surface-muted);
-	color: var(--app-color-text-secondary);
-}
-
 .state {
 	padding: 2.5rem 1.25rem;
 	text-align: center;
 }
 
 .actionsColumn {
-	width: 4.625rem;
+	width: 7rem;
 }
 
 .actionsCell {
 	padding-inline: 0 1.25rem;
-	text-align: center;
+	white-space: nowrap;
 }

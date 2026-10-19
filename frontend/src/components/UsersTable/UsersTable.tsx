@@ -1,15 +1,16 @@
-import { Avatar, Badge, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
+import { Avatar, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type AdminUser, getInitials, ROLE } from '@locale/shared'
+import { type AdminUser, getInitials } from '@locale/shared'
 
 import { useAdminUsersQuery } from '@/api/adminUsers/adminUsersQuery'
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import DeleteUserModal from '@/components/DeleteUserModal/DeleteUserModal'
-import { Trash } from '@/components/Icons'
+import { ArrowRight, Trash } from '@/components/Icons'
+import RoleBadge from '@/components/RoleBadge/RoleBadge'
 import RowAction from '@/components/RowAction/RowAction'
 import { formatDate } from '@/lib/formatDate'
 
@@ -17,7 +18,7 @@ import classes from './UsersTable.module.css'
 
 const SKELETON_ROWS = 3
 
-/** All users (ADMIN and EDITOR) in a card (Figma 28:2) with loading, empty and error states. Every row but the own one can be deleted. */
+/** All users (ADMIN and EDITOR) in a card (Figma 28:2) with loading, empty and error states. Every row opens the user detail; every row but the own one can be deleted. */
 const UsersTable = () => {
 	const { t, i18n } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useAdminUsersQuery()
@@ -114,9 +115,7 @@ const UsersTable = () => {
 					</div>
 				</Table.Td>
 				<Table.Td className={classes.td}>
-					<Badge radius='xl' className={`${classes.badge} ${user.role === ROLE.ADMIN ? classes.badgeAdmin : classes.badgeMember}`}>
-						{t(`roles.${user.role}`)}
-					</Badge>
+					<RoleBadge role={user.role} />
 				</Table.Td>
 				<Table.Td className={classes.td}>
 					<Text size='sm'>{user.projectCount}</Text>
@@ -125,15 +124,24 @@ const UsersTable = () => {
 					<Text size='xs'>{formatDate(user.createdAt, i18n.language)}</Text>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-					{user.id !== me?.id && (
+					<div className='flex items-center justify-end gap-1'>
 						<RowAction
-							icon={Trash}
-							tooltip={t('usersPage.table.delete')}
-							label={t('usersPage.table.deleteLabel', { email: user.email })}
-							danger
-							onClick={(event) => openDelete(user, event.currentTarget)}
+							icon={ArrowRight}
+							tooltip={t('usersPage.table.open')}
+							label={t('usersPage.table.openLabel', { email: user.email })}
+							to='/admin/users/$userId'
+							params={{ userId: user.id }}
 						/>
-					)}
+						{user.id !== me?.id && (
+							<RowAction
+								icon={Trash}
+								tooltip={t('usersPage.table.delete')}
+								label={t('usersPage.table.deleteLabel', { email: user.email })}
+								danger
+								onClick={(event) => openDelete(user, event.currentTarget)}
+							/>
+						)}
+					</div>
 				</Table.Td>
 			</Table.Tr>
 		))

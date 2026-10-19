@@ -1,0 +1,18 @@
+.card {
+	padding: 1.5rem;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-xl);
+	background-color: var(--app-color-surface);
+}
+
+.initials {
+	font-size: var(--mantine-font-size-md);
+	font-weight: 700;
+	color: var(--app-color-text-secondary);
+}
+
+.email {
+	line-height: 1.5556;
+	letter-spacing: -0.02em;
+	overflow-wrap: anywhere;
+}

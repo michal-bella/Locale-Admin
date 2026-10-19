@@ -30,3 +30,21 @@ export const adminUserListResponseSchema = z.object({
 })
 
 export type AdminUserListResponse = z.infer<typeof adminUserListResponseSchema>
+
+/** One project of a user in `GET /api/admin/users/:id`. `joinedAt` is when the user became a member. */
+export const adminUserProjectSchema = z.object({
+	id: z.uuid(),
+	name: z.string(),
+	slug: z.string(),
+	primaryColor: z.string(),
+	joinedAt: z.iso.datetime(),
+})
+
+export type AdminUserProject = z.infer<typeof adminUserProjectSchema>
+
+/** Body of `GET /api/admin/users/:id`: the user with the projects they are a member of, sorted by name. */
+export const adminUserDetailSchema = adminUserSchema.extend({
+	projects: z.array(adminUserProjectSchema),
+})
+
+export type AdminUserDetail = z.infer<typeof adminUserDetailSchema>

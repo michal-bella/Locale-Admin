@@ -1,4 +1,4 @@
-import { ERROR_CODE, type AdminUser, type CreateUserRequest } from '@locale/shared'
+import { ERROR_CODE, type AdminUser, type AdminUserDetail, type CreateUserRequest } from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
 import { ROLE_FROM_PRISMA, ROLE_TO_PRISMA } from '../lib/authUser'
@@ -15,6 +15,25 @@ const toAdminUser = (user: Prisma.UserGetPayload<{ select: typeof ADMIN_USER_SEL
 	projectCount: user._count.projectMemberships,
 	createdAt: user.createdAt.toISOString(),
 })
+
+const ADMIN_USER_DETAIL_SELECT = {
+	...ADMIN_USER_SELECT,
+	projectMemberships: {
+		select: { createdAt: true, project: { select: { id: true, name: true, slug: true, primaryColor: true } } },
+		orderBy: [{ project: { name: 'asc' } }, { projectId: 'asc' }],
+	},
+} satisfies Prisma.UserSelect
+
+export const getUser = async (prisma: PrismaClient, id: string): Promise<AdminUserDetail> => {
+	const user = await prisma.user.findUnique({ where: { id }, select: ADMIN_USER_DETAIL_SELECT })
+	if (!user) {
+		throw new AppError(404, ERROR_CODE.NOT_FOUND, 'User not found')
+	}
+	return {
+		...toAdminUser(user),
+		projects: user.projectMemberships.map(({ createdAt, project }) => ({ ...project, joinedAt: createdAt.toISOString() })),
+	}
+}
 
 export const listUsers = async (prisma: PrismaClient): Promise<AdminUser[]> => {
 	const users = await prisma.user.findMany({ select: ADMIN_USER_SELECT, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }] })

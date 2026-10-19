@@ -1,7 +1,16 @@
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 
-import { ERROR_CODE, ROLE, VALIDATION_CODE, adminUserListResponseSchema, adminUserSchema, errorResponseSchema } from '@locale/shared'
+import {
+	ERROR_CODE,
+	ROLE,
+	VALIDATION_CODE,
+	adminUserDetailSchema,
+	adminUserListResponseSchema,
+	adminUserProjectSchema,
+	adminUserSchema,
+	errorResponseSchema,
+} from '@locale/shared'
 
 import { verifyPassword } from '../src/lib/password'
 
@@ -67,6 +76,81 @@ describe('GET /api/admin/users', () => {
 		const cookie = await loginWithRole(app, ROLE.EDITOR)
 
 		const res = await request(app).get('/api/admin/users').set('Cookie', cookie)
+
+		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
+	})
+})
+
+describe('GET /api/admin/users/:id', () => {
+	const getUser = (app: App, cookie: string, id: string) => request(app).get(`/api/admin/users/${id}`).set('Cookie', cookie)
+
+	it('returns the user with their projects sorted by name and without passwordHash', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user: editor } = await createUser({ createdAt: new Date('2026-04-01T00:00:00Z') })
+		const { user: other } = await createUser()
+		const prisma = getTestPrisma()
+		const zeta = await prisma.project.create({ data: { name: 'Zeta', slug: 'zeta', primaryColor: '#123456' } })
+		const alpha = await prisma.project.create({ data: { name: 'Alpha', slug: 'alpha' } })
+		await prisma.project.create({ data: { name: 'Other', slug: 'other', members: { create: { userId: other.id } } } })
+		await prisma.projectMember.create({ data: { projectId: zeta.id, userId: editor.id, createdAt: new Date('2026-05-01T00:00:00Z') } })
+		await prisma.projectMember.create({ data: { projectId: alpha.id, userId: editor.id, createdAt: new Date('2026-06-01T00:00:00Z') } })
+
+		const res = await getUser(app, cookie, editor.id)
+
+		expect(res.status).toBe(200)
+		expect(res.body).toEqual({
+			id: editor.id,
+			email: editor.email,
+			role: ROLE.EDITOR,
+			projectCount: 2,
+			createdAt: '2026-04-01T00:00:00.000Z',
+			projects: [
+				{ id: alpha.id, name: 'Alpha', slug: 'alpha', primaryColor: '#E83E8C', joinedAt: '2026-06-01T00:00:00.000Z' },
+				{ id: zeta.id, name: 'Zeta', slug: 'zeta', primaryColor: '#123456', joinedAt: '2026-05-01T00:00:00.000Z' },
+			],
+		})
+		expect(adminUserDetailSchema.extend({ projects: adminUserProjectSchema.strict().array() }).strict().safeParse(res.body).success).toBe(true)
+		expect(JSON.stringify(res.body)).not.toContain('passwordHash')
+	})
+
+	it('returns an admin without projects with an empty list', async () => {
+		const app = createTestApp()
+		const { user: admin } = await createUser({ role: ROLE.ADMIN })
+		const cookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
+
+		const res = await getUser(app, cookie, admin.id)
+
+		expect(res.status).toBe(200)
+		expect(res.body).toMatchObject({ id: admin.id, role: ROLE.ADMIN, projectCount: 0, projects: [] })
+	})
+
+	it.each([
+		{ name: 'an unknown id', id: '00000000-0000-4000-8000-000000000999' },
+		{ name: 'an id that is not a UUID', id: 'not-a-uuid' },
+	])('returns 404 NOT_FOUND for $name', async ({ id }) => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+
+		const res = await getUser(app, cookie, id)
+
+		expectErrorCode(res, 404, ERROR_CODE.NOT_FOUND)
+	})
+
+	it('returns 401 AUTH_UNAUTHENTICATED without a session', async () => {
+		const { user } = await createUser()
+
+		const res = await request(createTestApp()).get(`/api/admin/users/${user.id}`)
+
+		expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
+	})
+
+	it('returns 403 FORBIDDEN for an EDITOR, also for their own id', async () => {
+		const app = createTestApp()
+		const { user } = await createUser()
+		const cookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
+
+		const res = await getUser(app, cookie, user.id)
 
 		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
 	})

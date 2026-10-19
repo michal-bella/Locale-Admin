@@ -10,4 +10,4 @@ export const adminProjectsQueryOptions = queryOptions({
 	queryFn: async () => (await http.get<AdminProjectListResponse>('/admin/projects')).data,
 })
 
-export const useAdminProjectsQuery = () => useQuery(adminProjectsQueryOptions)
+export const useAdminProjectsQuery = (enabled = true) => useQuery({ ...adminProjectsQueryOptions, enabled })

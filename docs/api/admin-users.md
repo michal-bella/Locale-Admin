@@ -6,11 +6,12 @@ notion_page_id:
 
 # Správa používateľov (`/api/admin/users`)
 
-Zoznam všetkých používateľov, vytvorenie používateľa s rolou (`ADMIN` alebo `EDITOR`) a jeho odstránenie. Registrácia neexistuje a toto je jediná cesta, ako používateľ vzniká; do projektov sa existujúci používatelia pridávajú na stránke Členovia projektu (viď [projekty](./projects.md#členovia)). Editácia a deaktivácia nie sú, meno si každý mení v profile. Schémy sú v `packages/shared/src/adminUsers.ts`.
+Zoznam všetkých používateľov, detail používateľa s jeho projektmi, vytvorenie používateľa s rolou (`ADMIN` alebo `EDITOR`) a jeho odstránenie. Registrácia neexistuje a toto je jediná cesta, ako používateľ vzniká; do projektov sa existujúci používatelia pridávajú na stránke Členovia projektu (viď [projekty](./projects.md#členovia)). Editácia a deaktivácia nie sú, meno si každý mení v profile. Schémy sú v `packages/shared/src/adminUsers.ts`.
 
 | Metóda   | Cesta                  | Prihlásenie | Popis                                       |
 | -------- | ---------------------- | ----------- | ------------------------------------------- |
 | `GET`    | `/api/admin/users`     | `ADMIN`     | zoznam všetkých používateľov od najnovšieho |
+| `GET`    | `/api/admin/users/:id` | `ADMIN`     | detail používateľa s jeho projektmi         |
 | `POST`   | `/api/admin/users`     | `ADMIN`     | vytvorí používateľa s danou rolou           |
 | `DELETE` | `/api/admin/users/:id` | `ADMIN`     | odstráni používateľa                        |
 
@@ -49,6 +50,44 @@ Vráti `200` s telom `{ users: AdminUser[] }` (schéma `adminUserListResponseSch
 | 200  |                        | zoznam používateľov                  |
 | 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session       |
 | 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN` |
+
+## GET /api/admin/users/:id
+
+Vráti `200` s telom `AdminUserDetail` (schéma `adminUserDetailSchema`): polia `AdminUser` a navyše `projects`, projekty, v ktorých je používateľ členom, zoradené podľa názvu. Stránka Detail používateľa (`/admin/users/$userId`) z neho zobrazuje kartu účtu a tabuľku projektov; pridanie a odobratie projektu idú cez `POST` a `DELETE /api/projects/:projectId/members` (viď [projekty](./projects.md#členovia)), nový endpoint na to nie je.
+
+| Pole `projects[]` | Typ               | Popis                                                   |
+| ----------------- | ----------------- | ------------------------------------------------------- |
+| `id`              | UUID              | ID projektu                                             |
+| `name`            | string            | názov projektu                                          |
+| `slug`            | string            | slug projektu (URL stránok projektu)                    |
+| `primaryColor`    | string            | primárna farba projektu, napr. `#E83E8C`                |
+| `joinedAt`        | string (ISO 8601) | kedy bol používateľ pridaný (`ProjectMember.createdAt`) |
+
+```json
+{
+	"id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11",
+	"email": "meno@firma.sk",
+	"role": "EDITOR",
+	"projectCount": 1,
+	"createdAt": "2026-10-12T08:30:00.000Z",
+	"projects": [
+		{
+			"id": "0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d",
+			"name": "B2B admin",
+			"slug": "b2b-admin",
+			"primaryColor": "#E83E8C",
+			"joinedAt": "2026-10-13T09:00:00.000Z"
+		}
+	]
+}
+```
+
+| HTTP | `code`                 | Kedy                                                      |
+| ---- | ---------------------- | --------------------------------------------------------- |
+| 200  |                        | detail používateľa                                        |
+| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                            |
+| 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN` (ani pre vlastné id) |
+| 404  | `NOT_FOUND`            | používateľ s týmto `id` neexistuje alebo `id` nie je UUID |
 
 ## POST /api/admin/users
 
@@ -102,6 +141,7 @@ curl -i -c cookies.txt -X POST http://localhost:8080/api/auth/login \
   -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
   -d '{"email":"admin@firma.sk","password":"••••••••"}'
 curl -i -b cookies.txt http://localhost:8080/api/admin/users
+curl -i -b cookies.txt http://localhost:8080/api/admin/users/6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11
 curl -i -b cookies.txt -X POST http://localhost:8080/api/admin/users \
   -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
   -d '{"email":"meno@firma.sk","password":"••••••••","role":"EDITOR"}'

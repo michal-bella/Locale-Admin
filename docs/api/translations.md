@@ -125,6 +125,10 @@ Telo (schéma `updateTranslationRequestSchema`):
 
 Text sa ukladá tak, ako prišiel (bez orezania), HTML aj premenné `{{…}}` ostávajú ako text.
 
+### Plurálový kľúč
+
+Keď má kľúč zapnuté [plurálové formy](#plurálové-formy), hodnota iná ako `null` musí byť plurálová ICU správa (`parsePluralValue`) s premennou kľúča (`pluralVariable`). Obyčajný text, správa s inou premennou alebo správa, ktorú sa nedá rozobrať (napr. nevyvážené zátvorky vo forme), vráti 400 `VALIDATION_ERROR` s `details: [{ "path": "value", "code": "INVALID" }]` a nič sa nezapíše.
+
 ### Ochrana premenných
 
 Keď má projekt zapnuté `protectVariables` (nastavenia projektu, predvolene zapnuté), hodnota v inom ako základnom jazyku musí obsahovať presne tie premenné `{{…}}`, ktoré má hodnota kľúča v základnom jazyku. Premenná sa normalizuje rovnako ako pri [importe](./imports.md#upozornenia-import-prejde): bez medzier, bez úvodného `-` a bez časti od `,`, takže `{{ count }}`, `{{- count}}` aj `{{count, number}}` sú `{{count}}`. Kontrola sa preskočí, keď:
@@ -148,14 +152,14 @@ Schéma `updateTranslationResponseSchema`, rovnaký tvar ako `target` v zozname:
 
 ### Chyby
 
-| HTTP | `code`                      | Kedy                                                                                |
-| ---- | --------------------------- | ----------------------------------------------------------------------------------- |
-| 400  | `VALIDATION_ERROR`          | chýba `value`, nie je string ani `null`, alebo má viac ako 10 000 znakov            |
-| 400  | `PLACEHOLDER_MISMATCH`      | premenné sa líšia od základného jazyka (viď vyššie), `details: { missing, extra }`  |
-| 401  | `AUTH_UNAUTHENTICATED`      | bez session                                                                         |
-| 403  | `CSRF_REJECTED`             | bez `X-Requested-With` alebo JSON tela                                              |
-| 404  | `NOT_FOUND`                 | projekt mimo prístupu, alebo `languageId` nie je UUID / nie je jazyk tohto projektu |
-| 404  | `TRANSLATION_KEY_NOT_FOUND` | `keyId` nie je UUID alebo nie je kľúč tohto projektu                                |
+| HTTP | `code`                      | Kedy                                                                                                                                                                                       |
+| ---- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 400  | `VALIDATION_ERROR`          | chýba `value`, nie je string ani `null`, má viac ako 10 000 znakov, alebo pri plurálovom kľúči nie je plurálová správa s premennou kľúča (`details: [{ path: "value", code: "INVALID" }]`) |
+| 400  | `PLACEHOLDER_MISMATCH`      | premenné sa líšia od základného jazyka (viď vyššie), `details: { missing, extra }`                                                                                                         |
+| 401  | `AUTH_UNAUTHENTICATED`      | bez session                                                                                                                                                                                |
+| 403  | `CSRF_REJECTED`             | bez `X-Requested-With` alebo JSON tela                                                                                                                                                     |
+| 404  | `NOT_FOUND`                 | projekt mimo prístupu, alebo `languageId` nie je UUID / nie je jazyk tohto projektu                                                                                                        |
+| 404  | `TRANSLATION_KEY_NOT_FOUND` | `keyId` nie je UUID alebo nie je kľúč tohto projektu                                                                                                                                       |
 
 ### Príklad (curl)
 
@@ -186,16 +190,16 @@ Plurálový kľúč má v `TranslationKey.pluralVariable` názov číselnej prem
 {count, plural, one {# položka} few {# položky} other {# položiek}}
 ```
 
-Kategórie sú CLDR (`zero`, `one`, `two`, `few`, `many`, `other`), jazyk používa svoju podmnožinu (`pluralFormsForTag`: sk `one, few, many, other`, en `one, other`). Text formy môže obsahovať `{{premenné}}`, HTML aj `#` (číslo). Stav prekladu, vyhľadávanie a ochrana premenných pracujú s celou správou ako s textom (premenné `{{…}}` sa nájdu aj vo vnútri formy).
+Kategórie sú CLDR (`zero`, `one`, `two`, `few`, `many`, `other`), jazyk používa svoju podmnožinu (`pluralFormsForTag`: sk `one, few, many, other`, en `one, other`). Text formy môže obsahovať `{{premenné}}`, HTML aj `#` (číslo), ale zátvorky `{` a `}` v ňom musia byť vyvážené (`hasBalancedBraces`), inak sa správa nedá rozobrať späť. Presné hodnoty `=N` a `offset:` sa nerozpoznávajú (taká správa sa berie ako obyčajný text). Medzi formami môžu byť ľubovoľné biele znaky vrátane nových riadkov. Stav prekladu, vyhľadávanie a ochrana premenných pracujú s celou správou ako s textom (premenné `{{…}}` sa nájdu aj vo vnútri formy).
 
-Zmena `plural` prepíše hodnoty kľúča vo všetkých jazykoch v jednej transakcii s úpravou kľúča; `null` hodnoty ostávajú `null`:
+Zmena `plural` prepíše hodnoty kľúča vo všetkých jazykoch v jednej transakcii s úpravou kľúča; `null` hodnoty ostávajú `null`, pri každej prepísanej hodnote sa nastaví `updatedById` na prihláseného administrátora:
 
-| Zmena                          | Čo sa stane s hodnotou                                                                                                 |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| zapnutie (`null` → objekt)     | doterajší text sa stane formou `other`: `Máte {{count}} položiek` → `{count, plural, other {Máte {{count}} položiek}}` |
-| vypnutie (objekt → `null`)     | ostane text formy `other`; hodnota, ktorá nie je plurálová správa, ostane bez zmeny                                    |
-| premenovanie premennej         | správa sa uloží znovu s novou premennou; hodnota, ktorá nie je plurálová správa, ostane bez zmeny                      |
-| rovnaké nastavenie ako doteraz | hodnoty sa nemenia                                                                                                     |
+| Zmena                          | Čo sa stane s hodnotou                                                                                                                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| zapnutie (`null` → objekt)     | doterajší text sa stane formou `other`: `Máte {{count}} položiek` → `{count, plural, other {Máte {{count}} položiek}}`; text, ktorý už je plurálová správa, si formy ponechá a uloží sa s novou premennou |
+| vypnutie (objekt → `null`)     | ostane text formy `other`; hodnota, ktorá nie je plurálová správa, ostane bez zmeny                                                                                                                       |
+| premenovanie premennej         | správa sa uloží znovu s novou premennou; hodnota, ktorá nie je plurálová správa, ostane bez zmeny                                                                                                         |
+| rovnaké nastavenie ako doteraz | hodnoty sa nemenia                                                                                                                                                                                        |
 
 ### Odpoveď 200
 

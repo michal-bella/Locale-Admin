@@ -25,9 +25,15 @@ const createProject = (members: string[] = [], protectVariables = true) =>
 const createLanguage = (projectId: string, tag: string, isBase = false) => getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase } })
 
 /** `values` maps a language id to its value; a language left out has no row. */
-const createKey = (projectId: string, name: string, values: Record<string, string | null> = {}) =>
+const createKey = (projectId: string, name: string, values: Record<string, string | null> = {}, pluralVariable: string | null = null) =>
 	getTestPrisma().translationKey.create({
-		data: { projectId, namespace: 'loc', name, translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) } },
+		data: {
+			projectId,
+			namespace: 'loc',
+			name,
+			pluralVariable,
+			translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) },
+		},
 	})
 
 /** Logs in a new user who is a member of a new project with `sk` (base) and `en`. */
@@ -155,6 +161,23 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 		expectErrorCode(await request(app).put(url).set('Cookie', cookie).set(CSRF_HEADERS).send({}), 400, ERROR_CODE.VALIDATION_ERROR)
 		expectErrorCode(await put(app, cookie, project.id, key.id, en.id, 'x'.repeat(10_001)), 400, ERROR_CODE.VALIDATION_ERROR)
 		expect(await findRow(key.id, en.id)).toBeNull()
+	})
+
+	it('on a plural key accepts only a plural message with the key variable and writes nothing otherwise', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const key = await createKey(project.id, 'items', { [sk.id]: '{count, plural, other {{{count}} položiek}}' }, 'count')
+
+		for (const value of ['{count, plural, one {# item}} other {# items}}', 'plain text', '{n, plural, other {# items}}']) {
+			const res = await put(app, cookie, project.id, key.id, en.id, value)
+			expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
+			expect(errorResponseSchema.parse(res.body).error.details).toEqual([{ path: 'value', code: 'INVALID' }])
+		}
+		expect(await findRow(key.id, en.id)).toBeNull()
+
+		const value = '{count, plural,\n\tone {# item}\n\tother {{{count}} items}\n}'
+		expect(await putOk(app, cookie, project.id, key.id, en.id, value)).toMatchObject({ value, status: 'TRANSLATED' })
+		expect(await putOk(app, cookie, project.id, key.id, en.id, null)).toMatchObject({ value: null, status: 'UNTRANSLATED' })
 	})
 
 	it.each([

@@ -1,6 +1,7 @@
 import {
 	ERROR_CODE,
 	TRANSLATION_KEY_PATH_PATTERN,
+	VALIDATION_CODE,
 	parsePluralValue,
 	serializePluralValue,
 	translationGroup,
@@ -121,23 +122,35 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	}
 }
 
+const keyNotFound = () => new AppError(404, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND, 'Translation key not found')
+
 /**
- * Upserts the target cell. With `protectVariables` a non-base value must keep the `{{…}}` placeholders of the base
- * language value (skipped when that is missing or `null`). No advisory lock: a concurrent import stays consistent,
- * only its counts may be off by this row (plan, "Odložené z míľnika A").
+ * Upserts the target cell. On a plural key a non-null value must be a plural message with the key's variable. With
+ * `protectVariables` a non-base value must keep the `{{…}}` placeholders of the base language value (skipped when
+ * that is missing or `null`). No advisory lock: a concurrent import stays consistent, only its counts may be off by
+ * this row (plan, "Odložené z míľnika A").
  */
 export const updateTranslation = async (
 	prisma: PrismaClient,
 	{ projectId, keyId, languageId, userId }: { projectId: string; keyId: string; languageId: string; userId: string },
 	value: string | null,
 ): Promise<UpdateTranslationResponse> => {
-	const key = await prisma.translationKey.findFirst({ where: { id: keyId, projectId }, select: { project: { select: { protectVariables: true } } } })
+	const key = await prisma.translationKey.findFirst({
+		where: { id: keyId, projectId },
+		select: { pluralVariable: true, project: { select: { protectVariables: true } } },
+	})
 	if (!key) {
-		throw new AppError(404, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND, 'Translation key not found')
+		throw keyNotFound()
 	}
 	const language = await prisma.projectLanguage.findFirst({ where: { id: languageId, projectId }, select: { isBase: true } })
 	if (!language) {
 		throw new AppError(404, ERROR_CODE.NOT_FOUND, 'Language not found')
+	}
+
+	if (value !== null && key.pluralVariable !== null && parsePluralValue(value)?.variable !== key.pluralVariable) {
+		throw new AppError(400, ERROR_CODE.VALIDATION_ERROR, 'Value of a plural key must be a plural message with the key variable', [
+			{ path: 'value', code: VALIDATION_CODE.INVALID },
+		])
 	}
 
 	if (value !== null && !language.isBase && key.project.protectVariables) {
@@ -159,15 +172,14 @@ export const updateTranslation = async (
 	return { value: row.value, status: row.value === null ? 'UNTRANSLATED' : 'TRANSLATED', updatedAt: row.updatedAt.toISOString() }
 }
 
-const keyNotFound = () => new AppError(404, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND, 'Translation key not found')
-
 /**
- * Value of one language after the plural setting of its key changed. Plural on wraps the text as the `other` form;
- * plural off keeps the `other` form; a new variable re-serializes the forms. A value that is not a plural message stays as is.
+ * Value of one language after the plural setting of its key changed. Plural on wraps the text as the `other` form
+ * (a text that already is a plural message keeps its forms); plural off keeps the `other` form; a new variable
+ * re-serializes the forms. A value that is not a plural message stays as is.
  */
 export const convertPluralValue = (value: string, from: string | null, to: string | null): string => {
 	if (from === null) {
-		return to === null ? value : serializePluralValue({ variable: to, forms: { other: value } })
+		return to === null ? value : serializePluralValue({ variable: to, forms: parsePluralValue(value)?.forms ?? { other: value } })
 	}
 	const parsed = parsePluralValue(value)
 	if (!parsed) {
@@ -176,46 +188,48 @@ export const convertPluralValue = (value: string, from: string | null, to: strin
 	return to === null ? (parsed.forms.other ?? value) : serializePluralValue({ variable: to, forms: parsed.forms })
 }
 
-/** Renames the key, sets its description or plural setting; a plural change converts every non-null value in the same transaction. */
+/**
+ * Renames the key, sets its description or plural setting; a plural change converts every non-null value in the same
+ * transaction and marks the converted rows as updated by the acting user.
+ */
 export const updateTranslationKey = async (
 	prisma: PrismaClient,
-	{ projectId, keyId }: { projectId: string; keyId: string },
+	{ projectId, keyId, userId }: { projectId: string; keyId: string; userId: string },
 	{ name, description, plural }: UpdateTranslationKeyRequest,
-): Promise<UpdateTranslationKeyResponse> => {
-	try {
-		return await prisma.$transaction(async (tx) => {
-			const key = await tx.translationKey.findFirst({ where: { id: keyId, projectId }, select: { pluralVariable: true } })
-			if (!key) {
-				throw keyNotFound()
-			}
-			const pluralVariable = plural === undefined ? key.pluralVariable : (plural?.variable ?? null)
-			if (pluralVariable !== key.pluralVariable) {
-				const rows = await tx.translation.findMany({ where: { keyId, value: { not: null } }, select: { languageId: true, value: true } })
-				for (const row of rows) {
-					const value = convertPluralValue(row.value ?? '', key.pluralVariable, pluralVariable)
-					if (value !== row.value) {
-						await tx.translation.update({ where: { keyId_languageId: { keyId, languageId: row.languageId } }, data: { value } })
-					}
+): Promise<UpdateTranslationKeyResponse> =>
+	prisma.$transaction(async (tx) => {
+		const key = await tx.translationKey.findFirst({ where: { id: keyId, projectId }, select: { pluralVariable: true } })
+		if (!key) {
+			throw keyNotFound()
+		}
+		const pluralVariable = plural === undefined ? key.pluralVariable : (plural?.variable ?? null)
+		if (pluralVariable !== key.pluralVariable) {
+			const rows = await tx.translation.findMany({ where: { keyId, value: { not: null } }, select: { languageId: true, value: true } })
+			for (const row of rows) {
+				const value = convertPluralValue(row.value ?? '', key.pluralVariable, pluralVariable)
+				if (value !== row.value) {
+					await tx.translation.update({ where: { keyId_languageId: { keyId, languageId: row.languageId } }, data: { value, updatedById: userId } })
 				}
 			}
-			const updated = await tx.translationKey.update({
+		}
+		const updated = await tx.translationKey
+			.update({
 				where: { id: keyId },
 				data: { name, description, pluralVariable },
 				select: { id: true, namespace: true, name: true, description: true, pluralVariable: true },
 			})
-			return {
-				keyId: updated.id,
-				namespace: updated.namespace,
-				name: updated.name,
-				group: translationGroup(updated.namespace, updated.name),
-				description: updated.description,
-				plural: toPlural(updated.pluralVariable),
-			}
-		})
-	} catch (err) {
-		if (isPrismaError(err, 'P2002')) {
-			throw new AppError(409, ERROR_CODE.TRANSLATION_KEY_TAKEN, 'Translation key name is already taken in this namespace')
+			.catch((err: unknown) => {
+				if (isPrismaError(err, 'P2002')) {
+					throw new AppError(409, ERROR_CODE.TRANSLATION_KEY_TAKEN, 'Translation key name is already taken in this namespace')
+				}
+				throw err
+			})
+		return {
+			keyId: updated.id,
+			namespace: updated.namespace,
+			name: updated.name,
+			group: translationGroup(updated.namespace, updated.name),
+			description: updated.description,
+			plural: toPlural(updated.pluralVariable),
 		}
-		throw err
-	}
-}
+	})

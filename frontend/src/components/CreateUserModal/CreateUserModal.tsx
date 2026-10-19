@@ -127,6 +127,7 @@ const CreateUserModal = ({ opened, onClose, defaultRole = ROLE.EDITOR, onCreated
 							/>
 							<Input.Wrapper
 								id={roleId}
+								labelElement='div'
 								label={t('usersPage.createModal.role.label')}
 								description={t(`usersPage.createModal.role.description.${role}`)}
 								inputWrapperOrder={['label', 'input', 'description']}

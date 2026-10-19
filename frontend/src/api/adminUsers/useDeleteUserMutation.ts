@@ -17,6 +17,7 @@ export const useDeleteUserMutation = () => {
 		onSuccess: () =>
 			Promise.all([
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.USERS() }),
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.PROJECTS() }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.ALL() }),
 			]),
 		onError: (error) => {

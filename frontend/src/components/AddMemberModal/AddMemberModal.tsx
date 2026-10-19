@@ -64,7 +64,8 @@ const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => 
 					if (code === ERROR_CODE.ALREADY_MEMBER || code === ERROR_CODE.NOT_FOUND) {
 						setUserId(null)
 						setFieldError(t(`errors.${code}`))
-						inputRef.current?.focus()
+						// Deferred so the error is in the DOM (aria-describedby) when the input gets focus and is announced.
+						setTimeout(() => inputRef.current?.focus())
 						return
 					}
 					notifications.show({ color: 'red', message: t(`errors.${code}`) })

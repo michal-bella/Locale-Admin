@@ -1,6 +1,7 @@
 import { Button } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useLoaderData } from '@tanstack/react-router'
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ROLE } from '@locale/shared'
@@ -17,20 +18,27 @@ const MembersPage = () => {
 	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { data: me } = useMeQuery()
 	const [modalOpened, modal] = useDisclosure(false)
+	const triggerRef = useRef<HTMLButtonElement>(null)
 	const isAdmin = me?.role === ROLE.ADMIN
+
+	// Mantine's own return focus targets a node of the already closed nested CreateUserModal, so the trigger is focused here.
+	const closeModal = () => {
+		modal.close()
+		triggerRef.current?.focus()
+	}
 
 	return (
 		<div className='mx-auto flex w-full max-w-[1200px] flex-col gap-6 p-8'>
 			<div className='flex flex-wrap items-end justify-between gap-4'>
 				<PageIntro eyebrow={t('membersPage.eyebrow')} title={t('membersPage.title')} description={t('membersPage.description')} titleSize='h2' />
 				{isAdmin && (
-					<Button leftSection={<Plus aria-hidden />} onClick={modal.open}>
+					<Button ref={triggerRef} leftSection={<Plus aria-hidden />} onClick={modal.open}>
 						{t('membersPage.createButton')}
 					</Button>
 				)}
 			</div>
 			<MembersTable projectId={projectId} />
-			{isAdmin && <AddMemberModal projectId={projectId} opened={modalOpened} onClose={modal.close} />}
+			{isAdmin && <AddMemberModal projectId={projectId} opened={modalOpened} onClose={closeModal} />}
 		</div>
 	)
 }

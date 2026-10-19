@@ -250,6 +250,7 @@ describe('MembersPage', () => {
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		const addPost = requests.find((request) => request.method === 'post' && request.url === MEMBERS_URL)
 		expect(JSON.parse(addPost?.data as string)).toEqual({ userId: NEW_USER.id })
+		await waitFor(() => expect(screen.getByRole('button', { name: 'Pridať člena' })).toHaveFocus())
 	})
 })
 

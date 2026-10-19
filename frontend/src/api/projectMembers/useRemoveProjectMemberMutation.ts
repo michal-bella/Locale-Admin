@@ -17,6 +17,7 @@ export const useRemoveProjectMemberMutation = (projectId: string) => {
 			Promise.all([
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.MEMBERS(projectId) }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.USERS() }),
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.PROJECTS() }),
 			]),
 		onError: (error) => {
 			// Already removed by someone else: the list must drop the row.

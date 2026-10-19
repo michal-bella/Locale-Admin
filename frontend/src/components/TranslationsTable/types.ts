@@ -1,6 +1,7 @@
 import { type Language, type TranslationsResponse } from '@locale/shared'
 
 export type TranslationsTableProps = {
+	projectId: string
 	data?: TranslationsResponse
 	isPending: boolean
 	isError: boolean

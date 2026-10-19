@@ -1,0 +1,44 @@
+.root {
+	min-height: 2.625rem;
+	max-height: 13.5rem;
+	padding: 0.5rem;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-sm);
+	background-color: var(--app-color-surface);
+	font-size: var(--mantine-font-size-md);
+	line-height: 1.5;
+	color: var(--app-color-text-strong);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	overflow-y: auto;
+	cursor: text;
+}
+
+.root:focus-visible {
+	outline: 2px solid var(--mantine-primary-color-filled);
+	outline-offset: -1px;
+}
+
+.root[aria-invalid='true'] {
+	border-color: var(--mantine-color-error);
+}
+
+.root[aria-readonly='true'] {
+	opacity: 0.7;
+}
+
+.tag {
+	display: inline-block;
+	margin-inline: 0.125rem;
+	padding: 0.125rem 0.375rem;
+	border: 1px solid var(--app-color-border);
+	border-radius: 0.375rem;
+	background-color: var(--app-color-surface-muted);
+	font-family: var(--mantine-font-family-monospace);
+	font-size: var(--mantine-font-size-2xs);
+	font-weight: 600;
+	line-height: 1.5;
+	color: var(--app-color-text-secondary);
+	white-space: nowrap;
+	user-select: none;
+}

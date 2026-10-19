@@ -1,65 +1,87 @@
-import { Loader, Textarea, VisuallyHidden } from '@mantine/core'
+import { Loader, VisuallyHidden } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
+import { type FocusEvent, type KeyboardEvent, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type PlaceholderMismatchDetails, TRANSLATION_VALUE_MAX_LENGTH, updateTranslationRequestSchema } from '@locale/shared'
+import {
+	type PlaceholderMismatchDetails,
+	type PluralForm,
+	serializePluralValue,
+	TRANSLATION_VALUE_MAX_LENGTH,
+	updateTranslationRequestSchema,
+} from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import getPlaceholderMismatch from '@/api/getPlaceholderMismatch'
+import PluralFormChip from '@/components/PluralForms/PluralFormChip'
+import TokenEditor from '@/components/TokenEditor/TokenEditor'
+import { parsePluralForms, pluralFormsOf } from '@/lib/pluralForms'
 
 import classes from './TranslationEditor.module.css'
 import { type TranslationEditorProps } from './types'
 
-const MAX_ROWS = 8
-
 type SaveTrigger = 'blur' | 'keyboard'
 
-type RejectedDraft = { draft: string; details: PlaceholderMismatchDetails }
+type Rejected = { value: string | null; details: PlaceholderMismatchDetails }
+
+type Draft = Partial<Record<PluralForm, string>>
+
+const PLAIN: PluralForm = 'other'
 
 /**
- * Target cell of the translations table. The read-only value is a button (Enter/Space open the editor natively, Tab goes straight to the
- * next row's cell because nothing else in a row is focusable). Editing is a plain-text `Textarea`: blur and Ctrl/Cmd+Enter save, Esc
- * restores. Empty or whitespace-only text saves `null`. The field stays open and read-only with a loader while saving, so a
- * `PLACEHOLDER_MISMATCH` can show its message under the field; a blur after that error with the same rejected text discards the draft.
+ * Target cell of the translations table. The read-only value is a button (Enter/Space open the editor natively). Editing is a `TokenEditor`
+ * per form (one for a plain key): blur outside the cell and Ctrl/Cmd+Enter save, Esc restores. Empty or whitespace-only text saves `null`;
+ * for a plural key the forms are saved as one ICU message (empty forms kept, all empty → `null`). The fields stay open and read-only
+ * with a loader while saving, so a `PLACEHOLDER_MISMATCH` can show its message under them; a blur after that error with the same
+ * rejected value discards the draft.
  */
-const TranslationEditor = ({ value, label, onSave, children }: TranslationEditorProps) => {
+const TranslationEditor = ({ value, label, plural = null, onSave, children }: TranslationEditorProps) => {
 	const { t } = useTranslation()
 	const [editing, setEditing] = useState(false)
-	const [draft, setDraft] = useState('')
+	const [draft, setDraft] = useState<Draft>({})
 	const [saving, setSaving] = useState(false)
-	const [rejected, setRejected] = useState<RejectedDraft | null>(null)
+	const [rejected, setRejected] = useState<Rejected | null>(null)
 	const buttonRef = useRef<HTMLButtonElement>(null)
-	const textareaRef = useRef<HTMLTextAreaElement>(null)
+	const rootRef = useRef<HTMLDivElement>(null)
 	const focusButtonRef = useRef(false)
+	const hintId = useId()
+	const errorId = useId()
 
 	useEffect(() => {
-		if (editing) {
-			const textarea = textareaRef.current
-			textarea?.focus()
-			textarea?.setSelectionRange(textarea.value.length, textarea.value.length)
-		} else if (focusButtonRef.current) {
+		if (!editing && focusButtonRef.current) {
 			focusButtonRef.current = false
 			buttonRef.current?.focus()
 		}
 	}, [editing])
 
+	const forms: PluralForm[] = plural ? pluralFormsOf(plural.tag, parsePluralForms(value)) : [PLAIN]
+
 	const open = () => {
-		setDraft(value ?? '')
+		setDraft(plural ? parsePluralForms(value) : { [PLAIN]: value ?? '' })
 		setRejected(null)
 		setEditing(true)
 	}
 
-	// Focus returns to the button only when the user is still in the field (Esc, Ctrl+Enter), never after a blur.
+	// Focus returns to the button only when the user is still in a field (Esc, Ctrl+Enter), never after a blur.
 	const close = () => {
-		focusButtonRef.current = document.activeElement === textareaRef.current
+		focusButtonRef.current = rootRef.current?.contains(document.activeElement) ?? false
 		setRejected(null)
 		setEditing(false)
 	}
 
+	const composeValue = (): string | null => {
+		if (!plural) {
+			return updateTranslationRequestSchema.parse({ value: draft[PLAIN] ?? '' }).value
+		}
+		if (forms.every((form) => (draft[form] ?? '').trim() === '')) {
+			return null
+		}
+		return serializePluralValue({ variable: plural.variable, forms: Object.fromEntries(forms.map((form) => [form, draft[form] ?? ''])) })
+	}
+
 	const save = async (trigger: SaveTrigger) => {
-		const next = updateTranslationRequestSchema.parse({ value: draft }).value
-		if (next === value || (rejected?.draft === draft && trigger === 'blur')) {
+		const next = composeValue()
+		if (next === value || (rejected?.value === next && trigger === 'blur')) {
 			close()
 			return
 		}
@@ -70,7 +92,7 @@ const TranslationEditor = ({ value, label, onSave, children }: TranslationEditor
 		} catch (error) {
 			const details = getPlaceholderMismatch(error)
 			if (details) {
-				setRejected({ draft, details })
+				setRejected({ value: next, details })
 			} else {
 				notifications.show({ color: 'red', message: t(`errors.${getApiErrorCode(error)}`) })
 				close()
@@ -80,7 +102,7 @@ const TranslationEditor = ({ value, label, onSave, children }: TranslationEditor
 		}
 	}
 
-	const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
 		if (saving) {
 			return
 		}
@@ -90,6 +112,13 @@ const TranslationEditor = ({ value, label, onSave, children }: TranslationEditor
 		} else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
 			event.preventDefault()
 			void save('keyboard')
+		}
+	}
+
+	// Moving between the forms of a plural key is not leaving the cell.
+	const onBlur = (event: FocusEvent<HTMLDivElement>) => {
+		if (!saving && !(event.relatedTarget instanceof Node && rootRef.current?.contains(event.relatedTarget))) {
+			void save('blur')
 		}
 	}
 
@@ -111,36 +140,53 @@ const TranslationEditor = ({ value, label, onSave, children }: TranslationEditor
 			.filter(Boolean)
 			.join(' ')
 
-	return (
-		<Textarea
-			ref={textareaRef}
-			aria-label={label}
-			value={draft}
-			maxLength={TRANSLATION_VALUE_MAX_LENGTH}
-			autosize
-			minRows={1}
-			maxRows={MAX_ROWS}
+	const describedBy = mismatchMessage ? `${hintId} ${errorId}` : hintId
+
+	const field = (form: PluralForm, index: number) => (
+		<TokenEditor
+			key={form}
+			value={draft[form] ?? ''}
+			onChange={(next) => setDraft((current) => ({ ...current, [form]: next }))}
+			label={plural ? t('translationsPage.editor.formLabel', { label, form: t(`translationsPage.plural.forms.${form}`) }) : label}
+			pluralHash={plural !== null}
+			describedBy={describedBy}
+			invalid={Boolean(mismatchMessage)}
 			readOnly={saving}
-			description={t('translationsPage.editor.hint')}
-			inputWrapperOrder={['input', 'description', 'error']}
-			error={mismatchMessage && <span role='alert'>{mismatchMessage}</span>}
-			rightSection={
-				saving ? (
-					<span role='status'>
+			maxLength={TRANSLATION_VALUE_MAX_LENGTH}
+			focusOnMount={index === 0}
+			className={classes.field}
+			onKeyDown={onKeyDown}
+			onBlur={onBlur}
+		/>
+	)
+
+	return (
+		<div ref={rootRef} className={classes.root}>
+			{plural
+				? forms.map((form, index) => (
+						<div key={form} className={classes.formRow}>
+							<PluralFormChip form={form} />
+							{field(form, index)}
+						</div>
+					))
+				: field(PLAIN, 0)}
+			<div className={classes.footer}>
+				<span id={hintId} className={classes.hint}>
+					{t('translationsPage.editor.hint')}
+				</span>
+				{saving && (
+					<span role='status' className={classes.saving}>
 						<Loader size='xs' />
 						<VisuallyHidden>{t('translationsPage.editor.saving')}</VisuallyHidden>
 					</span>
-				) : undefined
-			}
-			classNames={{ root: classes.root, input: classes.input, description: classes.hint, error: classes.error }}
-			onChange={(event) => setDraft(event.currentTarget.value)}
-			onKeyDown={onKeyDown}
-			onBlur={() => {
-				if (!saving) {
-					void save('blur')
-				}
-			}}
-		/>
+				)}
+			</div>
+			{mismatchMessage && (
+				<span id={errorId} role='alert' className={classes.error}>
+					{mismatchMessage}
+				</span>
+			)}
+		</div>
 	)
 }
 

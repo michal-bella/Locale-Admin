@@ -152,6 +152,7 @@ const TranslationsPage = () => {
 					/>
 				</div>
 				<TranslationsTable
+					projectId={projectId}
 					data={data}
 					isPending={isPending}
 					isError={isError}

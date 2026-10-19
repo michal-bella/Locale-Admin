@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Zobrazenia prekladov, krok 3: rozšírené zobrazenie a prepínač (2026-10-19)
+
+- frontend: nové predvolené zobrazenie **Všetky jazyky** – stĺpec na každý jazyk projektu, vodorovný scroll, stĺpce Kľúč a Stav zafixované na okrajoch, červená len bunka bez prekladu, riadok je Nepreložené, kým chýba hoci jeden jazyk; dnešné zobrazenie **Zdroj → cieľ** ostáva ako kompaktné; prepínač v toolbare sa ukladá na účet používateľa (`PATCH /api/profile/preferences`, hook `useUpdatePreferencesMutation`), nie do URL ([Frontend](./frontend.md#stránka-preklady))
+- otvorené: E2E sa prepíšu v kroku 4 plánu ([plán](./plans/translations-views.md))
+
 ### Zobrazenia prekladov, krok 2: modál Upraviť preklad (2026-10-19)
 
 - frontend: klik na bunku prekladu otvorí modál **Upraviť preklad** (kľúč s popisom, jazyk s vlajkou, hodnota základného jazyka ako nápoveda, pole s uzamknutými tokenmi po plurálových formách, Zrušiť / Uložiť); úprava v riadku, uloženie klikom mimo pole a Ctrl+Enter sú odstránené; validácia a chyby (`PLACEHOLDER_MISMATCH`, zátvorky, limit dĺžky) ostali; červené pozadie má len bunka bez prekladu, nie riadok ([Frontend](./frontend.md#modál-upraviť-preklad))

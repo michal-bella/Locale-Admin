@@ -8,10 +8,10 @@ import { useDeleteUserMutation } from '@/api/adminUsers/useDeleteUserMutation'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import AppModal from '@/components/AppModal/AppModal'
 
-import { type DeleteAdminModalProps } from './types'
+import { type DeleteUserModalProps } from './types'
 
-/** Confirmation of deleting an administrator account on Používatelia. */
-const DeleteAdminModal = ({ opened, admin, onClose, onDeleted }: DeleteAdminModalProps) => {
+/** Confirmation of deleting a user account on Používatelia; names the number of projects the user is removed from. */
+const DeleteUserModal = ({ opened, user, onClose, onDeleted }: DeleteUserModalProps) => {
 	const { t } = useTranslation()
 	const deleteUser = useDeleteUserMutation()
 	const { isPending } = deleteUser
@@ -24,12 +24,12 @@ const DeleteAdminModal = ({ opened, admin, onClose, onDeleted }: DeleteAdminModa
 	}
 
 	const handleConfirm = () => {
-		if (!admin || isPending) {
+		if (!user || isPending) {
 			return
 		}
-		deleteUser.mutate(admin.id, {
+		deleteUser.mutate(user.id, {
 			onSuccess: () => {
-				notifications.show({ color: 'green', message: t('usersPage.deleteModal.success', { email: admin.email }) })
+				notifications.show({ color: 'green', message: t('usersPage.deleteModal.success', { email: user.email }) })
 				onDeleted()
 			},
 			onError: (error) => {
@@ -44,7 +44,7 @@ const DeleteAdminModal = ({ opened, admin, onClose, onDeleted }: DeleteAdminModa
 
 	return (
 		<AppModal
-			opened={opened && admin !== null}
+			opened={opened && user !== null}
 			onClose={handleClose}
 			title={t('usersPage.deleteModal.title')}
 			closeLabel={t('usersPage.deleteModal.close')}
@@ -61,9 +61,9 @@ const DeleteAdminModal = ({ opened, admin, onClose, onDeleted }: DeleteAdminModa
 				</>
 			}
 		>
-			<Text size='sm'>{admin && t('usersPage.deleteModal.message', { email: admin.email })}</Text>
+			<Text size='sm'>{user && t('usersPage.deleteModal.message', { email: user.email, count: user.projectCount })}</Text>
 		</AppModal>
 	)
 }
 
-export default DeleteAdminModal
+export default DeleteUserModal

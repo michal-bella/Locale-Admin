@@ -102,22 +102,24 @@
 	"usersPage": {
 		"eyebrow": "Správa",
 		"title": "Uživatelé",
-		"description": "Administrátoři, kteří spravují systém, jazyky a všechny projekty.",
-		"createButton": "Vytvořit administrátora",
+		"description": "Všichni uživatelé: administrátoři spravují systém a všechny projekty, členové překládají v projektech, do kterých byli přidáni.",
+		"createButton": "Vytvořit uživatele",
 		"table": {
-			"label": "Seznam administrátorů",
+			"label": "Seznam uživatelů",
 			"email": "E-mail",
+			"role": "Role",
+			"projects": "Projekty",
 			"createdAt": "Vytvořen",
-			"empty": "Zatím zde nejsou žádní administrátoři.",
-			"loadError": "Seznam administrátorů se nepodařilo načíst.",
+			"empty": "Zatím zde nejsou žádní uživatelé.",
+			"loadError": "Seznam uživatelů se nepodařilo načíst.",
 			"retry": "Zkusit znovu",
-			"deleteLabel": "Odstranit administrátora {{email}}",
+			"deleteLabel": "Odstranit uživatele {{email}}",
 			"actionsColumn": "Akce",
 			"delete": "Odstranit"
 		},
 		"createModal": {
-			"title": "Nový administrátor",
-			"description": "Zadejte e-mail a heslo pro nový administrátorský účet. Členy projektů vytvoříte na stránce Členové v projektu.",
+			"title": "Nový uživatel",
+			"description": "Zadejte e-mail, heslo a roli nového uživatele. Do projektů ho přidáte na stránce Členové projektu.",
 			"close": "Zavřít",
 			"email": {
 				"label": "E-mail",
@@ -127,17 +129,28 @@
 				"label": "Heslo",
 				"placeholder": "Min. {{min}} znaků"
 			},
+			"role": {
+				"label": "Role",
+				"description": {
+					"ADMIN": "Spravuje systém, uživatele a všechny projekty.",
+					"EDITOR": "Překládá pouze v projektech, do kterých ho přidá administrátor."
+				}
+			},
 			"cancel": "Zrušit",
-			"submit": "Vytvořit administrátora",
-			"success": "Administrátor {{email}} byl vytvořen."
+			"submit": "Vytvořit uživatele",
+			"success": "Uživatel {{email}} byl vytvořen."
 		},
 		"deleteModal": {
-			"title": "Odstranit administrátora",
-			"message": "Opravdu chcete odstranit účet {{email}}? Smaže se i jeho přihlášení a členství v projektech. Akci nelze vrátit.",
+			"title": "Odstranit uživatele",
+			"message_zero": "Opravdu chcete odstranit účet {{email}}? Smaže se i jeho přihlášení. Akci nelze vrátit.",
+			"message_one": "Opravdu chcete odstranit účet {{email}}? Odebere se z {{count}} projektu a smaže se i jeho přihlášení. Akci nelze vrátit.",
+			"message_few": "Opravdu chcete odstranit účet {{email}}? Odebere se z {{count}} projektů a smaže se i jeho přihlášení. Akci nelze vrátit.",
+			"message_many": "Opravdu chcete odstranit účet {{email}}? Odebere se z {{count}} projektů a smaže se i jeho přihlášení. Akci nelze vrátit.",
+			"message_other": "Opravdu chcete odstranit účet {{email}}? Odebere se z {{count}} projektů a smaže se i jeho přihlášení. Akci nelze vrátit.",
 			"close": "Zavřít",
 			"cancel": "Zrušit",
 			"confirm": "Odstranit",
-			"success": "Administrátor {{email}} byl odstraněn."
+			"success": "Uživatel {{email}} byl odstraněn."
 		}
 	},
 	"translationsPage": {
@@ -441,25 +454,25 @@
 			"actionsColumn": "Akce",
 			"remove": "Odebrat z projektu"
 		},
-		"createModal": {
-			"title": "Nový člen",
-			"description": "Vytvoří nový účet, který bude mít přístup k tomuto projektu.",
+		"addModal": {
+			"title": "Přidat člena",
+			"description": "Vyberte existujícího uživatele, který získá přístup k tomuto projektu.",
 			"close": "Zavřít",
-			"email": {
-				"label": "E-mail",
-				"placeholder": "jmeno@firma.cz"
+			"user": {
+				"label": "Uživatel",
+				"placeholder": "Hledat podle e-mailu"
 			},
-			"password": {
-				"label": "Heslo",
-				"placeholder": "Min. {{min}} znaků"
-			},
+			"nothingFound": "Žádný uživatel neodpovídá hledání.",
+			"loadError": "Uživatele se nepodařilo načíst.",
+			"retry": "Zkusit znovu",
+			"createUser": "Vytvořit nového uživatele",
 			"cancel": "Zrušit",
 			"submit": "Přidat člena",
 			"success": "Člen {{email}} byl přidán do projektu."
 		},
 		"removeModal": {
 			"title": "Odebrat z projektu",
-			"message": "Opravdu chcete odebrat {{email}} z projektu? Účet zůstane, zpět ho může přidat kterýkoli člen.",
+			"message": "Opravdu chcete odebrat {{email}} z projektu? Účet zůstane, zpět ho může přidat administrátor.",
 			"close": "Zavřít",
 			"cancel": "Zrušit",
 			"confirm": "Odebrat",

@@ -1,4 +1,4 @@
-export type CreateMemberModalProps = {
+export type AddMemberModalProps = {
 	projectId: string
 	opened: boolean
 	onClose: () => void

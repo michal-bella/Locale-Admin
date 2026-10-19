@@ -16,6 +16,7 @@ const MARTIN: AdminUser = {
 	id: '00000000-0000-4000-8000-000000000011',
 	email: 'martin.kovac@firma.sk',
 	role: ROLE.ADMIN,
+	projectCount: 3,
 	createdAt: '2026-10-12T10:00:00.000Z',
 }
 
@@ -23,6 +24,7 @@ const JANA: AdminUser = {
 	id: '00000000-0000-4000-8000-000000000012',
 	email: 'jana.novakova@firma.sk',
 	role: ROLE.EDITOR,
+	projectCount: 1,
 	createdAt: '2026-10-03T10:00:00.000Z',
 }
 
@@ -30,22 +32,23 @@ const NEW_USER: AdminUser = {
 	id: '00000000-0000-4000-8000-000000000013',
 	email: 'nova@firma.sk',
 	role: ROLE.EDITOR,
+	projectCount: 0,
 	createdAt: '2026-10-16T10:00:00.000Z',
 }
 
 const usersResponse = (users: AdminUser[]) => ({ status: 200, data: { users } })
 
-const getTable = () => screen.getByRole('table', { name: 'Zoznam administrátorov' })
+const getTable = () => screen.getByRole('table', { name: 'Zoznam používateľov' })
 
 const openModal = async () => {
-	fireEvent.click(await screen.findByRole('button', { name: 'Vytvoriť administrátora' }))
-	return screen.findByRole('dialog', { name: 'Nový administrátor' })
+	fireEvent.click(await screen.findByRole('button', { name: 'Vytvoriť používateľa' }))
+	return screen.findByRole('dialog', { name: 'Nový používateľ' })
 }
 
 const fillAndSubmit = (dialog: HTMLElement, email: string, password: string) => {
 	fireEvent.change(within(dialog).getByLabelText('E-mail'), { target: { value: email } })
 	fireEvent.change(within(dialog).getByLabelText('Heslo'), { target: { value: password } })
-	const submit = within(dialog).getByRole('button', { name: 'Vytvoriť administrátora' })
+	const submit = within(dialog).getByRole('button', { name: 'Vytvoriť používateľa' })
 	// fireEvent.click does not move focus like a real click or Enter does.
 	submit.focus()
 	fireEvent.click(submit)
@@ -76,13 +79,15 @@ afterEach(() => {
 })
 
 describe('UsersPage table', () => {
-	it('renders rows with email initials and dates in sk', async () => {
+	it('renders rows with email initials, role, project count and dates in sk', async () => {
 		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, JANA]) })
 		renderApp('/admin/users')
 
 		expect(await screen.findByText(MARTIN.email)).toBeInTheDocument()
 		const table = getTable()
 		expect(within(table).getByRole('columnheader', { name: 'E-mail' })).toBeInTheDocument()
+		expect(within(table).getByRole('columnheader', { name: 'Rola' })).toBeInTheDocument()
+		expect(within(table).getByRole('columnheader', { name: 'Projekty' })).toBeInTheDocument()
 		expect(within(table).getByRole('columnheader', { name: 'Vytvorený' })).toBeInTheDocument()
 		const rows = within(table).getAllByRole('row').slice(1)
 		expect(rows).toHaveLength(2)
@@ -90,9 +95,13 @@ describe('UsersPage table', () => {
 		expect(within(martinRow).getByText('MA')).toBeInTheDocument()
 		// Decorative: the email next to it is the row's name for screen readers.
 		expect(within(martinRow).getByRole('cell', { name: MARTIN.email })).toBeInTheDocument()
+		expect(within(martinRow).getByText('Administrátor')).toBeInTheDocument()
+		expect(within(martinRow).getByRole('cell', { name: '3' })).toBeInTheDocument()
 		expect(within(martinRow).getByText('12. 10. 2026')).toBeInTheDocument()
 		expect(within(janaRow).getByText('JA')).toBeInTheDocument()
 		expect(within(janaRow).getByText(JANA.email)).toBeInTheDocument()
+		expect(within(janaRow).getByText('Člen')).toBeInTheDocument()
+		expect(within(janaRow).getByRole('cell', { name: '1' })).toBeInTheDocument()
 		expect(within(janaRow).getByText('3. 10. 2026')).toBeInTheDocument()
 	})
 
@@ -121,7 +130,7 @@ describe('UsersPage table', () => {
 		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([]) })
 		renderApp('/admin/users')
 
-		expect(await screen.findByText('Zatiaľ tu nie sú žiadni administrátori.')).toBeInTheDocument()
+		expect(await screen.findByText('Zatiaľ tu nie sú žiadni používatelia.')).toBeInTheDocument()
 		expect(getTable()).toHaveAttribute('aria-busy', 'false')
 	})
 
@@ -132,7 +141,7 @@ describe('UsersPage table', () => {
 		})
 		renderApp('/admin/users')
 
-		expect(await screen.findByText('Zoznam administrátorov sa nepodarilo načítať.')).toBeInTheDocument()
+		expect(await screen.findByText('Zoznam používateľov sa nepodarilo načítať.')).toBeInTheDocument()
 		expect(screen.getByText('Nastala neočakávaná chyba. Skúste to znova.')).toBeInTheDocument()
 		expect(screen.queryByText('English message that must not be shown')).not.toBeInTheDocument()
 
@@ -233,12 +242,33 @@ describe('CreateUserModal', () => {
 		expect(await screen.findByText(NEW_USER.email)).toBeInTheDocument()
 		const posts = requests.filter((request) => request.method === 'post' && request.url === '/admin/users')
 		expect(posts).toHaveLength(1)
-		expect(JSON.parse(posts[0]?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password' })
+		expect(JSON.parse(posts[0]?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password', role: 'EDITOR' })
 		expect(requests.filter((request) => request.method === 'get' && request.url === '/admin/users')).toHaveLength(2)
-		expect(show).toHaveBeenCalledWith(expect.objectContaining({ message: 'Administrátor nova@firma.sk bol vytvorený.' }))
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ message: 'Používateľ nova@firma.sk bol vytvorený.' }))
 
 		const reopened = await openModal()
 		expect(within(reopened).getByLabelText('E-mail')).toHaveValue('')
+	})
+
+	it('defaults to Člen, explains the picked role and sends ADMIN when picked', async () => {
+		const requests = signedInAs(ADMIN_USER, {
+			'GET /admin/users': usersResponse([JANA]),
+			'POST /admin/users': { status: 201, data: { ...NEW_USER, role: ROLE.ADMIN } },
+		})
+		renderApp('/admin/users')
+		const dialog = await openModal()
+
+		const group = within(dialog).getByRole('radiogroup', { name: 'Rola' })
+		expect(within(group).getByRole('radio', { name: 'Člen' })).toBeChecked()
+		expect(group).toHaveAccessibleDescription('Prekladá iba v projektoch, do ktorých ho pridá administrátor.')
+
+		fireEvent.click(within(group).getByRole('radio', { name: 'Administrátor' }))
+		expect(group).toHaveAccessibleDescription('Spravuje systém, používateľov a všetky projekty.')
+		fillAndSubmit(dialog, 'nova@firma.sk', 'long-enough-password')
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		const post = requests.find((request) => request.method === 'post')
+		expect(JSON.parse(post?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password', role: 'ADMIN' })
 	})
 
 	it('sends one request when the form is submitted twice while pending', async () => {
@@ -247,7 +277,7 @@ describe('CreateUserModal', () => {
 		const dialog = await openModal()
 
 		fillAndSubmit(dialog, 'nova@firma.sk', 'long-enough-password')
-		const submit = within(dialog).getByRole('button', { name: 'Vytvoriť administrátora' })
+		const submit = within(dialog).getByRole('button', { name: 'Vytvoriť používateľa' })
 		await waitFor(() => expect(submit).toHaveAttribute('data-loading', 'true'))
 		expect(submit).toBeDisabled()
 
@@ -274,7 +304,7 @@ describe('CreateUserModal', () => {
 		fireEvent.keyDown(dialog, { key: 'Escape' })
 		fireEvent.click(cancel)
 
-		expect(screen.getByRole('dialog', { name: 'Nový administrátor' })).toBeInTheDocument()
+		expect(screen.getByRole('dialog', { name: 'Nový používateľ' })).toBeInTheDocument()
 		expect(within(dialog).getByLabelText('E-mail')).toHaveValue('nova@firma.sk')
 	})
 
@@ -292,18 +322,38 @@ describe('CreateUserModal', () => {
 	})
 })
 
-describe('DeleteAdminModal', () => {
-	const SELF: AdminUser = { id: ADMIN_USER.id, email: ADMIN_USER.email, role: ROLE.ADMIN, createdAt: '2026-10-01T10:00:00.000Z' }
+describe('DeleteUserModal', () => {
+	const SELF: AdminUser = { id: ADMIN_USER.id, email: ADMIN_USER.email, role: ROLE.ADMIN, projectCount: 0, createdAt: '2026-10-01T10:00:00.000Z' }
 
 	it('offers no delete for the own row', async () => {
 		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, SELF]) })
 		renderApp('/admin/users')
 
-		expect(await screen.findByRole('button', { name: `Odstrániť administrátora ${MARTIN.email}` })).toBeInTheDocument()
-		expect(screen.queryByRole('button', { name: `Odstrániť administrátora ${SELF.email}` })).not.toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: `Odstrániť používateľa ${MARTIN.email}` })).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: `Odstrániť používateľa ${SELF.email}` })).not.toBeInTheDocument()
 	})
 
-	it('deletes an admin after confirmation, refetches the list and focuses the table', async () => {
+	it('names the number of projects the user is removed from', async () => {
+		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, JANA, NEW_USER, SELF]) })
+		renderApp('/admin/users')
+
+		fireEvent.click(await screen.findByRole('button', { name: `Odstrániť používateľa ${MARTIN.email}` }))
+		expect(await screen.findByRole('dialog', { name: 'Odstrániť používateľa' })).toHaveTextContent(
+			`Naozaj chcete odstrániť účet ${MARTIN.email}? Odoberie sa z 3 projektov a zmaže sa aj jeho prihlásenie.`,
+		)
+		fireEvent.click(screen.getByRole('button', { name: 'Zrušiť' }))
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+		fireEvent.click(screen.getByRole('button', { name: `Odstrániť používateľa ${JANA.email}` }))
+		expect(await screen.findByRole('dialog')).toHaveTextContent('Odoberie sa z 1 projektu a zmaže sa')
+		fireEvent.click(screen.getByRole('button', { name: 'Zrušiť' }))
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+		fireEvent.click(screen.getByRole('button', { name: `Odstrániť používateľa ${NEW_USER.email}` }))
+		expect(await screen.findByRole('dialog')).toHaveTextContent(`Naozaj chcete odstrániť účet ${NEW_USER.email}? Zmaže sa aj jeho prihlásenie.`)
+	})
+
+	it('deletes a user after confirmation, refetches the list and projects and focuses the table', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		let users = [MARTIN, SELF]
 		const requests = signedInAs(ADMIN_USER, {
@@ -313,16 +363,18 @@ describe('DeleteAdminModal', () => {
 				return { status: 204 }
 			},
 		})
+		const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
 		renderApp('/admin/users')
 
-		fireEvent.click(await screen.findByRole('button', { name: `Odstrániť administrátora ${MARTIN.email}` }))
-		const dialog = await screen.findByRole('dialog', { name: 'Odstrániť administrátora' })
+		fireEvent.click(await screen.findByRole('button', { name: `Odstrániť používateľa ${MARTIN.email}` }))
+		const dialog = await screen.findByRole('dialog', { name: 'Odstrániť používateľa' })
 		expect(dialog).toHaveTextContent(`Naozaj chcete odstrániť účet ${MARTIN.email}?`)
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Odstrániť' }))
 
 		await waitFor(() => expect(within(getTable()).queryByText(MARTIN.email)).not.toBeInTheDocument())
-		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: `Administrátor ${MARTIN.email} bol odstránený.` }))
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: `Používateľ ${MARTIN.email} bol odstránený.` }))
 		expect(requests.filter((request) => request.method === 'delete')).toHaveLength(1)
+		expect(invalidate).toHaveBeenCalledWith({ queryKey: QUERY_KEYS.PROJECTS.ALL() })
 		await waitFor(() => expect(getTable()).toHaveFocus())
 	})
 
@@ -330,8 +382,8 @@ describe('DeleteAdminModal', () => {
 		const requests = signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, SELF]) })
 		renderApp('/admin/users')
 
-		fireEvent.click(await screen.findByRole('button', { name: `Odstrániť administrátora ${MARTIN.email}` }))
-		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Odstrániť administrátora' })).getByRole('button', { name: 'Zrušiť' }))
+		fireEvent.click(await screen.findByRole('button', { name: `Odstrániť používateľa ${MARTIN.email}` }))
+		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Odstrániť používateľa' })).getByRole('button', { name: 'Zrušiť' }))
 
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		expect(requests.some((request) => request.method === 'delete')).toBe(false)

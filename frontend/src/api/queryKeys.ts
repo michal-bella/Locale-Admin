@@ -11,6 +11,8 @@ export const QUERY_KEYS = {
 	},
 	PROFILE: () => ['profile'] as const,
 	PROJECTS: {
+		/** Prefix of every project query (list, members, translations, …). */
+		ALL: () => ['projects'] as const,
 		LIST: () => ['projects', 'list'] as const,
 		/** Prefix of every query of one project, e.g. to drop them after leaving it. */
 		DETAIL: (projectId: string) => ['projects', projectId] as const,

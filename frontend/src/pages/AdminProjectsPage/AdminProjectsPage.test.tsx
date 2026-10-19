@@ -115,7 +115,7 @@ describe('AdminProjectsPage table', () => {
 		expect(within(emptyRow).getByText('Bez jazyka')).toBeInTheDocument()
 		expect(within(emptyRow).getByText('3. 10. 2026')).toBeInTheDocument()
 		expect(within(b2bRow).getByRole('button', { name: 'Upraviť projekt B2B Admin' })).toBeInTheDocument()
-		expect(within(b2bRow).getByRole('link', { name: 'Otvoriť projekt B2B Admin' })).toHaveAttribute('href', `/projects/${B2B.slug}/settings`)
+		expect(within(b2bRow).getByRole('link', { name: 'Otvoriť projekt B2B Admin' })).toHaveAttribute('href', `/projects/${B2B.slug}/translations`)
 		expect(within(b2bRow).getByRole('button', { name: 'Zmazať projekt B2B Admin' })).toBeInTheDocument()
 	})
 
@@ -174,14 +174,13 @@ describe('AdminProjectsPage table', () => {
 		expect(await screen.findByRole('dialog', { name: 'Nový projekt' })).toBeInTheDocument()
 	})
 
-	it('opens the settings page of the project', async () => {
+	it('opens the translations page of the project', async () => {
 		signedInAs(ADMIN_USER, { 'GET /admin/projects': listResponse([B2B]), ...editRoutes, ...projectListRoute({ ...B2B, isMember: false }) })
 		const router = renderApp(PAGE_PATH)
 
 		fireEvent.click(await screen.findByRole('link', { name: 'Otvoriť projekt B2B Admin' }))
 
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${B2B.slug}/settings`))
-		expect(await screen.findByRole('heading', { level: 1, name: 'Nastavenia projektu' })).toBeInTheDocument()
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${B2B.slug}/translations`))
 	})
 })
 

@@ -693,7 +693,7 @@
 		"adminProjects": "Projects",
 		"users": "Users",
 		"translations": "Translations",
-		"projectSettings": "Project settings",
+		"projectSettings": "Settings",
 		"members": "Members",
 		"projectSwitcher": {
 			"label": "Switch project, current {{name}}",

@@ -53,6 +53,8 @@ const LanguageSelect = ({
 		disabled={languages.length === 0}
 		leftSection={value && <LanguageFlag code={value.flagCode} size='sm' />}
 		renderOption={renderLanguageOption}
+		leftSectionWidth={36}
+		rightSectionWidth={28}
 		comboboxProps={{ width: 220, position: 'bottom-end' }}
 		withScrollArea={false}
 	/>
@@ -158,7 +160,8 @@ const TranslationsToolbar = ({
 						}
 					}}
 					data={translationsViewSchema.options.map((value) => ({ value, label: t(`translationsPage.view.${value}`) }))}
-					className={classes.view}
+					radius='lg'
+					classNames={{ root: classes.view, label: classes.viewLabel }}
 				/>
 				{view === 'COMPACT' && (
 					<div className='flex items-center gap-2'>

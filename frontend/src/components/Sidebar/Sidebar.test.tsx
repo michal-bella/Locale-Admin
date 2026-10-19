@@ -40,7 +40,7 @@ describe('Sidebar', () => {
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
 
-	it('shows the project name with Preklady first, then Nastavenia projektu, Jazyky and Členovia inside a project', async () => {
+	it('shows the project name with Preklady first, then Nastavenia, Jazyky and Členovia inside a project', async () => {
 		signedInAs(EDITOR_USER, {
 			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 			[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [] },
@@ -50,11 +50,11 @@ describe('Sidebar', () => {
 		const navigation = await findNavigation()
 
 		const project = within(await navigation.findByRole('list', { name: 'Booking Web' }))
-		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Preklady', 'Nastavenia projektu', 'Jazyky', 'Členovia'])
+		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Preklady', 'Nastavenia', 'Jazyky', 'Členovia'])
 		expect(project.getByRole('link', { name: 'Preklady' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/translations`)
 		expect(project.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/languages`)
 		expect(project.getByRole('link', { name: 'Členovia' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/members`)
-		await waitFor(() => expect(project.getByRole('link', { name: 'Nastavenia projektu' })).toHaveAttribute('aria-current', 'page'))
+		await waitFor(() => expect(project.getByRole('link', { name: 'Nastavenia' })).toHaveAttribute('aria-current', 'page'))
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
 
@@ -100,7 +100,7 @@ describe('Sidebar', () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${other.slug}/${subPage}`))
 	})
 
-	it('opens Preklady when switching projects from Nastavenia projektu', async () => {
+	it('opens Preklady when switching projects from Nastavenia', async () => {
 		const other = { ...PROJECT, id: '00000000-0000-4000-8000-000000000302', name: 'Demo project', slug: 'demo-project', primaryColor: '#FACC15' }
 		signedInAs(EDITOR_USER, {
 			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },

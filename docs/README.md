@@ -1,6 +1,6 @@
 ---
 title: 'Dokumentácia'
-updated: 2026-10-16
+updated: 2026-10-19
 notion_page_id:
 ---
 
@@ -13,6 +13,8 @@ Index projektovej dokumentácie. Zdroj pravdy je tento priečinok v repe, Notion
 | [Prehľad](./overview.md)                | čo aplikácia robí, doménové pojmy, role          |
 | [Architektúra](./architecture.md)       | monorepo, FE ↔ BE ↔ DB, auth flow, Docker služby |
 | [API](./api/README.md)                  | endpointy, chybový kontrakt                      |
+| [API: preklady](./api/translations.md)  | zoznam prekladov, úprava prekladu v riadku       |
+| [API: import](./api/imports.md)         | import CSV: formát, chyby, kontrola a zápis      |
 | [Databáza](./database.md)               | dátový model, migrácie, seed                     |
 | [Frontend](./frontend.md)               | routing, layout, i18n, Mantine theme             |
 | [Lokálny vývoj](./local-development.md) | spustenie, ENV premenné, troubleshooting         |
@@ -20,4 +22,4 @@ Index projektovej dokumentácie. Zdroj pravdy je tento priečinok v repe, Notion
 | [Rozhodnutia](./decisions/README.md)    | architektonické rozhodnutia (ADR)                |
 | [Changelog](./changelog.md)             | čo pribudlo v ktorej fáze                        |
 
-Plány fáz sú v [`plans/`](./plans/phase-1.md) a do Notionu sa nesynchronizujú.
+Plány fáz sú v [`plans/`](./plans/phase-1.md) (aktuálny: [preklady a import CSV](./plans/translations-import.md)) a do Notionu sa nesynchronizujú.

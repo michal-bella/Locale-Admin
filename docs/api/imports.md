@@ -1,6 +1,6 @@
 ---
 title: 'API: import prekladov'
-updated: 2026-10-18
+updated: 2026-10-19
 notion_page_id:
 ---
 
@@ -224,7 +224,7 @@ Schéma `importResultSchema`. Počty sa rovnajú preview pre ten istý súbor ib
 | vypísané chyby       | 50           | `IMPORT_ISSUES_MAX`                                                                                                            |
 | vypísané upozornenia | 1 000        | `IMPORT_WARNINGS_MAX`                                                                                                          |
 
-Telo ciest importu sa parsuje až po overení session a prístupu k projektu, takže neprihlásený klient nedokáže poslať 12 MB na spracovanie. Rezerva 2 MB medzi obsahom a telom je pre JSON escapovanie (`"`, `\`, nové riadky). Súbor tesne pod 10 MB s množstvom takých znakov môže po serializácii do JSON prekročiť 12 MB; nginx potom odpovie vlastnou HTML stránkou 413 (nie chybovým kontraktom), preto frontend (míľnik D) musí pred odoslaním kontrolovať veľkosť serializovaného tela, nie iba súboru.
+Telo ciest importu sa parsuje až po overení session a prístupu k projektu, takže neprihlásený klient nedokáže poslať 12 MB na spracovanie. Rezerva 2 MB medzi obsahom a telom je pre JSON escapovanie (`"`, `\`, nové riadky). Súbor tesne pod 10 MB s množstvom takých znakov môže po serializácii do JSON prekročiť 12 MB; nginx potom odpovie vlastnou HTML stránkou 413 (nie chybovým kontraktom), preto frontend pred odoslaním kontroluje aj veľkosť serializovaného tela (`IMPORT_REQUEST_MAX_BYTES`, 12 MB), nie iba súboru.
 
 Kľúč sa meria v bajtoch, nie v znakoch, kvôli unikátnemu indexu `(projectId, namespace, name)`: btree unesie najviac ~2,7 kB na riadok indexu, takže 2 000 znakov v cyrilike (≈ 4 kB) by pri zápise skončilo chybou 500. Kľúč s 2 000 bajtmi spolu so 100-znakovým namespace sa do indexu zmestí (overené integračným testom).
 

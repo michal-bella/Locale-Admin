@@ -64,7 +64,7 @@ const detailPaths = (res: request.Response) => {
 }
 
 describe('GET /api/projects/:projectId/translations', () => {
-	it('returns keys with source and target, untranslated first, then by group and key, with stats and namespaces', async () => {
+	it('returns keys with a cell per language, untranslated first, then by group and key, with stats and namespaces', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie } = await setup(app)
 		const other = await createProject()
@@ -76,8 +76,9 @@ describe('GET /api/projects/:projectId/translations', () => {
 
 		const body = await listOk(app, cookie, project.id, { sourceLanguageId: sk.id, targetLanguageId: en.id })
 
-		const updatedAt = async (keyId: string) =>
-			(await getTestPrisma().translation.findUniqueOrThrow({ where: { keyId_languageId: { keyId, languageId: en.id } } })).updatedAt.toISOString()
+		const updatedAt = async (keyId: string, languageId: string) =>
+			(await getTestPrisma().translation.findUniqueOrThrow({ where: { keyId_languageId: { keyId, languageId } } })).updatedAt.toISOString()
+		const EMPTY = { value: null, status: 'UNTRANSLATED', updatedAt: null }
 		expect(body).toEqual({
 			items: [
 				{
@@ -87,8 +88,8 @@ describe('GET /api/projects/:projectId/translations', () => {
 					group: 'loc',
 					description: null,
 					plural: null,
-					source: { value: 'Zrušiť' },
-					target: { value: null, status: 'UNTRANSLATED', updatedAt: null },
+					status: 'UNTRANSLATED',
+					translations: { [sk.id]: { value: 'Zrušiť', status: 'TRANSLATED', updatedAt: await updatedAt(missing.id, sk.id) }, [en.id]: EMPTY },
 				},
 				{
 					keyId: empty.id,
@@ -97,8 +98,11 @@ describe('GET /api/projects/:projectId/translations', () => {
 					group: 'loc:orders.empty',
 					description: null,
 					plural: null,
-					source: { value: 'Žiadne objednávky' },
-					target: { value: null, status: 'UNTRANSLATED', updatedAt: await updatedAt(empty.id) },
+					status: 'UNTRANSLATED',
+					translations: {
+						[sk.id]: { value: 'Žiadne objednávky', status: 'TRANSLATED', updatedAt: await updatedAt(empty.id, sk.id) },
+						[en.id]: { value: null, status: 'UNTRANSLATED', updatedAt: await updatedAt(empty.id, en.id) },
+					},
 				},
 				{
 					keyId: save.id,
@@ -107,8 +111,11 @@ describe('GET /api/projects/:projectId/translations', () => {
 					group: 'loc',
 					description: null,
 					plural: null,
-					source: { value: 'Uložiť' },
-					target: { value: 'Save', status: 'TRANSLATED', updatedAt: await updatedAt(save.id) },
+					status: 'TRANSLATED',
+					translations: {
+						[sk.id]: { value: 'Uložiť', status: 'TRANSLATED', updatedAt: await updatedAt(save.id, sk.id) },
+						[en.id]: { value: 'Save', status: 'TRANSLATED', updatedAt: await updatedAt(save.id, en.id) },
+					},
 				},
 				{
 					keyId: path.id,
@@ -117,8 +124,8 @@ describe('GET /api/projects/:projectId/translations', () => {
 					group: 'paths',
 					description: null,
 					plural: null,
-					source: { value: null },
-					target: { value: '/orders', status: 'TRANSLATED', updatedAt: await updatedAt(path.id) },
+					status: 'TRANSLATED',
+					translations: { [sk.id]: EMPTY, [en.id]: { value: '/orders', status: 'TRANSLATED', updatedAt: await updatedAt(path.id, en.id) } },
 				},
 			],
 			total: 4,
@@ -226,7 +233,12 @@ describe('GET /api/projects/:projectId/translations', () => {
 		expect(names(await listOk(app, cookie, project.id, { ...query, sort: 'KEY' }))).toEqual(['b', 'y', 'z', 'a'])
 		const updated = await listOk(app, cookie, project.id, { ...query, sort: 'UPDATED' })
 		expect(names(updated)).toEqual(['y', 'z', 'a', 'b'])
-		expect(updated.items.map(({ target }) => target.updatedAt)).toEqual(['2026-06-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', null, null])
+		expect(updated.items.map(({ translations }) => translations[en.id]?.updatedAt)).toEqual([
+			'2026-06-01T00:00:00.000Z',
+			'2026-01-01T00:00:00.000Z',
+			null,
+			null,
+		])
 		expect(names(await listOk(app, cookie, project.id, query))).toEqual(['b', 'y', 'a', 'z'])
 	})
 
@@ -296,6 +308,76 @@ describe('GET /api/projects/:projectId/translations', () => {
 		})
 	})
 
+	describe('without languages (extended view)', () => {
+		it('marks a row untranslated when any language misses a value and counts stats the same way', async () => {
+			const app = createTestApp()
+			const { project, sk, en, cookie } = await setup(app)
+			const ru = await createLanguage(project.id, 'ru')
+			const full = await createKey(project.id, 'loc', 'full', { [sk.id]: 'A', [en.id]: 'A', [ru.id]: 'A' })
+			const noRow = await createKey(project.id, 'loc', 'noRow', { [sk.id]: 'B', [en.id]: 'B' })
+			const nullValue = await createKey(project.id, 'loc', 'nullValue', { [sk.id]: 'C', [en.id]: 'C', [ru.id]: null })
+
+			const body = await listOk(app, cookie, project.id, {})
+
+			expect(body.items.map(({ keyId, status }) => [keyId, status])).toEqual([
+				[noRow.id, 'UNTRANSLATED'],
+				[nullValue.id, 'UNTRANSLATED'],
+				[full.id, 'TRANSLATED'],
+			])
+			expect(Object.keys(body.items[0]?.translations ?? {}).sort()).toEqual([sk.id, en.id, ru.id].sort())
+			expect(body.items[0]?.translations[ru.id]).toEqual({ value: null, status: 'UNTRANSLATED', updatedAt: null })
+			expect(body.stats).toEqual({ totalKeys: 3, translated: 1, untranslated: 2 })
+			expect(names(await listOk(app, cookie, project.id, { status: 'UNTRANSLATED' }))).toEqual(['noRow', 'nullValue'])
+			expect(names(await listOk(app, cookie, project.id, { status: 'TRANSLATED' }))).toEqual(['full'])
+		})
+
+		it('searches the key and the value of every language', async () => {
+			const app = createTestApp()
+			const { project, sk, en, cookie } = await setup(app)
+			const ru = await createLanguage(project.id, 'ru')
+			await createKey(project.id, 'loc', 'orders.title', { [sk.id]: 'Objednávky', [en.id]: 'Orders', [ru.id]: 'Заказы' })
+			await createKey(project.id, 'loc', 'Uložiť', { [sk.id]: 'Uložiť', [en.id]: 'Save', [ru.id]: 'Сохранить' })
+
+			expect(names(await listOk(app, cookie, project.id, { search: 'заказы' }))).toEqual(['orders.title'])
+			expect(names(await listOk(app, cookie, project.id, { search: 'save' }))).toEqual(['Uložiť'])
+			expect(names(await listOk(app, cookie, project.id, { search: 'ORDERS.' }))).toEqual(['orders.title'])
+			expect(names(await listOk(app, cookie, project.id, { search: 'nič' }))).toEqual([])
+		})
+
+		it('sorts UPDATED by the newest change in any language', async () => {
+			const app = createTestApp()
+			const { project, sk, en, cookie } = await setup(app)
+			const prisma = getTestPrisma()
+			const skNewer = await createKey(project.id, 'loc', 'a', { [sk.id]: 'A', [en.id]: 'A' })
+			const enNewer = await createKey(project.id, 'loc', 'b', { [sk.id]: 'B', [en.id]: 'B' })
+			await createKey(project.id, 'loc', 'c')
+			const setUpdatedAt = (keyId: string, languageId: string, updatedAt: string) =>
+				prisma.translation.update({ where: { keyId_languageId: { keyId, languageId } }, data: { updatedAt: new Date(updatedAt) } })
+			await setUpdatedAt(skNewer.id, sk.id, '2026-03-01T00:00:00.000Z')
+			await setUpdatedAt(skNewer.id, en.id, '2026-01-01T00:00:00.000Z')
+			await setUpdatedAt(enNewer.id, sk.id, '2026-01-01T00:00:00.000Z')
+			await setUpdatedAt(enNewer.id, en.id, '2026-06-01T00:00:00.000Z')
+
+			expect(names(await listOk(app, cookie, project.id, { sort: 'UPDATED' }))).toEqual(['b', 'a', 'c'])
+		})
+
+		it('returns an empty list for a project without languages', async () => {
+			const app = createTestApp()
+			const { user } = await createUser({ role: ROLE.ADMIN })
+			const project = await createProject()
+			const cookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
+
+			expect(await listOk(app, cookie, project.id, {})).toEqual({
+				items: [],
+				total: 0,
+				page: 1,
+				pageSize: 50,
+				stats: { totalKeys: 0, translated: 0, untranslated: 0 },
+				namespaces: [],
+			})
+		})
+	})
+
 	it('returns 404 NOT_FOUND to an EDITOR who is not a member and 200 to an ADMIN who is not', async () => {
 		const app = createTestApp()
 		const editor = await setup(app, ROLE.EDITOR, { member: false })
@@ -342,7 +424,8 @@ describe('GET /api/projects/:projectId/translations', () => {
 		}
 		const valid = { sourceLanguageId: sk.id, targetLanguageId: en.id }
 
-		expect(await details({})).toEqual(['sourceLanguageId', 'targetLanguageId'])
+		expect(await details({ sourceLanguageId: sk.id })).toEqual(['targetLanguageId'])
+		expect(await details({ targetLanguageId: en.id })).toEqual(['sourceLanguageId'])
 		expect(await details({ ...valid, targetLanguageId: 'not-a-uuid' })).toEqual(['targetLanguageId'])
 		expect(await details({ ...valid, status: 'REVIEW', sort: 'NAME' })).toEqual(['status', 'sort'])
 		expect(await details({ ...valid, page: 0, pageSize: 101 })).toEqual(['page', 'pageSize'])
@@ -379,6 +462,10 @@ describe('GET /api/projects/:projectId/translations', () => {
 			searchNoMatch: { ...query, search: 'nič také' },
 			updatedPage10: { ...query, sort: 'UPDATED', page: 10 },
 			untranslatedPaths: { ...query, status: 'UNTRANSLATED', namespace: 'paths' },
+			extended: {},
+			extendedSearch: { search: 'section' },
+			extendedUpdatedPage10: { sort: 'UPDATED', page: 10 },
+			extendedTranslated: { status: 'TRANSLATED' },
 		}
 		await listOk(app, cookie, project.id, query)
 

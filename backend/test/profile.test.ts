@@ -46,6 +46,7 @@ describe('GET /api/profile', () => {
 			role,
 			firstName: 'Jana',
 			lastName: 'Nováková',
+			preferences: { translationsView: 'EXTENDED' },
 			passwordChangedAt: '2026-05-04T10:20:30.000Z',
 		})
 	})
@@ -79,6 +80,7 @@ describe('PATCH /api/profile', () => {
 			role: ROLE.EDITOR,
 			firstName: 'Jana',
 			lastName: 'Nováková',
+			preferences: { translationsView: 'EXTENDED' },
 			passwordChangedAt: user.passwordChangedAt.toISOString(),
 		})
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
@@ -168,5 +170,55 @@ describe('PATCH /api/profile', () => {
 		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
 		expect(stored).toMatchObject({ firstName: 'Stará', lastName: 'Hodnota' })
+	})
+})
+
+describe('PATCH /api/profile/preferences', () => {
+	const patchPreferences = (app: App, cookie: string, body: unknown) =>
+		request(app)
+			.patch('/api/profile/preferences')
+			.set('Cookie', cookie)
+			.set(CSRF_HEADERS)
+			.send(body as object)
+
+	it('stores the translations view, returns the profile and GET /api/auth/me reflects it', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await loginWithUser(app)
+
+		const res = await patchPreferences(app, cookie, { translationsView: 'COMPACT' })
+
+		expect(res.status).toBe(200)
+		expect(res.body).toMatchObject({ id: user.id, preferences: { translationsView: 'COMPACT' } })
+		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })).translationsView).toBe('COMPACT')
+		const me = await request(app).get('/api/auth/me').set('Cookie', cookie)
+		expect(me.body).toMatchObject({ preferences: { translationsView: 'COMPACT' } })
+	})
+
+	it('returns 400 VALIDATION_ERROR for an unknown view or a missing field', async () => {
+		const app = createTestApp()
+		const { cookie } = await loginWithUser(app)
+
+		const unknown = await patchPreferences(app, cookie, { translationsView: 'WIDE' })
+		expectErrorCode(unknown, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(errorResponseSchema.parse(unknown.body).error.details).toEqual([{ path: 'translationsView', code: VALIDATION_CODE.INVALID }])
+		const missing = await patchPreferences(app, cookie, {})
+		expectErrorCode(missing, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(errorResponseSchema.parse(missing.body).error.details).toMatchObject([{ path: 'translationsView' }])
+	})
+
+	it('returns 401 AUTH_UNAUTHENTICATED without a session and 403 CSRF_REJECTED without the header', async () => {
+		const app = createTestApp()
+		const { cookie } = await loginWithUser(app)
+
+		expectErrorCode(
+			await request(app).patch('/api/profile/preferences').set(CSRF_HEADERS).send({ translationsView: 'COMPACT' }),
+			401,
+			ERROR_CODE.AUTH_UNAUTHENTICATED,
+		)
+		expectErrorCode(
+			await request(app).patch('/api/profile/preferences').set('Cookie', cookie).send({ translationsView: 'COMPACT' }),
+			403,
+			ERROR_CODE.CSRF_REJECTED,
+		)
 	})
 })

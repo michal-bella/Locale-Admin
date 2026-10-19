@@ -30,7 +30,14 @@ describe('POST /api/auth/login', () => {
 		const res = await postLogin(createTestApp(), { email: 'meno@firma.sk', password: TEST_PASSWORD })
 
 		expect(res.status).toBe(200)
-		expect(res.body).toEqual({ id: user.id, email: 'meno@firma.sk', role: ROLE.ADMIN, firstName: 'Meno', lastName: 'Priezvisko' })
+		expect(res.body).toEqual({
+			id: user.id,
+			email: 'meno@firma.sk',
+			role: ROLE.ADMIN,
+			firstName: 'Meno',
+			lastName: 'Priezvisko',
+			preferences: { translationsView: 'EXTENDED' },
+		})
 		expect(authUserSchema.strict().safeParse(res.body).success).toBe(true)
 
 		const cookie = getSessionSetCookie(res)
@@ -196,7 +203,14 @@ describe('GET /api/auth/me', () => {
 		const res = await request(app).get('/api/auth/me').set('Cookie', cookie)
 
 		expect(res.status).toBe(200)
-		expect(res.body).toEqual({ id: user.id, email: user.email, role: ROLE.EDITOR, firstName: null, lastName: null })
+		expect(res.body).toEqual({
+			id: user.id,
+			email: user.email,
+			role: ROLE.EDITOR,
+			firstName: null,
+			lastName: null,
+			preferences: { translationsView: 'EXTENDED' },
+		})
 		expect(getSessionSetCookie(res)).toBeUndefined()
 	})
 })

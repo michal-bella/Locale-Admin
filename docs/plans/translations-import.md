@@ -207,7 +207,7 @@ Vetva `feature/translations` z `main`, každý míľnik vo vlastnej session s co
 - Kľúče s prázdnym namespace `""` sa nedajú vyfiltrovať (prázdna hodnota filtra = bez filtra). Riešiť, keď import začne vytvárať kľúče mimo sekcie `--…--`, napr. hodnotou `namespace=~none`.
 - B → C: kľúč s 2 000 znakmi v cyrilike sa nezmestil do unikátneho indexu (2 768 > 2 704 B). **Vyriešené v C** (rozhodnutie používateľa): `KEY_TOO_LONG` počíta UTF-8 bajty (max. 2 000 B), namespace má max. 100 znakov.
 - C: `updatedAt` nemá v DB default, dávkový upsert cez `unnest` ho nastavuje (`now()`). Hotové.
-- C → E: advisory lock zoraďuje len importy medzi sebou. Úprava v riadku (`PUT`) počas importu dáta nepokazí, ale počty vo výsledku importu môžu o ten riadok nesedieť; ak treba presné počty, `PUT` vezme ten istý lock.
+- C → E: advisory lock zoraďuje len importy medzi sebou. Úprava v riadku (`PUT`) lock neberie (jednoriadkový upsert je atomický); počty vo výsledku importu môžu o ten riadok nesedieť. Rozhodnuté v E, nemení sa.
 - C → D: výsledok sa rovná preview len pri `createMissingKeys: true` a priradení stĺpcov podľa tagov z preview (preview vždy počíta aj nové kľúče a nemá `changes` pre ručne priradené stĺpce CATALOG/UNKNOWN); súhrn v UI s tým musí počítať.
 - C: zmazanie jazyka počas importu skončí 500 a import sa celý vráti (nič sa nestratí); ak to bude vadiť, `DELETE` jazyka vezme ten istý advisory lock.
 

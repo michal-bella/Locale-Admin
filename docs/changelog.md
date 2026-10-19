@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Úprava prekladu v riadku (2026-10-19)
+
+- zdieľaný kontrakt: `updateTranslationRequestSchema` (`{ value }`, max. 10 000 znakov, prázdny text = `null`), chybové kódy `PLACEHOLDER_MISMATCH` (400, `details { missing, extra }`) a `TRANSLATION_KEY_NOT_FOUND` (404)
+- backend: `PUT /api/projects/:projectId/keys/:keyId/translations/:languageId` – upsert prekladu; pri zapnutom `protectVariables` porovná premenné `{{…}}` so základným jazykom (normalizácia zdieľaná s importom v `lib/placeholders.ts`) a nesúlad odmietne ([API](./api/translations.md))
+- frontend: klik do bunky cieľového jazyka otvorí `Textarea`, uloží sa pri strate fokusu alebo Ctrl/Cmd+Enter, Esc zruší; optimistická aktualizácia hodnoty, stavu aj kariet s návratom pri chybe; nesúlad premenných sa zobrazí pod poľom a editor ostane otvorený ([Frontend](./frontend.md))
+- E2E: `translation-edit.spec.ts`, API smoke `PUT` prekladu, axe s otvoreným editorom
+
 ### Import prekladov: modál (2026-10-19)
 
 - frontend: tlačidlo Importovať na stránke Preklady otvára modál v dvoch krokoch – nahratie CSV (vlastná dropzone, kontrola prípony a veľkosti ešte pred odoslaním, checkbox Vytvoriť chýbajúce kľúče, zoznam chýb súboru s číslami riadkov) a kontrola (priradenie stĺpcov k jazykom projektu, Pridať jazyk priamo z riadku s automatickým opakovaním kontroly, Preskočiť, upozornenia na premenné, súhrn nových kľúčov a prekladov); po importe notifikácia so súhrnom a obnovenie zoznamu ([Frontend](./frontend.md))

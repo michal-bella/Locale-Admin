@@ -15,8 +15,11 @@ const SAMPLE = {
 	cs: { translations: 6, untranslated: 4 },
 } as const
 
+/** Slovak plural forms: 1, 2–4, 0 and 5+. */
+const plural = (count: number, [one, few, many]: [string, string, string]) => `${count} ${count === 1 ? one : count >= 2 && count <= 4 ? few : many}`
+
 const SUCCESS = (keys: number, created: number, updated: number) =>
-	`Import dokončený: ${keys} nových kľúčov, ${created} nových prekladov, ${updated} prepísaných.`
+	`Import dokončený: ${plural(keys, ['nový kľúč', 'nové kľúče', 'nových kľúčov'])}, ${plural(created, ['nový preklad', 'nové preklady', 'nových prekladov'])}, ${plural(updated, ['prepísaný', 'prepísané', 'prepísaných'])}.`
 
 const translationsPath = (project: ProjectListItem, query = '') => `/projects/${project.slug}/translations${query}`
 
@@ -33,10 +36,7 @@ const getColumnRow = (page: Page, tag: string) =>
 
 const getLanguageSelect = (page: Page, tag: string) => getDialog(page).getByRole('combobox', { name: `Jazyk pre stĺpec ${tag}`, exact: true })
 
-const getSummary = (page: Page) =>
-	getDialog(page)
-		.locator('ul')
-		.filter({ hasText: /prepíš/ })
+const getSummary = (page: Page) => getDialog(page).getByRole('list', { name: 'Súhrn' })
 
 /** The number under the label of a stat card (Celkom kľúčov, Preložené, Chýbajúce). */
 const getStat = (page: Page, label: string) =>
@@ -113,6 +113,7 @@ test('imports the sample file, adds the missing language from the review and sho
 		'0 prekladov sa prepíše',
 		'16 nových prekladov',
 		'1 kľúč bez prekladu v základnom jazyku',
+		'1 stĺpec sa preskočí',
 	])
 
 	const warningButton = getDialog(page).getByRole('button', { name: '1 upozornenie pre stĺpec cs' })
@@ -198,6 +199,7 @@ test('a column set to Preskočiť is not imported', async ({ page, request }) =>
 		'0 prekladov sa prepíše',
 		'9 nových prekladov',
 		'1 kľúč bez prekladu v základnom jazyku',
+		'2 stĺpce sa preskočia',
 	])
 
 	const importRequest = page.waitForRequest((req) => req.url().endsWith(importApi(project.id)) && req.method() === 'POST')

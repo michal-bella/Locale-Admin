@@ -95,17 +95,21 @@ PK je dvojica (`projectId`, `userId`), index na `userId`. Používateľ má spä
 
 Kľúč prekladu v projekte. Správanie API je v [API: preklady](./api/translations.md).
 
-| Pole                     | Typ      | Poznámka                                                                       |
-| ------------------------ | -------- | ------------------------------------------------------------------------------ |
-| `id`                     | UUID     | PK                                                                             |
-| `projectId`              | UUID     | FK na `Project`, pri zmazaní projektu sa zmaže                                 |
-| `namespace`              | string   | default `""`; názov JSON súboru (`loc`, `paths`), v CSV sekcia `--namespace--` |
-| `name`                   | string   | kľúč, napr. veta `Uložiť` alebo cesta `orders.empty.title`                     |
-| `createdAt`, `updatedAt` | datetime |                                                                                |
+| Pole                     | Typ              | Poznámka                                                                       |
+| ------------------------ | ---------------- | ------------------------------------------------------------------------------ |
+| `id`                     | UUID             | PK                                                                             |
+| `projectId`              | UUID             | FK na `Project`, pri zmazaní projektu sa zmaže                                 |
+| `namespace`              | string           | default `""`; názov JSON súboru (`loc`, `paths`), v CSV sekcia `--namespace--` |
+| `name`                   | string           | kľúč, napr. veta `Uložiť` alebo cesta `orders.empty.title`                     |
+| `description`            | string, nullable | popis kľúča pre prekladateľov, max. 500 znakov                                 |
+| `pluralVariable`         | string, nullable | `null` = bežný kľúč; názov číselnej premennej (`count`) = plurálový kľúč       |
+| `createdAt`, `updatedAt` | datetime         |                                                                                |
 
 Unikátna trojica (`projectId`, `namespace`, `name`): ten istý kľúč môže byť v projekte vo viacerých namespace. Namespace je súčasť identity kľúča a musí sa zachovať presne, lebo budúci export z neho generuje JSON súbory po jazykoch aj sekcie v CSV. V zozname prekladov slúži ako skupina a filter.
 
-Kľúče vytvára iba import (API na založenie jedného kľúča nie je). Dĺžka `name` je obmedzená na 2 000 **bajtov** v UTF-8 (`IMPORT_KEY_MAX_BYTES`, chyba `KEY_TOO_LONG`) a `namespace` na 100 znakov (`IMPORT_NAMESPACE_MAX_LENGTH`), lebo riadok btree indexu unesie najviac ~2,7 kB: 2 000 znakov v cyrilike (≈ 4 kB) by pri zápise skončilo chybou 500. Kľúč s 2 000 bajtmi a 100-znakovým namespace sa do indexu zmestí (overené integračným testom). Zmazanie projektu zmaže kľúče aj preklady kaskádou; kľúče, ktoré v importovanom súbore chýbajú, sa nemažú.
+Plurálový kľúč (`pluralVariable` nie je `null`) ukladá v každom jazyku jednu ICU správu `{count, plural, one {# položka} few {# položky} other {# položiek}}` (`serializePluralValue` v `packages/shared/src/plurals.ts`). Zapnutie, vypnutie alebo premenovanie premennej cez `PATCH …/keys/:keyId` prepíše hodnoty vo všetkých jazykoch (viď [API: preklady](./api/translations.md#plurálové-formy)).
+
+Kľúče vytvára iba import (API na založenie jedného kľúča nie je); názov, popis a plurál upraví `ADMIN` cez `PATCH /api/projects/:projectId/keys/:keyId`. Dĺžka `name` je obmedzená na 2 000 **bajtov** v UTF-8 (`IMPORT_KEY_MAX_BYTES`, chyba `KEY_TOO_LONG`) a `namespace` na 100 znakov (`IMPORT_NAMESPACE_MAX_LENGTH`), lebo riadok btree indexu unesie najviac ~2,7 kB: 2 000 znakov v cyrilike (≈ 4 kB) by pri zápise skončilo chybou 500. Kľúč s 2 000 bajtmi a 100-znakovým namespace sa do indexu zmestí (overené integračným testom). Zmazanie projektu zmaže kľúče aj preklady kaskádou; kľúče, ktoré v importovanom súbore chýbajú, sa nemažú.
 
 ### Translation
 
@@ -185,6 +189,8 @@ erDiagram
         uuid projectId FK
         string namespace
         string name
+        string description
+        string pluralVariable
         datetime createdAt
         datetime updatedAt
     }

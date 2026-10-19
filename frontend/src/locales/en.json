@@ -248,7 +248,6 @@
 			"languageSelect": "Language for column {{tag}}",
 			"languagePlaceholder": "Choose a language",
 			"skip": "Skip",
-			"skipButton": "Skip",
 			"addLanguage": "Add language",
 			"addLanguageLabel": "Add language {{tag}}",
 			"skipColumnLabel": "Skip column {{tag}}",
@@ -281,6 +280,10 @@
 				"baseUntranslated_few": "{{count}} keys without a translation in the base language",
 				"baseUntranslated_many": "{{count}} keys without a translation in the base language",
 				"baseUntranslated_other": "{{count}} keys without a translation in the base language",
+				"skippedColumns_one": "{{count}} column will be skipped",
+				"skippedColumns_few": "{{count}} columns will be skipped",
+				"skippedColumns_many": "{{count}} columns will be skipped",
+				"skippedColumns_other": "{{count}} columns will be skipped",
 				"approximate": "The counts are approximate: manually mapped columns are not included.",
 				"nothingMapped": "Map at least one column to a project language.",
 				"placeholderToggle_one": "Placeholder difference ({{count}})",
@@ -294,7 +297,19 @@
 				"moreWarnings_other": "and {{count}} more warnings not shown here"
 			}
 		},
-		"success": "Import finished: {{keys}} new keys, {{created}} new translations, {{updated}} overwritten."
+		"success": "Import finished: {{keys}}, {{translations}}, {{overwritten}}.",
+		"successKeys_one": "{{count}} new key",
+		"successKeys_few": "{{count}} new keys",
+		"successKeys_many": "{{count}} new keys",
+		"successKeys_other": "{{count}} new keys",
+		"successTranslations_one": "{{count}} new translation",
+		"successTranslations_few": "{{count}} new translations",
+		"successTranslations_many": "{{count}} new translations",
+		"successTranslations_other": "{{count}} new translations",
+		"successOverwritten_one": "{{count}} overwritten",
+		"successOverwritten_few": "{{count}} overwritten",
+		"successOverwritten_many": "{{count}} overwritten",
+		"successOverwritten_other": "{{count}} overwritten"
 	},
 	"importIssues": {
 		"FILE_EMPTY": "The file is empty or contains only the header.",

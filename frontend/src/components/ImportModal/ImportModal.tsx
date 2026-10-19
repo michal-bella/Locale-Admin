@@ -38,10 +38,16 @@ const MOBILE_QUERY = '(max-width: 48em)'
 
 const requestBytes = (body: ImportPreviewRequest) => new TextEncoder().encode(JSON.stringify(body)).byteLength
 
-/** Columns matched by tag keep their language; the user's choice for the other columns survives a repeated preview. */
+/** The user's choice survives a repeated preview; a column without one takes the language matched by tag. */
 const mergeMapping = (preview: ImportPreviewResponse, previous: ImportColumnMapping): ImportColumnMapping =>
 	Object.fromEntries(
-		preview.columns.map((column) => [column.columnIndex, column.match === 'PROJECT' ? (column.languageId ?? null) : previous[column.columnIndex]]),
+		preview.columns.map((column) => {
+			const previousChoice = previous[column.columnIndex]
+			if (previousChoice !== undefined) {
+				return [column.columnIndex, previousChoice]
+			}
+			return [column.columnIndex, column.match === 'PROJECT' ? (column.languageId ?? null) : undefined]
+		}),
 	)
 
 /**
@@ -69,6 +75,7 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 	const stepRef = useRef<HTMLHeadingElement>(null)
 	const placeholdersId = useId()
 	const nothingMappedId = useId()
+	const summaryTitleId = useId()
 
 	// The footer button that triggered the step change is disabled or replaced, so focus would fall back to the body otherwise.
 	useDidUpdate(() => {
@@ -103,6 +110,8 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 	}
 
 	const selectFile = (picked: File) => {
+		setPreview(null)
+		setMapping({})
 		setFileIssues(null)
 		setFileError(undefined)
 		setFile(null)
@@ -202,9 +211,9 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 					notifications.show({
 						color: 'green',
 						message: t('importModal.success', {
-							keys: result.keysCreated,
-							created: result.translationsCreated,
-							updated: result.translationsUpdated,
+							keys: t('importModal.successKeys', { count: result.keysCreated }),
+							translations: t('importModal.successTranslations', { count: result.translationsCreated }),
+							overwritten: t('importModal.successOverwritten', { count: result.translationsUpdated }),
 						}),
 					})
 					resetAndClose()
@@ -222,6 +231,7 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 	}
 
 	const mappedCount = preview ? preview.columns.filter((column) => typeof mapping[column.columnIndex] === 'string').length : 0
+	const skippedCount = preview ? preview.columns.length - mappedCount : 0
 
 	// Counts come from the preview only for columns that keep the language matched by tag; a manually mapped column has none.
 	const countedChanges = preview
@@ -309,10 +319,10 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 						disabled={isPending}
 					/>
 					<div className={`${classes.summary} flex flex-col gap-2`}>
-						<Text component='h4' size='sm' fw={700} c='var(--app-color-title)'>
+						<Text component='h4' id={summaryTitleId} size='sm' fw={700} c='var(--app-color-title)'>
 							{t('importModal.review.summary.title')}
 						</Text>
-						<ul className={classes.summaryList}>
+						<ul className={classes.summaryList} aria-labelledby={summaryTitleId}>
 							<li>
 								{createMissingKeys
 									? t('importModal.review.summary.newKeys', { count: preview.keys.new })
@@ -321,6 +331,7 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 							<li>{t('importModal.review.summary.overwritten', { count: overwritten })}</li>
 							<li>{t('importModal.review.summary.newTranslations', { count: newTranslations })}</li>
 							{baseUntranslated.length > 0 && <li>{t('importModal.review.summary.baseUntranslated', { count: baseUntranslated.length })}</li>}
+							{skippedCount > 0 && <li>{t('importModal.review.summary.skippedColumns', { count: skippedCount })}</li>}
 						</ul>
 						{mappedCount === 0 && (
 							<Text id={nothingMappedId} size='xs'>

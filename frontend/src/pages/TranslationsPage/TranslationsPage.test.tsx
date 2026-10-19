@@ -8,6 +8,7 @@ import {
 	type Language,
 	type ProjectSettings,
 	SUPPORTED_LANGUAGES,
+	type TranslationCell,
 	type TranslationListItem,
 	translationGroup,
 	type TranslationsResponse,
@@ -49,6 +50,13 @@ const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60 * 100
 
 let keyIndex = 0
 
+const cell = (value: string | null, updatedAt: string | null = null): TranslationCell => ({
+	value,
+	status: value === null ? 'UNTRANSLATED' : 'TRANSLATED',
+	updatedAt,
+})
+
+/** `source` is the Slovak text, `target` the English one; the row status follows English (the default target). */
 const item = (namespace: string, name: string, source: string | null, target: string | null, updatedAt: string | null = null): TranslationListItem => {
 	keyIndex += 1
 	return {
@@ -58,8 +66,8 @@ const item = (namespace: string, name: string, source: string | null, target: st
 		group: translationGroup(namespace, name),
 		description: null,
 		plural: null,
-		source: { value: source },
-		target: { value: target, status: target === null ? 'UNTRANSLATED' : 'TRANSLATED', updatedAt },
+		status: target === null ? 'UNTRANSLATED' : 'TRANSLATED',
+		translations: { [SLOVAK.id]: cell(source), [ENGLISH.id]: cell(target, updatedAt) },
 	}
 }
 
@@ -154,7 +162,7 @@ describe('TranslationsPage', () => {
 		expect(welcome.getByText('loc:dashboard')).toBeInTheDocument()
 		const updated = welcome.getByText('pred 2 min')
 		expect(updated.tagName).toBe('TIME')
-		expect(updated).toHaveAttribute('datetime', WELCOME.target.updatedAt)
+		expect(updated).toHaveAttribute('datetime', WELCOME.translations[ENGLISH.id]?.updatedAt)
 		expect(updated).toHaveAttribute('title', expect.stringMatching(/^\d{1,2}\. \d{1,2}\. \d{4},? \d{2}:\d{2}$/))
 		expect(welcome.getByText('Preložené')).toBeInTheDocument()
 		expect(within(getRow('orders.empty.title')).getByText('Nepreložené')).toBeInTheDocument()
@@ -556,11 +564,15 @@ const mockEditing = (put?: MockResponse | ((value: string | null) => MockRespons
 				if (replaced) {
 					return replaced
 				}
-				const target = { value, status: value === null ? 'UNTRANSLATED' : 'TRANSLATED', updatedAt: new Date().toISOString() } as const
-				const delta = target.status === entry.target.status ? 0 : target.status === 'TRANSLATED' ? 1 : -1
+				const target = cell(value, new Date().toISOString())
+				const delta = target.status === entry.status ? 0 : target.status === 'TRANSLATED' ? 1 : -1
 				current = {
 					...current,
-					items: current.items.map((candidate) => (candidate.keyId === entry.keyId ? { ...candidate, target } : candidate)),
+					items: current.items.map((candidate) =>
+						candidate.keyId === entry.keyId
+							? { ...candidate, status: target.status, translations: { ...candidate.translations, [ENGLISH.id]: target } }
+							: candidate,
+					),
 					stats: { ...current.stats, translated: current.stats.translated + delta, untranslated: current.stats.untranslated - delta },
 				}
 				return { status: 200, data: target }
@@ -893,7 +905,7 @@ describe('TranslationsPage plural forms', () => {
 
 	it('shows a missing form as untranslated and a non-plural value as the Other form', async () => {
 		const items = [
-			{ ...PLURAL_ITEM(), target: { value: '{count, plural, other {# items}}', status: 'TRANSLATED', updatedAt: null } },
+			{ ...PLURAL_ITEM(), translations: { ...PLURAL_ITEM().translations, [ENGLISH.id]: cell('{count, plural, other {# items}}') } },
 			{ ...item('loc', 'cart.items', 'Položky', 'Items'), plural: { variable: 'count' } },
 		] satisfies TranslationListItem[]
 		mockEditing(undefined, ADMIN_USER, items)
@@ -938,8 +950,8 @@ describe('TranslationsPage plural forms', () => {
 		const puts = mockEditing(undefined, ADMIN_USER, [
 			{
 				...PLURAL_ITEM(),
-				source: { value: '{count, plural, one {# item} other {# items}}' },
-				target: { value: null, status: 'UNTRANSLATED', updatedAt: null },
+				status: 'UNTRANSLATED',
+				translations: { [ENGLISH.id]: cell('{count, plural, one {# item} other {# items}}'), [SLOVAK.id]: cell(null) },
 			},
 		])
 		renderApp(`${PAGE_PATH}?source=en&target=sk`)

@@ -49,8 +49,11 @@ const item = (name: string, overrides: Partial<TranslationListItem> = {}): Trans
 	group: translationGroup('loc', name),
 	description: null,
 	plural: null,
-	source: { value: 'Vitajte' },
-	target: { value: 'Welcome', status: 'TRANSLATED', updatedAt: null },
+	status: 'TRANSLATED',
+	translations: {
+		[SLOVAK.id]: { value: 'Vitajte', status: 'TRANSLATED', updatedAt: null },
+		[ENGLISH.id]: { value: 'Welcome', status: 'TRANSLATED', updatedAt: null },
+	},
 	...overrides,
 })
 
@@ -58,8 +61,10 @@ const WELCOME = item('dashboard.welcome', { description: 'Greeting on the dashbo
 
 const COUNT = item('items.count', {
 	plural: { variable: 'n' },
-	source: { value: '{n, plural, one {# položka} few {# položky} many {# položiek} other {# položiek}}' },
-	target: { value: '{n, plural, one {# item} other {# items}}', status: 'TRANSLATED', updatedAt: null },
+	translations: {
+		[SLOVAK.id]: { value: '{n, plural, one {# položka} few {# položky} many {# položiek} other {# položiek}}', status: 'TRANSLATED', updatedAt: null },
+		[ENGLISH.id]: { value: '{n, plural, one {# item} other {# items}}', status: 'TRANSLATED', updatedAt: null },
+	},
 })
 
 const patchUrl = (keyId: string) => `/projects/${PROJECT.id}/keys/${keyId}`

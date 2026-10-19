@@ -3,7 +3,7 @@ import { useDisclosure } from '@mantine/hooks'
 import { Fragment, type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ROLE, type TranslationListItem } from '@locale/shared'
+import { ROLE, type TranslationCell, type TranslationListItem } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -22,6 +22,8 @@ import { type TranslationsTableProps } from './types'
 const SKELETON_ROWS = 5
 
 const COLUMNS = 4
+
+const EMPTY_CELL: TranslationCell = { value: null, status: 'UNTRANSLATED', updatedAt: null }
 
 /** `tag` is the language of the cell; set for a plural key, its forms are stacked. */
 const Value = ({ value, tag }: { value: string | null; tag?: string }) => {
@@ -89,68 +91,72 @@ const TranslationsTable = ({
 		</Table.Tr>
 	)
 
-	const renderItem = (item: TranslationListItem, now: Date) => (
-		<Table.Tr key={item.keyId} data-status={item.target.status} className={classes.row}>
-			<Table.Td className={classes.td}>
-				<div className={classes.keyRow}>
-					<Text component='span' className={classes.key}>
-						{item.name}
-					</Text>
-					{isAdmin && (
-						<span className={classes.editAction}>
-							<RowAction
-								icon={Edit}
-								tooltip={t('translationsPage.table.edit')}
-								label={t('translationsPage.table.editLabel', { key: item.name })}
-								onClick={() => openEdit(item)}
-							/>
+	const renderItem = (item: TranslationListItem, now: Date) => {
+		const source = (sourceLanguage && item.translations[sourceLanguage.id]) ?? EMPTY_CELL
+		const target = (targetLanguage && item.translations[targetLanguage.id]) ?? EMPTY_CELL
+		return (
+			<Table.Tr key={item.keyId} data-status={item.status} className={classes.row}>
+				<Table.Td className={classes.td}>
+					<div className={classes.keyRow}>
+						<Text component='span' className={classes.key}>
+							{item.name}
+						</Text>
+						{isAdmin && (
+							<span className={classes.editAction}>
+								<RowAction
+									icon={Edit}
+									tooltip={t('translationsPage.table.edit')}
+									label={t('translationsPage.table.editLabel', { key: item.name })}
+									onClick={() => openEdit(item)}
+								/>
+							</span>
+						)}
+					</div>
+					{item.description && (
+						<span className={classes.description} title={item.description}>
+							{item.description}
 						</span>
 					)}
-				</div>
-				{item.description && (
-					<span className={classes.description} title={item.description}>
-						{item.description}
+					<span className={classes.meta}>
+						<span>{item.group || t('translationsPage.table.noGroup')}</span>
+						{target.updatedAt && (
+							<>
+								<span aria-hidden className={classes.metaDot} />
+								<time dateTime={target.updatedAt} title={formatDateTime(target.updatedAt, i18n.language)}>
+									{formatRelativeTime(target.updatedAt, i18n.language, now, 'short')}
+								</time>
+							</>
+						)}
 					</span>
-				)}
-				<span className={classes.meta}>
-					<span>{item.group || t('translationsPage.table.noGroup')}</span>
-					{item.target.updatedAt && (
-						<>
-							<span aria-hidden className={classes.metaDot} />
-							<time dateTime={item.target.updatedAt} title={formatDateTime(item.target.updatedAt, i18n.language)}>
-								{formatRelativeTime(item.target.updatedAt, i18n.language, now, 'short')}
-							</time>
-						</>
-					)}
-				</span>
-			</Table.Td>
-			<Table.Td className={`${classes.td} ${classes.value}`}>
-				<Value value={item.source.value} tag={item.plural ? sourceLanguage?.tag : undefined} />
-			</Table.Td>
-			<Table.Td className={`${classes.td} ${classes.value}`}>
-				<TranslationEditor
-					value={item.target.value}
-					label={t('translationsPage.editor.label', { key: item.name, language: targetLanguage?.nativeName ?? '' })}
-					plural={item.plural && targetLanguage ? { variable: item.plural.variable, tag: targetLanguage.tag } : null}
-					onSave={(value) => onSave(item.keyId, value)}
-				>
-					<Value value={item.target.value} tag={item.plural ? targetLanguage?.tag : undefined} />
-				</TranslationEditor>
-			</Table.Td>
-			<Table.Td className={`${classes.td} ${classes.statusCell}`}>
-				<Badge
-					variant='light'
-					color={item.target.status === 'TRANSLATED' ? 'teal' : 'red'}
-					radius='xl'
-					tt='none'
-					leftSection={<span aria-hidden className={classes.statusDot} />}
-					className={classes.status}
-				>
-					{t(`translationsPage.status.${item.target.status}`)}
-				</Badge>
-			</Table.Td>
-		</Table.Tr>
-	)
+				</Table.Td>
+				<Table.Td className={`${classes.td} ${classes.value}`}>
+					<Value value={source.value} tag={item.plural ? sourceLanguage?.tag : undefined} />
+				</Table.Td>
+				<Table.Td className={`${classes.td} ${classes.value}`}>
+					<TranslationEditor
+						value={target.value}
+						label={t('translationsPage.editor.label', { key: item.name, language: targetLanguage?.nativeName ?? '' })}
+						plural={item.plural && targetLanguage ? { variable: item.plural.variable, tag: targetLanguage.tag } : null}
+						onSave={(value) => onSave(item.keyId, value)}
+					>
+						<Value value={target.value} tag={item.plural ? targetLanguage?.tag : undefined} />
+					</TranslationEditor>
+				</Table.Td>
+				<Table.Td className={`${classes.td} ${classes.statusCell}`}>
+					<Badge
+						variant='light'
+						color={item.status === 'TRANSLATED' ? 'teal' : 'red'}
+						radius='xl'
+						tt='none'
+						leftSection={<span aria-hidden className={classes.statusDot} />}
+						className={classes.status}
+					>
+						{t(`translationsPage.status.${item.status}`)}
+					</Badge>
+				</Table.Td>
+			</Table.Tr>
+		)
+	}
 
 	const renderBody = () => {
 		if (isPending) {

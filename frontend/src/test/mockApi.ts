@@ -17,6 +17,7 @@ export const ADMIN_USER: AuthUser = {
 	role: ROLE.ADMIN,
 	firstName: 'Martin',
 	lastName: 'Kováč',
+	preferences: { translationsView: 'EXTENDED' },
 }
 
 export const EDITOR_USER: AuthUser = {
@@ -25,6 +26,7 @@ export const EDITOR_USER: AuthUser = {
 	role: ROLE.EDITOR,
 	firstName: null,
 	lastName: null,
+	preferences: { translationsView: 'EXTENDED' },
 }
 
 export const apiError = (status: number, code: string, extra: { details?: unknown; headers?: Record<string, string> } = {}): MockResponse => ({

@@ -453,17 +453,21 @@ const WELCOME = ITEMS[2]!
 
 const putUrl = (keyId: string) => `/projects/${PROJECT.id}/keys/${keyId}/translations/${ENGLISH.id}`
 
-/** In-memory list: a saved value survives the refetch after the mutation settles. `put` replaces the answer of every PUT (errors). */
-const mockEditing = (put?: MockResponse) => {
+/**
+ * In-memory list: a saved value survives the refetch after the mutation settles. `put` replaces the answer of every PUT (errors); as a
+ * function it gets the sent value and falls back to the success answer when it returns `undefined`.
+ */
+const mockEditing = (put?: MockResponse | ((value: string | null) => MockResponse | undefined)) => {
 	let current = response()
 	const putRoutes: MockRoutes = Object.fromEntries(
 		ITEMS.map((entry) => [
 			`PUT ${putUrl(entry.keyId)}`,
 			(config: InternalAxiosRequestConfig) => {
-				if (put) {
-					return put
-				}
 				const { value } = JSON.parse(config.data as string) as { value: string | null }
+				const replaced = typeof put === 'function' ? put(value) : put
+				if (replaced) {
+					return replaced
+				}
 				const target = { value, status: value === null ? 'UNTRANSLATED' : 'TRANSLATED', updatedAt: new Date().toISOString() } as const
 				const delta = target.status === entry.target.status ? 0 : target.status === 'TRANSLATED' ? 1 : -1
 				current = {
@@ -642,6 +646,49 @@ describe('TranslationsPage inline edit', () => {
 		fireEvent.keyDown(field, { key: 'Escape' })
 		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 		expect(within(getRow('orders.empty.title')).getByText('Bez prekladu')).toBeInTheDocument()
+	})
+
+	it('saves the corrected text on blur after PLACEHOLDER_MISMATCH', async () => {
+		const puts = mockEditing((value) =>
+			value === 'Hello {{user}}' ? apiError(400, 'PLACEHOLDER_MISMATCH', { details: { missing: ['{{name}}'], extra: ['{{user}}'] } }) : undefined,
+		)
+		renderApp(PAGE_PATH)
+
+		const field = await openEditor('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
+		fireEvent.change(field, { target: { value: 'Hello {{user}}' } })
+		blur(field)
+		await screen.findByRole('alert')
+
+		// A real blur moved the focus away; the user clicks back into the field to fix the text.
+		act(() => field.focus())
+		fireEvent.change(field, { target: { value: 'Hello {{name}}' } })
+		blur(field)
+
+		await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Preklad kľúča orders.empty.title, English' })).not.toBeInTheDocument())
+		expect(puts()).toHaveLength(2)
+		expect(JSON.parse(puts()[1]!.data as string)).toEqual({ value: 'Hello {{name}}' })
+		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+		expect(within(getRow('orders.empty.title')).getByText('{{name}}')).toBeInTheDocument()
+		expect(getRow('orders.empty.title')).toHaveAttribute('data-status', 'TRANSLATED')
+	})
+
+	it('discards the unchanged draft without a request on blur after PLACEHOLDER_MISMATCH', async () => {
+		const puts = mockEditing(apiError(400, 'PLACEHOLDER_MISMATCH', { details: { missing: ['{{name}}'], extra: [] } }))
+		renderApp(PAGE_PATH)
+
+		const field = await openEditor('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
+		fireEvent.change(field, { target: { value: 'Hello' } })
+		blur(field)
+		await screen.findByRole('alert')
+		expect(puts()).toHaveLength(1)
+
+		act(() => field.focus())
+		blur(field)
+
+		expect(screen.queryByRole('textbox', { name: 'Preklad kľúča orders.empty.title, English' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+		expect(within(getRow('orders.empty.title')).getByText('Bez prekladu')).toBeInTheDocument()
+		expect(puts()).toHaveLength(1)
 	})
 
 	it('rolls back and shows a notification on another error', async () => {

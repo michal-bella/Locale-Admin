@@ -24,7 +24,7 @@ const TokenEditor = ({
 	invalid = false,
 	readOnly = false,
 	maxLength,
-	focusOnMount = false,
+	modalAutofocus = false,
 	onKeyDown,
 	onBlur,
 	className,
@@ -34,6 +34,7 @@ const TokenEditor = ({
 	const rootRef = useRef<HTMLDivElement>(null)
 	const renderedRef = useRef<string | null>(null)
 	const composingRef = useRef(false)
+	const autofocusedRef = useRef(false)
 
 	useImperativeHandle(ref, () => rootRef.current as HTMLDivElement)
 
@@ -61,16 +62,6 @@ const TokenEditor = ({
 			}
 		}
 	})
-
-	useLayoutEffect(() => {
-		const root = rootRef.current
-		if (focusOnMount && root) {
-			root.focus()
-			setCaret(root, value.length)
-		}
-		// Only on mount, like the `autoFocus` attribute.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
 
 	const current = () => renderedRef.current ?? value
 
@@ -162,6 +153,13 @@ const TokenEditor = ({
 			tabIndex={0}
 			spellCheck={false}
 			data-maxlength={maxLength}
+			data-autofocus={modalAutofocus || undefined}
+			onFocus={() => {
+				if (modalAutofocus && !autofocusedRef.current && rootRef.current) {
+					autofocusedRef.current = true
+					setCaret(rootRef.current, current().length)
+				}
+			}}
 			className={`${classes.root} ${className ?? ''}`}
 			onInput={handleInput}
 			onKeyDown={handleKeyDown}

@@ -8,6 +8,29 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Zobrazenia prekladov, krok 4: E2E, review a prístupnosť (2026-10-19)
+
+- E2E: `translation-edit.spec.ts` (modál), `translations.spec.ts` (rozšírené zobrazenie, sticky stĺpce, prepínač uložený na účet), `translations-flow.spec.ts`, `key-editing.spec.ts`, `import.spec.ts`, `api-smoke.spec.ts` (oba režimy zoznamu, `PATCH /api/profile/preferences`), `accessibility.spec.ts` (obe zobrazenia a modál Upraviť preklad); testy prepínača sa prihlasujú ako nový ADMIN ([Testovanie](./testing.md))
+- review: odstránený nepoužitý `focusOnMount` a `ref`, prepínač zobrazenia je počas ukladania vypnutý, dokumentácia bez „úpravy v riadku“
+
+### Zobrazenia prekladov, krok 3: rozšírené zobrazenie a prepínač (2026-10-19)
+
+- frontend: nové predvolené zobrazenie **Všetky jazyky** – stĺpec na každý jazyk projektu, vodorovný scroll, stĺpce Kľúč a Stav zafixované na okrajoch, červená len bunka bez prekladu, riadok je Nepreložené, kým chýba hoci jeden jazyk; dnešné zobrazenie **Zdroj → cieľ** ostáva ako kompaktné; prepínač v toolbare sa ukladá na účet používateľa (`PATCH /api/profile/preferences`, hook `useUpdatePreferencesMutation`), nie do URL ([Frontend](./frontend.md#stránka-preklady))
+- otvorené: E2E sa prepíšu v kroku 4 plánu ([plán](./plans/translations-views.md))
+
+### Zobrazenia prekladov, krok 2: modál Upraviť preklad (2026-10-19)
+
+- frontend: klik na bunku prekladu otvorí modál **Upraviť preklad** (kľúč s popisom, jazyk s vlajkou, hodnota základného jazyka ako nápoveda, pole s uzamknutými tokenmi po plurálových formách, Zrušiť / Uložiť); úprava v riadku, uloženie klikom mimo pole a Ctrl+Enter sú odstránené; validácia a chyby (`PLACEHOLDER_MISMATCH`, zátvorky, limit dĺžky) ostali; červené pozadie má len bunka bez prekladu, nie riadok ([Frontend](./frontend.md#modál-upraviť-preklad))
+- `TokenEditor`: `modalAutofocus` – pole v modáli fokusuje focus trap Mantine, takže sa fokus po zatvorení vráti na bunku
+- otvorené: E2E `translation-edit.spec.ts`, `key-editing.spec.ts` a `api-smoke.spec.ts` sa prepíšu v kroku 4 plánu
+
+### Zobrazenia prekladov, krok 1: kontrakt a backend (2026-10-19)
+
+- zdieľaný kontrakt: položka zoznamu prekladov nesie `status` riadku a `translations` (bunka pre každý jazyk projektu podľa `ProjectLanguage.id`) namiesto `source`/`target`; `sourceLanguageId` a `targetLanguageId` sú voliteľné (obidva alebo žiadny) a určujú zobrazenie: kompaktné (stav, filter, zoradenie, štatistiky a vyhľadávanie podľa cieľového jazyka) alebo rozšírené (riadok je preložený, keď má hodnotu každý jazyk; vyhľadávanie vo všetkých jazykoch); `preferences.translationsView` v `AuthUser` a `Profile`, `PATCH /api/profile/preferences` ([API](./api/translations.md), [profil](./api/profile.md))
+- databáza: `User.translationsView` (enum `TRANSLATIONS_VIEW`, default `EXTENDED`, migrácia `user_translations_view`) ([Databáza](./database.md))
+- backend: `listTranslations` skladá SQL podľa zobrazenia (`EXISTS` cez jazyky projektu v rozšírenom), bunky stránky načíta druhým dotazom; integračné testy oboch zobrazení a preferencií
+- frontend: tabuľka a optimistická mutácia čítajú bunky z `translations` a stav riadku z `status`, správanie stránky sa nemení (plán: [`docs/plans/translations-views.md`](./plans/translations-views.md))
+
 ### Detail používateľa s jeho projektmi (2026-10-19)
 
 - zdieľaný kontrakt: `adminUserDetailSchema = adminUserSchema.extend({ projects })`, položka projektu `adminUserProjectSchema { id, name, slug, primaryColor, joinedAt }`

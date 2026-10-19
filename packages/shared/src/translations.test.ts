@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { toValidationIssues, VALIDATION_CODE } from './errors'
 import {
 	translationGroup,
 	translationListItemSchema,
@@ -23,17 +24,22 @@ describe('translationsQuerySchema', () => {
 		expect(query).toMatchObject({ search: 'order', page: 3, pageSize: 100 })
 	})
 
-	it('rejects a page size over 100, page 0, an unknown status and a missing language', () => {
+	it('rejects a page size over 100, page 0 and an unknown status', () => {
 		const base = { sourceLanguageId: SOURCE_ID, targetLanguageId: TARGET_ID }
 		expect(translationsQuerySchema.safeParse({ ...base, pageSize: '101' }).success).toBe(false)
 		expect(translationsQuerySchema.safeParse({ ...base, page: '0' }).success).toBe(false)
 		expect(translationsQuerySchema.safeParse({ ...base, status: 'REVIEW' }).success).toBe(false)
-		expect(translationsQuerySchema.safeParse({ sourceLanguageId: SOURCE_ID }).success).toBe(false)
+	})
+
+	it('accepts no languages (extended view) but not one of the two', () => {
+		expect(translationsQuerySchema.parse({ sourceLanguageId: '', targetLanguageId: '' })).toEqual({ sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 50 })
+		const result = translationsQuerySchema.safeParse({ sourceLanguageId: SOURCE_ID })
+		expect(result.success ? [] : toValidationIssues(result.error)).toEqual([{ path: 'targetLanguageId', code: VALIDATION_CODE.REQUIRED }])
 	})
 })
 
 describe('translationListItemSchema', () => {
-	it('allows a missing target row', () => {
+	it('allows a missing row for a language', () => {
 		const item = {
 			keyId: SOURCE_ID,
 			namespace: 'loc',
@@ -41,8 +47,11 @@ describe('translationListItemSchema', () => {
 			group: 'loc',
 			description: null,
 			plural: null,
-			source: { value: 'Uložiť' },
-			target: { value: null, status: 'UNTRANSLATED', updatedAt: null },
+			status: 'UNTRANSLATED',
+			translations: {
+				[SOURCE_ID]: { value: 'Uložiť', status: 'TRANSLATED', updatedAt: '2026-10-18T12:00:00.000Z' },
+				[TARGET_ID]: { value: null, status: 'UNTRANSLATED', updatedAt: null },
+			},
 		}
 		expect(translationListItemSchema.parse(item)).toEqual(item)
 	})

@@ -13,7 +13,7 @@ Index projektovej dokumentácie. Zdroj pravdy je tento priečinok v repe, Notion
 | [Prehľad](./overview.md)                | čo aplikácia robí, doménové pojmy, role          |
 | [Architektúra](./architecture.md)       | monorepo, FE ↔ BE ↔ DB, auth flow, Docker služby |
 | [API](./api/README.md)                  | endpointy, chybový kontrakt                      |
-| [API: preklady](./api/translations.md)  | zoznam prekladov, úprava prekladu v riadku       |
+| [API: preklady](./api/translations.md)  | zoznam prekladov, úprava prekladu a kľúča        |
 | [API: import](./api/imports.md)         | import CSV: formát, chyby, kontrola a zápis      |
 | [Databáza](./database.md)               | dátový model, migrácie, seed                     |
 | [Frontend](./frontend.md)               | routing, layout, i18n, Mantine theme             |

@@ -244,6 +244,11 @@
 			"sourceLanguage": "Zdrojový jazyk",
 			"targetLanguage": "Cílový jazyk"
 		},
+		"view": {
+			"label": "Zobrazení",
+			"EXTENDED": "Všechny jazyky",
+			"COMPACT": "Zdroj → cíl"
+		},
 		"table": {
 			"label": "Seznam překladů",
 			"key": "Klíč",
@@ -264,8 +269,6 @@
 		},
 		"editor": {
 			"label": "Překlad klíče {{key}}, {{language}}",
-			"hint": "Uložit: Ctrl+Enter nebo klik mimo pole. Zrušit: Esc.",
-			"saving": "Ukládá se",
 			"lockedHint": "Proměnné a HTML značky jsou zamčené, mažou se celé.",
 			"hashHint": "Znak # je místo čísla.",
 			"saved": "Uloženo: {{key}}",
@@ -274,6 +277,16 @@
 			"formLabel": "{{label}}, {{form}}",
 			"unbalancedBraces": "Závorky { a } musí být vyvážené.",
 			"tooLong": "Překlad je příliš dlouhý (max. 10 000 znaků celkem za všechny formy)."
+		},
+		"editModal": {
+			"title": "Upravit překlad",
+			"close": "Zavřít",
+			"key": "Klíč",
+			"language": "Jazyk",
+			"baseLanguage": "Základní jazyk ({{language}})",
+			"value": "Překlad",
+			"cancel": "Zrušit",
+			"submit": "Uložit"
 		},
 		"plural": {
 			"hash": "Číslo",

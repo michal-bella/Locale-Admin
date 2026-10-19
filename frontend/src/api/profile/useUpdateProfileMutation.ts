@@ -13,8 +13,8 @@ export const useUpdateProfileMutation = () => {
 		onSuccess: (profile) => {
 			queryClient.setQueryData<Profile>(QUERY_KEYS.PROFILE(), profile)
 			// `me` has `staleTime: Infinity`; writing it directly updates the top-bar initials without another request.
-			const { id, email, role, firstName, lastName } = profile
-			queryClient.setQueryData<AuthUser>(QUERY_KEYS.AUTH.ME(), { id, email, role, firstName, lastName })
+			const { id, email, role, firstName, lastName, preferences } = profile
+			queryClient.setQueryData<AuthUser>(QUERY_KEYS.AUTH.ME(), { id, email, role, firstName, lastName, preferences })
 		},
 	})
 }

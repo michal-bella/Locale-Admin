@@ -1,4 +1,4 @@
-import { type Language, type TranslationsSort, type TranslationStatus } from '@locale/shared'
+import { type Language, type TranslationsSort, type TranslationStatus, type TranslationsView } from '@locale/shared'
 
 import { type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
@@ -7,6 +7,11 @@ export type TranslationsToolbarProps = {
 	status?: TranslationStatus
 	namespace?: string
 	sort: TranslationsSort
+	/** `EXTENDED` shows every language as a column, `COMPACT` the source → target pair with the two selects. */
+	view: TranslationsView
+	onViewChange: (view: TranslationsView) => void
+	/** While the preference saves, so two quick switches cannot race. */
+	isViewSaving?: boolean
 	languages: Language[]
 	sourceLanguage?: Language
 	targetLanguage?: Language

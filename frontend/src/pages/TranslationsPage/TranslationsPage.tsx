@@ -1,11 +1,15 @@
 import { Button, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
+import { notifications } from '@mantine/notifications'
 import { useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { TRANSLATIONS_PAGE_SIZE_DEFAULT } from '@locale/shared'
+import { TRANSLATIONS_PAGE_SIZE_DEFAULT, type TranslationsView } from '@locale/shared'
 
+import { useMeQuery } from '@/api/auth/meQuery'
+import getApiErrorCode from '@/api/getApiErrorCode'
+import { useUpdatePreferencesMutation } from '@/api/profile/useUpdatePreferencesMutation'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import { useProjectSettingsQuery } from '@/api/projectSettings/projectSettingsQuery'
 import { useTranslationsQuery } from '@/api/translations/translationsQuery'
@@ -24,8 +28,10 @@ import classes from './TranslationsPage.module.css'
 const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
 
 /**
- * Translations of the project (Figma 3:2): stats for the target language, filters in the URL, the table with inline editing and pagination.
- * Without Exportovať, Posledný sync and the Na kontrolu card. Importovať opens `ImportModal`.
+ * Translations of the project (Figma 3:2): stats, filters in the URL, the table (cells open the edit modal) and pagination. The view is the
+ * user's preference (`me.preferences.translationsView`): `EXTENDED` lists every language of the project and the API decides the row status
+ * by all of them (no language ids in the query); `COMPACT` is the Figma source → target pair. Without Exportovať, Posledný sync and the
+ * Na kontrolu card. Importovať opens `ImportModal`.
  */
 const TranslationsPage = () => {
 	const { t } = useTranslation()
@@ -33,6 +39,9 @@ const TranslationsPage = () => {
 	const search = useSearch({ from: ROUTE_ID })
 	const navigate = useNavigate({ from: '/projects/$projectSlug/translations' })
 	const { data: project } = useProjectSettingsQuery(projectId)
+	const { data: me } = useMeQuery()
+	const view: TranslationsView = me?.preferences.translationsView ?? 'EXTENDED'
+	const updatePreferences = useUpdatePreferencesMutation()
 	const languagesQuery = useProjectLanguagesQuery(projectId)
 	const languages = languagesQuery.data ?? []
 	const [importOpened, importModal] = useDisclosure(false)
@@ -52,18 +61,12 @@ const TranslationsPage = () => {
 	const sort = search.sort ?? 'UNTRANSLATED_FIRST'
 	const page = search.page ?? 1
 
+	const filters = { search: search.search, status: search.status, namespace: search.namespace, sort, page, pageSize: TRANSLATIONS_PAGE_SIZE_DEFAULT }
 	const listQuery =
 		sourceLanguage && targetLanguage
-			? {
-					sourceLanguageId: sourceLanguage.id,
-					targetLanguageId: targetLanguage.id,
-					search: search.search,
-					status: search.status,
-					namespace: search.namespace,
-					sort,
-					page,
-					pageSize: TRANSLATIONS_PAGE_SIZE_DEFAULT,
-				}
+			? view === 'COMPACT'
+				? { sourceLanguageId: sourceLanguage.id, targetLanguageId: targetLanguage.id, ...filters }
+				: filters
 			: null
 	const translationsQuery = useTranslationsQuery(projectId, listQuery)
 	const data = translationsQuery.data
@@ -71,15 +74,18 @@ const TranslationsPage = () => {
 	const [savedAnnouncement, setSavedAnnouncement] = useState('')
 
 	// The status badge flips silently for a screen reader; the live region below says it. Clearing first makes a repeated save of the same key announce again.
-	const saveTranslation = async (keyId: string, value: string | null) => {
-		if (!listQuery) {
-			return
-		}
+	const saveTranslation = async (keyId: string, languageId: string, value: string | null) => {
 		setSavedAnnouncement('')
-		const result = await updateTranslation.mutateAsync({ keyId, languageId: listQuery.targetLanguageId, value })
+		const result = await updateTranslation.mutateAsync({ keyId, languageId, value })
 		setSavedAnnouncement(t('translationsPage.editor.saved', { key: data?.items.find((item) => item.keyId === keyId)?.name ?? '' }))
 		return result
 	}
+
+	const changeView = (next: TranslationsView) =>
+		updatePreferences.mutate(
+			{ translationsView: next },
+			{ onError: (error) => notifications.show({ color: 'red', message: t(`errors.${getApiErrorCode(error)}`) }) },
+		)
 
 	const updateSearch = (patch: Partial<TranslationsSearch>, { resetPage = true } = {}) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch, ...(resetPage ? { page: undefined } : {}) }), replace: true })
@@ -144,6 +150,9 @@ const TranslationsPage = () => {
 						status={search.status}
 						namespace={search.namespace}
 						sort={sort}
+						view={view}
+						onViewChange={changeView}
+						isViewSaving={updatePreferences.isPending}
 						languages={languages}
 						sourceLanguage={sourceLanguage}
 						targetLanguage={targetLanguage}
@@ -159,6 +168,8 @@ const TranslationsPage = () => {
 					error={languagesQuery.error ?? translationsQuery.error}
 					onRetry={retry}
 					isRetrying={languagesQuery.isRefetching || translationsQuery.isRefetching}
+					view={view}
+					languages={languages}
 					sourceLanguage={sourceLanguage}
 					targetLanguage={targetLanguage}
 					onClearFilters={clearFilters}

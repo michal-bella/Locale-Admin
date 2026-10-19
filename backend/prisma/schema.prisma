@@ -12,18 +12,24 @@ enum ROLE {
   EDITOR
 }
 
+enum TRANSLATIONS_VIEW {
+  EXTENDED
+  COMPACT
+}
+
 model User {
-  id                 String          @id @default(uuid()) @db.Uuid
-  email              String          @unique
+  id                 String            @id @default(uuid()) @db.Uuid
+  email              String            @unique
   passwordHash       String
-  role               ROLE            @default(EDITOR)
+  role               ROLE              @default(EDITOR)
   firstName          String?
   lastName           String?
-  isActive           Boolean         @default(true)
+  isActive           Boolean           @default(true)
+  translationsView   TRANSLATIONS_VIEW @default(EXTENDED)
   lastLoginAt        DateTime?
-  passwordChangedAt  DateTime        @default(now())
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  passwordChangedAt  DateTime          @default(now())
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   sessions           Session[]
   projectMemberships ProjectMember[]
   translations       Translation[]

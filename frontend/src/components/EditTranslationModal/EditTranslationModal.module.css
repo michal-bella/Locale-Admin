@@ -1,0 +1,75 @@
+.label {
+	display: block;
+	margin-bottom: 0.25rem;
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 500;
+	line-height: 1.5;
+	color: var(--app-color-text-strong);
+}
+
+.key {
+	font-family: var(--mantine-font-family-monospace);
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+
+.description {
+	font-size: var(--mantine-font-size-2xs);
+	line-height: 1.5;
+	color: var(--app-color-text-secondary);
+	overflow-wrap: anywhere;
+}
+
+.language {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 600;
+}
+
+.reference {
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--app-color-border-subtle);
+	border-radius: var(--mantine-radius-sm);
+	background-color: var(--app-color-surface-muted);
+	font-size: var(--mantine-font-size-sm);
+	line-height: 1.5;
+	color: var(--app-color-text-strong);
+	overflow-wrap: anywhere;
+}
+
+.forms {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+}
+
+.formRow {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+}
+
+.formRow > :first-child {
+	margin-top: 0.75rem;
+}
+
+.field {
+	flex: 1;
+	min-width: 0;
+}
+
+.error {
+	display: block;
+	margin-top: 0.25rem;
+	font-size: var(--mantine-font-size-3xs);
+	line-height: 1.5;
+	color: var(--mantine-color-red-9);
+}
+
+[data-mantine-color-scheme='dark'] .error {
+	color: var(--mantine-color-error);
+}

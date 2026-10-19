@@ -242,6 +242,11 @@
 			"sourceLanguage": "Source language",
 			"targetLanguage": "Target language"
 		},
+		"view": {
+			"label": "View",
+			"EXTENDED": "All languages",
+			"COMPACT": "Source → target"
+		},
 		"table": {
 			"label": "Translation list",
 			"key": "Key",
@@ -262,8 +267,6 @@
 		},
 		"editor": {
 			"label": "Translation of key {{key}}, {{language}}",
-			"hint": "Save: Ctrl+Enter or click outside the field. Cancel: Esc.",
-			"saving": "Saving",
 			"lockedHint": "Variables and HTML tags are locked and are deleted as a whole.",
 			"hashHint": "The # sign stands for the number.",
 			"saved": "Saved: {{key}}",
@@ -272,6 +275,16 @@
 			"formLabel": "{{label}}, {{form}}",
 			"unbalancedBraces": "Braces { and } must be balanced.",
 			"tooLong": "The translation is too long (max. 10,000 characters across all forms)."
+		},
+		"editModal": {
+			"title": "Edit translation",
+			"close": "Close",
+			"key": "Key",
+			"language": "Language",
+			"baseLanguage": "Base language ({{language}})",
+			"value": "Translation",
+			"cancel": "Cancel",
+			"submit": "Save"
 		},
 		"plural": {
 			"hash": "Number",

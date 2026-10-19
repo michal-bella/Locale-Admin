@@ -1,9 +1,9 @@
-import { type ComboboxItem, type ComboboxLikeRenderOptionInput, Select, Text, TextInput } from '@mantine/core'
+import { type ComboboxItem, type ComboboxLikeRenderOptionInput, SegmentedControl, Select, Text, TextInput } from '@mantine/core'
 import { useDebouncedCallback } from '@mantine/hooks'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type Language, TRANSLATIONS_SEARCH_MAX_LENGTH, translationsSortSchema, translationStatusSchema } from '@locale/shared'
+import { type Language, TRANSLATIONS_SEARCH_MAX_LENGTH, translationsSortSchema, translationStatusSchema, translationsViewSchema } from '@locale/shared'
 
 import { ArrowRight, Search } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
@@ -59,14 +59,17 @@ const LanguageSelect = ({
 )
 
 /**
- * Filters above the translations table (Figma 3:121): search, status, namespace, sort and source → target language.
- * The search writes to the URL 300 ms after the last keystroke; the other filters right away.
+ * Filters above the translations table (Figma 3:121): search, status, namespace, sort, the view switch and, in the compact view,
+ * source → target language. The search writes to the URL 300 ms after the last keystroke; the other filters right away.
  */
 const TranslationsToolbar = ({
 	search,
 	status,
 	namespace,
 	sort,
+	view,
+	onViewChange,
+	isViewSaving = false,
 	languages,
 	sourceLanguage,
 	targetLanguage,
@@ -143,23 +146,40 @@ const TranslationsToolbar = ({
 					withScrollArea={false}
 				/>
 			</div>
-			<div className='flex items-center gap-2'>
-				<Text component='span' aria-hidden fz='xs' c='var(--app-color-muted)'>
-					{t('translationsPage.toolbar.sourceLanguage')}
-				</Text>
-				<LanguageSelect
-					label={t('translationsPage.toolbar.sourceLanguage')}
-					languages={languages}
-					value={sourceLanguage}
-					onChange={(tag) => onChange({ source: tag })}
+			<div className='flex flex-wrap items-center gap-3'>
+				<SegmentedControl
+					aria-label={t('translationsPage.view.label')}
+					value={view}
+					readOnly={isViewSaving}
+					onChange={(value) => {
+						const parsed = translationsViewSchema.safeParse(value)
+						if (parsed.success) {
+							onViewChange(parsed.data)
+						}
+					}}
+					data={translationsViewSchema.options.map((value) => ({ value, label: t(`translationsPage.view.${value}`) }))}
+					className={classes.view}
 				/>
-				<ArrowRight aria-hidden className={classes.arrow} />
-				<LanguageSelect
-					label={t('translationsPage.toolbar.targetLanguage')}
-					languages={languages}
-					value={targetLanguage}
-					onChange={(tag) => onChange({ target: tag })}
-				/>
+				{view === 'COMPACT' && (
+					<div className='flex items-center gap-2'>
+						<Text component='span' aria-hidden fz='xs' c='var(--app-color-muted)'>
+							{t('translationsPage.toolbar.sourceLanguage')}
+						</Text>
+						<LanguageSelect
+							label={t('translationsPage.toolbar.sourceLanguage')}
+							languages={languages}
+							value={sourceLanguage}
+							onChange={(tag) => onChange({ source: tag })}
+						/>
+						<ArrowRight aria-hidden className={classes.arrow} />
+						<LanguageSelect
+							label={t('translationsPage.toolbar.targetLanguage')}
+							languages={languages}
+							value={targetLanguage}
+							onChange={(tag) => onChange({ target: tag })}
+						/>
+					</div>
+				)}
 			</div>
 		</div>
 	)

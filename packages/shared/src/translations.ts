@@ -21,27 +21,46 @@ export const translationStatusSchema = z.enum(['TRANSLATED', 'UNTRANSLATED'])
 
 export type TranslationStatus = z.infer<typeof translationStatusSchema>
 
-/** `UNTRANSLATED_FIRST` orders by status, group, key; `KEY` by namespace, group, key; `UPDATED` by target `updatedAt`, newest first. */
+/**
+ * `UNTRANSLATED_FIRST` orders by the row status, group, key; `KEY` by namespace, group, key; `UPDATED` by the newest `updatedAt`
+ * of the row, newest first. Which languages count is decided by the query (see `translationsQuerySchema`).
+ */
 export const translationsSortSchema = z.enum(['UNTRANSLATED_FIRST', 'KEY', 'UPDATED'])
 
 export type TranslationsSort = z.infer<typeof translationsSortSchema>
+
+/** How the translations page shows the languages; stored on the user (`User.translationsView`). */
+export const translationsViewSchema = z.enum(['EXTENDED', 'COMPACT'])
+
+export type TranslationsView = z.infer<typeof translationsViewSchema>
 
 const emptyToUndefined = (value: unknown) => (typeof value === 'string' && value.trim() === '' ? undefined : value)
 
 /**
  * Query of `GET /api/projects/:projectId/translations`. Values arrive as strings, so numbers are coerced and empty
- * strings mean "no filter". `search` matches the key and the source or target value (case-insensitive substring).
+ * strings mean "no filter". With `sourceLanguageId` and `targetLanguageId` (both or none) the row status, the `status`
+ * filter, the sort and `stats` follow the target language and `search` matches the key, the source and the target
+ * value (compact view). Without them a row is translated only when every language of the project has a value, and
+ * `search` matches the key and the value of any language (extended view). The items carry every language either way.
  */
-export const translationsQuerySchema = z.object({
-	sourceLanguageId: z.uuid(),
-	targetLanguageId: z.uuid(),
-	search: z.preprocess(emptyToUndefined, z.string().trim().max(TRANSLATIONS_SEARCH_MAX_LENGTH).optional()),
-	status: z.preprocess(emptyToUndefined, translationStatusSchema.optional()),
-	namespace: z.preprocess(emptyToUndefined, z.string().optional()),
-	sort: z.preprocess(emptyToUndefined, translationsSortSchema.default('UNTRANSLATED_FIRST')),
-	page: z.coerce.number().int().min(1).default(1),
-	pageSize: z.coerce.number().int().min(1).max(TRANSLATIONS_PAGE_SIZE_MAX).default(TRANSLATIONS_PAGE_SIZE_DEFAULT),
-})
+export const translationsQuerySchema = z
+	.object({
+		sourceLanguageId: z.preprocess(emptyToUndefined, z.uuid().optional()),
+		targetLanguageId: z.preprocess(emptyToUndefined, z.uuid().optional()),
+		search: z.preprocess(emptyToUndefined, z.string().trim().max(TRANSLATIONS_SEARCH_MAX_LENGTH).optional()),
+		status: z.preprocess(emptyToUndefined, translationStatusSchema.optional()),
+		namespace: z.preprocess(emptyToUndefined, z.string().optional()),
+		sort: z.preprocess(emptyToUndefined, translationsSortSchema.default('UNTRANSLATED_FIRST')),
+		page: z.coerce.number().int().min(1).default(1),
+		pageSize: z.coerce.number().int().min(1).max(TRANSLATIONS_PAGE_SIZE_MAX).default(TRANSLATIONS_PAGE_SIZE_DEFAULT),
+	})
+	.superRefine((query, context) => {
+		const [missing, ...rest] = (['sourceLanguageId', 'targetLanguageId'] as const).filter((field) => query[field] === undefined)
+		if (missing && rest.length === 0) {
+			// Reported as a missing field (`REQUIRED`), not as a cross-field rule the client cannot translate.
+			context.addIssue({ code: 'invalid_type', expected: 'string', input: undefined, path: [missing], message: 'Both languages or none' })
+		}
+	})
 
 export type TranslationsQuery = z.infer<typeof translationsQuerySchema>
 
@@ -102,9 +121,19 @@ export const updateTranslationKeyResponseSchema = z.object({
 
 export type UpdateTranslationKeyResponse = z.infer<typeof updateTranslationKeyResponseSchema>
 
+/** One key in one language; `updatedAt` is `null` when the row does not exist. */
+export const translationCellSchema = z.object({
+	value: z.string().nullable(),
+	status: translationStatusSchema,
+	updatedAt: z.iso.datetime().nullable(),
+})
+
+export type TranslationCell = z.infer<typeof translationCellSchema>
+
 /**
- * One key with its source and target text. `group` is the namespace, plus `:prefix` for a path key
- * (`loc:orders.empty` for `orders.empty.title` in `loc`). `target.updatedAt` is `null` when the row does not exist.
+ * One key with a cell for every language of the project, keyed by `ProjectLanguage.id`. `group` is the namespace, plus
+ * `:prefix` for a path key (`loc:orders.empty` for `orders.empty.title` in `loc`). `status` is the status of the row as
+ * the query defines it (target language, or every language).
  */
 export const translationListItemSchema = z.object({
 	keyId: z.uuid(),
@@ -113,19 +142,16 @@ export const translationListItemSchema = z.object({
 	group: z.string(),
 	description: z.string().nullable(),
 	plural: translationKeyPluralSchema.nullable(),
-	source: z.object({ value: z.string().nullable() }),
-	target: z.object({
-		value: z.string().nullable(),
-		status: translationStatusSchema,
-		updatedAt: z.iso.datetime().nullable(),
-	}),
+	status: translationStatusSchema,
+	translations: z.record(z.uuid(), translationCellSchema),
 })
 
 export type TranslationListItem = z.infer<typeof translationListItemSchema>
 
 /**
  * Body of `GET /api/projects/:projectId/translations`. `total` counts keys matching the filters; `stats` count every key
- * of the project in the target language, ignoring filters. `namespaces` lists every namespace of the project, sorted.
+ * of the project by the row status of the query (target language, or every language), ignoring filters. `namespaces`
+ * lists every namespace of the project, sorted.
  */
 export const translationsResponseSchema = z.object({
 	items: z.array(translationListItemSchema),

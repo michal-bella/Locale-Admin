@@ -4,15 +4,17 @@ import { MUTATION_HEADERS, readApiError } from '../support/api'
 import { STORAGE_STATE } from '../support/auth'
 import { importSample } from '../support/imports'
 import { listLanguages } from '../support/languages'
-import { createProject, getProjectSettings, type ProjectListItem, projectSettingsApi } from '../support/projects'
+import { createProject, getProjectSettings, projectSettingsApi } from '../support/projects'
 import {
-	editorValue,
+	cellOf,
 	expectChips,
+	fieldValue,
 	getCellButton,
 	getChips,
 	getEditKeyButton,
-	getEditor,
+	getEditTranslationDialog,
 	getGroupHeaders,
+	getTranslationField,
 	getTranslationRow,
 	getTranslationRows,
 	getTranslationsTable,
@@ -20,26 +22,21 @@ import {
 	isTranslationPut,
 	listTranslations,
 	openEditKeyModal,
-	openEditor,
+	openEditTranslationModal,
 	openTranslations,
 	pasteInto,
+	saveTranslation,
 	submitEditKey,
 	translationKeyApi,
-	waitForTranslationPut,
 } from '../support/translations'
 
-const SAVE = 'ControlOrMeta+Enter'
+const SK = 'slovenčina'
 
 /** `import-sample.csv` with sk (base) and en, `cs` skipped; see `SAMPLE` in `support/imports.ts`. */
 const seedProject = async (api: APIRequestContext, label: string) => {
 	const project = await createProject(api, label, ['sk', 'en'])
 	await importSample(api, project.id, { sk: 'sk', en: 'en', cs: null })
 	return project
-}
-
-const openTranslationsEn = async (page: Page, project: ProjectListItem) => {
-	await openTranslations(page, project, '?target=en')
-	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('EN')
 }
 
 const setProtectVariables = async (api: APIRequestContext, projectId: string, protectVariables: boolean) => {
@@ -61,12 +58,15 @@ const trackRequests = (page: Page, matches: (req: Request) => boolean) => {
 	return requests
 }
 
-const listEn = async (api: APIRequestContext, projectId: string) => {
-	const [sk, en] = await listLanguages(api, projectId)
-	return listTranslations(api, projectId, sk!.id, en!.id)
-}
+const itemOf = async (api: APIRequestContext, projectId: string, key: string) =>
+	(await listTranslations(api, projectId)).items.find(({ name }) => name === key)!
 
-const itemOf = async (api: APIRequestContext, projectId: string, key: string) => (await listEn(api, projectId)).items.find(({ name }) => name === key)!
+/** `{ sk, en }` values of `key` straight from the API. */
+const valuesOf = async (api: APIRequestContext, projectId: string, key: string) => {
+	const [sk, en] = await listLanguages(api, projectId)
+	const item = await itemOf(api, projectId, key)
+	return { sk: cellOf(item, sk!).value, en: cellOf(item, en!).value }
+}
 
 test.describe('locked tokens', () => {
 	test('a {{var}} is a chip: typing lands around it, the caret skips it, Backspace right after it removes it whole and Esc restores', async ({
@@ -74,12 +74,13 @@ test.describe('locked tokens', () => {
 		request,
 	}) => {
 		const project = await seedProject(request, 'tokens-chip')
-		await openTranslationsEn(page, project)
+		await openTranslations(page, project)
 		const puts = trackRequests(page, isTranslationPut)
 		const key = 'dashboard.welcome'
 		const row = getTranslationRow(page, key)
 
-		const editor = await openEditor(page, key)
+		await openEditTranslationModal(page, key)
+		const editor = getTranslationField(page, key)
 		await expect(editor).toHaveAttribute('contenteditable', 'plaintext-only')
 		await expect(editor).toHaveText('Welcome back, {{ name }}')
 		await expectChips(editor, ['{{ name }}'])
@@ -88,18 +89,17 @@ test.describe('locked tokens', () => {
 		await page.keyboard.type('!')
 		await expect(editor).toHaveText('Welcome back, {{ name }}!')
 		await expectChips(editor, ['{{ name }}'])
-		const saved = waitForTranslationPut(page)
-		await page.keyboard.press(SAVE)
-		const response = await saved
+		const response = await saveTranslation(page)
 		expect(response.status()).toBe(200)
 		expect(response.request().postDataJSON()).toEqual({ value: 'Welcome back, {{ name }}!' })
-		await expect(editor).toHaveCount(0)
+		await expect(getEditTranslationDialog(page)).toHaveCount(0)
 		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, English: Welcome back, {{ name }}!`)
 		await expect(row.locator('code')).toHaveText(['{{name}}', '{{ name }}'])
 
-		const reopened = await openEditor(page, key)
+		await openEditTranslationModal(page, key)
+		const reopened = getTranslationField(page, key)
 		await expect(reopened).toHaveText('Welcome back, {{ name }}!')
-		// The editor opens with the caret at the end (Home/End only scroll on macOS). Two ArrowLeft cross "!" and the whole chip, one ArrowRight crosses it back.
+		// The field opens with the caret at the end (Home/End only scroll on macOS). Two ArrowLeft cross "!" and the whole chip, one ArrowRight crosses it back.
 		await page.keyboard.press('ArrowLeft')
 		await page.keyboard.press('ArrowLeft')
 		await page.keyboard.type('X')
@@ -107,61 +107,60 @@ test.describe('locked tokens', () => {
 		await page.keyboard.press('ArrowRight')
 		await page.keyboard.type('Y')
 		await expect(reopened).toHaveText('Welcome back, X{{ name }}Y!')
-		expect(await editorValue(reopened)).toBe('Welcome back, X{{ name }}Y!')
+		expect(await fieldValue(reopened)).toBe('Welcome back, X{{ name }}Y!')
 
 		await page.keyboard.press('Backspace')
 		await expect(reopened).toHaveText('Welcome back, X{{ name }}!')
 		await page.keyboard.press('Backspace')
 		await expect(reopened).toHaveText('Welcome back, X!')
 		await expect(getChips(reopened)).toHaveCount(0)
-		expect(await editorValue(reopened)).toBe('Welcome back, X!')
+		expect(await fieldValue(reopened)).toBe('Welcome back, X!')
 
 		await page.keyboard.press('Escape')
-		await expect(reopened).toHaveCount(0)
+		await expect(getEditTranslationDialog(page)).toHaveCount(0)
 		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, English: Welcome back, {{ name }}!`)
 		await expect(row.locator('code')).toHaveText(['{{name}}', '{{ name }}'])
 		expect(puts).toHaveLength(1)
-		expect((await itemOf(request, project.id, key)).target.value).toBe('Welcome back, {{ name }}!')
+		expect((await valuesOf(request, project.id, key)).en).toBe('Welcome back, {{ name }}!')
 	})
 
 	test('paste inserts plain text with tags and variables as chips, the exact string is saved and tag chips delete whole', async ({ page, request }) => {
 		const project = await seedProject(request, 'tokens-paste')
 		// The sample base text of promo.banner has no variables, so `{{x}}` would otherwise be rejected as PLACEHOLDER_MISMATCH.
 		await setProtectVariables(request, project.id, false)
-		await openTranslationsEn(page, project)
+		await openTranslations(page, project)
 		const key = 'promo.banner'
 		const row = getTranslationRow(page, key)
 
-		const editor = await openEditor(page, key)
+		await openEditTranslationModal(page, key)
+		const editor = getTranslationField(page, key)
 		await expect(editor).toHaveText('')
 		await pasteInto(editor, '<strong>Hi</strong> {{x}}')
 		await expectChips(editor, ['<strong>', '</strong>', '{{x}}'])
-		expect(await editorValue(editor)).toBe('<strong>Hi</strong> {{x}}')
+		expect(await fieldValue(editor)).toBe('<strong>Hi</strong> {{x}}')
 		await expect(editor.locator('b')).toHaveCount(0)
-		const saved = waitForTranslationPut(page)
-		await page.keyboard.press(SAVE)
-		const response = await saved
+		const response = await saveTranslation(page)
 		expect(response.status()).toBe(200)
 		expect(response.request().postDataJSON()).toEqual({ value: '<strong>Hi</strong> {{x}}' })
 		expect(await response.json()).toMatchObject({ value: '<strong>Hi</strong> {{x}}', status: 'TRANSLATED' })
-		await expect(editor).toHaveCount(0)
+		await expect(getEditTranslationDialog(page)).toHaveCount(0)
 		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, English: <strong>Hi</strong> {{x}}`)
 		await expect(row.locator('code')).toHaveText(['{{x}}'])
 
-		const reopened = await openEditor(page, key)
+		await openEditTranslationModal(page, key)
+		const reopened = getTranslationField(page, key)
 		await expectChips(reopened, ['<strong>', '</strong>', '{{x}}'])
 		await page.keyboard.press('Backspace')
 		await expectChips(reopened, ['<strong>', '</strong>'])
-		expect(await editorValue(reopened)).toBe('<strong>Hi</strong> ')
+		expect(await fieldValue(reopened)).toBe('<strong>Hi</strong> ')
 		await page.keyboard.press('Backspace')
 		await page.keyboard.press('Backspace')
 		await expectChips(reopened, ['<strong>'])
-		expect(await editorValue(reopened)).toBe('<strong>Hi')
+		expect(await fieldValue(reopened)).toBe('<strong>Hi')
 		await page.keyboard.type(' there')
-		const blurred = waitForTranslationPut(page)
-		await page.getByRole('heading', { level: 1, name: 'Preklady' }).click()
-		expect((await blurred).request().postDataJSON()).toEqual({ value: '<strong>Hi there' })
-		await expect(reopened).toHaveCount(0)
+		const edited = await saveTranslation(page)
+		expect(edited.request().postDataJSON()).toEqual({ value: '<strong>Hi there' })
+		await expect(getEditTranslationDialog(page)).toHaveCount(0)
 		await expect(row.getByText('<strong>Hi there', { exact: true })).toBeVisible()
 	})
 })
@@ -173,7 +172,7 @@ test.describe('Edit key modal', () => {
 		browserName,
 	}) => {
 		const project = await seedProject(request, 'edit-key')
-		await openTranslationsEn(page, project)
+		await openTranslations(page, project)
 		const patches = trackRequests(page, isTranslationKeyPatch)
 		await expect(getGroupHeaders(page).filter({ hasText: /^loc:nav$/ })).toHaveCount(1)
 
@@ -246,7 +245,7 @@ test.describe('Edit key modal', () => {
 
 		test('a member sees no Upraviť kľúč button and PATCH returns 403 FORBIDDEN', async ({ page, request }) => {
 			const project = await seedProject(request, 'edit-key-member')
-			await openTranslationsEn(page, project)
+			await openTranslations(page, project)
 			await expect(getTranslationRows(page)).toHaveCount(10)
 			await expect(page.getByRole('button', { name: /^Upraviť kľúč / })).toHaveCount(0)
 
@@ -267,7 +266,7 @@ test.describe('plural forms', () => {
 		const project = await seedProject(request, 'plural')
 		// Forms with `#` have no `{{count}}`, which the base language still has; the check is not the subject here.
 		await setProtectVariables(request, project.id, false)
-		await openTranslationsEn(page, project)
+		await openTranslations(page, project)
 		const key = 'cart.items'
 		const row = getTranslationRow(page, key)
 		const cells = row.getByRole('cell')
@@ -289,14 +288,15 @@ test.describe('plural forms', () => {
 		await expect(formChips(cells.nth(2))).toHaveText(['One', 'Other'])
 		await expect(cells.nth(2).getByText('Bez prekladu', { exact: true })).toHaveCount(1)
 		await expect(cells.nth(2)).toContainText('You have {{count}} items')
-		expect(await itemOf(request, project.id, key)).toMatchObject({
-			plural: { variable: 'count' },
-			source: { value: '{count, plural, other {Máte {{count}} položiek}}' },
-			target: { value: '{count, plural, other {You have {{count}} items}}', status: 'TRANSLATED' },
+		expect((await itemOf(request, project.id, key)).plural).toEqual({ variable: 'count' })
+		expect(await valuesOf(request, project.id, key)).toEqual({
+			sk: '{count, plural, other {Máte {{count}} položiek}}',
+			en: '{count, plural, other {You have {{count}} items}}',
 		})
 
-		const one = await openEditor(page, key, 'English', 'Jeden')
-		const other = getEditor(page, key, 'English', 'Iné')
+		await openEditTranslationModal(page, key, 'English', 'Jeden')
+		const one = getTranslationField(page, key, 'English', 'Jeden')
+		const other = getTranslationField(page, key, 'English', 'Iné')
 		await expect(one).toHaveText('')
 		await expect(other).toHaveText('You have {{count}} items')
 		await expectChips(other, ['{{count}}'])
@@ -305,20 +305,15 @@ test.describe('plural forms', () => {
 		await other.fill('You have # items')
 		await expectChips(other, ['#'])
 		await expect(one).toHaveCount(1)
-		const saved = waitForTranslationPut(page)
-		await page.keyboard.press(SAVE)
-		const response = await saved
+		const response = await saveTranslation(page)
 		expect(response.status()).toBe(200)
 		expect(response.request().postDataJSON()).toEqual({ value: '{count, plural, one {You have # item} other {You have # items}}' })
-		await expect(one).toHaveCount(0)
+		await expect(getEditTranslationDialog(page)).toHaveCount(0)
 		await expect(formChips(cells.nth(2))).toHaveText(['One', 'Other'])
 		await expect(cells.nth(2).locator('code')).toHaveText(['#', '#'])
 		await expect(cells.nth(2)).toContainText('You have # item')
 		await expect(cells.nth(2)).toContainText('You have # items')
-		expect(await itemOf(request, project.id, key)).toMatchObject({
-			plural: { variable: 'count' },
-			target: { value: '{count, plural, one {You have # item} other {You have # items}}' },
-		})
+		expect((await valuesOf(request, project.id, key)).en).toBe('{count, plural, one {You have # item} other {You have # items}}')
 
 		const disable = await openEditKeyModal(page, key)
 		await disable.getByRole('checkbox', { name: 'Použiť plurálové formy' }).uncheck()
@@ -329,12 +324,9 @@ test.describe('plural forms', () => {
 		await expect(disable).toHaveCount(0)
 		await expect(formChips(cells.nth(2))).toHaveCount(0)
 		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, English: You have # items`)
-		await expect(cells.nth(1)).toHaveText('Máte {{count}} položiek')
-		expect(await itemOf(request, project.id, key)).toMatchObject({
-			plural: null,
-			source: { value: 'Máte {{count}} položiek' },
-			target: { value: 'You have # items' },
-		})
+		await expect(getCellButton(row, key, SK)).toHaveText(`Preklad kľúča ${key}, ${SK}: Máte {{count}} položiek`)
+		expect((await itemOf(request, project.id, key)).plural).toBeNull()
+		expect(await valuesOf(request, project.id, key)).toEqual({ sk: 'Máte {{count}} položiek', en: 'You have # items' })
 
 		const rename = await openEditKeyModal(page, key)
 		await rename.getByRole('checkbox', { name: 'Použiť plurálové formy' }).check()
@@ -343,10 +335,8 @@ test.describe('plural forms', () => {
 		expect(renamed.status()).toBe(200)
 		expect(renamed.request().postDataJSON()).toEqual({ plural: { variable: 'n' } })
 		await expect(rename).toHaveCount(0)
-		expect(await itemOf(request, project.id, key)).toMatchObject({
-			plural: { variable: 'n' },
-			target: { value: '{n, plural, other {You have # items}}' },
-		})
+		expect((await itemOf(request, project.id, key)).plural).toEqual({ variable: 'n' })
+		expect((await valuesOf(request, project.id, key)).en).toBe('{n, plural, other {You have # items}}')
 
 		const variable = await openEditKeyModal(page, key)
 		await expect(variable.getByLabel('Názov premennej', { exact: true })).toHaveValue('n')
@@ -355,16 +345,16 @@ test.describe('plural forms', () => {
 		expect(reserialized.request().postDataJSON()).toEqual({ plural: { variable: 'num' } })
 		await expect(variable).toHaveCount(0)
 		await expect(formChips(cells.nth(2))).toHaveText(['One', 'Other'])
-		expect(await itemOf(request, project.id, key)).toMatchObject({
-			plural: { variable: 'num' },
-			source: { value: '{num, plural, other {Máte {{count}} položiek}}' },
-			target: { value: '{num, plural, other {You have # items}}' },
+		expect((await itemOf(request, project.id, key)).plural).toEqual({ variable: 'num' })
+		expect(await valuesOf(request, project.id, key)).toEqual({
+			sk: '{num, plural, other {Máte {{count}} položiek}}',
+			en: '{num, plural, other {You have # items}}',
 		})
 	})
 
 	test('an invalid variable name is a field error without a request', async ({ page, request }) => {
 		const project = await seedProject(request, 'plural-invalid')
-		await openTranslationsEn(page, project)
+		await openTranslations(page, project)
 		const patches = trackRequests(page, isTranslationKeyPatch)
 
 		const dialog = await openEditKeyModal(page, 'cart.items')

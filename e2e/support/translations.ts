@@ -1,10 +1,15 @@
 import { type APIRequestContext, expect, type Locator, type Page, type Request } from '@playwright/test'
 
+import { MUTATION_HEADERS } from './api'
 import { withDb } from './db'
 import { type Language } from './languages'
 import { type ProjectListItem } from './projects'
 
 export const projectTranslationsApi = (projectId: string) => `/api/projects/${projectId}/translations`
+
+export const PREFERENCES_API = '/api/profile/preferences'
+
+export type TranslationsView = 'EXTENDED' | 'COMPACT'
 
 /** `values` per language tag: a string or `null` inserts a `Translation` row, a missing tag inserts none. */
 export type TestTranslationKey = { namespace?: string; name: string; values?: Partial<Record<string, string | null>> }
@@ -52,6 +57,10 @@ export const translationKeyApi = (projectId: string, keyId: string) => `/api/pro
 
 export type TranslationKeyPlural = { variable: string } | null
 
+export type TranslationStatus = 'TRANSLATED' | 'UNTRANSLATED'
+
+export type TranslationCell = { value: string | null; status: TranslationStatus; updatedAt: string | null }
+
 export type TranslationListItem = {
 	keyId: string
 	namespace: string
@@ -59,8 +68,10 @@ export type TranslationListItem = {
 	group: string
 	description: string | null
 	plural: TranslationKeyPlural
-	source: { value: string | null }
-	target: { value: string | null; status: 'TRANSLATED' | 'UNTRANSLATED'; updatedAt: string | null }
+	/** Row status: by the target language with a language pair in the query, by every project language without one. */
+	status: TranslationStatus
+	/** A cell per project language, keyed by `ProjectLanguage.id`. */
+	translations: Record<string, TranslationCell>
 }
 
 export type TranslationsResponse = {
@@ -72,10 +83,21 @@ export type TranslationsResponse = {
 	namespaces: string[]
 }
 
-export const listTranslations = async (api: APIRequestContext, projectId: string, sourceLanguageId: string, targetLanguageId: string) => {
-	const response = await api.get(projectTranslationsApi(projectId), { params: { sourceLanguageId, targetLanguageId } })
+export type LanguagePair = { sourceLanguageId: string; targetLanguageId: string }
+
+/** `GET …/translations`: with `pair` in the compact semantics (target decides the row status), without it in the extended one (every language). */
+export const listTranslations = async (api: APIRequestContext, projectId: string, pair?: LanguagePair) => {
+	const response = await api.get(projectTranslationsApi(projectId), { params: pair })
 	expect(response.status(), `GET ${projectTranslationsApi(projectId)}`).toBe(200)
 	return (await response.json()) as TranslationsResponse
+}
+
+export const cellOf = (item: TranslationListItem, language: Language) => item.translations[language.id]!
+
+/** `PATCH /api/profile/preferences` as the user of `api` (`page.request` shares the cookies of the page). */
+export const setTranslationsView = async (api: APIRequestContext, translationsView: TranslationsView) => {
+	const response = await api.patch(PREFERENCES_API, { data: { translationsView }, headers: MUTATION_HEADERS })
+	expect(response.status(), `PATCH ${PREFERENCES_API}`).toBe(200)
 }
 
 export const translationsPath = (project: ProjectListItem, query = '') => `/projects/${project.slug}/translations${query}`
@@ -85,6 +107,8 @@ export const getTranslationsTable = (page: Page) => page.getByRole('table', { na
 export const getTranslationRows = (page: Page) => getTranslationsTable(page).locator('tr[data-status]')
 
 export const getTranslationRow = (page: Page, key: string) => getTranslationRows(page).filter({ has: page.getByText(key, { exact: true }) })
+
+export const getRowStatuses = (page: Page) => getTranslationRows(page).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-status')))
 
 export const getGroupHeaders = (page: Page) => getTranslationsTable(page).locator('tr[data-group-header]')
 
@@ -116,6 +140,31 @@ export const getKeyName = (rows: Locator) => rows.locator('td:first-child > div 
 
 export const expectKeys = (rows: Locator, keys: string[]) => expect(getKeyName(rows)).toHaveText(keys)
 
+export const getColumnHeaders = (page: Page) => getTranslationsTable(page).getByRole('columnheader')
+
+/** The „Zobrazenie“ switch: radios „Všetky jazyky“ (EXTENDED) and „Zdroj → cieľ“ (COMPACT). */
+export const getViewSwitch = (page: Page) => page.getByRole('radiogroup', { name: 'Zobrazenie' })
+
+export const VIEW_LABEL: Record<TranslationsView, string> = { EXTENDED: 'Všetky jazyky', COMPACT: 'Zdroj → cieľ' }
+
+export const isPreferencesPatch = (req: Request) => req.method() === 'PATCH' && req.url().endsWith(PREFERENCES_API)
+
+/** Clicks the view radio (its label, which also works in WebKit) and resolves with the `PATCH /api/profile/preferences` response. */
+export const switchView = async (page: Page, view: TranslationsView) => {
+	const patched = page.waitForResponse((response) => isPreferencesPatch(response.request()))
+	await getViewSwitch(page).getByText(VIEW_LABEL[view], { exact: true }).click()
+	const response = await patched
+	expect(response.request().postDataJSON()).toEqual({ translationsView: view })
+	await expect(getTranslationsTable(page)).toHaveAttribute('data-view', view)
+	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+	return response
+}
+
+export const expectView = async (page: Page, view: TranslationsView) => {
+	await expect(getViewSwitch(page).getByRole('radio', { name: VIEW_LABEL[view] })).toBeChecked()
+	await expect(getTranslationsTable(page)).toHaveAttribute('data-view', view)
+}
+
 /** `Upraviť kľúč <key>` pencil of a row (ADMIN only). */
 export const getEditKeyButton = (row: Locator, key: string) => row.getByRole('button', { name: `Upraviť kľúč ${key}`, exact: true })
 
@@ -139,38 +188,55 @@ export const submitEditKey = async (page: Page) => {
 	return patched
 }
 
-export const rowBackground = (row: Locator) => row.evaluate((element) => getComputedStyle(element).backgroundColor)
+export const backgroundOf = (locator: Locator) => locator.evaluate((element) => getComputedStyle(element).backgroundColor)
+
+export const TRANSPARENT = 'rgba(0, 0, 0, 0)'
 
 export const openTranslations = async (page: Page, project: ProjectListItem, query = '') => {
 	await page.goto(translationsPath(project, query))
 	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
 }
 
-/** The target cell of a row: a button named `Preklad kľúča <key>, <language>: <value>`. */
+/** A translation cell of a row: a button named `Preklad kľúča <key>, <language>: <value|Bez prekladu>` with `data-status` of the cell. */
 export const getCellButton = (row: Locator, key: string, language = 'English') => row.getByRole('button', { name: `Preklad kľúča ${key}, ${language}:` })
 
+export const getEditTranslationDialog = (page: Page) => page.getByRole('dialog', { name: 'Upraviť preklad' })
+
 /**
- * The contenteditable editor of a cell (`role="textbox"`); for a plural key one per form, named with the translated form name
+ * The contenteditable field of the modal (`role="textbox"`); for a plural key one per form, named with the translated form name
  * (`form`: Jeden, Málo, Veľa, Iné). Its text is the value: Playwright's text normalization drops the zero-width spaces next to chips.
  */
-export const getEditor = (page: Page, key: string, language = 'English', form?: string) =>
-	page.getByRole('textbox', { name: `Preklad kľúča ${key}, ${language}${form ? `, ${form}` : ''}`, exact: true })
+export const getTranslationField = (page: Page, key: string, language = 'English', form?: string) =>
+	getEditTranslationDialog(page).getByRole('textbox', { name: `Preklad kľúča ${key}, ${language}${form ? `, ${form}` : ''}`, exact: true })
 
-export const openEditor = async (page: Page, key: string, language = 'English', form?: string) => {
+/** Clicks the cell of `key` in `language` and waits for the modal with its (first) field focused. */
+export const openEditTranslationModal = async (page: Page, key: string, language = 'English', form?: string) => {
 	await getCellButton(getTranslationRow(page, key), key, language).click()
-	const editor = getEditor(page, key, language, form)
-	await expect(editor).toBeFocused()
-	return editor
+	const dialog = getEditTranslationDialog(page)
+	await expect(dialog).toBeVisible()
+	await expect(getTranslationField(page, key, language, form)).toBeFocused()
+	return dialog
 }
 
-/** Locked `{{var}}`, `<tag>` and `#` chips of an editor; `data-token` holds the exact source text. */
-export const getChips = (editor: Locator) => editor.locator('[data-token]')
+export const isTranslationPut = (req: Request) => req.method() === 'PUT' && /\/api\/projects\/[^/]+\/keys\/[^/]+\/translations\/[^/]+$/.test(req.url())
 
-export const expectChips = (editor: Locator, tokens: string[]) => expect(getChips(editor)).toHaveText(tokens)
+export const waitForTranslationPut = (page: Page) => page.waitForResponse((response) => isTranslationPut(response.request()))
 
-/** Exact serialized value of the editor (text without zero-width spaces, chips by `data-token`, `<br>` as a newline); unlike `toHaveText` it keeps whitespace. */
-export const editorValue = (editor: Locator) =>
-	editor.evaluate((root) => {
+/** Clicks Uložiť in the Edit translation modal and resolves with the PUT response. */
+export const saveTranslation = async (page: Page) => {
+	const saved = waitForTranslationPut(page)
+	await getEditTranslationDialog(page).getByRole('button', { name: 'Uložiť' }).click()
+	return saved
+}
+
+/** Locked `{{var}}`, `<tag>` and `#` chips of a field; `data-token` holds the exact source text. */
+export const getChips = (field: Locator) => field.locator('[data-token]')
+
+export const expectChips = (field: Locator, tokens: string[]) => expect(getChips(field)).toHaveText(tokens)
+
+/** Exact serialized value of the field (text without zero-width spaces, chips by `data-token`, `<br>` as a newline); unlike `toHaveText` it keeps whitespace. */
+export const fieldValue = (field: Locator) =>
+	field.evaluate((root) => {
 		const walk = (node: Node): string => {
 			if (node.nodeType === Node.TEXT_NODE) {
 				return (node.textContent ?? '').replace(/\u200b/g, '')
@@ -187,15 +253,11 @@ export const editorValue = (editor: Locator) =>
 		return walk(root)
 	})
 
-/** Fires a `paste` event with `text/plain` (and `text/html`, which the editor must ignore) at the editor, as the clipboard would. */
-export const pasteInto = (editor: Locator, text: string) =>
-	editor.evaluate((root, value) => {
+/** Fires a `paste` event with `text/plain` (and `text/html`, which the field must ignore) at the field, as the clipboard would. */
+export const pasteInto = (field: Locator, text: string) =>
+	field.evaluate((root, value) => {
 		const clipboardData = new DataTransfer()
 		clipboardData.setData('text/plain', value)
 		clipboardData.setData('text/html', `<b>${value}</b>`)
 		root.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }))
 	}, text)
-
-export const isTranslationPut = (req: Request) => req.method() === 'PUT' && /\/api\/projects\/[^/]+\/keys\/[^/]+\/translations\/[^/]+$/.test(req.url())
-
-export const waitForTranslationPut = (page: Page) => page.waitForResponse((response) => isTranslationPut(response.request()))

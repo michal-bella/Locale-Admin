@@ -23,3 +23,8 @@
 	flex-shrink: 0;
 	color: var(--app-color-muted);
 }
+
+/* Same height as the selects (44 px from the theme), so the row stays on one baseline. */
+.view {
+	height: 2.75rem;
+}

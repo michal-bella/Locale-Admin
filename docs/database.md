@@ -12,17 +12,18 @@ PostgreSQL 17, Prisma 7 s driver adapterom `@prisma/adapter-pg`. Schéma je v `b
 
 ### User
 
-| Pole                     | Typ                | Poznámka                                                                                                             |
-| ------------------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| `id`                     | UUID               | PK                                                                                                                   |
-| `email`                  | string, unique     | uložený normalizovaný (`trim()` + malé písmená)                                                                      |
-| `passwordHash`           | string             | argon2id, nikdy sa nevracia v API                                                                                    |
-| `role`                   | enum `ROLE`        | `ADMIN` alebo `EDITOR`, default `EDITOR`; nastavuje ho `POST /api/admin/users` (jediná cesta, ako používateľ vzniká) |
-| `firstName`, `lastName`  | string, nullable   | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                                               |
-| `isActive`               | boolean            | default `true`, neaktívny user sa neprihlási                                                                         |
-| `lastLoginAt`            | datetime, nullable | nastaví sa pri úspešnom logine                                                                                       |
-| `passwordChangedAt`      | datetime           | default čas vytvorenia                                                                                               |
-| `createdAt`, `updatedAt` | datetime           |                                                                                                                      |
+| Pole                     | Typ                      | Poznámka                                                                                                                                                 |
+| ------------------------ | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                     | UUID                     | PK                                                                                                                                                       |
+| `email`                  | string, unique           | uložený normalizovaný (`trim()` + malé písmená)                                                                                                          |
+| `passwordHash`           | string                   | argon2id, nikdy sa nevracia v API                                                                                                                        |
+| `role`                   | enum `ROLE`              | `ADMIN` alebo `EDITOR`, default `EDITOR`; nastavuje ho `POST /api/admin/users` (jediná cesta, ako používateľ vzniká)                                     |
+| `firstName`, `lastName`  | string, nullable         | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                                                                                   |
+| `isActive`               | boolean                  | default `true`, neaktívny user sa neprihlási                                                                                                             |
+| `translationsView`       | enum `TRANSLATIONS_VIEW` | `EXTENDED` (default, všetky jazyky vedľa seba) alebo `COMPACT` (zdrojový → cieľový); preferencia stránky Preklady, mení `PATCH /api/profile/preferences` |
+| `lastLoginAt`            | datetime, nullable       | nastaví sa pri úspešnom logine                                                                                                                           |
+| `passwordChangedAt`      | datetime                 | default čas vytvorenia                                                                                                                                   |
+| `createdAt`, `updatedAt` | datetime                 |                                                                                                                                                          |
 
 ### Session
 
@@ -127,7 +128,7 @@ PK je dvojica (`keyId`, `languageId`), index na `languageId`. Kaskády: zmazanie
 
 Riadky zapisujú dva endpointy:
 
-- **Úprava v riadku** (`PUT …/keys/:keyId/translations/:languageId`): jednoriadkový upsert bez zámku (je atomický), `updatedById` je prihlásený používateľ. Prázdny text sa uloží ako `null`.
+- **Úprava prekladu** (`PUT …/keys/:keyId/translations/:languageId`): jednoriadkový upsert bez zámku (je atomický), `updatedById` je prihlásený používateľ. Prázdny text sa uloží ako `null`.
 - **Import** (`POST …/imports`): jedna transakcia (timeout 60 s) so zámkom `pg_advisory_xact_lock(hashtextextended('import:' || projectId, 0))` a `lock_timeout` 30 s, takže súbežné importy jedného projektu idú za sebou a importy rôznych projektov paralelne. Chýbajúce kľúče aj preklady sa zapisujú po dávkach 5 000 riadkov cez `INSERT … SELECT FROM unnest(…)` s `ON CONFLICT DO NOTHING` (kľúče) a `ON CONFLICT DO UPDATE … WHERE value IS DISTINCT FROM EXCLUDED.value` (preklady); `updatedAt` nemá v DB default, SQL ho nastavuje na `now()`. Prázdna hodnota zo súboru nikdy nevytvorí riadok s `null` ani nezmaže vyplnený preklad, rovnaká hodnota sa nezapisuje (viď [API: import](./api/imports.md#transakcia-zámok-a-dávky)).
 
 Stav prekladu sa neukladá. **Nepreložené** = riadok pre jazyk chýba alebo `value` je `null`, inak **Preložené**. Jazyk pridaný do projektu po importe preto nemá žiadne riadky a všetky kľúče sú v ňom nepreložené; nič sa nedopĺňa. Index `pg_trgm` pre vyhľadávanie zatiaľ nie je, 2 500 kľúčov × 10 jazykov zvládne `ILIKE` za približne 10 ms (viď [API: preklady](./api/translations.md#výkon)).
@@ -150,6 +151,7 @@ erDiagram
         string firstName
         string lastName
         boolean isActive
+        TRANSLATIONS_VIEW translationsView
         datetime lastLoginAt
         datetime passwordChangedAt
         datetime createdAt

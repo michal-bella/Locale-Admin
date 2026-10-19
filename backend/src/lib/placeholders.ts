@@ -1,4 +1,5 @@
-const PLACEHOLDER_PATTERN = /\{\{(.*?)\}\}/g
+/** No brace inside, so `{{{name}}` (a placeholder as the first thing of an ICU plural form) yields `{{name}}`, not `{{{name}}`. */
+const PLACEHOLDER_PATTERN = /\{\{([^{}]*)\}\}/g
 
 /** i18next variants are the same placeholder: `{{ count }}`, `{{- count}}` (unescaped) and `{{count, number}}` (formatted) are `{{count}}`. */
 const normalizePlaceholder = (inner: string) => `{{${inner.replace(/\s+/g, '').replace(/^-/, '').split(',')[0] ?? ''}}}`

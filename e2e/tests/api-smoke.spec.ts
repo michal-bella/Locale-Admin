@@ -2,6 +2,7 @@ import { type APIRequestContext, expect, test } from '@playwright/test'
 
 import { type AdminUser, MUTATION_HEADERS, readApiError } from '../support/api'
 import { ANONYMOUS, STORAGE_STATE } from '../support/auth'
+import { BROKEN_CSV, importApi, importFile, importPreviewApi, readFixture, SAMPLE_CSV } from '../support/imports'
 import { type Language, listLanguages, projectLanguagesApi } from '../support/languages'
 import {
 	createProject,
@@ -388,6 +389,118 @@ test.describe('/api/projects/:projectId/translations', () => {
 		const unauthenticated = await anonymous.get(url, { params: languageParams })
 		expect(unauthenticated.status()).toBe(401)
 		expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
+		await anonymous.dispose()
+	})
+})
+
+test.describe('/api/projects/:projectId/imports', () => {
+	test.use({ storageState: STORAGE_STATE.ADMIN })
+
+	test('previews and imports the sample file with the error contract for broken, oversized and fully skipped files', async ({
+		request,
+		playwright,
+		baseURL,
+	}) => {
+		const project = await createProject(request, 'smoke-import', ['sk', 'en'])
+		const [sk, en] = await listLanguages(request, project.id)
+		const sample = { fileName: 'import-sample.csv', content: readFixture(SAMPLE_CSV) }
+
+		const preview = await request.post(importPreviewApi(project.id), { data: sample, headers: MUTATION_HEADERS })
+		expect(preview.status()).toBe(200)
+		expect(await preview.json()).toEqual({
+			columns: [
+				{ tag: 'sk', columnIndex: 2, match: 'PROJECT', languageId: sk!.id, stats: { translations: 9, untranslated: 1, warnings: 1 } },
+				{ tag: 'en', columnIndex: 3, match: 'PROJECT', languageId: en!.id, stats: { translations: 7, untranslated: 3, warnings: 0 } },
+				{ tag: 'cs', columnIndex: 4, match: 'CATALOG', stats: { translations: 6, untranslated: 4, warnings: 1 } },
+			],
+			keys: { total: 10, new: 10, existing: 0 },
+			namespaces: [
+				{ namespace: 'loc', keys: 7 },
+				{ namespace: 'paths', keys: 3 },
+			],
+			changes: [
+				{ tag: 'sk', columnIndex: 2, new: 9, changed: 0, unchanged: 1, keptBecauseNull: 0 },
+				{ tag: 'en', columnIndex: 3, new: 7, changed: 0, unchanged: 3, keptBecauseNull: 0 },
+			],
+			warnings: [
+				{ code: 'LANGUAGE_NOT_IN_PROJECT', line: 1, column: 4, params: { tag: 'cs' } },
+				{
+					code: 'PLACEHOLDER_MISMATCH',
+					line: 6,
+					column: 4,
+					params: { tag: 'cs', key: 'cart.items', namespace: 'loc', missing: '{{count}}', extra: '' },
+				},
+				{ code: 'BASE_LANGUAGE_UNTRANSLATED', line: 9, column: 2, params: { tag: 'sk', key: 'legal.terms', namespace: 'loc' } },
+			],
+			warningsTotal: 3,
+		})
+		const translations = () => request.get(projectTranslationsApi(project.id), { params: { sourceLanguageId: sk!.id, targetLanguageId: en!.id } })
+		expect(await (await translations()).json()).toMatchObject({ stats: { totalKeys: 0 } })
+
+		const columns = [
+			{ columnIndex: 2, languageId: sk!.id },
+			{ columnIndex: 3, languageId: en!.id },
+			{ columnIndex: 4, languageId: null },
+		]
+		expect(await importFile(request, project.id, SAMPLE_CSV, columns)).toEqual({
+			keysCreated: 10,
+			translationsCreated: 16,
+			translationsUpdated: 0,
+			skippedColumns: 1,
+		})
+		expect(await importFile(request, project.id, SAMPLE_CSV, columns)).toEqual({
+			keysCreated: 0,
+			translationsCreated: 0,
+			translationsUpdated: 0,
+			skippedColumns: 1,
+		})
+		expect(await (await translations()).json()).toMatchObject({ stats: { totalKeys: 10, translated: 7, untranslated: 3 }, namespaces: ['loc', 'paths'] })
+
+		const broken = { fileName: 'import-broken.csv', content: readFixture(BROKEN_CSV) }
+		for (const url of [importPreviewApi(project.id), importApi(project.id)]) {
+			const response = await request.post(url, { data: { ...broken, columns }, headers: MUTATION_HEADERS })
+			expect(response.status(), url).toBe(422)
+			const error = await readApiError(response)
+			expect(error.code).toBe('IMPORT_FILE_INVALID')
+			expect(error.details).toEqual({
+				issues: [
+					{ code: 'ROW_COLUMN_COUNT', line: 3, params: { expected: 3, actual: 4 } },
+					{ code: 'ROW_EMPTY_KEY', line: 4, column: 1 },
+				],
+				total: 2,
+			})
+		}
+
+		const tooLarge = await request.post(importPreviewApi(project.id), {
+			data: { fileName: 'big.csv', content: `Keys; sk\n a; ${'x'.repeat(10 * 1024 * 1024)}\n` },
+			headers: MUTATION_HEADERS,
+		})
+		expect(tooLarge.status()).toBe(413)
+		expect((await readApiError(tooLarge)).code).toBe('IMPORT_FILE_TOO_LARGE')
+
+		const allSkipped = await request.post(importApi(project.id), {
+			data: { ...sample, columns: columns.map(({ columnIndex }) => ({ columnIndex, languageId: null })) },
+			headers: MUTATION_HEADERS,
+		})
+		expect(allSkipped.status()).toBe(400)
+		expect((await readApiError(allSkipped)).code).toBe('IMPORT_COLUMNS_INVALID')
+
+		const notCsv = await request.post(importPreviewApi(project.id), { data: { ...sample, fileName: 'import-sample.txt' }, headers: MUTATION_HEADERS })
+		expect(notCsv.status()).toBe(400)
+		const notCsvError = await readApiError(notCsv)
+		expect(notCsvError.code).toBe('VALIDATION_ERROR')
+		expect(notCsvError.details).toEqual([expect.objectContaining({ path: 'fileName' })])
+
+		const withoutCsrfHeader = await request.post(importPreviewApi(project.id), { data: sample })
+		expect(withoutCsrfHeader.status()).toBe(403)
+		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
+
+		const anonymous = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
+		for (const url of [importPreviewApi(project.id), importApi(project.id)]) {
+			const unauthenticated = await anonymous.post(url, { data: { ...sample, columns }, headers: MUTATION_HEADERS })
+			expect(unauthenticated.status(), url).toBe(401)
+			expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
+		}
 		await anonymous.dispose()
 	})
 })

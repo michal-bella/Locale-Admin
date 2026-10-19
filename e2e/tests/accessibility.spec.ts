@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { type APIRequest, expect, type Page, test, type TestInfo } from '@playwright/test'
 
 import { ANONYMOUS } from '../support/auth'
+import { SAMPLE_CSV } from '../support/imports'
 import { listLanguages, newAdminApi } from '../support/languages'
 import { createProject } from '../support/projects'
 import { insertTranslationKeys } from '../support/translations'
@@ -10,10 +11,19 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 const COLOR_SCHEMES = ['light', 'dark'] as const
 const COLOR_CONTRAST = 'color-contrast'
 
-/** `path` is a function for pages of a project: it creates a test project as the ADMIN and returns its URL. */
-type Screen = { name: string; path: string | ((request: APIRequest) => Promise<string>); ready: (page: Page) => Promise<void>; anonymous?: boolean }
+/**
+ * `path` is a function for pages of a project: it creates a test project as the ADMIN and returns its URL.
+ * `prepare` runs after `ready` for screens that need interaction before the scan (an opened modal).
+ */
+type Screen = {
+	name: string
+	path: string | ((request: APIRequest) => Promise<string>)
+	ready: (page: Page) => Promise<void>
+	prepare?: (page: Page) => Promise<void>
+	anonymous?: boolean
+}
 
-const inNewProject = (page: 'settings' | 'languages' | 'members') => async (request: APIRequest) => {
+const inNewProject = (page: 'settings' | 'languages' | 'members' | 'translations') => async (request: APIRequest) => {
 	const api = await newAdminApi(request)
 	try {
 		return `/projects/${(await createProject(api, 'a11y')).slug}/${page}`
@@ -38,6 +48,26 @@ const translationsWithKeys = async (request: APIRequest) => {
 	}
 }
 
+const translationsReady = (page: Page) => expect(page.getByRole('table', { name: 'Zoznam prekladov' })).toHaveAttribute('aria-busy', 'false')
+
+const getImportDialog = (page: Page) => page.getByRole('dialog', { name: 'Importovať preklady' })
+
+/** Step 1 with the sample file selected (name, size and the checkbox visible). */
+const openImportUpload = async (page: Page) => {
+	await page.getByRole('main').getByRole('button', { name: 'Importovať' }).first().click()
+	await getImportDialog(page).getByLabel('Súbor s prekladmi').setInputFiles(SAMPLE_CSV)
+	await expect(getImportDialog(page).getByText('import-sample.csv')).toBeVisible()
+}
+
+/** Step 2 against a project with sk and en: a matched row, an undecided `cs` row with the hint buttons, warning buttons and the summary. */
+const openImportReview = async (page: Page) => {
+	await openImportUpload(page)
+	await getImportDialog(page).getByRole('button', { name: 'Pokračovať na kontrolu' }).click()
+	await expect(getImportDialog(page).getByRole('table', { name: 'Stĺpce jazykov v súbore' })).toBeVisible()
+	await getImportDialog(page).getByRole('button', { name: '1 upozornenie pre stĺpec cs' }).click()
+	await expect(getImportDialog(page).getByText('Upozornenia pre stĺpec cs')).toBeVisible()
+}
+
 const SCREENS: Screen[] = [
 	{
 		name: 'login',
@@ -59,6 +89,18 @@ const SCREENS: Screen[] = [
 		name: 'project translations',
 		path: translationsWithKeys,
 		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam prekladov' }).locator('tr[data-status]')).toHaveCount(3),
+	},
+	{
+		name: 'import modal step 1',
+		path: inNewProject('translations'),
+		ready: translationsReady,
+		prepare: openImportUpload,
+	},
+	{
+		name: 'import modal step 2',
+		path: inNewProject('translations'),
+		ready: translationsReady,
+		prepare: openImportReview,
 	},
 	{
 		name: 'project languages',
@@ -88,6 +130,7 @@ const openScreen = async (page: Page, request: APIRequest, screen: Screen, color
 	await page.goto(typeof screen.path === 'string' ? screen.path : await screen.path(request))
 	await screen.ready(page)
 	await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', colorScheme)
+	await screen.prepare?.(page)
 }
 
 const expectNoViolations = async (axe: AxeBuilder, testInfo: TestInfo) => {

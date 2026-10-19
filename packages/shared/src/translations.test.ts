@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { translationGroup, translationListItemSchema, translationsQuerySchema } from './translations'
+import { translationGroup, translationListItemSchema, translationsQuerySchema, updateTranslationRequestSchema } from './translations'
 
 const SOURCE_ID = '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d'
 const TARGET_ID = '1c7a7a6f-3a5f-4b4c-8d2e-2f3a4b5c6d7e'
@@ -47,5 +47,19 @@ describe('translationGroup', () => {
 		expect(translationGroup('loc', 'Adresa nie je kompletná. Uistite sa')).toBe('loc')
 		expect(translationGroup('loc', 'save')).toBe('loc')
 		expect(translationGroup('loc', 'trailing.')).toBe('loc')
+	})
+})
+
+describe('updateTranslationRequestSchema', () => {
+	it('stores an empty or whitespace-only value as null and keeps text as is', () => {
+		expect(updateTranslationRequestSchema.parse({ value: '' })).toEqual({ value: null })
+		expect(updateTranslationRequestSchema.parse({ value: '  ' })).toEqual({ value: null })
+		expect(updateTranslationRequestSchema.parse({ value: null })).toEqual({ value: null })
+		expect(updateTranslationRequestSchema.parse({ value: ' Domov ' })).toEqual({ value: ' Domov ' })
+	})
+
+	it('rejects a missing value and a value over the limit', () => {
+		expect(updateTranslationRequestSchema.safeParse({}).success).toBe(false)
+		expect(updateTranslationRequestSchema.safeParse({ value: 'x'.repeat(10_001) }).success).toBe(false)
 	})
 })

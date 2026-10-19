@@ -90,3 +90,38 @@ export const translationGroup = (namespace: string, name: string): string => {
 	const prefix = name.slice(0, name.lastIndexOf('.'))
 	return namespace === '' ? prefix : `${namespace}:${prefix}`
 }
+
+export const TRANSLATION_VALUE_MAX_LENGTH = 10_000
+
+/**
+ * Body of `PUT /api/projects/:projectId/keys/:keyId/translations/:languageId`. An empty or whitespace-only
+ * value is stored as `null` (untranslated); `""` never reaches the database.
+ */
+export const updateTranslationRequestSchema = z.object({
+	value: z
+		.string()
+		.max(TRANSLATION_VALUE_MAX_LENGTH)
+		.nullable()
+		.transform((value) => (value === null || value.trim() === '' ? null : value)),
+})
+
+export type UpdateTranslationRequest = z.infer<typeof updateTranslationRequestSchema>
+
+export type UpdateTranslationRequestInput = z.input<typeof updateTranslationRequestSchema>
+
+/** Body of `200 PUT …/translations/:languageId`: the saved target cell, same shape as in the list. */
+export const updateTranslationResponseSchema = z.object({
+	value: z.string().nullable(),
+	status: translationStatusSchema,
+	updatedAt: z.iso.datetime(),
+})
+
+export type UpdateTranslationResponse = z.infer<typeof updateTranslationResponseSchema>
+
+/** `details` of 400 `PLACEHOLDER_MISMATCH`: placeholders of the base language missing in or extra to the value. */
+export const placeholderMismatchDetailsSchema = z.object({
+	missing: z.array(z.string()),
+	extra: z.array(z.string()),
+})
+
+export type PlaceholderMismatchDetails = z.infer<typeof placeholderMismatchDetailsSchema>

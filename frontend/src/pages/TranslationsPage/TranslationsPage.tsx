@@ -128,8 +128,12 @@ const TranslationsPage = () => {
 		return t('translationsPage.pagination.summary', { shown: data.items.length, count: data.total })
 	})()
 
+	// The extended table (16rem key + 16rem per language + 8.5rem status) outgrows the 1440 px frame from the fourth language on; the page then
+	// uses the full width and keeps only the padding.
+	const isWide = view === 'EXTENDED' && languages.length > 3
+
 	return (
-		<div className='mx-auto flex w-full max-w-[1440px] flex-col gap-6 p-8'>
+		<div className={`mx-auto flex w-full flex-col gap-6 p-8 ${isWide ? '' : 'max-w-[1440px]'}`}>
 			<div className='flex flex-wrap items-end justify-between gap-4'>
 				<PageIntro
 					eyebrow={project?.name ?? ''}

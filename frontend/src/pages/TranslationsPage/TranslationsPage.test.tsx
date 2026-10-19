@@ -164,7 +164,7 @@ describe('TranslationsPage', () => {
 		expect(screen.getByText('221')).toBeInTheDocument()
 		expect(screen.getByText('27')).toBeInTheDocument()
 		expect(screen.getByRole('progressbar', { name: 'Preložené: 89 %' })).toBeInTheDocument()
-		expect(screen.getByRole('progressbar', { name: 'Chýbajúce: 11 %' })).toBeInTheDocument()
+		expect(screen.getByRole('progressbar', { name: 'Nepreložené: 11 %' })).toBeInTheDocument()
 		expect(screen.queryByText('Na kontrolu')).not.toBeInTheDocument()
 
 		const headers = within(getTable())

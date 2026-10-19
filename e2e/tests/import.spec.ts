@@ -98,7 +98,7 @@ test('imports the sample file, adds the missing language from the review and sho
 	// The extended view counts a row as translated only with a value in sk, en and cs: 4 of 10.
 	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
 	await expect(getStat(page, 'Preložené')).toHaveText('4')
-	await expect(getStat(page, 'Chýbajúce')).toHaveText('6')
+	await expect(getStat(page, 'Nepreložené')).toHaveText('6')
 	await expect(getTranslationRows(page)).toHaveCount(10)
 	expect(await getRowStatuses(page)).toEqual([...Array<string>(6).fill('UNTRANSLATED'), ...Array<string>(4).fill('TRANSLATED')])
 	await expect(getTranslationRows(page).filter({ hasText: 'promo.banner' }).getByText('Sleva <strong>20 %</strong>', { exact: true })).toBeVisible()
@@ -150,7 +150,7 @@ test('a column set to Preskočiť is not imported', async ({ page, request }) =>
 
 	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
 	await expect(getStat(page, 'Preložené')).toHaveText('0')
-	await expect(getStat(page, 'Chýbajúce')).toHaveText('10')
+	await expect(getStat(page, 'Nepreložené')).toHaveText('10')
 	await expect(getTranslationRows(page).filter({ hasText: 'nav.home' })).toContainText('Bez prekladu')
 	expect((await listLanguages(request, project.id)).map(({ tag }) => tag)).toEqual(['sk', 'en'])
 })

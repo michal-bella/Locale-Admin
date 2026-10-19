@@ -165,7 +165,7 @@ test.describe('as a fresh ADMIN', () => {
 		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina', CS, 'Stav'])
 		await expectStats(page, SAMPLE.cs.translations, SAMPLE.cs.untranslated)
 		await expect(page.getByRole('progressbar', { name: 'Preložené: 60 %' })).toBeVisible()
-		await expect(page.getByRole('progressbar', { name: 'Chýbajúce: 40 %' })).toBeVisible()
+		await expect(page.getByRole('progressbar', { name: 'Nepreložené: 40 %' })).toBeVisible()
 		await expectKeys(getTranslationRows(page), CS_UNTRANSLATED_FIRST)
 		expect(await getRowStatuses(page)).toEqual(statuses(10, SAMPLE.cs.untranslated))
 		await expect(getTranslationRow(page, 'nav.home')).toContainText('Domů')

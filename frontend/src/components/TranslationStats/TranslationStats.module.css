@@ -24,9 +24,14 @@
 	color: var(--mantine-primary-color-filled);
 }
 
-.iconTile[data-tone='warning'] {
-	background-color: var(--mantine-color-yellow-light);
-	color: var(--mantine-color-orange-light-color);
+.iconTile[data-tone='success'] {
+	background-color: var(--mantine-color-teal-light);
+	color: var(--mantine-color-teal-light-color);
+}
+
+.iconTile[data-tone='danger'] {
+	background-color: var(--mantine-color-red-light);
+	color: var(--mantine-color-red-light-color);
 }
 
 .track {

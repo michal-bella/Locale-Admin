@@ -112,7 +112,7 @@ export const getRowStatuses = (page: Page) => getTranslationRows(page).evaluateA
 
 export const getGroupHeaders = (page: Page) => getTranslationsTable(page).locator('tr[data-group-header]')
 
-/** The number under the label of a stat card (Celkom kľúčov, Preložené, Chýbajúce). */
+/** The number under the label of a stat card (Celkom kľúčov, Preložené, Nepreložené). */
 export const getStat = (page: Page, label: string) =>
 	page
 		.locator('p')
@@ -121,7 +121,7 @@ export const getStat = (page: Page, label: string) =>
 
 export const expectStats = async (page: Page, translated: number, untranslated: number) => {
 	await expect(getStat(page, 'Preložené')).toHaveText(String(translated))
-	await expect(getStat(page, 'Chýbajúce')).toHaveText(String(untranslated))
+	await expect(getStat(page, 'Nepreložené')).toHaveText(String(untranslated))
 }
 
 /** The visible „Zobrazených X z Y kľúčov“ paragraph; the hidden `role="status"` live region repeats the same text, so `getByText` alone is ambiguous. */

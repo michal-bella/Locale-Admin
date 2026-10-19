@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Zobrazenia prekladov, krok 1: kontrakt a backend (2026-10-19)
+
+- zdieľaný kontrakt: položka zoznamu prekladov nesie `status` riadku a `translations` (bunka pre každý jazyk projektu podľa `ProjectLanguage.id`) namiesto `source`/`target`; `sourceLanguageId` a `targetLanguageId` sú voliteľné (obidva alebo žiadny) a určujú zobrazenie: kompaktné (stav, filter, zoradenie, štatistiky a vyhľadávanie podľa cieľového jazyka) alebo rozšírené (riadok je preložený, keď má hodnotu každý jazyk; vyhľadávanie vo všetkých jazykoch); `preferences.translationsView` v `AuthUser` a `Profile`, `PATCH /api/profile/preferences` ([API](./api/translations.md), [profil](./api/profile.md))
+- databáza: `User.translationsView` (enum `TRANSLATIONS_VIEW`, default `EXTENDED`, migrácia `user_translations_view`) ([Databáza](./database.md))
+- backend: `listTranslations` skladá SQL podľa zobrazenia (`EXISTS` cez jazyky projektu v rozšírenom), bunky stránky načíta druhým dotazom; integračné testy oboch zobrazení a preferencií
+- frontend: tabuľka a optimistická mutácia čítajú bunky z `translations` a stav riadku z `status`, správanie stránky sa nemení (plán: [`docs/plans/translations-views.md`](./plans/translations-views.md))
+
 ### Detail používateľa s jeho projektmi (2026-10-19)
 
 - zdieľaný kontrakt: `adminUserDetailSchema = adminUserSchema.extend({ projects })`, položka projektu `adminUserProjectSchema { id, name, slug, primaryColor, joinedAt }`

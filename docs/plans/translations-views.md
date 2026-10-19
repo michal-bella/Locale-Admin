@@ -83,6 +83,10 @@ Postup podľa `.agents/workflows/feature.md`: vetva `feature/translations-views`
 
 Spolu približne 4 až 4,5 session.
 
+### Stav
+
+- **Krok 1 (2026-10-19): hotový.** Kontrakt (`translationCellSchema`, `status` + `translations` v položke, voliteľná dvojica jazykov so sémantikou zobrazenia, `userPreferencesSchema`, `updatePreferencesRequestSchema`), migrácia `user_translations_view`, `listTranslations` v oboch režimoch, `PATCH /api/profile/preferences`, `preferences` v `me` a profile; FE adaptér (tabuľka a optimistická mutácia čítajú bunky z mapy). E2E `api-smoke.spec.ts` a `e2e/support/translations.ts` ešte používajú starý tvar položky, prepíšu sa v kroku 4.
+
 ## Riziká
 
 - **Sticky stĺpce** v Mantine `Table` s `table-layout: fixed`: `position: sticky` funguje na `th`/`td`, ale skupinový riadok s `colSpan` potrebuje sticky vnútorný `<span>`, a tieň oddeľujúci sticky stĺpec od scrollujúceho obsahu treba riešiť pseudo-prvkom. Overiť v Chromium aj WebKit (Playwright beží v oboch).

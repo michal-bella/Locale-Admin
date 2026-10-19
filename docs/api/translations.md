@@ -6,7 +6,7 @@ notion_page_id:
 
 # Preklady (`/api/projects/:projectId/translations`)
 
-Zoznam kľúčov projektu s textom zdrojového a jedného cieľového jazyka pre stránku Preklady, úprava jedného prekladu v riadku a úprava kľúča (názov, popis, plurál). Schémy sú v `packages/shared/src/translations.ts`, dátový model v [Databáza](../database.md#translationkey).
+Zoznam kľúčov projektu s prekladmi vo všetkých jazykoch pre stránku Preklady (rozšírené zobrazenie so všetkými jazykmi alebo kompaktné zdrojový → cieľový jazyk), úprava jedného prekladu a úprava kľúča (názov, popis, plurál). Schémy sú v `packages/shared/src/translations.ts`, dátový model v [Databáza](../database.md#translationkey).
 
 | Metóda  | Cesta                                                           | Prístup            | Popis                                             |
 | ------- | --------------------------------------------------------------- | ------------------ | ------------------------------------------------- |
@@ -18,10 +18,19 @@ Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez 
 
 ## Stav prekladu
 
-Stav sa neukladá, počíta sa z hodnoty v cieľovom jazyku:
+Stav sa neukladá, počíta sa z hodnoty. Bunka (kľúč v jednom jazyku):
 
 - `TRANSLATED` (Preložené): riadok `Translation` existuje a `value` nie je `null`.
 - `UNTRANSLATED` (Nepreložené): riadok chýba (napr. jazyk pridaný po importe) alebo `value` je `null`.
+
+Stav riadku (`items[].status`), filter `status`, zoradenie `UNTRANSLATED_FIRST` a `stats` závisia od **zobrazenia**, ktoré určuje dotaz:
+
+| Zobrazenie | Dotaz                                       | Riadok je `TRANSLATED`, keď                                          | `search` hľadá v                         | `UPDATED` radí podľa                  |
+| ---------- | ------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------- |
+| rozšírené  | bez `sourceLanguageId` a `targetLanguageId` | **každý** jazyk projektu má hodnotu (chýbajúci riadok = nepreložené) | kľúči a hodnote **ktoréhokoľvek** jazyka | najnovšej zmeny v ktoromkoľvek jazyku |
+| kompaktné  | s oboma parametrami                         | cieľový jazyk má hodnotu                                             | kľúči, zdrojovom a cieľovom texte        | zmeny cieľového prekladu              |
+
+Položka nesie bunku pre každý jazyk projektu v oboch zobrazeniach. Ktoré zobrazenie používateľ vidí, je jeho preferencia (`preferences.translationsView`, [profil](./profile.md#patch-apiprofilepreferences)).
 
 ## Skupina
 
@@ -34,16 +43,16 @@ Stav sa neukladá, počíta sa z hodnoty v cieľovom jazyku:
 
 Parametre v query (schéma `translationsQuerySchema`). Prázdny reťazec znamená „bez filtra“.
 
-| Parameter          | Typ    | Povinný | Popis                                                                                                 |
-| ------------------ | ------ | ------- | ----------------------------------------------------------------------------------------------------- |
-| `sourceLanguageId` | UUID   | áno     | jazyk projektu, ktorého text sa zobrazí ako zdroj                                                     |
-| `targetLanguageId` | UUID   | áno     | jazyk projektu, pre ktorý sa počíta stav a `stats`; môže byť rovnaký ako zdroj                        |
-| `search`           | string | nie     | max. 200 znakov, orezaný; podreťazec bez ohľadu na veľkosť písmen v kľúči, zdrojovom a cieľovom texte |
-| `status`           | enum   | nie     | `TRANSLATED` alebo `UNTRANSLATED`                                                                     |
-| `namespace`        | string | nie     | presná zhoda namespace                                                                                |
-| `sort`             | enum   | nie     | `UNTRANSLATED_FIRST` (predvolené), `KEY`, `UPDATED`                                                   |
-| `page`             | číslo  | nie     | od 1, predvolene 1                                                                                    |
-| `pageSize`         | číslo  | nie     | 1 až 100, predvolene 50                                                                               |
+| Parameter          | Typ    | Povinný | Popis                                                                                                  |
+| ------------------ | ------ | ------- | ------------------------------------------------------------------------------------------------------ |
+| `sourceLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk projektu, ktorého text je zdroj; vždy spolu s `targetLanguageId`           |
+| `targetLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk, pre ktorý sa počíta stav a `stats`; môže byť rovnaký ako zdroj            |
+| `search`           | string | nie     | max. 200 znakov, orezaný; podreťazec bez ohľadu na veľkosť písmen v kľúči a hodnotách (viď zobrazenie) |
+| `status`           | enum   | nie     | `TRANSLATED` alebo `UNTRANSLATED`                                                                      |
+| `namespace`        | string | nie     | presná zhoda namespace                                                                                 |
+| `sort`             | enum   | nie     | `UNTRANSLATED_FIRST` (predvolené), `KEY`, `UPDATED`                                                    |
+| `page`             | číslo  | nie     | od 1, predvolene 1                                                                                     |
+| `pageSize`         | číslo  | nie     | 1 až 100, predvolene 50                                                                                |
 
 Znaky `%`, `_` a `\` vo vyhľadávaní sa berú doslovne. Hodnoty idú do SQL iba ako parametre.
 
@@ -51,37 +60,38 @@ Zoradenie (posledné kritérium je vždy ID kľúča, takže stránky sa neprekr
 
 | `sort`               | Poradie                                                                             |
 | -------------------- | ----------------------------------------------------------------------------------- |
-| `UNTRANSLATED_FIRST` | nepreložené najprv, potom `group`, potom kľúč                                       |
+| `UNTRANSLATED_FIRST` | nepreložené riadky (podľa zobrazenia) najprv, potom `group`, potom kľúč             |
 | `KEY`                | namespace, `group`, kľúč (kľúče jedného objektu sú spolu, vety namespace pred nimi) |
-| `UPDATED`            | čas poslednej zmeny cieľového prekladu, najnovšie prvé, bez riadku na konci; kľúč   |
+| `UPDATED`            | čas poslednej zmeny (podľa zobrazenia), najnovšie prvé, bez riadku na konci; kľúč   |
 
 ### Odpoveď 200
 
 Schéma `translationsResponseSchema`.
 
-| Pole         | Typ      | Popis                                                                                                  |
-| ------------ | -------- | ------------------------------------------------------------------------------------------------------ |
-| `items`      | pole     | kľúče aktuálnej stránky (viď nižšie)                                                                   |
-| `total`      | číslo    | počet kľúčov, ktoré spĺňajú filtre (stránka za koncom vráti `items: []` a správny `total`)             |
-| `page`       | číslo    | aktuálna stránka                                                                                       |
-| `pageSize`   | číslo    | veľkosť stránky                                                                                        |
-| `stats`      | objekt   | `{ totalKeys, translated, untranslated }` pre cieľový jazyk cez všetky kľúče projektu, **bez filtrov** |
-| `namespaces` | string[] | všetky namespace projektu, zoradené (aj prázdny `""`, ak ho nejaký kľúč má)                            |
+| Pole         | Typ      | Popis                                                                                                   |
+| ------------ | -------- | ------------------------------------------------------------------------------------------------------- |
+| `items`      | pole     | kľúče aktuálnej stránky (viď nižšie)                                                                    |
+| `total`      | číslo    | počet kľúčov, ktoré spĺňajú filtre (stránka za koncom vráti `items: []` a správny `total`)              |
+| `page`       | číslo    | aktuálna stránka                                                                                        |
+| `pageSize`   | číslo    | veľkosť stránky                                                                                         |
+| `stats`      | objekt   | `{ totalKeys, translated, untranslated }` podľa stavu riadku cez všetky kľúče projektu, **bez filtrov** |
+| `namespaces` | string[] | všetky namespace projektu, zoradené (aj prázdny `""`, ak ho nejaký kľúč má)                             |
 
 Položka `items[]`:
 
-| Pole               | Typ                        | Popis                                                          |
-| ------------------ | -------------------------- | -------------------------------------------------------------- |
-| `keyId`            | UUID                       | ID kľúča                                                       |
-| `namespace`        | string                     | namespace (JSON súbor), `""` ak nemá                           |
-| `name`             | string                     | kľúč                                                           |
-| `group`            | string                     | skupina (viď vyššie)                                           |
-| `description`      | string alebo `null`        | popis kľúča pre prekladateľov (viď úprava kľúča)               |
-| `plural`           | objekt alebo `null`        | `{ variable }` pri plurálovom kľúči, inak `null`               |
-| `source.value`     | string alebo `null`        | text zdrojového jazyka, `null` ak chýba                        |
-| `target.value`     | string alebo `null`        | text cieľového jazyka, `null` ak chýba                         |
-| `target.status`    | enum                       | `TRANSLATED` alebo `UNTRANSLATED`                              |
-| `target.updatedAt` | string (ISO 8601) / `null` | posledná zmena cieľového prekladu, `null` ak riadok neexistuje |
+| Pole           | Typ                        | Popis                                                            |
+| -------------- | -------------------------- | ---------------------------------------------------------------- |
+| `keyId`        | UUID                       | ID kľúča                                                         |
+| `namespace`    | string                     | namespace (JSON súbor), `""` ak nemá                             |
+| `name`         | string                     | kľúč                                                             |
+| `group`        | string                     | skupina (viď vyššie)                                             |
+| `description`  | string alebo `null`        | popis kľúča pre prekladateľov (viď úprava kľúča)                 |
+| `plural`       | objekt alebo `null`        | `{ variable }` pri plurálovom kľúči, inak `null`                 |
+| `status`       | enum                       | stav riadku podľa zobrazenia (viď vyššie)                        |
+| `translations` | objekt                     | bunka pre **každý** jazyk projektu, kľúč je `ProjectLanguage.id` |
+| `….value`      | string alebo `null`        | text v jazyku, `null` ak chýba                                   |
+| `….status`     | enum                       | `TRANSLATED` alebo `UNTRANSLATED`                                |
+| `….updatedAt`  | string (ISO 8601) / `null` | posledná zmena prekladu v jazyku, `null` ak riadok neexistuje    |
 
 ```json
 {
@@ -93,8 +103,11 @@ Položka `items[]`:
 			"group": "loc:orders.empty",
 			"description": null,
 			"plural": null,
-			"source": { "value": "Zatiaľ nemáte žiadne objednávky" },
-			"target": { "value": null, "status": "UNTRANSLATED", "updatedAt": "2026-10-18T12:00:00.000Z" }
+			"status": "UNTRANSLATED",
+			"translations": {
+				"7a2e…": { "value": "Zatiaľ nemáte žiadne objednávky", "status": "TRANSLATED", "updatedAt": "2026-10-18T11:00:00.000Z" },
+				"9c4b…": { "value": null, "status": "UNTRANSLATED", "updatedAt": "2026-10-18T12:00:00.000Z" }
+			}
 		}
 	],
 	"total": 1,
@@ -107,11 +120,11 @@ Položka `items[]`:
 
 ### Chyby
 
-| HTTP | `code`                 | Kedy                                                                                                                                                |
-| ---- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 400  | `VALIDATION_ERROR`     | chýbajúce alebo nevalidné parametre (ID nie je UUID, neznámy `status` / `sort`, `pageSize` nad 100, opakovaný parameter), `details` podľa parametra |
-| 401  | `AUTH_UNAUTHENTICATED` | bez session                                                                                                                                         |
-| 404  | `NOT_FOUND`            | projekt mimo prístupu, alebo `sourceLanguageId` / `targetLanguageId` nie je jazyk tohto projektu                                                    |
+| HTTP | `code`                 | Kedy                                                                                                                                                                                        |
+| ---- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400  | `VALIDATION_ERROR`     | nevalidné parametre (ID nie je UUID, iba jeden z dvojice jazykov → `REQUIRED` na chýbajúcom, neznámy `status` / `sort`, `pageSize` nad 100, opakovaný parameter), `details` podľa parametra |
+| 401  | `AUTH_UNAUTHENTICATED` | bez session                                                                                                                                                                                 |
+| 404  | `NOT_FOUND`            | projekt mimo prístupu, alebo `sourceLanguageId` / `targetLanguageId` nie je jazyk tohto projektu                                                                                            |
 
 ## PUT /api/projects/:projectId/keys/:keyId/translations/:languageId
 

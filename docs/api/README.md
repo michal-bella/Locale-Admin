@@ -40,6 +40,7 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `POST`   | `/api/projects/:projectId/imports`                              | import súboru do projektu (člen, ADMIN), [detail](./imports.md)                   |
 | `GET`    | `/api/profile`                                                  | profil prihláseného používateľa, [detail](./profile.md)                           |
 | `PATCH`  | `/api/profile`                                                  | úprava mena a priezviska, [detail](./profile.md)                                  |
+| `PATCH`  | `/api/profile/preferences`                                      | zobrazenie stránky Preklady (`translationsView`), [detail](./profile.md)          |
 
 ## Chybový kontrakt
 

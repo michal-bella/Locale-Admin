@@ -6,6 +6,7 @@ import { type TranslationListItem } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { Upload } from '@/components/Icons'
+import TranslationEditor from '@/components/TranslationEditor/TranslationEditor'
 import TranslationText from '@/components/TranslationText/TranslationText'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 
@@ -28,7 +29,7 @@ const Value = ({ value }: { value: string | null }) => {
 }
 
 /**
- * Keys with the source and target text (Figma 3:147), read-only for now. With `showGroups` a group header row starts every run of keys
+ * Keys with the source and target text (Figma 3:147); the target cell is a `TranslationEditor`. With `showGroups` a group header row starts every run of keys
  * with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first and are grouped inside. Untranslated rows have a soft red background.
  */
 const TranslationsTable = ({
@@ -43,6 +44,7 @@ const TranslationsTable = ({
 	onClearFilters,
 	onImport,
 	showGroups,
+	onSave,
 }: TranslationsTableProps) => {
 	const { t, i18n } = useTranslation()
 	const tableRef = useRef<HTMLTableElement>(null)
@@ -82,9 +84,13 @@ const TranslationsTable = ({
 				<Value value={item.source.value} />
 			</Table.Td>
 			<Table.Td className={`${classes.td} ${classes.value}`}>
-				<div className={classes.targetBox}>
+				<TranslationEditor
+					value={item.target.value}
+					label={t('translationsPage.editor.label', { key: item.name, language: targetLanguage?.nativeName ?? '' })}
+					onSave={(value) => onSave(item.keyId, value)}
+				>
 					<Value value={item.target.value} />
-				</div>
+				</TranslationEditor>
 			</Table.Td>
 			<Table.Td className={`${classes.td} ${classes.statusCell}`}>
 				<Badge

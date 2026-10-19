@@ -15,4 +15,6 @@ export type TranslationsTableProps = {
 	onImport: () => void
 	/** Group header rows only make sense when the sort keeps a group together (not for `UPDATED`). */
 	showGroups: boolean
+	/** Saves the target value of a key; rejects with the API error (see `TranslationEditor`). */
+	onSave: (keyId: string, value: string | null) => Promise<unknown>
 }

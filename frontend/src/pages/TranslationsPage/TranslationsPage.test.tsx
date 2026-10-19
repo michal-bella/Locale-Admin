@@ -1,6 +1,7 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { notifications } from '@mantine/notifications'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios'
-import { beforeAll, describe, expect, it } from 'vite-plus/test'
+import { beforeAll, describe, expect, it, vi } from 'vite-plus/test'
 
 import { type Language, type ProjectSettings, SUPPORTED_LANGUAGES, type TranslationListItem, translationGroup, type TranslationsResponse } from '@locale/shared'
 
@@ -8,7 +9,7 @@ import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
 import i18n from '@/lib/i18n'
-import { ADMIN_USER, apiError, projectListRoute, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, type MockRoutes, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -445,5 +446,229 @@ describe('TranslationsPage', () => {
 		expect(await screen.findByText('2 min ago')).toBeInTheDocument()
 		expect(screen.getByRole('heading', { level: 1, name: 'Translations' })).toBeInTheDocument()
 		expect(screen.getByText('Showing 4 of 4 keys')).toBeInTheDocument()
+	})
+})
+
+const WELCOME = ITEMS[2]!
+
+const putUrl = (keyId: string) => `/projects/${PROJECT.id}/keys/${keyId}/translations/${ENGLISH.id}`
+
+/** In-memory list: a saved value survives the refetch after the mutation settles. `put` replaces the answer of every PUT (errors). */
+const mockEditing = (put?: MockResponse) => {
+	let current = response()
+	const putRoutes: MockRoutes = Object.fromEntries(
+		ITEMS.map((entry) => [
+			`PUT ${putUrl(entry.keyId)}`,
+			(config: InternalAxiosRequestConfig) => {
+				if (put) {
+					return put
+				}
+				const { value } = JSON.parse(config.data as string) as { value: string | null }
+				const target = { value, status: value === null ? 'UNTRANSLATED' : 'TRANSLATED', updatedAt: new Date().toISOString() } as const
+				const delta = target.status === entry.target.status ? 0 : target.status === 'TRANSLATED' ? 1 : -1
+				current = {
+					...current,
+					items: current.items.map((candidate) => (candidate.keyId === entry.keyId ? { ...candidate, target } : candidate)),
+					stats: { ...current.stats, translated: current.stats.translated + delta, untranslated: current.stats.untranslated - delta },
+				}
+				return { status: 200, data: target }
+			},
+		]),
+	)
+	const requests = signedInAs(ADMIN_USER, {
+		...projectListRoute(PROJECT),
+		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
+		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [SLOVAK, ENGLISH] },
+		[`GET ${TRANSLATIONS_URL}`]: () => ({ status: 200, data: current }),
+		...putRoutes,
+	})
+	return () => requests.filter((request) => request.method === 'put')
+}
+
+/** Holds every PUT until the returned function is called, so the optimistic state can be asserted first. */
+const holdPuts = () => {
+	const original = http.defaults.adapter as AxiosAdapter
+	let release!: () => void
+	const released = new Promise<void>((resolve) => {
+		release = resolve
+	})
+	http.defaults.adapter = async (config) => {
+		if (config.method === 'put') {
+			await released
+		}
+		return original(config)
+	}
+	return release
+}
+
+const openEditor = async (key: string, buttonName: string) => {
+	await screen.findByText('orders.empty.title')
+	fireEvent.click(within(getRow(key)).getByRole('button', { name: buttonName }))
+	return screen.getByRole('textbox', { name: `Preklad kľúča ${key}, English` })
+}
+
+const WELCOME_BUTTON = 'Preklad kľúča dashboard.welcome, English: Welcome back, {{name}}'
+
+/** `fireEvent.blur` keeps the element focused in jsdom; a real blur moves the focus away like a click elsewhere or Tab. */
+const blur = (field: HTMLElement) => act(() => field.blur())
+
+describe('TranslationsPage inline edit', () => {
+	it('turns the target cell into a textarea on click and saves on blur', async () => {
+		const puts = mockEditing()
+		renderApp(PAGE_PATH)
+
+		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
+		expect(field).toHaveValue('Welcome back, {{name}}')
+		expect(field).toHaveFocus()
+		expect(field).toHaveAccessibleDescription('Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc.')
+		expect(field).toHaveAttribute('maxLength', '10000')
+		// Only the source cell keeps its chip; the field holds plain text.
+		expect(within(getRow('dashboard.welcome')).getAllByText('{{name}}')).toHaveLength(1)
+
+		fireEvent.change(field, { target: { value: 'Welcome back, {{name}}!' } })
+		blur(field)
+
+		await waitFor(() => expect(puts()).toHaveLength(1))
+		expect(puts()[0]?.url).toBe(putUrl(WELCOME.keyId))
+		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: 'Welcome back, {{name}}!' })
+		await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Preklad kľúča dashboard.welcome, English' })).not.toBeInTheDocument())
+		const row = within(getRow('dashboard.welcome'))
+		expect(row.getByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Welcome back, {{name}}!' })).not.toHaveFocus()
+		expect(row.getAllByText('{{name}}').map((chip) => chip.tagName)).toEqual(['CODE', 'CODE'])
+		expect(row.getByText('Preložené')).toBeInTheDocument()
+	})
+
+	it('saves with Cmd+Enter and Ctrl+Enter and returns the focus to the cell', async () => {
+		const puts = mockEditing()
+		renderApp(PAGE_PATH)
+
+		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
+		fireEvent.change(field, { target: { value: 'Welcome, {{name}}' } })
+		fireEvent.keyDown(field, { key: 'Enter', metaKey: true })
+
+		await waitFor(() => expect(puts()).toHaveLength(1))
+		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: 'Welcome, {{name}}' })
+		const button = await within(getRow('dashboard.welcome')).findByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Welcome, {{name}}' })
+		expect(button).toHaveFocus()
+
+		const description = await openEditor('orders.empty.description', 'Preklad kľúča orders.empty.description, English: Bez prekladu')
+		fireEvent.change(description, { target: { value: 'New orders will show up here.' } })
+		fireEvent.keyDown(description, { key: 'Enter', ctrlKey: true })
+
+		await waitFor(() => expect(puts()).toHaveLength(2))
+		expect(puts()[1]?.url).toBe(putUrl(ITEMS[1]!.keyId))
+		expect(JSON.parse(puts()[1]?.data as string)).toEqual({ value: 'New orders will show up here.' })
+		await waitFor(() => expect(getRow('orders.empty.description')).toHaveAttribute('data-status', 'TRANSLATED'))
+	})
+
+	it('does not save on plain Enter, Esc restores the value without a request', async () => {
+		const puts = mockEditing()
+		renderApp(PAGE_PATH)
+
+		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
+		fireEvent.change(field, { target: { value: 'Changed' } })
+		fireEvent.keyDown(field, { key: 'Enter' })
+		expect(field).toBeInTheDocument()
+
+		fireEvent.keyDown(field, { key: 'Escape' })
+
+		expect(screen.queryByRole('textbox', { name: 'Preklad kľúča dashboard.welcome, English' })).not.toBeInTheDocument()
+		const button = within(getRow('dashboard.welcome')).getByRole('button', { name: WELCOME_BUTTON })
+		expect(button).toHaveFocus()
+		expect(puts()).toHaveLength(0)
+	})
+
+	it('saves empty text as null and flips the status, the row background and the stats optimistically', async () => {
+		const puts = mockEditing()
+		const release = holdPuts()
+		renderApp(PAGE_PATH)
+
+		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
+		fireEvent.change(field, { target: { value: '   ' } })
+		blur(field)
+
+		await waitFor(() => expect(getRow('dashboard.welcome')).toHaveAttribute('data-status', 'UNTRANSLATED'))
+		expect(within(getRow('dashboard.welcome')).getByText('Nepreložené')).toBeInTheDocument()
+		expect(screen.getByText('220')).toBeInTheDocument()
+		expect(screen.getByText('28')).toBeInTheDocument()
+		expect(field).toHaveAttribute('readonly')
+		expect(within(getRow('dashboard.welcome')).getByRole('status', { name: 'Ukladá sa' })).toBeInTheDocument()
+
+		release()
+
+		await waitFor(() => expect(puts()).toHaveLength(1))
+		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: null })
+		expect(
+			await within(getRow('dashboard.welcome')).findByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Bez prekladu' }),
+		).toBeInTheDocument()
+		expect(getRow('dashboard.welcome')).toHaveAttribute('data-status', 'UNTRANSLATED')
+		expect(screen.getByText('220')).toBeInTheDocument()
+	})
+
+	it('keeps the editor open with the missing and extra variables on PLACEHOLDER_MISMATCH and rolls the list back', async () => {
+		mockEditing(apiError(400, 'PLACEHOLDER_MISMATCH', { details: { missing: ['{{name}}'], extra: ['{{user}}'] } }))
+		renderApp(PAGE_PATH)
+
+		const field = await openEditor('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
+		fireEvent.change(field, { target: { value: 'Hello {{user}}' } })
+		blur(field)
+
+		const alert = await screen.findByRole('alert')
+		expect(alert).toHaveTextContent('Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}. Navyše: {{user}}.')
+		expect(field).toBeInTheDocument()
+		expect(field).toHaveValue('Hello {{user}}')
+		expect(field).toHaveAttribute('aria-invalid', 'true')
+		expect(field).not.toHaveAttribute('readonly')
+		expect(getRow('orders.empty.title')).toHaveAttribute('data-status', 'UNTRANSLATED')
+		expect(screen.getByText('221')).toBeInTheDocument()
+		expect(screen.queryByText('English message that must not be shown')).not.toBeInTheDocument()
+
+		fireEvent.keyDown(field, { key: 'Escape' })
+		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+		expect(within(getRow('orders.empty.title')).getByText('Bez prekladu')).toBeInTheDocument()
+	})
+
+	it('rolls back and shows a notification on another error', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		const puts = mockEditing(apiError(500, 'INTERNAL_ERROR'))
+		renderApp(PAGE_PATH)
+
+		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
+		fireEvent.change(field, { target: { value: 'Broken' } })
+		blur(field)
+
+		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: i18n.t('errors.INTERNAL_ERROR') })))
+		expect(puts()).toHaveLength(1)
+		expect(screen.queryByRole('textbox', { name: 'Preklad kľúča dashboard.welcome, English' })).not.toBeInTheDocument()
+		expect(within(getRow('dashboard.welcome')).getByRole('button', { name: WELCOME_BUTTON })).toBeInTheDocument()
+		expect(screen.getByText('221')).toBeInTheDocument()
+	})
+
+	it('does not send a request when the value did not change', async () => {
+		const puts = mockEditing()
+		renderApp(PAGE_PATH)
+
+		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
+		blur(field)
+
+		expect(screen.queryByRole('textbox', { name: 'Preklad kľúča dashboard.welcome, English' })).not.toBeInTheDocument()
+		expect(puts()).toHaveLength(0)
+	})
+
+	it('exposes every target cell as the only focusable element of its row, so Tab goes to the next row', async () => {
+		mockEditing()
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		const body = getTable().querySelector('tbody')
+		const focusable = Array.from(body?.querySelectorAll('button, a, input, textarea, select, [tabindex]') ?? [])
+		expect(focusable.map((element) => element.tagName)).toEqual(['BUTTON', 'BUTTON', 'BUTTON', 'BUTTON'])
+		expect(focusable.map((element) => element.textContent)).toEqual([
+			'Preklad kľúča orders.empty.title, English: Bez prekladu',
+			'Preklad kľúča orders.empty.description, English: Bez prekladu',
+			'Preklad kľúča dashboard.welcome, English: Welcome back, {{name}}',
+			'Preklad kľúča Uložiť zmeny, English: Save changes',
+		])
+		expect(getRow('dashboard.welcome').querySelector('td:nth-child(2) button')).toBeNull()
 	})
 })

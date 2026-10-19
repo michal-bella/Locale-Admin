@@ -8,7 +8,7 @@ const getImportFileIssues = (error: unknown): ImportFileInvalidDetails | null =>
 		return null
 	}
 	const details = errorResponseSchema.safeParse(error.response?.data).data?.error.details
-	return details && !Array.isArray(details) ? details : null
+	return details && !Array.isArray(details) && 'issues' in details ? details : null
 }
 
 export default getImportFileIssues

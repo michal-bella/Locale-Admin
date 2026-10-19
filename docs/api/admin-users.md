@@ -1,18 +1,18 @@
 ---
 title: 'API: správa používateľov'
-updated: 2026-10-18
+updated: 2026-10-19
 notion_page_id:
 ---
 
 # Správa používateľov (`/api/admin/users`)
 
-Zoznam administrátorov a vytvorenie nového administrátora. Registrácia neexistuje. Členov projektov (`EDITOR`) vytvára admin alebo člen na stránke Členovia projektu (viď [projekty](./projects.md#členovia)). Editácia a deaktivácia nie sú, meno si každý mení v profile. Schémy sú v `packages/shared/src/adminUsers.ts`.
+Zoznam všetkých používateľov, vytvorenie používateľa s rolou (`ADMIN` alebo `EDITOR`) a jeho odstránenie. Registrácia neexistuje a toto je jediná cesta, ako používateľ vzniká; do projektov sa existujúci používatelia pridávajú na stránke Členovia projektu (viď [projekty](./projects.md#členovia)). Editácia a deaktivácia nie sú, meno si každý mení v profile. Schémy sú v `packages/shared/src/adminUsers.ts`.
 
-| Metóda   | Cesta                  | Prihlásenie | Popis                                 |
-| -------- | ---------------------- | ----------- | ------------------------------------- |
-| `GET`    | `/api/admin/users`     | `ADMIN`     | zoznam administrátorov od najnovšieho |
-| `POST`   | `/api/admin/users`     | `ADMIN`     | vytvorí používateľa s rolou `ADMIN`   |
-| `DELETE` | `/api/admin/users/:id` | `ADMIN`     | odstráni administrátora               |
+| Metóda   | Cesta                  | Prihlásenie | Popis                                       |
+| -------- | ---------------------- | ----------- | ------------------------------------------- |
+| `GET`    | `/api/admin/users`     | `ADMIN`     | zoznam všetkých používateľov od najnovšieho |
+| `POST`   | `/api/admin/users`     | `ADMIN`     | vytvorí používateľa s danou rolou           |
+| `DELETE` | `/api/admin/users/:id` | `ADMIN`     | odstráni používateľa                        |
 
 Celý router `/api/admin` je za `requireAuth` a `requireRole(ROLE.ADMIN)`: bez session vráti 401 `AUTH_UNAUTHENTICATED`, prihlásený `EDITOR` dostane 403 `FORBIDDEN` (viď [auth](./auth.md#oprávnenia)).
 
@@ -20,28 +20,33 @@ Celý router `/api/admin` je za `requireAuth` a `requireRole(ROLE.ADMIN)`: bez s
 
 Schéma `adminUserSchema`. Hash hesla sa nikdy nevracia (backend ho z databázy ani nečíta).
 
-| Pole        | Typ                | Popis                                            |
-| ----------- | ------------------ | ------------------------------------------------ |
-| `id`        | UUID               | ID používateľa                                   |
-| `email`     | string             | normalizovaný email (malé písmená)               |
-| `role`      | `ADMIN` / `EDITOR` | globálna rola                                    |
-| `createdAt` | string (ISO 8601)  | čas vytvorenia, napr. `2026-10-12T08:30:00.000Z` |
+| Pole           | Typ                | Popis                                            |
+| -------------- | ------------------ | ------------------------------------------------ |
+| `id`           | UUID               | ID používateľa                                   |
+| `email`        | string             | normalizovaný email (malé písmená)               |
+| `role`         | `ADMIN` / `EDITOR` | globálna rola                                    |
+| `projectCount` | number             | počet projektov, v ktorých je členom             |
+| `createdAt`    | string (ISO 8601)  | čas vytvorenia, napr. `2026-10-12T08:30:00.000Z` |
 
 ```json
-{ "id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11", "email": "meno@firma.sk", "role": "ADMIN", "createdAt": "2026-10-12T08:30:00.000Z" }
+{ "id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11", "email": "meno@firma.sk", "role": "ADMIN", "projectCount": 2, "createdAt": "2026-10-12T08:30:00.000Z" }
 ```
 
 ## GET /api/admin/users
 
-Vráti `200` s telom `{ users: AdminUser[] }` (schéma `adminUserListResponseSchema`) iba s používateľmi s rolou `ADMIN`, zoradené podľa `createdAt` od najnovšieho. Bez stránkovania a filtrov; obálka `users` nechá miesto na stránkovanie neskôr.
+Vráti `200` s telom `{ users: AdminUser[] }` (schéma `adminUserListResponseSchema`) so všetkými používateľmi (`ADMIN` aj `EDITOR`), zoradené podľa `createdAt` od najnovšieho. `projectCount` je počet členstiev (`_count.projectMemberships`). Bez stránkovania a filtrov; obálka `users` nechá miesto na stránkovanie neskôr. Modál Pridať člena na stránke Členovia projektu z tohto zoznamu vyberá používateľa.
 
 ```json
-{ "users": [{ "id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11", "email": "meno@firma.sk", "role": "ADMIN", "createdAt": "2026-10-12T08:30:00.000Z" }] }
+{
+	"users": [
+		{ "id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11", "email": "meno@firma.sk", "role": "ADMIN", "projectCount": 2, "createdAt": "2026-10-12T08:30:00.000Z" }
+	]
+}
 ```
 
 | HTTP | `code`                 | Kedy                                 |
 | ---- | ---------------------- | ------------------------------------ |
-| 200  |                        | zoznam administrátorov               |
+| 200  |                        | zoznam používateľov                  |
 | 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session       |
 | 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN` |
 
@@ -50,12 +55,12 @@ Vráti `200` s telom `{ users: AdminUser[] }` (schéma `adminUserListResponseSch
 Telo (schéma `createUserRequestSchema`):
 
 ```json
-{ "email": "meno@firma.sk", "password": "••••••••" }
+{ "email": "meno@firma.sk", "password": "••••••••", "role": "EDITOR" }
 ```
 
 - `email` musí byť platný email. Pred uložením sa upraví cez `trim()` a malé písmená.
 - `password` má 8 až 128 znakov (`PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`). Ukladá sa iba argon2id hash.
-- Rola je vždy `ADMIN`. Pole `role` v tele sa ignoruje (schéma ho nemá). `passwordChangedAt` sa nastaví na čas vytvorenia.
+- `role` je povinné, `ADMIN` alebo `EDITOR` (člen). Chýbajúca aj neznáma rola vráti `details` s kódom `INVALID` (zod pri enume nerozlíši chýbajúcu hodnotu). `passwordChangedAt` sa nastaví na čas vytvorenia.
 - Email je unikátny bez ohľadu na veľkosť písmen. Duplicitu stráži unikátny index v databáze, takže 409 vráti aj pri dvoch súbežných požiadavkách s rovnakým emailom.
 - Pri úspechu vráti `201` s `AdminUser`. Nový používateľ sa hneď vie prihlásiť cez `POST /api/auth/login`.
 
@@ -70,24 +75,25 @@ Telo (schéma `createUserRequestSchema`):
 
 Príklady `details` pri 400:
 
-| Situácia        | `details`                                                                               |
-| --------------- | --------------------------------------------------------------------------------------- |
-| zlý email       | `[{ "path": "email", "code": "INVALID_EMAIL" }]`                                        |
-| krátke heslo    | `[{ "path": "password", "code": "TOO_SHORT", "params": { "min": 8 } }]`                 |
-| chýbajúce polia | `[{ "path": "email", "code": "REQUIRED" }, { "path": "password", "code": "REQUIRED" }]` |
+| Situácia        | `details`                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| zlý email       | `[{ "path": "email", "code": "INVALID_EMAIL" }]`                                                                               |
+| krátke heslo    | `[{ "path": "password", "code": "TOO_SHORT", "params": { "min": 8 } }]`                                                        |
+| neznáma rola    | `[{ "path": "role", "code": "INVALID" }]`                                                                                      |
+| chýbajúce polia | `[{ "path": "email", "code": "REQUIRED" }, { "path": "password", "code": "REQUIRED" }, { "path": "role", "code": "INVALID" }]` |
 
 ## DELETE /api/admin/users/:id
 
-Odstráni administrátora (`role = ADMIN`). Jeho session a členstvá v projektoch sa zmažú kaskádou, preto sa hneď odhlási. Vlastný účet odstrániť nejde, takže vždy ostane aspoň jeden admin. Členov (`EDITOR`) táto cesta nemaže, tí sa odoberajú z projektu (viď [projekty](./projects.md)).
+Odstráni ktoréhokoľvek používateľa (`ADMIN` aj `EDITOR`). Jeho session a členstvá v projektoch sa zmažú kaskádou, preto sa hneď odhlási a zmizne zo zoznamov členov. Vlastný účet odstrániť nejde, takže vždy ostane aspoň jeden admin. Projekt môže ostať bez člena; `ADMIN` ho ďalej vidí a spravuje. Odobratie z jedného projektu bez zmazania účtu je `DELETE /api/projects/:projectId/members/:userId` (viď [projekty](./projects.md#členovia)).
 
-| HTTP | `code`                 | Kedy                                                                |
-| ---- | ---------------------- | ------------------------------------------------------------------- |
-| 204  |                        | administrátor odstránený                                            |
-| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                      |
-| 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN`                                |
-| 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo (stačí `{}`)                    |
-| 404  | `NOT_FOUND`            | admin s týmto `id` neexistuje, `id` patrí členovi alebo nie je UUID |
-| 409  | `SELF_DELETE`          | pokus odstrániť vlastný účet                                        |
+| HTTP | `code`                 | Kedy                                                      |
+| ---- | ---------------------- | --------------------------------------------------------- |
+| 204  |                        | používateľ odstránený                                     |
+| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                            |
+| 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN`                      |
+| 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo (stačí `{}`)          |
+| 404  | `NOT_FOUND`            | používateľ s týmto `id` neexistuje alebo `id` nie je UUID |
+| 409  | `SELF_DELETE`          | pokus odstrániť vlastný účet                              |
 
 ## Príklad (curl)
 
@@ -98,5 +104,5 @@ curl -i -c cookies.txt -X POST http://localhost:8080/api/auth/login \
 curl -i -b cookies.txt http://localhost:8080/api/admin/users
 curl -i -b cookies.txt -X POST http://localhost:8080/api/admin/users \
   -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
-  -d '{"email":"meno@firma.sk","password":"••••••••"}'
+  -d '{"email":"meno@firma.sk","password":"••••••••","role":"EDITOR"}'
 ```

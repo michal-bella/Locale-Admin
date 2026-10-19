@@ -3,8 +3,8 @@ import { expect, type Locator, type Page, test } from '@playwright/test'
 import { MUTATION_HEADERS } from '../support/api'
 import { ANONYMOUS, expectLoggedInHome, loginViaUi } from '../support/auth'
 import { newAdminApi } from '../support/languages'
-import { createProject, listProjects, newTestProjectInput, projectMembersApi } from '../support/projects'
-import { createEditor, newTestUserCredentials } from '../support/users'
+import { createProject, listProjects, newTestProjectInput } from '../support/projects'
+import { addMember, createEditor, createMember } from '../support/users'
 
 /** Mantine MultiSelect also renders a hidden input with the same label; the visible one opens the options. */
 const pickLanguages = async (page: Page, dialog: Locator, ...options: string[]) => {
@@ -112,8 +112,9 @@ test.describe('member', () => {
 		await dialog.getByRole('button', { name: 'Zrušiť' }).click()
 		await expect(dialog).toBeHidden()
 
-		const added = await page.request.post(projectMembersApi(project.id), { data: newTestUserCredentials(), headers: MUTATION_HEADERS })
-		expect(added.status()).toBe(201)
+		const admin = await newAdminApi(playwright.request)
+		await addMember(admin, project.id, (await createMember(playwright.request, baseURL)).id)
+		await admin.dispose()
 
 		await leaveFromList(page, project.name)
 		await expect(page.getByText(`Opustili ste projekt ${project.name}.`)).toBeVisible()

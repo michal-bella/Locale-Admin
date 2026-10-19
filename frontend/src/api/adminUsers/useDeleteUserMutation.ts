@@ -13,7 +13,13 @@ export const useDeleteUserMutation = () => {
 		mutationFn: async (id: string) => {
 			await http.delete(`/admin/users/${id}`)
 		},
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.USERS() }),
+		// The user may have been a member of an open project, so every project query is refetched too.
+		onSuccess: () =>
+			Promise.all([
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.USERS() }),
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.PROJECTS() }),
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.ALL() }),
+			]),
 		onError: (error) => {
 			// Already deleted by another admin: the list must drop the row.
 			if (getApiErrorCode(error) === ERROR_CODE.NOT_FOUND) {

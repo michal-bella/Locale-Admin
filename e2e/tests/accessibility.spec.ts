@@ -133,7 +133,7 @@ const SCREENS: Screen[] = [
 	{
 		name: 'users',
 		path: '/admin/users',
-		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam administrátorov' })).toHaveAttribute('aria-busy', 'false'),
+		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam používateľov' })).toHaveAttribute('aria-busy', 'false'),
 	},
 	{
 		name: 'project translations',

@@ -102,22 +102,24 @@
 	"usersPage": {
 		"eyebrow": "Administration",
 		"title": "Users",
-		"description": "Administrators who manage the system, languages and all projects.",
-		"createButton": "Create administrator",
+		"description": "All users: administrators manage the system and every project, members translate in the projects they were added to.",
+		"createButton": "Create user",
 		"table": {
-			"label": "Administrator list",
+			"label": "User list",
 			"email": "Email",
+			"role": "Role",
+			"projects": "Projects",
 			"createdAt": "Created",
-			"empty": "There are no administrators yet.",
-			"loadError": "The administrator list could not be loaded.",
+			"empty": "There are no users yet.",
+			"loadError": "The user list could not be loaded.",
 			"retry": "Try again",
-			"deleteLabel": "Delete administrator {{email}}",
+			"deleteLabel": "Delete user {{email}}",
 			"actionsColumn": "Actions",
 			"delete": "Delete"
 		},
 		"createModal": {
-			"title": "New administrator",
-			"description": "Enter an email and a password for the new administrator account. Project members are created on the Members page of a project.",
+			"title": "New user",
+			"description": "Enter the email, password and role of the new user. Add them to projects on the Members page of a project.",
 			"close": "Close",
 			"email": {
 				"label": "Email",
@@ -127,17 +129,26 @@
 				"label": "Password",
 				"placeholder": "Min. {{min}} characters"
 			},
+			"role": {
+				"label": "Role",
+				"description": {
+					"ADMIN": "Manages the system, users and every project.",
+					"EDITOR": "Translates only in the projects an administrator adds them to."
+				}
+			},
 			"cancel": "Cancel",
-			"submit": "Create administrator",
-			"success": "Administrator {{email}} has been created."
+			"submit": "Create user",
+			"success": "User {{email}} has been created."
 		},
 		"deleteModal": {
-			"title": "Delete administrator",
-			"message": "Do you really want to delete the account {{email}}? Its sessions and project memberships are deleted too. This cannot be undone.",
+			"title": "Delete user",
+			"message_zero": "Do you really want to delete the account {{email}}? Its sessions are deleted too. This cannot be undone.",
+			"message_one": "Do you really want to delete the account {{email}}? It is removed from {{count}} project and its sessions are deleted too. This cannot be undone.",
+			"message_other": "Do you really want to delete the account {{email}}? It is removed from {{count}} projects and its sessions are deleted too. This cannot be undone.",
 			"close": "Close",
 			"cancel": "Cancel",
 			"confirm": "Delete",
-			"success": "Administrator {{email}} has been deleted."
+			"success": "User {{email}} has been deleted."
 		}
 	},
 	"translationsPage": {
@@ -437,25 +448,25 @@
 			"actionsColumn": "Actions",
 			"remove": "Remove from project"
 		},
-		"createModal": {
-			"title": "New member",
-			"description": "Creates a new account with access to this project.",
+		"addModal": {
+			"title": "Add member",
+			"description": "Pick an existing user who gets access to this project.",
 			"close": "Close",
-			"email": {
-				"label": "Email",
-				"placeholder": "name@company.com"
+			"user": {
+				"label": "User",
+				"placeholder": "Search by email"
 			},
-			"password": {
-				"label": "Password",
-				"placeholder": "Min. {{min}} characters"
-			},
+			"nothingFound": "No user matches the search.",
+			"loadError": "The users could not be loaded.",
+			"retry": "Try again",
+			"createUser": "Create a new user",
 			"cancel": "Cancel",
 			"submit": "Add member",
 			"success": "Member {{email}} has been added to the project."
 		},
 		"removeModal": {
 			"title": "Remove from project",
-			"message": "Do you really want to remove {{email}} from the project? The account stays and any member can add it back.",
+			"message": "Do you really want to remove {{email}} from the project? The account stays and an administrator can add it back.",
 			"close": "Close",
 			"cancel": "Cancel",
 			"confirm": "Remove",
@@ -639,6 +650,7 @@
 		"LANGUAGE_IS_BASE": "The base language cannot be deleted. Set another base language first.",
 		"SLUG_TAKEN": "A project with this slug already exists.",
 		"LAST_MEMBER": "A project must have at least one member.",
+		"ALREADY_MEMBER": "The user is already a member of the project.",
 		"SELF_DELETE": "You cannot delete your own account.",
 		"IMPORT_FILE_INVALID": "The file contains errors. Fix them and upload it again.",
 		"IMPORT_FILE_TOO_LARGE": "The file is too large. The maximum size is 10 MB.",

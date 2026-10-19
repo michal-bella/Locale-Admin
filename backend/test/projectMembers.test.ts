@@ -3,14 +3,10 @@ import { describe, expect, it } from 'vitest'
 
 import { ERROR_CODE, ROLE, VALIDATION_CODE, errorResponseSchema, projectMemberListResponseSchema, projectMemberSchema } from '@locale/shared'
 
-import { verifyPassword } from '../src/lib/password'
-
 import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
-
-const NEW_PASSWORD = 'NewMemberPassword1'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -67,71 +63,110 @@ describe('GET /api/projects/:projectId/members', () => {
 })
 
 describe('POST /api/projects/:projectId/members', () => {
-	it.each([ROLE.EDITOR, ROLE.ADMIN])('lets a %s create an EDITOR member who can log in', async (role) => {
+	it('lets an ADMIN add an existing user and keeps their account unchanged', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app, role)
-		const project = await createProjectRow(role === ROLE.EDITOR ? [user.id] : [])
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const { user: existing } = await createUser({ firstName: 'Jana', lastName: 'Nováková' })
+		const project = await createProjectRow()
+		const before = Date.now()
 
-		const res = await postMember(app, cookie, project.id, { email: ' Nova.Osoba@Firma.SK ', password: NEW_PASSWORD, role: ROLE.ADMIN })
+		const res = await postMember(app, cookie, project.id, { userId: existing.id })
 
 		expect(res.status).toBe(201)
 		const body = projectMemberSchema.strict().parse(res.body)
-		expect(body).toMatchObject({ email: 'nova.osoba@firma.sk', firstName: null, lastName: null })
-		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: body.id } })
-		expect(stored.role).toBe(ROLE.EDITOR)
-		expect(await verifyPassword(stored.passwordHash, NEW_PASSWORD)).toBe(true)
-		expect(await getTestPrisma().projectMember.count({ where: { projectId: project.id, userId: body.id } })).toBe(1)
-
-		const loginRes = await request(app).post('/api/auth/login').set(CSRF_HEADERS).send({ email: 'nova.osoba@firma.sk', password: NEW_PASSWORD })
-		expect(loginRes.status).toBe(200)
+		expect(body).toMatchObject({ id: existing.id, email: existing.email, firstName: 'Jana', lastName: 'Nováková' })
+		expect(new Date(body.createdAt).getTime()).toBeGreaterThanOrEqual(before - 1000)
+		expect(await getTestPrisma().projectMember.count({ where: { projectId: project.id, userId: existing.id } })).toBe(1)
+		expect(await getTestPrisma().user.findUniqueOrThrow({ where: { id: existing.id } })).toMatchObject({
+			passwordHash: existing.passwordHash,
+			role: ROLE.EDITOR,
+		})
 	})
 
-	it('returns 400 VALIDATION_ERROR with details for an invalid body', async () => {
+	it('lets an ADMIN add a user to a second project', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app)
-		const project = await createProjectRow([user.id])
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const { user: existing } = await createUser()
+		await createProjectRow([existing.id])
+		const second = await getTestPrisma().project.create({ data: { name: 'B', slug: 'b' } })
 
-		const res = await postMember(app, cookie, project.id, { email: 'not-an-email', password: 'short' })
+		const res = await postMember(app, cookie, second.id, { userId: existing.id })
 
-		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
-		expect(errorResponseSchema.parse(res.body).error.details).toEqual([
-			{ path: 'email', code: VALIDATION_CODE.INVALID_EMAIL },
-			{ path: 'password', code: VALIDATION_CODE.TOO_SHORT, params: { min: 8 } },
-		])
+		expect(res.status).toBe(201)
+		expect(await getTestPrisma().projectMember.count({ where: { userId: existing.id } })).toBe(2)
 	})
 
-	it('returns 409 EMAIL_TAKEN for an existing email and adds no member', async () => {
+	it('returns 403 FORBIDDEN to an EDITOR who is a member', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await login(app)
+		const { user: other } = await createUser()
 		const project = await createProjectRow([user.id])
-		await createUser({ email: 'existujuci@firma.sk' })
 
-		const res = await postMember(app, cookie, project.id, { email: 'Existujuci@FIRMA.sk', password: NEW_PASSWORD })
+		const res = await postMember(app, cookie, project.id, { userId: other.id })
 
-		expectErrorCode(res, 409, ERROR_CODE.EMAIL_TAKEN)
+		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
 		expect(await getTestPrisma().projectMember.count({ where: { projectId: project.id } })).toBe(1)
 	})
 
-	it('returns 404 NOT_FOUND to an EDITOR who is not a member and creates no user', async () => {
+	it('returns 404 NOT_FOUND to an EDITOR who is not a member', async () => {
 		const app = createTestApp()
 		const { cookie } = await login(app)
+		const { user: other } = await createUser()
 		const project = await createProjectRow()
 
-		const res = await postMember(app, cookie, project.id, { email: 'nova.osoba@firma.sk', password: NEW_PASSWORD })
+		const res = await postMember(app, cookie, project.id, { userId: other.id })
 
 		expectErrorCode(res, 404, ERROR_CODE.NOT_FOUND)
-		expect(await getTestPrisma().user.count()).toBe(1)
+		expect(await getTestPrisma().projectMember.count()).toBe(0)
+	})
+
+	it('returns 404 NOT_FOUND for an unknown user', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const project = await createProjectRow()
+
+		const res = await postMember(app, cookie, project.id, { userId: '00000000-0000-4000-8000-000000000999' })
+
+		expectErrorCode(res, 404, ERROR_CODE.NOT_FOUND)
+		expect(await getTestPrisma().projectMember.count()).toBe(0)
+	})
+
+	it('returns 409 ALREADY_MEMBER for a user who is already in the project', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const { user: existing } = await createUser()
+		const project = await createProjectRow([existing.id])
+
+		const res = await postMember(app, cookie, project.id, { userId: existing.id })
+
+		expectErrorCode(res, 409, ERROR_CODE.ALREADY_MEMBER)
+		expect(await getTestPrisma().projectMember.count({ where: { projectId: project.id } })).toBe(1)
+	})
+
+	it.each([
+		{ name: 'a missing userId', body: {}, details: [{ path: 'userId', code: VALIDATION_CODE.REQUIRED }] },
+		{ name: 'a userId that is not a UUID', body: { userId: 'not-a-uuid' }, details: [{ path: 'userId', code: VALIDATION_CODE.INVALID }] },
+	])('returns 400 VALIDATION_ERROR with details for $name', async ({ body, details }) => {
+		const app = createTestApp()
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const project = await createProjectRow()
+
+		const res = await postMember(app, cookie, project.id, body)
+
+		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(errorResponseSchema.parse(res.body).error.details).toEqual(details)
 	})
 
 	it('returns 403 CSRF_REJECTED without X-Requested-With', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app)
-		const project = await createProjectRow([user.id])
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const { user: other } = await createUser()
+		const project = await createProjectRow()
 
-		const res = await request(app).post(membersUrl(project.id)).set('Cookie', cookie).send({ email: 'nova.osoba@firma.sk', password: NEW_PASSWORD })
+		const res = await request(app).post(membersUrl(project.id)).set('Cookie', cookie).send({ userId: other.id })
 
 		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
-		expect(await getTestPrisma().user.count()).toBe(1)
+		expect(await getTestPrisma().projectMember.count()).toBe(0)
 	})
 })
 
@@ -143,17 +178,29 @@ describe('DELETE /api/projects/:projectId/members/:userId', () => {
 			.set(CSRF_HEADERS)
 			.send({})
 
-	it.each([ROLE.EDITOR, ROLE.ADMIN])('lets a %s remove another member and keeps the user account', async (role) => {
+	it('lets an ADMIN remove a member and keeps the user account', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app, role)
+		const { cookie } = await login(app, ROLE.ADMIN)
 		const { user: other } = await createUser()
-		const project = await createProjectRow(role === ROLE.EDITOR ? [user.id, other.id] : [other.id, (await createUser()).user.id])
+		const project = await createProjectRow([other.id, (await createUser()).user.id])
 
 		const res = await removeMember(app, cookie, project.id, other.id)
 
 		expect(res.status).toBe(204)
 		expect(await getTestPrisma().projectMember.count({ where: { projectId: project.id, userId: other.id } })).toBe(0)
 		expect(await getTestPrisma().user.count({ where: { id: other.id } })).toBe(1)
+	})
+
+	it('returns 403 FORBIDDEN to an EDITOR who is a member', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const { user: other } = await createUser()
+		const project = await createProjectRow([user.id, other.id])
+
+		const res = await removeMember(app, cookie, project.id, other.id)
+
+		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
+		expect(await getTestPrisma().projectMember.count()).toBe(2)
 	})
 
 	it('returns 409 LAST_MEMBER when an ADMIN removes the only member', async () => {
@@ -173,8 +220,8 @@ describe('DELETE /api/projects/:projectId/members/:userId', () => {
 		{ name: 'an id that is not a UUID', userId: () => Promise.resolve('not-a-uuid') },
 	])('returns 404 NOT_FOUND for $name', async ({ userId }) => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app)
-		const project = await createProjectRow([user.id])
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const project = await createProjectRow([(await createUser()).user.id])
 
 		const res = await removeMember(app, cookie, project.id, await userId())
 
@@ -196,9 +243,9 @@ describe('DELETE /api/projects/:projectId/members/:userId', () => {
 
 	it('returns 403 CSRF_REJECTED without X-Requested-With', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app)
+		const { cookie } = await login(app, ROLE.ADMIN)
 		const { user: other } = await createUser()
-		const project = await createProjectRow([user.id, other.id])
+		const project = await createProjectRow([other.id, (await createUser()).user.id])
 
 		const res = await request(app)
 			.delete(`${membersUrl(project.id)}/${other.id}`)

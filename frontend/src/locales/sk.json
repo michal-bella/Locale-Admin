@@ -102,22 +102,24 @@
 	"usersPage": {
 		"eyebrow": "Správa",
 		"title": "Používatelia",
-		"description": "Administrátori, ktorí spravujú systém, jazyky a všetky projekty.",
-		"createButton": "Vytvoriť administrátora",
+		"description": "Všetci používatelia: administrátori spravujú systém a všetky projekty, členovia prekladajú v projektoch, do ktorých boli pridaní.",
+		"createButton": "Vytvoriť používateľa",
 		"table": {
-			"label": "Zoznam administrátorov",
+			"label": "Zoznam používateľov",
 			"email": "E-mail",
+			"role": "Rola",
+			"projects": "Projekty",
 			"createdAt": "Vytvorený",
-			"empty": "Zatiaľ tu nie sú žiadni administrátori.",
-			"loadError": "Zoznam administrátorov sa nepodarilo načítať.",
+			"empty": "Zatiaľ tu nie sú žiadni používatelia.",
+			"loadError": "Zoznam používateľov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
-			"deleteLabel": "Odstrániť administrátora {{email}}",
+			"deleteLabel": "Odstrániť používateľa {{email}}",
 			"actionsColumn": "Akcie",
 			"delete": "Odstrániť"
 		},
 		"createModal": {
-			"title": "Nový administrátor",
-			"description": "Zadajte e-mail a heslo pre nový administrátorský účet. Členov projektov vytvoríte na stránke Členovia v projekte.",
+			"title": "Nový používateľ",
+			"description": "Zadajte e-mail, heslo a rolu nového používateľa. Do projektov ho pridáte na stránke Členovia projektu.",
 			"close": "Zavrieť",
 			"email": {
 				"label": "E-mail",
@@ -127,17 +129,28 @@
 				"label": "Heslo",
 				"placeholder": "Min. {{min}} znakov"
 			},
+			"role": {
+				"label": "Rola",
+				"description": {
+					"ADMIN": "Spravuje systém, používateľov a všetky projekty.",
+					"EDITOR": "Prekladá iba v projektoch, do ktorých ho pridá administrátor."
+				}
+			},
 			"cancel": "Zrušiť",
-			"submit": "Vytvoriť administrátora",
-			"success": "Administrátor {{email}} bol vytvorený."
+			"submit": "Vytvoriť používateľa",
+			"success": "Používateľ {{email}} bol vytvorený."
 		},
 		"deleteModal": {
-			"title": "Odstrániť administrátora",
-			"message": "Naozaj chcete odstrániť účet {{email}}? Zmaže sa aj jeho prihlásenie a členstvo v projektoch. Akciu nie je možné vrátiť.",
+			"title": "Odstrániť používateľa",
+			"message_zero": "Naozaj chcete odstrániť účet {{email}}? Zmaže sa aj jeho prihlásenie. Akciu nie je možné vrátiť.",
+			"message_one": "Naozaj chcete odstrániť účet {{email}}? Odoberie sa z {{count}} projektu a zmaže sa aj jeho prihlásenie. Akciu nie je možné vrátiť.",
+			"message_few": "Naozaj chcete odstrániť účet {{email}}? Odoberie sa z {{count}} projektov a zmaže sa aj jeho prihlásenie. Akciu nie je možné vrátiť.",
+			"message_many": "Naozaj chcete odstrániť účet {{email}}? Odoberie sa z {{count}} projektov a zmaže sa aj jeho prihlásenie. Akciu nie je možné vrátiť.",
+			"message_other": "Naozaj chcete odstrániť účet {{email}}? Odoberie sa z {{count}} projektov a zmaže sa aj jeho prihlásenie. Akciu nie je možné vrátiť.",
 			"close": "Zavrieť",
 			"cancel": "Zrušiť",
 			"confirm": "Odstrániť",
-			"success": "Administrátor {{email}} bol odstránený."
+			"success": "Používateľ {{email}} bol odstránený."
 		}
 	},
 	"translationsPage": {
@@ -441,25 +454,25 @@
 			"actionsColumn": "Akcie",
 			"remove": "Odobrať z projektu"
 		},
-		"createModal": {
-			"title": "Nový člen",
-			"description": "Vytvorí nový účet, ktorý bude mať prístup k tomuto projektu.",
+		"addModal": {
+			"title": "Pridať člena",
+			"description": "Vyberte existujúceho používateľa, ktorý získa prístup k tomuto projektu.",
 			"close": "Zavrieť",
-			"email": {
-				"label": "E-mail",
-				"placeholder": "meno@firma.sk"
+			"user": {
+				"label": "Používateľ",
+				"placeholder": "Hľadať podľa e-mailu"
 			},
-			"password": {
-				"label": "Heslo",
-				"placeholder": "Min. {{min}} znakov"
-			},
+			"nothingFound": "Žiadny používateľ nezodpovedá hľadaniu.",
+			"loadError": "Používateľov sa nepodarilo načítať.",
+			"retry": "Skúsiť znova",
+			"createUser": "Vytvoriť nového používateľa",
 			"cancel": "Zrušiť",
 			"submit": "Pridať člena",
 			"success": "Člen {{email}} bol pridaný do projektu."
 		},
 		"removeModal": {
 			"title": "Odobrať z projektu",
-			"message": "Naozaj chcete odobrať {{email}} z projektu? Účet ostane, späť ho môže pridať ktorýkoľvek člen.",
+			"message": "Naozaj chcete odobrať {{email}} z projektu? Účet ostane, späť ho môže pridať administrátor.",
 			"close": "Zavrieť",
 			"cancel": "Zrušiť",
 			"confirm": "Odobrať",
@@ -643,6 +656,7 @@
 		"LANGUAGE_IS_BASE": "Základný jazyk nie je možné odstrániť. Najprv nastavte iný základný jazyk.",
 		"SLUG_TAKEN": "Projekt s týmto slugom už existuje.",
 		"LAST_MEMBER": "Projekt musí mať aspoň jedného člena.",
+		"ALREADY_MEMBER": "Používateľ už je členom projektu.",
 		"SELF_DELETE": "Vlastný účet nemôžete odstrániť.",
 		"IMPORT_FILE_INVALID": "Súbor obsahuje chyby. Opravte ich a nahrajte ho znova.",
 		"IMPORT_FILE_TOO_LARGE": "Súbor je príliš veľký. Maximálna veľkosť je 10 MB.",

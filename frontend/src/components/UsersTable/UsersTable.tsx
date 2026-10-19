@@ -1,14 +1,14 @@
-import { Avatar, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
+import { Avatar, Badge, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type AdminUser, getInitials } from '@locale/shared'
+import { type AdminUser, getInitials, ROLE } from '@locale/shared'
 
 import { useAdminUsersQuery } from '@/api/adminUsers/adminUsersQuery'
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
-import DeleteAdminModal from '@/components/DeleteAdminModal/DeleteAdminModal'
+import DeleteUserModal from '@/components/DeleteUserModal/DeleteUserModal'
 import { Trash } from '@/components/Icons'
 import RowAction from '@/components/RowAction/RowAction'
 import { formatDate } from '@/lib/formatDate'
@@ -17,7 +17,7 @@ import classes from './UsersTable.module.css'
 
 const SKELETON_ROWS = 3
 
-/** Admin list in a card (Figma 28:2) with loading, empty and error states. Every row but the own one can be deleted. */
+/** All users (ADMIN and EDITOR) in a card (Figma 28:2) with loading, empty and error states. Every row but the own one can be deleted. */
 const UsersTable = () => {
 	const { t, i18n } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useAdminUsersQuery()
@@ -49,7 +49,7 @@ const UsersTable = () => {
 
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr className={classes.tr}>
-			<Table.Td colSpan={3} className={`${classes.td} ${classes.state}`}>
+			<Table.Td colSpan={5} className={`${classes.td} ${classes.state}`}>
 				{content}
 			</Table.Td>
 		</Table.Tr>
@@ -64,6 +64,12 @@ const UsersTable = () => {
 							<Skeleton circle height={32} />
 							<Skeleton height={12} width='40%' radius='sm' />
 						</div>
+					</Table.Td>
+					<Table.Td className={classes.td}>
+						<Skeleton height={22} width='4rem' radius='xl' />
+					</Table.Td>
+					<Table.Td className={classes.td}>
+						<Skeleton height={12} width='1.5rem' radius='sm' />
 					</Table.Td>
 					<Table.Td className={classes.td}>
 						<Skeleton height={12} width='60%' radius='sm' />
@@ -108,6 +114,14 @@ const UsersTable = () => {
 					</div>
 				</Table.Td>
 				<Table.Td className={classes.td}>
+					<Badge radius='xl' className={`${classes.badge} ${user.role === ROLE.ADMIN ? classes.badgeAdmin : classes.badgeMember}`}>
+						{t(`roles.${user.role}`)}
+					</Badge>
+				</Table.Td>
+				<Table.Td className={classes.td}>
+					<Text size='sm'>{user.projectCount}</Text>
+				</Table.Td>
+				<Table.Td className={classes.td}>
 					<Text size='xs'>{formatDate(user.createdAt, i18n.language)}</Text>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
@@ -131,6 +145,8 @@ const UsersTable = () => {
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('usersPage.table.email')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.roleColumn}`}>{t('usersPage.table.role')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.projectsColumn}`}>{t('usersPage.table.projects')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.createdColumn}`}>{t('usersPage.table.createdAt')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
 							<VisuallyHidden>{t('usersPage.table.actionsColumn')}</VisuallyHidden>
@@ -139,9 +155,9 @@ const UsersTable = () => {
 				</Table.Thead>
 				<Table.Tbody>{renderBody()}</Table.Tbody>
 			</Table>
-			<DeleteAdminModal
+			<DeleteUserModal
 				opened={deleteOpened}
-				admin={deleting}
+				user={deleting}
 				onClose={closeDelete}
 				onDeleted={() => {
 					triggerRef.current = null

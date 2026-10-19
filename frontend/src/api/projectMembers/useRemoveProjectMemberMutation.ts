@@ -13,7 +13,12 @@ export const useRemoveProjectMemberMutation = (projectId: string) => {
 		mutationFn: async (userId: string) => {
 			await http.delete(`/projects/${projectId}/members/${userId}`)
 		},
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.MEMBERS(projectId) }),
+		onSuccess: () =>
+			Promise.all([
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.MEMBERS(projectId) }),
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.USERS() }),
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.PROJECTS() }),
+			]),
 		onError: (error) => {
 			// Already removed by someone else: the list must drop the row.
 			if (getApiErrorCode(error) === ERROR_CODE.NOT_FOUND) {

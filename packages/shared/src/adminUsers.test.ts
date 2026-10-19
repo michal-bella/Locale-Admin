@@ -6,24 +6,27 @@ import { toValidationIssues, VALIDATION_CODE } from './errors'
 import { PASSWORD_MIN_LENGTH } from './password'
 
 describe('createUserRequestSchema', () => {
-	it('normalizes the email and drops unknown fields such as role', () => {
-		expect(createUserRequestSchema.parse({ email: ' Jana.Novakova@Firma.SK ', password: 'password1', role: ROLE.ADMIN })).toEqual({
+	it('normalizes the email, keeps the role and drops unknown fields', () => {
+		expect(createUserRequestSchema.parse({ email: ' Jana.Novakova@Firma.SK ', password: 'password1', role: ROLE.EDITOR, isActive: false })).toEqual({
 			email: 'jana.novakova@firma.sk',
 			password: 'password1',
+			role: ROLE.EDITOR,
 		})
 	})
 
-	it('maps missing fields, an invalid email and a short password to shared codes', () => {
+	it('maps missing fields, an invalid email, a short password and an unknown role to shared codes', () => {
 		const missing = createUserRequestSchema.safeParse({})
 		expect(missing.success ? [] : toValidationIssues(missing.error)).toEqual([
 			{ path: 'email', code: VALIDATION_CODE.REQUIRED },
 			{ path: 'password', code: VALIDATION_CODE.REQUIRED },
+			{ path: 'role', code: VALIDATION_CODE.INVALID },
 		])
 
-		const invalid = createUserRequestSchema.safeParse({ email: 'not-an-email', password: 'short' })
+		const invalid = createUserRequestSchema.safeParse({ email: 'not-an-email', password: 'short', role: 'OWNER' })
 		expect(invalid.success ? [] : toValidationIssues(invalid.error)).toEqual([
 			{ path: 'email', code: VALIDATION_CODE.INVALID_EMAIL },
 			{ path: 'password', code: VALIDATION_CODE.TOO_SHORT, params: { min: PASSWORD_MIN_LENGTH } },
+			{ path: 'role', code: VALIDATION_CODE.INVALID },
 		])
 	})
 })
@@ -34,6 +37,7 @@ describe('adminUserSchema', () => {
 			id: '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d',
 			email: 'jana.novakova@firma.sk',
 			role: ROLE.EDITOR,
+			projectCount: 2,
 			createdAt: '2026-10-12T08:00:00.000Z',
 			passwordHash: 'secret-hash',
 		}

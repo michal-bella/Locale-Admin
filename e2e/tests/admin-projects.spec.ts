@@ -1,11 +1,11 @@
 import { expect, type Page, test } from '@playwright/test'
 
-import { MUTATION_HEADERS, readApiError } from '../support/api'
+import { readApiError } from '../support/api'
 import { STORAGE_STATE } from '../support/auth'
 import { newAdminApi } from '../support/languages'
 import { getMainNavigation } from '../support/layout'
-import { createProject, getProjectSettings, projectMembersApi, projectSettingsApi, type ProjectListItem } from '../support/projects'
-import { newTestUserCredentials } from '../support/users'
+import { createProject, getProjectSettings, projectSettingsApi, type ProjectListItem } from '../support/projects'
+import { addMember, createMember } from '../support/users'
 
 const ADMIN_PROJECTS_PATH = '/admin/projects'
 const ADMIN_PROJECTS_API = '/api/admin/projects'
@@ -52,11 +52,10 @@ const waitForSettingsPatch = (page: Page, projectId: string) =>
 	page.waitForResponse((response) => response.url().endsWith(projectSettingsApi(projectId)) && response.request().method() === 'PATCH')
 
 test.describe('ADMIN', () => {
-	test('opens Projekty from the sidebar and sees the project with slug, base language and counts', async ({ page, playwright }) => {
+	test('opens Projekty from the sidebar and sees the project with slug, base language and counts', async ({ page, playwright, baseURL }) => {
 		const api = await newAdminApi(playwright.request)
 		const project = await createProject(api, 'admin-list', ['en', 'sk', 'de-AT'])
-		const member = await api.post(projectMembersApi(project.id), { data: newTestUserCredentials(), headers: MUTATION_HEADERS })
-		expect(member.status(), `POST ${projectMembersApi(project.id)}`).toBe(201)
+		await addMember(api, project.id, (await createMember(playwright.request, baseURL)).id)
 		const { projects } = (await (await api.get(ADMIN_PROJECTS_API)).json()) as { projects: { id: string; createdAt: string }[] }
 		const createdAt = projects.find(({ id }) => id === project.id)!.createdAt
 		await api.dispose()

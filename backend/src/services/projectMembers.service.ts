@@ -1,9 +1,7 @@
-import { ERROR_CODE, type CreateProjectMemberRequest, type ProjectMember } from '@locale/shared'
+import { ERROR_CODE, type AddProjectMemberRequest, type ProjectMember } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
-import { ROLE } from '../generated/prisma/enums'
 import { AppError } from '../lib/errors'
-import { hashPassword } from '../lib/password'
 import { type PrismaClient } from '../lib/prisma'
 
 import { isPrismaError } from './projects.service'
@@ -27,21 +25,20 @@ export const listProjectMembers = async (prisma: PrismaClient, projectId: string
 	return members.map(toProjectMember)
 }
 
-/** Creates a new EDITOR who is a member of the project. An existing email is a conflict, adding existing users comes later. */
-export const createProjectMember = async (prisma: PrismaClient, projectId: string, { email, password }: CreateProjectMemberRequest): Promise<ProjectMember> => {
-	const passwordHash = await hashPassword(password)
+/** Adds an existing user to the project. A missing user fails the `connect` (P2025), an existing membership the composite key (P2002). */
+export const addProjectMember = async (prisma: PrismaClient, projectId: string, { userId }: AddProjectMemberRequest): Promise<ProjectMember> => {
 	try {
 		const member = await prisma.projectMember.create({
-			data: {
-				project: { connect: { id: projectId } },
-				user: { create: { email, passwordHash, role: ROLE.EDITOR, passwordChangedAt: new Date() } },
-			},
+			data: { project: { connect: { id: projectId } }, user: { connect: { id: userId } } },
 			select: MEMBER_SELECT,
 		})
 		return toProjectMember(member)
 	} catch (err) {
+		if (isPrismaError(err, 'P2025')) {
+			throw new AppError(404, ERROR_CODE.NOT_FOUND, 'User not found')
+		}
 		if (isPrismaError(err, 'P2002')) {
-			throw new AppError(409, ERROR_CODE.EMAIL_TAKEN, 'Email is already taken')
+			throw new AppError(409, ERROR_CODE.ALREADY_MEMBER, 'The user is already a member of the project')
 		}
 		throw err
 	}

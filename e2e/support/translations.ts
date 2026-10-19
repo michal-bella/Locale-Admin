@@ -1,7 +1,8 @@
-import { type APIRequestContext, expect } from '@playwright/test'
+import { type APIRequestContext, expect, type Locator, type Page, type Request } from '@playwright/test'
 
 import { withDb } from './db'
 import { type Language } from './languages'
+import { type ProjectListItem } from './projects'
 
 export const projectTranslationsApi = (projectId: string) => `/api/projects/${projectId}/translations`
 
@@ -70,3 +71,59 @@ export const listTranslations = async (api: APIRequestContext, projectId: string
 	expect(response.status(), `GET ${projectTranslationsApi(projectId)}`).toBe(200)
 	return (await response.json()) as TranslationsResponse
 }
+
+export const translationsPath = (project: ProjectListItem, query = '') => `/projects/${project.slug}/translations${query}`
+
+export const getTranslationsTable = (page: Page) => page.getByRole('table', { name: 'Zoznam prekladov' })
+
+export const getTranslationRows = (page: Page) => getTranslationsTable(page).locator('tr[data-status]')
+
+export const getTranslationRow = (page: Page, key: string) => getTranslationRows(page).filter({ has: page.getByText(key, { exact: true }) })
+
+export const getGroupHeaders = (page: Page) => getTranslationsTable(page).locator('tr[data-group-header]')
+
+/** The number under the label of a stat card (Celkom kľúčov, Preložené, Chýbajúce). */
+export const getStat = (page: Page, label: string) =>
+	page
+		.locator('p')
+		.filter({ hasText: new RegExp(`^${label}$`) })
+		.locator('xpath=following-sibling::*[1]')
+
+export const expectStats = async (page: Page, translated: number, untranslated: number) => {
+	await expect(getStat(page, 'Preložené')).toHaveText(String(translated))
+	await expect(getStat(page, 'Chýbajúce')).toHaveText(String(untranslated))
+}
+
+export const getSearch = (page: Page) => page.getByRole('textbox', { name: 'Hľadať kľúč alebo preklad' })
+
+/** Picks a portalled option of a toolbar select (Stav, Namespace, Zoradenie, Zdrojový / Cieľový jazyk). */
+export const pickOption = async (page: Page, label: string, option: string | RegExp) => {
+	await page.getByRole('combobox', { name: label }).click()
+	await page.getByRole('option', { name: option, exact: typeof option === 'string' }).click()
+}
+
+export const expectKeys = (rows: Locator, keys: string[]) => expect(rows.locator('td:first-child > span:first-child')).toHaveText(keys)
+
+export const rowBackground = (row: Locator) => row.evaluate((element) => getComputedStyle(element).backgroundColor)
+
+export const openTranslations = async (page: Page, project: ProjectListItem, query = '') => {
+	await page.goto(translationsPath(project, query))
+	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+}
+
+/** The target cell of a row: a button named `Preklad kľúča <key>, <language>: <value>`. */
+export const getCellButton = (row: Locator, key: string, language = 'English') => row.getByRole('button', { name: `Preklad kľúča ${key}, ${language}:` })
+
+export const getEditor = (page: Page, key: string, language = 'English') =>
+	page.getByRole('textbox', { name: `Preklad kľúča ${key}, ${language}`, exact: true })
+
+export const openEditor = async (page: Page, key: string, language = 'English') => {
+	await getCellButton(getTranslationRow(page, key), key, language).click()
+	const editor = getEditor(page, key, language)
+	await expect(editor).toBeFocused()
+	return editor
+}
+
+export const isTranslationPut = (req: Request) => req.method() === 'PUT' && /\/api\/projects\/[^/]+\/keys\/[^/]+\/translations\/[^/]+$/.test(req.url())
+
+export const waitForTranslationPut = (page: Page) => page.waitForResponse((response) => isTranslationPut(response.request()))

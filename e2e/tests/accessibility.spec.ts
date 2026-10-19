@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { type APIRequest, expect, type Page, test, type TestInfo } from '@playwright/test'
 
 import { ANONYMOUS } from '../support/auth'
-import { SAMPLE_CSV } from '../support/imports'
+import { getImportDialog, SAMPLE_CSV } from '../support/imports'
 import { listLanguages, newAdminApi } from '../support/languages'
 import { createProject } from '../support/projects'
 import { insertTranslationKeys } from '../support/translations'
@@ -49,8 +49,6 @@ const translationsWithKeys = async (request: APIRequest) => {
 }
 
 const translationsReady = (page: Page) => expect(page.getByRole('table', { name: 'Zoznam prekladov' })).toHaveAttribute('aria-busy', 'false')
-
-const getImportDialog = (page: Page) => page.getByRole('dialog', { name: 'Importovať preklady' })
 
 /** Step 1 with the sample file selected (name, size and the checkbox visible). */
 const openImportUpload = async (page: Page) => {

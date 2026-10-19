@@ -1,31 +1,41 @@
 import { type APIRequestContext, expect, type Locator, type Page, type Request, test } from '@playwright/test'
 
 import { MUTATION_HEADERS } from '../support/api'
+import { ANONYMOUS } from '../support/auth'
 import { importSample } from '../support/imports'
-import { createProject, getProjectSettings, type ProjectListItem, projectSettingsApi } from '../support/projects'
+import { createProject, getProjectSettings, projectSettingsApi } from '../support/projects'
 import {
+	backgroundOf,
 	expectStats,
+	expectView,
 	getCellButton,
 	getEditKeyButton,
-	getEditor,
+	getEditTranslationDialog,
 	getKeyName,
+	getTranslationField,
 	getTranslationRow,
 	getTranslationRows,
 	getTranslationsTable,
 	isTranslationPut,
-	openEditor,
+	openEditTranslationModal,
 	openTranslations,
-	rowBackground,
-	waitForTranslationPut,
+	saveTranslation,
+	setTranslationsView,
+	TRANSPARENT,
 } from '../support/translations'
+import { loginAsFreshAdmin } from '../support/users'
 
 const MISMATCH_MESSAGE = 'Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}.'
+const LOCKED_HINT = 'Premenné a HTML značky sú zamknuté, mažú sa celé.'
+const SK = 'slovenčina'
 
 /**
- * `import-sample.csv` with sk (base) and en, `cs` skipped: 10 keys, target en 7 translated and 3 untranslated
- * (`orders.empty.description` null, `promo.banner` "", `Vrátiť sa do obchodu` null). `dashboard.welcome` has `{{name}}` in sk.
+ * `import-sample.csv` with sk (base) and en, `cs` skipped: 10 keys. Target en: 7 translated, 3 untranslated (`orders.empty.description` null,
+ * `promo.banner` "", `Vrátiť sa do obchodu` null). `legal.terms` has en but no sk, so the extended view (every language) has 6 / 4.
+ * `dashboard.welcome` has `{{name}}` in sk.
  */
-const EN = { translated: 7, untranslated: 3 } as const
+const EXTENDED = { translated: 6, untranslated: 4 } as const
+const COMPACT_EN = { translated: 7, untranslated: 3 } as const
 
 const seedProject = async (api: APIRequestContext, label: string) => {
 	const project = await createProject(api, label, ['sk', 'en'])
@@ -33,12 +43,7 @@ const seedProject = async (api: APIRequestContext, label: string) => {
 	return project
 }
 
-const openTranslationsEn = async (page: Page, project: ProjectListItem) => {
-	await openTranslations(page, project, '?target=en')
-	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('EN')
-}
-
-/** Collects every PUT of a translation so a test can assert that Esc sends nothing. */
+/** Collects every PUT of a translation so a test can assert that Zrušiť and Esc send nothing. */
 const trackPuts = (page: Page) => {
 	const puts: Request[] = []
 	page.on('request', (req) => {
@@ -49,110 +54,173 @@ const trackPuts = (page: Page) => {
 	return puts
 }
 
-test('Ctrl+Enter saves an untranslated key: PUT { value }, the row turns translated, the cards update and a reload keeps it', async ({ page, request }) => {
+/** Opens the modal from the keyboard: WebKit does not focus a button on click, so only this way has a trigger for the focus to return to. */
+const openWithKeyboard = async (page: Page, cell: Locator, key: string, language = 'English') => {
+	await cell.focus()
+	await page.keyboard.press('Enter')
+	await expect(getEditTranslationDialog(page)).toBeVisible()
+	const field = getTranslationField(page, key, language)
+	await expect(field).toBeFocused()
+	return field
+}
+
+test('a click on a cell opens the modal with the key, the language and the base language value; Uložiť saves and the cell, the row and the cards update', async ({
+	page,
+	request,
+	browserName,
+}) => {
 	const project = await seedProject(request, 'edit-save')
-	await openTranslationsEn(page, project)
-	await expectStats(page, EN.translated, EN.untranslated)
+	await openTranslations(page, project)
+	await expectView(page, 'EXTENDED')
+	await expectStats(page, EXTENDED.translated, EXTENDED.untranslated)
 	const key = 'orders.empty.description'
 	const row = getTranslationRow(page, key)
+	const enCell = getCellButton(row, key)
+	const skCell = getCellButton(row, key, SK)
 	await expect(row).toHaveAttribute('data-status', 'UNTRANSLATED')
-	const untranslatedBackground = await rowBackground(row)
-	await expect(getCellButton(row, key)).toHaveAccessibleName(`Preklad kľúča ${key}, English: Bez prekladu`)
+	expect(await backgroundOf(row)).toBe(TRANSPARENT)
+	await expect(enCell).toHaveAccessibleName(`Preklad kľúča ${key}, English: Bez prekladu`)
+	await expect(enCell).toHaveAttribute('data-status', 'UNTRANSLATED')
+	await expect(skCell).toHaveAttribute('data-status', 'TRANSLATED')
+	const untranslatedBackground = await backgroundOf(enCell)
+	expect(untranslatedBackground).not.toBe(TRANSPARENT)
+	expect(untranslatedBackground).not.toBe(await backgroundOf(skCell))
 
-	const editor = await openEditor(page, key)
-	await expect(editor).toHaveText('')
-	await expect(editor).toHaveAccessibleDescription('Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc. Premenné a HTML značky sú zamknuté, mažú sa celé.')
-	await editor.fill('New orders will appear here.')
-	const saved = waitForTranslationPut(page)
-	await page.keyboard.press('Control+Enter')
-	const response = await saved
+	const dialog = await openEditTranslationModal(page, key)
+	await expect(dialog.getByText('Kľúč', { exact: true })).toBeVisible()
+	await expect(dialog.getByText(key, { exact: true })).toBeVisible()
+	await expect(dialog.getByText('Jazyk', { exact: true })).toBeVisible()
+	await expect(dialog.getByText('English', { exact: true })).toBeVisible()
+	await expect(dialog.getByText('Základný jazyk (slovenčina)', { exact: true })).toBeVisible()
+	await expect(dialog.getByText('Nové objednávky sa zobrazia tu.', { exact: true })).toBeVisible()
+	const field = getTranslationField(page, key)
+	await expect(field).toHaveText('')
+	await expect(field).toHaveAccessibleDescription(LOCKED_HINT)
+	await expect(dialog.getByRole('button', { name: 'Zrušiť' })).toBeVisible()
+
+	await field.fill('New orders will appear here.')
+	const response = await saveTranslation(page)
 	expect(response.status()).toBe(200)
 	expect(response.request().postDataJSON()).toEqual({ value: 'New orders will appear here.' })
 	expect(await response.json()).toEqual({ value: 'New orders will appear here.', status: 'TRANSLATED', updatedAt: expect.any(String) })
 
-	await expect(editor).toHaveCount(0)
-	await expect(getCellButton(row, key)).toHaveAccessibleName(`Preklad kľúča ${key}, English: New orders will appear here.`)
-	await expect(getCellButton(row, key)).toBeFocused()
+	await expect(dialog).toHaveCount(0)
+	await expect(enCell).toHaveAccessibleName(`Preklad kľúča ${key}, English: New orders will appear here.`)
+	await expect(enCell).toHaveAttribute('data-status', 'TRANSLATED')
+	expect(await backgroundOf(enCell)).not.toBe(untranslatedBackground)
+	if (browserName !== 'webkit') {
+		await expect(enCell).toBeFocused()
+	}
 	await expect(row.getByText('Preložené', { exact: true })).toBeVisible()
 	await expect(row).toHaveAttribute('data-status', 'TRANSLATED')
-	expect(await rowBackground(row)).not.toBe(untranslatedBackground)
-	await expectStats(page, EN.translated + 1, EN.untranslated - 1)
+	await expectStats(page, EXTENDED.translated + 1, EXTENDED.untranslated - 1)
 	await expect(getTranslationRows(page).first()).not.toContainText(key)
+
+	// The base language is a cell too: its modal has no reference block, and the row is translated once every language has a value.
+	const baseKey = 'legal.terms'
+	const baseRow = getTranslationRow(page, baseKey)
+	await expect(baseRow).toHaveAttribute('data-status', 'UNTRANSLATED')
+	await expect(getCellButton(baseRow, baseKey)).toHaveAttribute('data-status', 'TRANSLATED')
+	await expect(getCellButton(baseRow, baseKey, SK)).toHaveAttribute('data-status', 'UNTRANSLATED')
+	const baseDialog = await openEditTranslationModal(page, baseKey, SK)
+	await expect(baseDialog.getByText(SK, { exact: true })).toBeVisible()
+	await expect(baseDialog.getByText(/^Základný jazyk/)).toHaveCount(0)
+	await getTranslationField(page, baseKey, SK).fill('Obchodné podmienky')
+	const baseResponse = await saveTranslation(page)
+	expect(baseResponse.request().postDataJSON()).toEqual({ value: 'Obchodné podmienky' })
+	expect(baseResponse.status()).toBe(200)
+	await expect(baseDialog).toHaveCount(0)
+	await expect(baseRow).toHaveAttribute('data-status', 'TRANSLATED')
+	await expect(getCellButton(baseRow, baseKey, SK)).toHaveAccessibleName(`Preklad kľúča ${baseKey}, ${SK}: Obchodné podmienky`)
+	await expectStats(page, EXTENDED.translated + 2, EXTENDED.untranslated - 2)
 
 	await page.reload()
 	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
 	await expect(getTranslationRow(page, key)).toHaveAttribute('data-status', 'TRANSLATED')
 	await expect(getTranslationRow(page, key)).toContainText('New orders will appear here.')
-	await expectStats(page, EN.translated + 1, EN.untranslated - 1)
+	await expect(getTranslationRow(page, baseKey)).toContainText('Obchodné podmienky')
+	await expectStats(page, EXTENDED.translated + 2, EXTENDED.untranslated - 2)
 })
 
-test('blur saves, Esc restores without a request and an emptied field saves null', async ({ page, request }) => {
-	const project = await seedProject(request, 'edit-blur')
-	await openTranslationsEn(page, project)
+test('Zrušiť and Esc close without a request and drop the draft, the focus returns to the cell, an emptied field saves null', async ({ page, request }) => {
+	const project = await seedProject(request, 'edit-cancel')
+	await openTranslations(page, project)
 	const puts = trackPuts(page)
 
-	const blurred = await openEditor(page, 'promo.banner')
-	await blurred.fill('Discount <strong>20 %</strong>')
-	const blurSave = waitForTranslationPut(page)
-	await page.getByRole('heading', { level: 1, name: 'Preklady' }).click()
-	expect((await blurSave).request().postDataJSON()).toEqual({ value: 'Discount <strong>20 %</strong>' })
-	await expect(blurred).toHaveCount(0)
-	await expect(getTranslationRow(page, 'promo.banner').getByText('Discount <strong>20 %</strong>', { exact: true })).toBeVisible()
-	await expect(getTranslationRow(page, 'promo.banner')).toHaveAttribute('data-status', 'TRANSLATED')
-	await expectStats(page, EN.translated + 1, EN.untranslated - 1)
-	await expect(getCellButton(getTranslationRow(page, 'promo.banner'), 'promo.banner')).not.toBeFocused()
+	const cancelled = await openEditTranslationModal(page, 'promo.banner')
+	await getTranslationField(page, 'promo.banner').fill('Discount <strong>20 %</strong>')
+	await cancelled.getByRole('button', { name: 'Zrušiť' }).click()
+	await expect(cancelled).toHaveCount(0)
+	await expect(getTranslationRow(page, 'promo.banner').getByText('Bez prekladu', { exact: true })).toBeVisible()
+	await expect(getTranslationRow(page, 'promo.banner')).toHaveAttribute('data-status', 'UNTRANSLATED')
+	expect(puts).toEqual([])
 
-	const escaped = await openEditor(page, 'Vrátiť sa do obchodu')
+	await openEditTranslationModal(page, 'promo.banner')
+	await expect(getTranslationField(page, 'promo.banner')).toHaveText('')
+	await page.keyboard.press('Escape')
+	await expect(getEditTranslationDialog(page)).toHaveCount(0)
+
+	const key = 'Vrátiť sa do obchodu'
+	const cell = getCellButton(getTranslationRow(page, key), key)
+	const escaped = await openWithKeyboard(page, cell, key)
 	await escaped.fill('Back to the shop')
 	await page.keyboard.press('Escape')
-	await expect(escaped).toHaveCount(0)
-	await expect(getCellButton(getTranslationRow(page, 'Vrátiť sa do obchodu'), 'Vrátiť sa do obchodu')).toBeFocused()
-	await expect(getTranslationRow(page, 'Vrátiť sa do obchodu').getByText('Bez prekladu', { exact: true })).toBeVisible()
-	await expect(getTranslationRow(page, 'Vrátiť sa do obchodu')).toHaveAttribute('data-status', 'UNTRANSLATED')
-	expect(puts).toHaveLength(1)
+	await expect(getEditTranslationDialog(page)).toHaveCount(0)
+	await expect(cell).toBeFocused()
+	await expect(cell).toHaveAccessibleName(`Preklad kľúča ${key}, English: Bez prekladu`)
+	expect(puts).toEqual([])
 
-	const cleared = await openEditor(page, 'nav.home')
+	const row = getTranslationRow(page, 'nav.home')
+	await expect(row).toHaveAttribute('data-status', 'TRANSLATED')
+	await openEditTranslationModal(page, 'nav.home')
+	const cleared = getTranslationField(page, 'nav.home')
 	await expect(cleared).toHaveText('Home')
 	await cleared.fill('   ')
-	const clearSave = waitForTranslationPut(page)
-	await page.getByRole('heading', { level: 1, name: 'Preklady' }).click()
-	const response = await clearSave
+	const response = await saveTranslation(page)
 	expect(response.request().postDataJSON()).toEqual({ value: null })
 	expect(await response.json()).toEqual({ value: null, status: 'UNTRANSLATED', updatedAt: expect.any(String) })
-	await expect(getTranslationRow(page, 'nav.home').getByText('Bez prekladu', { exact: true })).toBeVisible()
-	await expect(getTranslationRow(page, 'nav.home').getByText('Nepreložené', { exact: true })).toBeVisible()
-	await expect(getTranslationRow(page, 'nav.home')).toHaveAttribute('data-status', 'UNTRANSLATED')
-	await expectStats(page, EN.translated, EN.untranslated)
-	expect(puts).toHaveLength(2)
+	await expect(getEditTranslationDialog(page)).toHaveCount(0)
+	await expect(getCellButton(row, 'nav.home')).toHaveAccessibleName('Preklad kľúča nav.home, English: Bez prekladu')
+	await expect(getCellButton(row, 'nav.home')).toHaveAttribute('data-status', 'UNTRANSLATED')
+	await expect(getCellButton(row, 'nav.home', SK)).toHaveAttribute('data-status', 'TRANSLATED')
+	await expect(row.getByText('Nepreložené', { exact: true })).toBeVisible()
+	await expect(row).toHaveAttribute('data-status', 'UNTRANSLATED')
+	expect(await backgroundOf(row)).toBe(TRANSPARENT)
+	await expectStats(page, EXTENDED.translated - 1, EXTENDED.untranslated + 1)
+	expect(puts).toHaveLength(1)
 })
 
-test('a missing {{name}} shows the mismatch alert and keeps the draft; the fix saves; without protectVariables it saves as is', async ({ page, request }) => {
+test('a missing {{name}} shows the mismatch alert and keeps the modal open with the draft; the fix saves; without protectVariables it saves as is', async ({
+	page,
+	request,
+}) => {
 	const project = await seedProject(request, 'edit-placeholders')
-	await openTranslationsEn(page, project)
+	await openTranslations(page, project)
 	const key = 'dashboard.welcome'
 	const row = getTranslationRow(page, key)
 	await expect(row.locator('code')).toHaveText(['{{name}}', '{{ name }}'])
 
-	const editor = await openEditor(page, key)
-	await expect(editor).toHaveText('Welcome back, {{ name }}')
-	await editor.fill('Welcome back, friend')
-	const rejected = waitForTranslationPut(page)
-	await page.keyboard.press('Control+Enter')
-	expect((await rejected).status()).toBe(400)
-	const alert = page.getByRole('alert')
+	const dialog = await openEditTranslationModal(page, key)
+	const field = getTranslationField(page, key)
+	await expect(field).toHaveText('Welcome back, {{ name }}')
+	await field.fill('Welcome back, friend')
+	const rejected = await saveTranslation(page)
+	expect(rejected.status()).toBe(400)
+	const alert = dialog.getByRole('alert')
 	await expect(alert).toHaveText(MISMATCH_MESSAGE)
-	await expect(editor).toBeVisible()
-	await expect(editor).toHaveText('Welcome back, friend')
-	await expect(editor).toHaveAttribute('aria-invalid', 'true')
+	await expect(dialog).toBeVisible()
+	await expect(field).toHaveText('Welcome back, friend')
+	await expect(field).toHaveAttribute('aria-invalid', 'true')
+	await expect(field).toHaveAccessibleDescription(`${LOCKED_HINT} ${MISMATCH_MESSAGE}`)
 	await expect(row).toHaveAttribute('data-status', 'TRANSLATED')
-	await expectStats(page, EN.translated, EN.untranslated)
+	await expect(row).toContainText('Welcome back, {{ name }}')
+	await expectStats(page, EXTENDED.translated, EXTENDED.untranslated)
 
-	await editor.fill('Welcome back, {{name}}')
-	const accepted = waitForTranslationPut(page)
-	await page.keyboard.press('Control+Enter')
-	expect((await accepted).status()).toBe(200)
-	await expect(editor).toHaveCount(0)
+	await field.fill('Welcome back, {{name}}')
 	await expect(alert).toHaveCount(0)
+	const accepted = await saveTranslation(page)
+	expect(accepted.status()).toBe(200)
+	await expect(dialog).toHaveCount(0)
 	await expect(row.locator('code')).toHaveText(['{{name}}', '{{name}}'])
 	await expect(row).toContainText('Welcome back, {{name}}')
 
@@ -163,53 +231,99 @@ test('a missing {{name}} shows the mismatch alert and keeps the draft; the fix s
 	})
 	expect(patched.status()).toBe(200)
 
-	const unprotected = await openEditor(page, key)
-	await unprotected.fill('Welcome back, friend')
-	const saved = waitForTranslationPut(page)
-	await page.keyboard.press('Control+Enter')
-	expect((await saved).status()).toBe(200)
-	await expect(unprotected).toHaveCount(0)
+	await openEditTranslationModal(page, key)
+	await getTranslationField(page, key).fill('Welcome back, friend')
+	const saved = await saveTranslation(page)
+	expect(saved.status()).toBe(200)
+	await expect(getEditTranslationDialog(page)).toHaveCount(0)
 	await expect(page.getByRole('alert')).toHaveCount(0)
 	await expect(row.locator('code')).toHaveText(['{{name}}'])
 	await expect(row).toContainText('Welcome back, friend')
 })
 
-test('Tab moves between target cells of consecutive rows, Enter opens the editor and Esc returns focus to the cell', async ({ page, request, browserName }) => {
+test('Tab moves through the cells of consecutive rows, Enter opens the modal and Esc returns the focus to the cell', async ({ page, request, browserName }) => {
 	// WebKit keeps the Safari default: plain Tab skips buttons, Option+Tab reaches every focusable element.
 	const tab = browserName === 'webkit' ? 'Alt+Tab' : 'Tab'
 	const project = await seedProject(request, 'edit-keyboard')
-	await openTranslationsEn(page, project)
+	await openTranslations(page, project)
 	const puts = trackPuts(page)
 	const keyOf = async (row: Locator) => (await getKeyName(row).textContent())!
 	const firstRow = getTranslationRows(page).nth(0)
 	const secondRow = getTranslationRows(page).nth(1)
 	const firstKey = await keyOf(firstRow)
 	const secondKey = await keyOf(secondRow)
-	await expect(firstRow).toHaveAttribute('data-status', 'UNTRANSLATED')
-	await expect(secondRow).toHaveAttribute('data-status', 'UNTRANSLATED')
 
-	await getCellButton(firstRow, firstKey).click()
+	await openWithKeyboard(page, getCellButton(firstRow, firstKey), firstKey)
 	await page.keyboard.press('Escape')
+	await expect(getEditTranslationDialog(page)).toHaveCount(0)
 	await expect(getCellButton(firstRow, firstKey)).toBeFocused()
 
-	// As an ADMIN every row starts with the Upraviť kľúč button, so the next target cell is two stops away.
+	// As an ADMIN every row starts with the Upraviť kľúč button, then one cell per language (sk, en).
 	await page.keyboard.press(tab)
 	await expect(getEditKeyButton(secondRow, secondKey)).toBeFocused()
+	await page.keyboard.press(tab)
+	await expect(getCellButton(secondRow, secondKey, SK)).toBeFocused()
 	await page.keyboard.press(tab)
 	await expect(getCellButton(secondRow, secondKey)).toBeFocused()
 
 	await page.keyboard.press('Enter')
-	const editor = getEditor(page, secondKey)
-	await expect(editor).toBeFocused()
-	await expect(editor).toHaveText('')
-
+	const field = getTranslationField(page, secondKey)
+	await expect(field).toBeFocused()
 	await page.keyboard.press('Escape')
-	await expect(editor).toHaveCount(0)
+	await expect(getEditTranslationDialog(page)).toHaveCount(0)
 	await expect(getCellButton(secondRow, secondKey)).toBeFocused()
 
+	await page.keyboard.press(`Shift+${tab}`)
+	await expect(getCellButton(secondRow, secondKey, SK)).toBeFocused()
 	await page.keyboard.press(`Shift+${tab}`)
 	await expect(getEditKeyButton(secondRow, secondKey)).toBeFocused()
 	await page.keyboard.press(`Shift+${tab}`)
 	await expect(getCellButton(firstRow, firstKey)).toBeFocused()
 	expect(puts).toEqual([])
+})
+
+// The view is saved on the user, so a test that needs the compact view signs in as its own ADMIN and leaves the shared one in EXTENDED.
+test.describe('compact view', () => {
+	test.use({ storageState: ANONYMOUS })
+
+	test('only the target cell is a button, the modal shows the base language and the status follows the target language', async ({
+		page,
+		playwright,
+		baseURL,
+	}) => {
+		await loginAsFreshAdmin(page, playwright.request, baseURL)
+		await setTranslationsView(page.request, 'COMPACT')
+		const project = await seedProject(page.request, 'edit-compact')
+		await openTranslations(page, project, '?target=en')
+		await expectView(page, 'COMPACT')
+		await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('EN')
+		await expectStats(page, COMPACT_EN.translated, COMPACT_EN.untranslated)
+		// `legal.terms` has no sk value: untranslated in the extended view, translated for the target en.
+		await expect(getTranslationRow(page, 'legal.terms')).toHaveAttribute('data-status', 'TRANSLATED')
+
+		const key = 'orders.empty.description'
+		const row = getTranslationRow(page, key)
+		await expect(row).toHaveAttribute('data-status', 'UNTRANSLATED')
+		await expect(row.getByRole('button', { name: /^Preklad kľúča/ })).toHaveCount(1)
+		await expect(row.getByText('Nové objednávky sa zobrazia tu.', { exact: true })).toBeVisible()
+		await expect(getCellButton(row, key)).toHaveAttribute('data-status', 'UNTRANSLATED')
+		expect(await backgroundOf(row)).toBe(TRANSPARENT)
+
+		const dialog = await openEditTranslationModal(page, key)
+		await expect(dialog.getByText('Základný jazyk (slovenčina)', { exact: true })).toBeVisible()
+		await expect(dialog.getByText('Nové objednávky sa zobrazia tu.', { exact: true })).toBeVisible()
+		await getTranslationField(page, key).fill('New orders will appear here.')
+		const response = await saveTranslation(page)
+		expect(response.status()).toBe(200)
+		expect(response.request().postDataJSON()).toEqual({ value: 'New orders will appear here.' })
+		await expect(dialog).toHaveCount(0)
+		await expect(row).toHaveAttribute('data-status', 'TRANSLATED')
+		await expect(getCellButton(row, key)).toHaveAccessibleName(`Preklad kľúča ${key}, English: New orders will appear here.`)
+		await expectStats(page, COMPACT_EN.translated + 1, COMPACT_EN.untranslated - 1)
+
+		await page.reload()
+		await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+		await expectView(page, 'COMPACT')
+		await expect(getTranslationRow(page, key)).toContainText('New orders will appear here.')
+	})
 })

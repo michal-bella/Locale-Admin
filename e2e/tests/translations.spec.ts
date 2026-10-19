@@ -1,11 +1,18 @@
-import { type APIRequestContext, expect, test } from '@playwright/test'
+import { type APIRequestContext, expect, type Page, test } from '@playwright/test'
 
+import { ANONYMOUS } from '../support/auth'
 import { listLanguages } from '../support/languages'
 import { getMainNavigation } from '../support/layout'
 import { createProject } from '../support/projects'
 import {
+	backgroundOf,
 	expectKeys,
+	expectStats,
+	expectView,
+	getCellButton,
+	getColumnHeaders,
 	getGroupHeaders,
+	getRowStatuses,
 	getSearch,
 	getShownCount,
 	getStat,
@@ -15,14 +22,21 @@ import {
 	insertTranslationKeys,
 	openTranslations,
 	pickOption,
-	rowBackground,
+	switchView,
 	type TestTranslationKey,
 	translationsPath,
+	TRANSPARENT,
 } from '../support/translations'
+import { loginAsFreshAdmin } from '../support/users'
 
 const SENTENCE_KEY = 'Adresa nie je kompletná. Uistite sa'
 
-/** Projects have sk (base), cs and en; the default target is cs. Target `cs`: 3 of 5 translated (60 %); target `en`: 2 of 5 (40 %). */
+const EXTENDED_HEADERS = ['Kľúč', 'slovenčina', 'čeština', 'English', 'Stav']
+
+/**
+ * Projects have sk (base), cs and en. Extended view (a row is translated only with every language): 1 of 5 (20 %), only `dashboard.welcome`.
+ * Compact view, target `cs` (the default): 3 of 5 (60 %); target `en`: 2 of 5 (40 %).
+ */
 const KEYS: TestTranslationKey[] = [
 	{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky', cs: null, en: 'You have no orders yet' } },
 	{ namespace: 'loc', name: 'orders.empty.description', values: { sk: 'Nové objednávky sa zobrazia tu.' } },
@@ -30,6 +44,8 @@ const KEYS: TestTranslationKey[] = [
 	{ namespace: 'loc', name: 'promo.banner', values: { sk: 'Zľava <strong>20 %</strong>', cs: 'Sleva <strong>20 %</strong>', en: null } },
 	{ namespace: 'paths', name: SENTENCE_KEY, values: { sk: 'Adresa nie je kompletná.', cs: 'Adresa není kompletní.' } },
 ]
+
+const EXTENDED_UNTRANSLATED_FIRST = ['orders.empty.description', 'orders.empty.title', 'promo.banner', SENTENCE_KEY, 'dashboard.welcome']
 
 const createProjectWithKeys = async (api: APIRequestContext, label: string, keys: TestTranslationKey[], languageTags = ['sk', 'cs', 'en']) => {
 	const project = await createProject(api, label, languageTags)
@@ -39,7 +55,12 @@ const createProjectWithKeys = async (api: APIRequestContext, label: string, keys
 	return project
 }
 
-test('the project index redirects to Preklady, the first sidebar item, with the stats of the target language', async ({ page, request }) => {
+const expectNoLanguageSelects = async (page: Page) => {
+	await expect(page.getByRole('combobox', { name: 'Zdrojový jazyk' })).toHaveCount(0)
+	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveCount(0)
+}
+
+test('the project index redirects to Preklady, the first sidebar item, in the extended view with the stats over every language', async ({ page, request }) => {
 	const project = await createProjectWithKeys(request, 'tr-overview', KEYS)
 
 	await page.goto(`/projects/${project.slug}`)
@@ -52,36 +73,77 @@ test('the project index redirects to Preklady, the first sidebar item, with the 
 	await expect(page.getByRole('button', { name: 'Importovať' })).toBeEnabled()
 	await expect(page.getByRole('button', { name: 'Exportovať' })).toHaveCount(0)
 
-	await expect(page.getByRole('combobox', { name: 'Zdrojový jazyk' })).toHaveValue('SK')
-	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('CS')
+	await expectView(page, 'EXTENDED')
+	await expectNoLanguageSelects(page)
 	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('5')
-	await expect(getStat(page, 'Preložené')).toHaveText('3')
-	await expect(getStat(page, 'Chýbajúce')).toHaveText('2')
-	await expect(page.getByRole('progressbar', { name: 'Preložené: 60 %' })).toBeVisible()
-	await expect(page.getByRole('progressbar', { name: 'Chýbajúce: 40 %' })).toBeVisible()
+	await expect(getStat(page, 'Preložené')).toHaveText('1')
+	await expect(getStat(page, 'Chýbajúce')).toHaveText('4')
+	await expect(page.getByRole('progressbar', { name: 'Preložené: 20 %' })).toBeVisible()
+	await expect(page.getByRole('progressbar', { name: 'Chýbajúce: 80 %' })).toBeVisible()
 	await expect(getShownCount(page, 'Zobrazených 5 z 5 kľúčov')).toBeVisible()
 	await expect(page.getByRole('navigation', { name: 'Stránkovanie' })).toHaveCount(0)
 })
 
-test('untranslated rows come first with a red background and badge; group headers split paths, not sentences', async ({ page, request }) => {
+test('the extended view has a column per language, the key and status columns sticky and a horizontal scroll container', async ({ page, request }) => {
+	const project = await createProjectWithKeys(request, 'tr-columns', KEYS)
+	await openTranslations(page, project)
+
+	const table = getTranslationsTable(page)
+	await expect(table).toHaveAttribute('data-view', 'EXTENDED')
+	await expect(getColumnHeaders(page)).toHaveText(EXTENDED_HEADERS)
+	await expect(getColumnHeaders(page).nth(1).locator('[data-flag="sk"]')).toHaveCount(1)
+	await expect(getColumnHeaders(page).nth(3).locator('[data-flag="gb"]')).toHaveCount(1)
+
+	const keyHeader = getColumnHeaders(page).first()
+	const statusHeader = getColumnHeaders(page).last()
+	await expect(keyHeader).toHaveClass(/stickyStart/)
+	await expect(statusHeader).toHaveClass(/stickyEnd/)
+	expect(await keyHeader.evaluate((element) => getComputedStyle(element).position)).toBe('sticky')
+	expect(await statusHeader.evaluate((element) => getComputedStyle(element).position)).toBe('sticky')
+	const row = getTranslationRow(page, 'dashboard.welcome')
+	await expect(row.locator('td').first()).toHaveClass(/stickyStart/)
+	await expect(row.locator('td').last()).toHaveClass(/stickyEnd/)
+	expect(await table.evaluate((element) => getComputedStyle(element.parentElement!).overflowX)).toBe('auto')
+
+	// Every language of the row is a cell button; the group label stays in view while the table scrolls.
+	await expect(row.getByRole('button', { name: /^Preklad kľúča dashboard\.welcome, / })).toHaveText([
+		'Preklad kľúča dashboard.welcome, slovenčina: Vitajte späť, {{name}}',
+		'Preklad kľúča dashboard.welcome, čeština: Vítejte zpět, {{name}}',
+		'Preklad kľúča dashboard.welcome, English: Welcome back, {{ name }}',
+	])
+	expect(
+		await getGroupHeaders(page)
+			.first()
+			.locator('span')
+			.evaluate((element) => getComputedStyle(element).position),
+	).toBe('sticky')
+})
+
+test('untranslated rows come first with a badge and a red cell, never a red row; group headers split paths, not sentences', async ({ page, request }) => {
 	const project = await createProjectWithKeys(request, 'tr-rows', KEYS)
 	await openTranslations(page, project)
 
-	await expectKeys(getTranslationRows(page), ['orders.empty.description', 'orders.empty.title', 'dashboard.welcome', 'promo.banner', SENTENCE_KEY])
-	const statuses = await getTranslationRows(page).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-status')))
-	expect(statuses).toEqual(['UNTRANSLATED', 'UNTRANSLATED', 'TRANSLATED', 'TRANSLATED', 'TRANSLATED'])
+	await expectKeys(getTranslationRows(page), EXTENDED_UNTRANSLATED_FIRST)
+	expect(await getRowStatuses(page)).toEqual(['UNTRANSLATED', 'UNTRANSLATED', 'UNTRANSLATED', 'UNTRANSLATED', 'TRANSLATED'])
 
 	const untranslated = getTranslationRow(page, 'orders.empty.title')
 	const translated = getTranslationRow(page, 'dashboard.welcome')
 	await expect(untranslated.getByText('Nepreložené', { exact: true })).toBeVisible()
-	await expect(untranslated.getByText('Bez prekladu', { exact: true })).toBeVisible()
-	await expect(getTranslationRow(page, 'orders.empty.description').getByText('Bez prekladu', { exact: true })).toBeVisible()
+	await expect(untranslated.getByText('Bez prekladu', { exact: true })).toHaveCount(1)
+	await expect(getTranslationRow(page, 'orders.empty.description').getByText('Bez prekladu', { exact: true })).toHaveCount(2)
 	await expect(translated.getByText('Preložené', { exact: true })).toBeVisible()
-	const untranslatedBackground = await rowBackground(untranslated)
-	expect(untranslatedBackground).not.toBe('rgba(0, 0, 0, 0)')
-	expect(untranslatedBackground).not.toBe(await rowBackground(translated))
+	expect(await backgroundOf(untranslated)).toBe(TRANSPARENT)
+	expect(await backgroundOf(translated)).toBe(TRANSPARENT)
 
-	await expect(getGroupHeaders(page)).toHaveText(['loc:orders.empty', 'loc:dashboard', 'loc:promo', 'paths'])
+	const emptyCell = getCellButton(untranslated, 'orders.empty.title', 'čeština')
+	const filledCell = getCellButton(untranslated, 'orders.empty.title', 'slovenčina')
+	await expect(emptyCell).toHaveAttribute('data-status', 'UNTRANSLATED')
+	await expect(filledCell).toHaveAttribute('data-status', 'TRANSLATED')
+	const untranslatedBackground = await backgroundOf(emptyCell)
+	expect(untranslatedBackground).not.toBe(TRANSPARENT)
+	expect(untranslatedBackground).not.toBe(await backgroundOf(filledCell))
+
+	await expect(getGroupHeaders(page)).toHaveText(['loc:orders.empty', 'loc:promo', 'paths', 'loc:dashboard'])
 	await expect(getTranslationRow(page, SENTENCE_KEY)).toContainText('paths')
 	await expect(getTranslationsTable(page).locator('tr').nth(1)).toHaveAttribute('data-group-header')
 })
@@ -91,7 +153,7 @@ test('variables show as chips and HTML as literal text', async ({ page, request 
 	await openTranslations(page, project)
 
 	const welcome = getTranslationRow(page, 'dashboard.welcome')
-	await expect(welcome.locator('code')).toHaveText(['{{name}}', '{{name}}'])
+	await expect(welcome.locator('code')).toHaveText(['{{name}}', '{{name}}', '{{ name }}'])
 	await expect(welcome).toContainText('Vítejte zpět, {{name}}')
 
 	const promo = getTranslationRow(page, 'promo.banner')
@@ -100,7 +162,7 @@ test('variables show as chips and HTML as literal text', async ({ page, request 
 	await expect(getTranslationsTable(page).locator('strong')).toHaveCount(0)
 })
 
-test('search filters key and text, is kept in the URL and survives a reload', async ({ page, request }) => {
+test('search filters key and the text of every language, is kept in the URL and survives a reload', async ({ page, request }) => {
 	const project = await createProjectWithKeys(request, 'tr-search', KEYS)
 	await openTranslations(page, project)
 
@@ -116,51 +178,35 @@ test('search filters key and text, is kept in the URL and survives a reload', as
 
 	await getSearch(page).fill('Vítejte')
 	await expectKeys(getTranslationRows(page), ['dashboard.welcome'])
+	await getSearch(page).fill('no orders')
+	await expectKeys(getTranslationRows(page), ['orders.empty.title'])
 	await getSearch(page).fill('UISTITE')
 	await expectKeys(getTranslationRows(page), [SENTENCE_KEY])
 })
 
-test('status and namespace filters are written to the URL', async ({ page, request }) => {
+test('the status filter follows the row status over every language; status and namespace are written to the URL', async ({ page, request }) => {
 	const project = await createProjectWithKeys(request, 'tr-filters', KEYS)
 	await openTranslations(page, project)
 
 	await expect(page.getByRole('combobox', { name: 'Stav' })).toHaveValue('Všetky stavy')
 	await pickOption(page, 'Stav', 'Nepreložené')
 	await expect(page).toHaveURL(translationsPath(project, '?status=UNTRANSLATED'))
-	await expectKeys(getTranslationRows(page), ['orders.empty.description', 'orders.empty.title'])
+	await expectKeys(getTranslationRows(page), ['orders.empty.description', 'orders.empty.title', 'promo.banner', SENTENCE_KEY])
+	await expect(getShownCount(page, 'Zobrazených 4 z 4 kľúčov')).toBeVisible()
 
 	await pickOption(page, 'Stav', 'Preložené')
 	await expect(page).toHaveURL(translationsPath(project, '?status=TRANSLATED'))
-	await expectKeys(getTranslationRows(page), ['dashboard.welcome', 'promo.banner', SENTENCE_KEY])
+	await expectKeys(getTranslationRows(page), ['dashboard.welcome'])
 
+	await pickOption(page, 'Stav', 'Nepreložené')
 	await pickOption(page, 'Namespace', 'paths')
 	await expect(page).toHaveURL(/namespace=paths/)
 	await expectKeys(getTranslationRows(page), [SENTENCE_KEY])
 
 	await page.reload()
-	await expect(page.getByRole('combobox', { name: 'Stav' })).toHaveValue('Preložené')
+	await expect(page.getByRole('combobox', { name: 'Stav' })).toHaveValue('Nepreložené')
 	await expect(page.getByRole('combobox', { name: 'Namespace' })).toHaveValue('paths')
 	await expectKeys(getTranslationRows(page), [SENTENCE_KEY])
-})
-
-test('switching the target language changes the values, statuses and stats', async ({ page, request }) => {
-	const project = await createProjectWithKeys(request, 'tr-target', KEYS)
-	await openTranslations(page, project)
-	await expect(getTranslationsTable(page).getByRole('columnheader')).toContainText(['Kľúč', 'slovenčina', 'čeština', 'Stav'])
-
-	await pickOption(page, 'Cieľový jazyk', /^EN/)
-	await expect(page).toHaveURL(translationsPath(project, '?target=en'))
-	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('EN')
-	await expect(getTranslationsTable(page).getByRole('columnheader')).toContainText(['Kľúč', 'slovenčina', 'English', 'Stav'])
-	await expect(getStat(page, 'Preložené')).toHaveText('2')
-	await expect(getStat(page, 'Chýbajúce')).toHaveText('3')
-	await expect(page.getByRole('progressbar', { name: 'Preložené: 40 %' })).toBeVisible()
-
-	await expectKeys(getTranslationRows(page), ['orders.empty.description', 'promo.banner', SENTENCE_KEY, 'dashboard.welcome', 'orders.empty.title'])
-	await expect(getTranslationRow(page, 'promo.banner')).toHaveAttribute('data-status', 'UNTRANSLATED')
-	await expect(getTranslationRow(page, 'orders.empty.title')).toHaveAttribute('data-status', 'TRANSLATED')
-	await expect(getTranslationRow(page, 'orders.empty.title')).toContainText('You have no orders yet')
-	await expect(getTranslationRow(page, 'dashboard.welcome').locator('code')).toHaveText(['{{name}}', '{{ name }}'])
 })
 
 test('more than 50 keys are paginated and a single namespace has no namespace filter', async ({ page, request }) => {
@@ -204,7 +250,7 @@ test('a project without keys shows the empty state with Importovať, which opens
 	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('0')
 })
 
-test('no results show Zrušiť filtre, which clears search and status but keeps the languages', async ({ page, request }) => {
+test('no results show Zrušiť filtre, which clears search and status but keeps the rest of the URL', async ({ page, request }) => {
 	const project = await createProjectWithKeys(request, 'tr-no-results', KEYS)
 	await openTranslations(page, project, '?search=neexistuje&status=TRANSLATED&target=en')
 
@@ -216,4 +262,71 @@ test('no results show Zrušiť filtre, which clears search and status but keeps 
 	await expect(getSearch(page)).toHaveValue('')
 	await expect(page.getByRole('combobox', { name: 'Stav' })).toHaveValue('Všetky stavy')
 	await expect(getTranslationRows(page)).toHaveCount(5)
+})
+
+// The view is saved on the user, so these tests sign in as their own ADMIN and leave the shared one in EXTENDED.
+test.describe('view switch', () => {
+	test.use({ storageState: ANONYMOUS })
+
+	test('Zdroj → cieľ saves the preference, shows the language selects and the target stats, survives a reload; Všetky jazyky saves EXTENDED', async ({
+		page,
+		playwright,
+		baseURL,
+	}) => {
+		await loginAsFreshAdmin(page, playwright.request, baseURL)
+		const project = await createProjectWithKeys(page.request, 'tr-view', KEYS)
+		await openTranslations(page, project)
+		await expectView(page, 'EXTENDED')
+		await expectNoLanguageSelects(page)
+		expect(await (await page.request.get('/api/auth/me')).json()).toMatchObject({ preferences: { translationsView: 'EXTENDED' } })
+
+		const compact = await switchView(page, 'COMPACT')
+		expect(compact.status()).toBe(200)
+		expect(await compact.json()).toMatchObject({ preferences: { translationsView: 'COMPACT' } })
+		await expect(page).toHaveURL(translationsPath(project))
+		await expectView(page, 'COMPACT')
+		await expect(page.getByRole('combobox', { name: 'Zdrojový jazyk' })).toHaveValue('SK')
+		await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('CS')
+		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina', 'čeština', 'Stav'])
+		await expectStats(page, 3, 2)
+		await expect(page.getByRole('progressbar', { name: 'Preložené: 60 %' })).toBeVisible()
+		await expectKeys(getTranslationRows(page), ['orders.empty.description', 'orders.empty.title', 'dashboard.welcome', 'promo.banner', SENTENCE_KEY])
+		expect(await getRowStatuses(page)).toEqual(['UNTRANSLATED', 'UNTRANSLATED', 'TRANSLATED', 'TRANSLATED', 'TRANSLATED'])
+		// The source text is read-only; only the target cell is a button.
+		await expect(getTranslationRow(page, 'dashboard.welcome').getByRole('button', { name: /^Preklad kľúča/ })).toHaveText([
+			'Preklad kľúča dashboard.welcome, čeština: Vítejte zpět, {{name}}',
+		])
+		expect(await (await page.request.get('/api/auth/me')).json()).toMatchObject({ preferences: { translationsView: 'COMPACT' } })
+
+		await page.reload()
+		await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+		await expectView(page, 'COMPACT')
+		await expectStats(page, 3, 2)
+
+		await pickOption(page, 'Cieľový jazyk', /^EN/)
+		await expect(page).toHaveURL(translationsPath(project, '?target=en'))
+		await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('EN')
+		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina', 'English', 'Stav'])
+		await expectStats(page, 2, 3)
+		await expect(page.getByRole('progressbar', { name: 'Preložené: 40 %' })).toBeVisible()
+		await expectKeys(getTranslationRows(page), ['orders.empty.description', 'promo.banner', SENTENCE_KEY, 'dashboard.welcome', 'orders.empty.title'])
+		await expect(getTranslationRow(page, 'promo.banner')).toHaveAttribute('data-status', 'UNTRANSLATED')
+		await expect(getTranslationRow(page, 'orders.empty.title')).toHaveAttribute('data-status', 'TRANSLATED')
+		await expect(getTranslationRow(page, 'orders.empty.title')).toContainText('You have no orders yet')
+		await expect(getTranslationRow(page, 'dashboard.welcome').locator('code')).toHaveText(['{{name}}', '{{ name }}'])
+
+		// Back to every language: `target` stays in the URL and is ignored.
+		const extended = await switchView(page, 'EXTENDED')
+		expect(extended.status()).toBe(200)
+		await expect(page).toHaveURL(translationsPath(project, '?target=en'))
+		await expectNoLanguageSelects(page)
+		await expect(getColumnHeaders(page)).toHaveText(EXTENDED_HEADERS)
+		await expectStats(page, 1, 4)
+		await expectKeys(getTranslationRows(page), EXTENDED_UNTRANSLATED_FIRST)
+
+		await page.reload()
+		await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+		await expectView(page, 'EXTENDED')
+		expect(await (await page.request.get('/api/auth/me')).json()).toMatchObject({ preferences: { translationsView: 'EXTENDED' } })
+	})
 })

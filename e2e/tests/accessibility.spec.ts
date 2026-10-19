@@ -6,7 +6,17 @@ import { ANONYMOUS } from '../support/auth'
 import { getImportDialog, SAMPLE_CSV } from '../support/imports'
 import { listLanguages, newAdminApi } from '../support/languages'
 import { createProject } from '../support/projects'
-import { insertTranslationKeys, listTranslations, translationKeyApi } from '../support/translations'
+import {
+	getEditTranslationDialog,
+	getTranslationField,
+	insertTranslationKeys,
+	listTranslations,
+	saveTranslation,
+	setTranslationsView,
+	translationKeyApi,
+	type TranslationsView,
+} from '../support/translations'
+import { loginAsFreshAdmin } from '../support/users'
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 const COLOR_SCHEMES = ['light', 'dark'] as const
@@ -15,6 +25,7 @@ const COLOR_CONTRAST = 'color-contrast'
 /**
  * `path` is a function for pages of a project: it creates a test project as the ADMIN and returns its URL.
  * `prepare` runs after `ready` for screens that need interaction before the scan (an opened modal).
+ * `view` signs the page in as a fresh ADMIN with that translations view: the view is saved on the user and the shared ADMIN stays EXTENDED.
  */
 type Screen = {
 	name: string
@@ -22,6 +33,7 @@ type Screen = {
 	ready: (page: Page) => Promise<void>
 	prepare?: (page: Page) => Promise<void>
 	anonymous?: boolean
+	view?: TranslationsView
 }
 
 const inNewProject = (page: 'settings' | 'languages' | 'members' | 'translations') => async (request: APIRequest) => {
@@ -54,12 +66,10 @@ const translationsWithPluralKey = async (request: APIRequest) => {
 	const api = await newAdminApi(request)
 	try {
 		const project = await createProject(api, 'a11y-plural')
-		const languages = await listLanguages(api, project.id)
-		const [sk, en] = languages
-		await insertTranslationKeys(project.id, languages, [
+		await insertTranslationKeys(project.id, await listLanguages(api, project.id), [
 			{ namespace: 'loc', name: 'cart.items', values: { sk: 'Máte {{count}} položiek', en: 'You have {{count}} items' } },
 		])
-		const { keyId } = (await listTranslations(api, project.id, sk!.id, en!.id)).items[0]!
+		const { keyId } = (await listTranslations(api, project.id)).items[0]!
 		const response = await api.patch(translationKeyApi(project.id, keyId), { data: { plural: { variable: 'count' } }, headers: MUTATION_HEADERS })
 		expect(response.status(), `PATCH ${translationKeyApi(project.id, keyId)}`).toBe(200)
 		return `/projects/${project.slug}/translations`
@@ -86,20 +96,21 @@ const openImportReview = async (page: Page) => {
 	await expect(getImportDialog(page).getByText('Upozornenia pre stĺpec cs')).toBeVisible()
 }
 
-/** Editor of the untranslated `orders.empty.title` (en) opened: textarea, hint and the focus ring. */
-const openTranslationEditor = async (page: Page) => {
+/** Edit translation modal of the untranslated `orders.empty.title` (en): key, language, the base language reference, the empty field and the buttons. */
+const openTranslationModal = async (page: Page) => {
 	await page.getByRole('button', { name: 'Preklad kľúča orders.empty.title, English:' }).click()
-	await expect(page.getByRole('textbox', { name: 'Preklad kľúča orders.empty.title, English', exact: true })).toBeFocused()
+	await expect(getEditTranslationDialog(page).getByText('Základný jazyk (slovenčina)', { exact: true })).toBeVisible()
+	await expect(getTranslationField(page, 'orders.empty.title')).toBeFocused()
 }
 
-/** Editor of `dashboard.welcome` with a rejected draft (missing `{{name}}`) and the mismatch alert under the field. */
+/** Edit translation modal of `dashboard.welcome` with a rejected draft (missing `{{name}}`) and the mismatch alert under the field. */
 const openTranslationMismatch = async (page: Page) => {
 	await page.getByRole('button', { name: 'Preklad kľúča dashboard.welcome, English:' }).click()
-	const editor = page.getByRole('textbox', { name: 'Preklad kľúča dashboard.welcome, English', exact: true })
-	await editor.fill('Welcome back, friend')
-	await page.keyboard.press('Control+Enter')
-	await expect(page.getByRole('alert')).toHaveText('Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}.')
-	await expect(editor).toHaveAttribute('aria-invalid', 'true')
+	const field = getTranslationField(page, 'dashboard.welcome')
+	await field.fill('Welcome back, friend')
+	expect((await saveTranslation(page)).status()).toBe(400)
+	await expect(getEditTranslationDialog(page).getByRole('alert')).toHaveText('Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}.')
+	await expect(field).toHaveAttribute('aria-invalid', 'true')
 }
 
 /** Edit key modal of `dashboard.welcome` with the plural checkbox on, so the variable field is scanned too. */
@@ -111,12 +122,15 @@ const openEditKeyModal = async (page: Page) => {
 	await expect(dialog.getByLabel('Názov premennej', { exact: true })).toHaveValue('count')
 }
 
-/** Both en forms of the plural row open for editing (One empty, Other with `#`-less text), the stacked sk forms next to them. */
-const openPluralEditor = async (page: Page) => {
+/** Edit translation modal of the plural row (en): a field per form (One empty, Other with text), the stacked sk forms in the reference block. */
+const openPluralModal = async (page: Page) => {
 	await page.getByRole('button', { name: 'Preklad kľúča cart.items, English:' }).click()
-	await expect(page.getByRole('textbox', { name: 'Preklad kľúča cart.items, English, Jeden', exact: true })).toBeFocused()
-	await expect(page.getByRole('textbox', { name: 'Preklad kľúča cart.items, English, Iné', exact: true })).toHaveText('You have {{count}} items')
+	await expect(getTranslationField(page, 'cart.items', 'English', 'Jeden')).toBeFocused()
+	await expect(getTranslationField(page, 'cart.items', 'English', 'Iné')).toHaveText('You have {{count}} items')
 }
+
+const translationsRowsReady = (count: number) => (page: Page) =>
+	expect(page.getByRole('table', { name: 'Zoznam prekladov' }).locator('tr[data-status]')).toHaveCount(count)
 
 const SCREENS: Screen[] = [
 	{
@@ -136,20 +150,33 @@ const SCREENS: Screen[] = [
 		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam používateľov' })).toHaveAttribute('aria-busy', 'false'),
 	},
 	{
-		name: 'project translations',
+		name: 'project translations extended',
 		path: translationsWithKeys,
-		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam prekladov' }).locator('tr[data-status]')).toHaveCount(3),
+		ready: translationsRowsReady(3),
 	},
 	{
-		name: 'translation editor',
+		name: 'project translations compact',
 		path: translationsWithKeys,
-		ready: translationsReady,
-		prepare: openTranslationEditor,
+		ready: translationsRowsReady(3),
+		view: 'COMPACT',
 	},
 	{
-		name: 'translation editor mismatch',
+		name: 'edit translation modal',
 		path: translationsWithKeys,
-		ready: translationsReady,
+		ready: translationsRowsReady(3),
+		prepare: openTranslationModal,
+	},
+	{
+		name: 'edit translation modal in compact view',
+		path: translationsWithKeys,
+		ready: translationsRowsReady(3),
+		prepare: openTranslationModal,
+		view: 'COMPACT',
+	},
+	{
+		name: 'edit translation modal mismatch',
+		path: translationsWithKeys,
+		ready: translationsRowsReady(3),
 		prepare: openTranslationMismatch,
 	},
 	{
@@ -159,10 +186,10 @@ const SCREENS: Screen[] = [
 		prepare: openEditKeyModal,
 	},
 	{
-		name: 'plural row editor',
+		name: 'edit translation modal of a plural key',
 		path: translationsWithPluralKey,
-		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam prekladov' }).locator('tr[data-status]')).toHaveCount(1),
-		prepare: openPluralEditor,
+		ready: translationsRowsReady(1),
+		prepare: openPluralModal,
 	},
 	{
 		name: 'import modal step 1',
@@ -203,7 +230,11 @@ const SCREENS: Screen[] = [
 	},
 ]
 
-const openScreen = async (page: Page, request: APIRequest, screen: Screen, colorScheme: (typeof COLOR_SCHEMES)[number]) => {
+const openScreen = async (page: Page, request: APIRequest, baseURL: string | undefined, screen: Screen, colorScheme: (typeof COLOR_SCHEMES)[number]) => {
+	if (screen.view) {
+		await loginAsFreshAdmin(page, request, baseURL)
+		await setTranslationsView(page.request, screen.view)
+	}
 	// Set per page, never through the shared storageState, so other tests keep the light default.
 	await page.addInitScript((value) => localStorage.setItem('mantine-color-scheme-value', value), colorScheme)
 	await page.goto(typeof screen.path === 'string' ? screen.path : await screen.path(request))
@@ -220,19 +251,19 @@ const expectNoViolations = async (axe: AxeBuilder, testInfo: TestInfo) => {
 
 for (const screen of SCREENS) {
 	test.describe(`${screen.name} page`, () => {
-		if (screen.anonymous) {
+		if (screen.anonymous || screen.view) {
 			test.use({ storageState: ANONYMOUS })
 		}
 
 		for (const colorScheme of COLOR_SCHEMES) {
-			test(`has no WCAG 2.2 AA violations in ${colorScheme} scheme`, async ({ page, playwright }, testInfo) => {
-				await openScreen(page, playwright.request, screen, colorScheme)
+			test(`has no WCAG 2.2 AA violations in ${colorScheme} scheme`, async ({ page, playwright, baseURL }, testInfo) => {
+				await openScreen(page, playwright.request, baseURL, screen, colorScheme)
 				await expectNoViolations(new AxeBuilder({ page }).withTags(WCAG_TAGS).disableRules([COLOR_CONTRAST]), testInfo)
 			})
 
 			// TODO: enable once the brand button, dimmed text and eyebrow tokens meet AA contrast (design decision, see docs/testing.md).
-			test.fixme(`has AA text contrast in ${colorScheme} scheme`, async ({ page, playwright }, testInfo) => {
-				await openScreen(page, playwright.request, screen, colorScheme)
+			test.fixme(`has AA text contrast in ${colorScheme} scheme`, async ({ page, playwright, baseURL }, testInfo) => {
+				await openScreen(page, playwright.request, baseURL, screen, colorScheme)
 				await expectNoViolations(new AxeBuilder({ page }).withRules([COLOR_CONTRAST]), testInfo)
 			})
 		}

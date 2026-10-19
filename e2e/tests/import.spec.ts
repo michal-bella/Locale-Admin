@@ -22,7 +22,7 @@ import {
 } from '../support/imports'
 import { listLanguages } from '../support/languages'
 import { createProject } from '../support/projects'
-import { getStat, getTranslationRows, translationsPath } from '../support/translations'
+import { getRowStatuses, getStat, getTranslationRows, listTranslations } from '../support/translations'
 
 test('imports the sample file, adds the missing language from the review and shows the result in the list', async ({ page, request }) => {
 	const project = await createProject(request, 'import-happy', ['sk', 'en'])
@@ -95,19 +95,19 @@ test('imports the sample file, adds the missing language from the review and sho
 	await expect(page.getByText(importSuccessMessage(10, 22, 0))).toBeVisible()
 	await expect(getImportDialog(page)).toHaveCount(0)
 
-	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('CS')
+	// The extended view counts a row as translated only with a value in sk, en and cs: 4 of 10.
 	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
-	await expect(getStat(page, 'Preložené')).toHaveText(String(SAMPLE.cs.translations))
-	await expect(getStat(page, 'Chýbajúce')).toHaveText(String(SAMPLE.cs.untranslated))
+	await expect(getStat(page, 'Preložené')).toHaveText('4')
+	await expect(getStat(page, 'Chýbajúce')).toHaveText('6')
 	await expect(getTranslationRows(page)).toHaveCount(10)
-	const statuses = await getTranslationRows(page).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-status')))
-	expect(statuses).toEqual([...Array<string>(4).fill('UNTRANSLATED'), ...Array<string>(6).fill('TRANSLATED')])
+	expect(await getRowStatuses(page)).toEqual([...Array<string>(6).fill('UNTRANSLATED'), ...Array<string>(4).fill('TRANSLATED')])
 	await expect(getTranslationRows(page).filter({ hasText: 'promo.banner' }).getByText('Sleva <strong>20 %</strong>', { exact: true })).toBeVisible()
-	await expect(getTranslationRows(page).filter({ hasText: 'cart.items' }).locator('code')).toHaveText(['{{count}}'])
+	await expect(getTranslationRows(page).filter({ hasText: 'cart.items' }).locator('code')).toHaveText(['{{count}}', '{{count}}'])
 
-	await page.goto(translationsPath(project, '?target=en'))
-	await expect(getStat(page, 'Preložené')).toHaveText(String(SAMPLE.en.translations))
-	await expect(getStat(page, 'Chýbajúce')).toHaveText(String(SAMPLE.en.untranslated))
+	const en = await listTranslations(request, project.id, { sourceLanguageId: languageId('sk'), targetLanguageId: languageId('en') })
+	expect(en.stats).toEqual({ totalKeys: 10, translated: SAMPLE.en.translations, untranslated: SAMPLE.en.untranslated })
+	const cs = await listTranslations(request, project.id, { sourceLanguageId: languageId('sk'), targetLanguageId: languageId('cs') })
+	expect(cs.stats).toEqual({ totalKeys: 10, translated: SAMPLE.cs.translations, untranslated: SAMPLE.cs.untranslated })
 
 	await page.goto(`/projects/${project.slug}/languages`)
 	const languagesTable = page.getByRole('table', { name: 'Zoznam jazykov' })
@@ -148,7 +148,6 @@ test('a column set to Preskočiť is not imported', async ({ page, request }) =>
 	await expect(page.getByText(importSuccessMessage(10, 9, 0))).toBeVisible()
 	await expect(getImportDialog(page)).toHaveCount(0)
 
-	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('EN')
 	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
 	await expect(getStat(page, 'Preložené')).toHaveText('0')
 	await expect(getStat(page, 'Chýbajúce')).toHaveText('10')

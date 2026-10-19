@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 
-import { type APIRequest, type APIRequestContext, expect } from '@playwright/test'
+import { type APIRequest, type APIRequestContext, expect, type Page } from '@playwright/test'
 
 import { type AdminUser, MUTATION_HEADERS, type Role } from './api'
 import { type Credentials, STORAGE_STATE } from './auth'
@@ -57,3 +57,15 @@ export const createEditor = (request: APIRequest, baseURL: string | undefined): 
 /** Creates an ADMIN through `POST /api/admin/users` as the ADMIN. */
 export const createAdmin = (request: APIRequest, baseURL: string | undefined): Promise<TestUser> =>
 	withAdminApi(request, baseURL, (api) => postUser(api, 'ADMIN'))
+
+/**
+ * Creates an ADMIN and signs the page in as them through `POST /api/auth/login` on `page.request`, which shares the cookies of the page.
+ * For tests that change per-user state (the translations view preference): the shared ADMIN storage state is used by every parallel test.
+ * Use with `test.use({ storageState: ANONYMOUS })`.
+ */
+export const loginAsFreshAdmin = async (page: Page, request: APIRequest, baseURL: string | undefined) => {
+	const admin = await createAdmin(request, baseURL)
+	const response = await page.request.post('/api/auth/login', { data: { email: admin.email, password: admin.password }, headers: MUTATION_HEADERS })
+	expect(response.status(), 'POST /api/auth/login').toBe(200)
+	return admin
+}

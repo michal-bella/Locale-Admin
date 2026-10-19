@@ -15,7 +15,7 @@ import {
 	projectSettingsApi,
 	TEST_PROJECT_SLUG_PREFIX,
 } from '../support/projects'
-import { insertTranslationKeys, listTranslations, projectTranslationsApi, translationApi, translationKeyApi } from '../support/translations'
+import { insertTranslationKeys, listTranslations, PREFERENCES_API, projectTranslationsApi, translationApi, translationKeyApi } from '../support/translations'
 import { addMember, createEditor, createMember, newTestUserCredentials } from '../support/users'
 
 const CREDENTIALS = { email: 'csrf-check@example.com', password: 'irrelevant' }
@@ -156,7 +156,15 @@ test.describe('/api/profile', () => {
 			headers: MUTATION_HEADERS,
 		})
 		expect(update.status()).toBe(200)
-		const expected = { id: editor.id, email: editor.email, role: 'EDITOR', firstName: 'Jana', lastName: 'Kováčová', passwordChangedAt: expect.any(String) }
+		const expected = {
+			id: editor.id,
+			email: editor.email,
+			role: 'EDITOR',
+			firstName: 'Jana',
+			lastName: 'Kováčová',
+			preferences: { translationsView: 'EXTENDED' },
+			passwordChangedAt: expect.any(String),
+		}
 		expect(await update.json()).toEqual(expected)
 		expect(await (await request.get('/api/profile')).json()).toEqual(expected)
 
@@ -175,6 +183,56 @@ test.describe('/api/profile', () => {
 		expect(withoutCsrfHeader.status()).toBe(403)
 		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
 		expect(await (await request.get('/api/profile')).json()).toEqual(expected)
+	})
+
+	test('PATCH /api/profile/preferences saves the translations view, /api/auth/me reflects it and an unknown value is rejected', async ({
+		request,
+		playwright,
+		baseURL,
+	}) => {
+		const editor = await createEditor(playwright.request, baseURL)
+		const login = await request.post('/api/auth/login', { data: { email: editor.email, password: editor.password }, headers: MUTATION_HEADERS })
+		expect(login.status()).toBe(200)
+		const me = async () => (await request.get('/api/auth/me')).json() as Promise<{ preferences: { translationsView: string } }>
+		expect(await me()).toMatchObject({ id: editor.id, preferences: { translationsView: 'EXTENDED' } })
+
+		const compact = await request.patch(PREFERENCES_API, { data: { translationsView: 'COMPACT' }, headers: MUTATION_HEADERS })
+		expect(compact.status()).toBe(200)
+		const expected = {
+			id: editor.id,
+			email: editor.email,
+			role: 'EDITOR',
+			firstName: null,
+			lastName: null,
+			preferences: { translationsView: 'COMPACT' },
+			passwordChangedAt: expect.any(String),
+		}
+		expect(await compact.json()).toEqual(expected)
+		expect(await (await request.get('/api/profile')).json()).toEqual(expected)
+		expect((await me()).preferences).toEqual({ translationsView: 'COMPACT' })
+
+		for (const data of [{ translationsView: 'WIDE' }, { translationsView: 'compact' }, {}]) {
+			const invalid = await request.patch(PREFERENCES_API, { data, headers: MUTATION_HEADERS })
+			expect(invalid.status(), JSON.stringify(data)).toBe(400)
+			const error = await readApiError(invalid)
+			expect(error.code).toBe('VALIDATION_ERROR')
+			expect(error.details).toEqual([expect.objectContaining({ path: 'translationsView', code: expect.any(String) })])
+		}
+		const withoutCsrfHeader = await request.patch(PREFERENCES_API, { data: { translationsView: 'EXTENDED' } })
+		expect(withoutCsrfHeader.status()).toBe(403)
+		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
+		expect((await me()).preferences).toEqual({ translationsView: 'COMPACT' })
+
+		const anonymous = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
+		const unauthenticated = await anonymous.patch(PREFERENCES_API, { data: { translationsView: 'EXTENDED' }, headers: MUTATION_HEADERS })
+		expect(unauthenticated.status()).toBe(401)
+		expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
+		await anonymous.dispose()
+
+		const restored = await request.patch(PREFERENCES_API, { data: { translationsView: 'EXTENDED' }, headers: MUTATION_HEADERS })
+		expect(restored.status()).toBe(200)
+		expect(await restored.json()).toMatchObject({ preferences: { translationsView: 'EXTENDED' } })
+		expect((await me()).preferences).toEqual({ translationsView: 'EXTENDED' })
 	})
 })
 
@@ -320,80 +378,115 @@ test.describe('ADMIN /api/projects', () => {
 test.describe('/api/projects/:projectId/translations', () => {
 	test.use({ storageState: STORAGE_STATE.ADMIN })
 
-	test('lists keys with stats and namespaces, validates the query and hides foreign projects and languages', async ({ request, playwright, baseURL }) => {
+	test('lists keys with a cell per language, the row status by the target or by every language, validates the query and hides foreign projects and languages', async ({
+		request,
+		playwright,
+		baseURL,
+	}) => {
 		const project = await createProject(request, 'smoke-tr', ['sk', 'en'])
 		const languages = await listLanguages(request, project.id)
 		const [sk, en] = languages
 		await insertTranslationKeys(project.id, languages, [
 			{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky', en: null } },
 			{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte, {{name}}', en: 'Welcome, {{name}}' } },
+			{ namespace: 'loc', name: 'legal.terms', values: { sk: null, en: 'Terms' } },
 			{ namespace: 'paths', name: 'Adresa nie je kompletná. Uistite sa', values: { sk: 'Adresa' } },
 		])
 		const url = projectTranslationsApi(project.id)
 		const languageParams = { sourceLanguageId: sk!.id, targetLanguageId: en!.id }
+		const key = (name: string, group: string) => ({
+			keyId: expect.any(String),
+			namespace: group.split(':')[0],
+			name,
+			group,
+			description: null,
+			plural: null,
+		})
+		const cell = (value: string | null, updatedAt: unknown = expect.any(String)) => ({
+			value,
+			status: value === null ? 'UNTRANSLATED' : 'TRANSLATED',
+			updatedAt,
+		})
+		const EMPTY_CELL = cell(null, null)
 
+		// Compact semantics: the target language decides the row status, the stats and the order.
 		const list = await request.get(url, { params: languageParams })
 		expect(list.status()).toBe(200)
-		const body = (await list.json()) as { items: { target: { updatedAt: string | null } }[] }
+		const body = (await list.json()) as { items: { translations: Record<string, { updatedAt: string | null }> }[] }
 		expect(body).toEqual({
 			items: [
 				{
-					keyId: expect.any(String),
-					namespace: 'loc',
-					name: 'orders.empty.title',
-					group: 'loc:orders.empty',
-					description: null,
-					plural: null,
-					source: { value: 'Zatiaľ nemáte žiadne objednávky' },
-					target: { value: null, status: 'UNTRANSLATED', updatedAt: expect.any(String) },
+					...key('orders.empty.title', 'loc:orders.empty'),
+					status: 'UNTRANSLATED',
+					translations: { [sk!.id]: cell('Zatiaľ nemáte žiadne objednávky'), [en!.id]: cell(null) },
 				},
 				{
-					keyId: expect.any(String),
-					namespace: 'paths',
-					name: 'Adresa nie je kompletná. Uistite sa',
-					group: 'paths',
-					description: null,
-					plural: null,
-					source: { value: 'Adresa' },
-					target: { value: null, status: 'UNTRANSLATED', updatedAt: null },
+					...key('Adresa nie je kompletná. Uistite sa', 'paths'),
+					status: 'UNTRANSLATED',
+					translations: { [sk!.id]: cell('Adresa'), [en!.id]: EMPTY_CELL },
 				},
 				{
-					keyId: expect.any(String),
-					namespace: 'loc',
-					name: 'dashboard.welcome',
-					group: 'loc:dashboard',
-					description: null,
-					plural: null,
-					source: { value: 'Vitajte, {{name}}' },
-					target: { value: 'Welcome, {{name}}', status: 'TRANSLATED', updatedAt: expect.any(String) },
+					...key('dashboard.welcome', 'loc:dashboard'),
+					status: 'TRANSLATED',
+					translations: { [sk!.id]: cell('Vitajte, {{name}}'), [en!.id]: cell('Welcome, {{name}}') },
 				},
+				{ ...key('legal.terms', 'loc:legal'), status: 'TRANSLATED', translations: { [sk!.id]: cell(null), [en!.id]: cell('Terms') } },
 			],
-			total: 3,
+			total: 4,
 			page: 1,
 			pageSize: 50,
-			stats: { totalKeys: 3, translated: 1, untranslated: 2 },
+			stats: { totalKeys: 4, translated: 2, untranslated: 2 },
 			namespaces: ['loc', 'paths'],
 		})
-		expect(new Date(body.items[0]!.target.updatedAt!).toISOString()).toBe(body.items[0]!.target.updatedAt)
+		const updatedAt = body.items[0]!.translations[en!.id]!.updatedAt!
+		expect(new Date(updatedAt).toISOString()).toBe(updatedAt)
+
+		// Extended semantics (no language pair): a row is translated only with a value in every language; the search covers every language.
+		const extended = await request.get(url)
+		expect(extended.status()).toBe(200)
+		expect(await extended.json()).toMatchObject({
+			items: [
+				{ name: 'legal.terms', status: 'UNTRANSLATED' },
+				{ name: 'orders.empty.title', status: 'UNTRANSLATED' },
+				{ name: 'Adresa nie je kompletná. Uistite sa', status: 'UNTRANSLATED' },
+				{ name: 'dashboard.welcome', status: 'TRANSLATED', translations: { [sk!.id]: cell('Vitajte, {{name}}'), [en!.id]: cell('Welcome, {{name}}') } },
+			],
+			total: 4,
+			stats: { totalKeys: 4, translated: 1, untranslated: 3 },
+			namespaces: ['loc', 'paths'],
+		})
+		const extendedFiltered = await request.get(url, { params: { status: 'TRANSLATED' } })
+		expect(await extendedFiltered.json()).toMatchObject({ items: [{ name: 'dashboard.welcome' }], total: 1 })
+		const extendedSearch = await request.get(url, { params: { search: 'terms' } })
+		expect(await extendedSearch.json()).toMatchObject({ items: [{ name: 'legal.terms' }], total: 1 })
+		const compactSearch = await request.get(url, { params: { ...languageParams, search: 'terms' } })
+		expect(await compactSearch.json()).toMatchObject({ items: [{ name: 'legal.terms' }], total: 1 })
 
 		const filtered = await request.get(url, { params: { ...languageParams, search: 'WELCOME', status: 'TRANSLATED', namespace: 'loc', pageSize: 1 } })
 		expect(filtered.status()).toBe(200)
-		expect(await filtered.json()).toMatchObject({ items: [{ name: 'dashboard.welcome' }], total: 1, pageSize: 1, stats: { totalKeys: 3 } })
+		expect(await filtered.json()).toMatchObject({ items: [{ name: 'dashboard.welcome' }], total: 1, pageSize: 1, stats: { totalKeys: 4 } })
 		const pastEnd = await request.get(url, { params: { ...languageParams, page: 5 } })
-		expect(await pastEnd.json()).toMatchObject({ items: [], total: 3, page: 5 })
+		expect(await pastEnd.json()).toMatchObject({ items: [], total: 4, page: 5 })
 
-		for (const params of [
-			{},
-			{ ...languageParams, sourceLanguageId: 'not-a-uuid' },
-			{ ...languageParams, status: 'REVIEW' },
-			{ ...languageParams, sort: 'RANDOM' },
-			{ ...languageParams, pageSize: 101 },
-		]) {
+		for (const [params, path] of [
+			[{ sourceLanguageId: sk!.id }, 'targetLanguageId'],
+			[{ targetLanguageId: en!.id }, 'sourceLanguageId'],
+			[{ ...languageParams, sourceLanguageId: 'not-a-uuid' }, 'sourceLanguageId'],
+			[{ ...languageParams, status: 'REVIEW' }, 'status'],
+			[{ ...languageParams, sort: 'RANDOM' }, 'sort'],
+			[{ ...languageParams, pageSize: 101 }, 'pageSize'],
+		] as const) {
 			const invalid = await request.get(url, { params })
 			expect(invalid.status(), JSON.stringify(params)).toBe(400)
 			const error = await readApiError(invalid)
 			expect(error.code).toBe('VALIDATION_ERROR')
-			expect(error.details).toEqual(expect.arrayContaining([expect.objectContaining({ path: expect.any(String), code: expect.any(String) })]))
+			expect(error.details).toEqual([expect.objectContaining({ path, code: expect.any(String) })])
+		}
+		for (const [params, path] of [
+			[{ sourceLanguageId: sk!.id }, 'targetLanguageId'],
+			[{ targetLanguageId: en!.id }, 'sourceLanguageId'],
+		] as const) {
+			expect((await readApiError(await request.get(url, { params }))).details).toEqual([expect.objectContaining({ path, code: 'REQUIRED' })])
 		}
 
 		const other = await createProject(request, 'smoke-tr-other', ['sk'])
@@ -431,12 +524,12 @@ test.describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId
 			{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte späť, {{name}}', en: null } },
 			{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov' } },
 		])
-		const list = () => listTranslations(request, project.id, sk!.id, en!.id)
+		const list = () => listTranslations(request, project.id, { sourceLanguageId: sk!.id, targetLanguageId: en!.id })
 		const items = (await list()).items
 		const welcome = items.find(({ name }) => name === 'dashboard.welcome')!
 		const home = items.find(({ name }) => name === 'nav.home')!
 		const url = translationApi(project.id, welcome.keyId, en!.id)
-		const targetOf = async (keyId: string) => (await list()).items.find((item) => item.keyId === keyId)!.target
+		const targetOf = async (keyId: string) => (await list()).items.find((item) => item.keyId === keyId)!.translations[en!.id]
 
 		const saved = await request.put(url, { data: { value: 'Welcome back, {{ name }}' }, headers: MUTATION_HEADERS })
 		expect(saved.status()).toBe(200)
@@ -508,7 +601,7 @@ test.describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 			{ namespace: 'loc', name: 'cart.items', values: { sk: 'Máte {{count}} položiek', en: 'You have {{count}} items' } },
 			{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky', en: null } },
 		])
-		const list = () => listTranslations(request, project.id, sk!.id, en!.id)
+		const list = () => listTranslations(request, project.id)
 		const itemOf = async (keyId: string) => (await list()).items.find((item) => item.keyId === keyId)!
 		const cart = (await list()).items.find(({ name }) => name === 'cart.items')!
 		const url = translationKeyApi(project.id, cart.keyId)
@@ -532,16 +625,20 @@ test.describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		expect(await itemOf(cart.keyId)).toMatchObject({
 			description: 'Počet položiek v košíku',
 			plural: { variable: 'count' },
-			source: { value: '{count, plural, other {Máte {{count}} položiek}}' },
-			target: { value: '{count, plural, other {You have {{count}} items}}', status: 'TRANSLATED' },
+			translations: {
+				[sk!.id]: { value: '{count, plural, other {Máte {{count}} položiek}}' },
+				[en!.id]: { value: '{count, plural, other {You have {{count}} items}}', status: 'TRANSLATED' },
+			},
 		})
 
 		const renamedVariable = await patch({ plural: { variable: 'n' } })
 		expect(renamedVariable.status()).toBe(200)
 		expect(await itemOf(cart.keyId)).toMatchObject({
 			plural: { variable: 'n' },
-			source: { value: '{n, plural, other {Máte {{count}} položiek}}' },
-			target: { value: '{n, plural, other {You have {{count}} items}}' },
+			translations: {
+				[sk!.id]: { value: '{n, plural, other {Máte {{count}} položiek}}' },
+				[en!.id]: { value: '{n, plural, other {You have {{count}} items}}' },
+			},
 		})
 
 		const disabled = await patch({ plural: null, description: null })
@@ -550,8 +647,7 @@ test.describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		expect(await itemOf(cart.keyId)).toMatchObject({
 			description: null,
 			plural: null,
-			source: { value: 'Máte {{count}} položiek' },
-			target: { value: 'You have {{count}} items' },
+			translations: { [sk!.id]: { value: 'Máte {{count}} položiek' }, [en!.id]: { value: 'You have {{count}} items' } },
 		})
 
 		const taken = await patch({ name: 'orders.empty.title' })
@@ -587,11 +683,11 @@ test.describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		const [ownProject] = await listProjects(editor)
 		const [ownSk] = await listLanguages(editor, ownProject!.id)
 		await insertTranslationKeys(ownProject!.id, [ownSk!], [{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov' } }])
-		const ownKey = (await listTranslations(editor, ownProject!.id, ownSk!.id, ownSk!.id)).items.find(({ name }) => name === 'nav.home')!
+		const ownKey = (await listTranslations(editor, ownProject!.id)).items.find(({ name }) => name === 'nav.home')!
 		const asMember = await editor.patch(translationKeyApi(ownProject!.id, ownKey.keyId), { data: { name: 'nav.start' }, headers: MUTATION_HEADERS })
 		expect(asMember.status()).toBe(403)
 		expect((await readApiError(asMember)).code).toBe('FORBIDDEN')
-		expect((await listTranslations(editor, ownProject!.id, ownSk!.id, ownSk!.id)).items.map(({ name }) => name)).toEqual(['nav.home'])
+		expect((await listTranslations(editor, ownProject!.id)).items.map(({ name }) => name)).toEqual(['nav.home'])
 		const asNonMember = await editor.patch(url, { data: { name: 'x' }, headers: MUTATION_HEADERS })
 		expect(asNonMember.status()).toBe(404)
 		expect((await readApiError(asNonMember)).code).toBe('NOT_FOUND')

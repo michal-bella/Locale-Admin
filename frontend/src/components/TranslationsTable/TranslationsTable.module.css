@@ -2,6 +2,11 @@
 	overflow-x: auto;
 }
 
+/* Focus scrolling treats the sticky columns as covered, so a cell focused with Tab never lands under them (WCAG 2.4.11). */
+.scrollExtended {
+	scroll-padding-inline: 20rem 10rem;
+}
+
 .table {
 	min-width: 56rem;
 	table-layout: fixed;

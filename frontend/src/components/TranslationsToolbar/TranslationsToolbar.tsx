@@ -150,7 +150,7 @@ const TranslationsToolbar = ({
 				<SegmentedControl
 					aria-label={t('translationsPage.view.label')}
 					value={view}
-					disabled={isViewSaving}
+					readOnly={isViewSaving}
 					onChange={(value) => {
 						const parsed = translationsViewSchema.safeParse(value)
 						if (parsed.success) {

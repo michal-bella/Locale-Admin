@@ -1,6 +1,6 @@
 import { Button, VisuallyHidden } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -84,6 +84,7 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	const forms: PluralForm[] = plural ? pluralFormsOf(plural.tag, parsePluralForms(value)) : [PLAIN]
 	const [draft, setDraft] = useState<Draft>(() => (plural ? parsePluralForms(value) : { [PLAIN]: value ?? '' }))
 	const [rejected, setRejected] = useState<Rejection | null>(null)
+	const editorRefs = useRef<Partial<Record<PluralForm, HTMLDivElement | null>>>({})
 	const label = t('translationsPage.editor.label', { key: item.name, language: language.nativeName })
 	const lockedHintId = useId()
 	const errorId = useId()
@@ -110,6 +111,15 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 		return next.length > TRANSLATION_VALUE_MAX_LENGTH ? { kind: 'tooLong' } : null
 	}
 
+	// Uložiť is disabled while it loads, so without this the focus would end on the body after a rejected save.
+	const reject = (rejection: Rejection) => {
+		setRejected(rejection)
+		const form = rejection.kind === 'unbalanced' ? rejection.forms[0] : forms[0]
+		if (form) {
+			editorRefs.current[form]?.focus()
+		}
+	}
+
 	const save = async () => {
 		if (saving) {
 			return
@@ -121,7 +131,7 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 		}
 		const rejection = validate(next)
 		if (rejection) {
-			setRejected(rejection)
+			reject(rejection)
 			return
 		}
 		setSaving(true)
@@ -131,9 +141,9 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 		} catch (error) {
 			const details = getPlaceholderMismatch(error)
 			if (details) {
-				setRejected({ kind: 'mismatch', details })
+				reject({ kind: 'mismatch', details })
 			} else if (getApiErrorDetails(error).some((issue) => issue.path === 'value' && issue.code === VALIDATION_CODE.INVALID)) {
-				setRejected({ kind: 'invalid' })
+				reject({ kind: 'invalid' })
 			} else {
 				notifications.show({ color: 'red', message: t(`errors.${getApiErrorCode(error)}`) })
 			}
@@ -167,6 +177,9 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	const field = (form: PluralForm, index: number) => (
 		<TokenEditor
 			key={form}
+			ref={(element) => {
+				editorRefs.current[form] = element
+			}}
 			value={draft[form] ?? ''}
 			onChange={(next) => {
 				setRejected(null)

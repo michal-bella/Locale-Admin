@@ -777,10 +777,14 @@ describe('TranslationsPage edit modal', () => {
 		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
 		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, English')
 		typeText(field, 'Hello {{user}}')
-		save(dialog)
+		const submit = within(dialog).getByRole('button', { name: 'Uložiť' })
+		act(() => submit.focus())
+		fireEvent.click(submit)
 
 		const alert = await within(dialog).findByRole('alert')
 		expect(alert).toHaveTextContent('Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}. Navyše: {{user}}.')
+		// Uložiť was disabled while it loaded; the invalid field takes the focus instead of the body.
+		expect(field).toHaveFocus()
 		expect(field).toHaveTextContent('Hello {{user}}')
 		expect(field).toHaveAttribute('aria-invalid', 'true')
 		expect(field).not.toHaveAttribute('aria-readonly')
@@ -1035,6 +1039,7 @@ describe('TranslationsPage plural forms', () => {
 
 		expect(within(dialog).getByRole('alert')).toHaveTextContent('Zátvorky { a } musia byť vyvážené.')
 		expect(other).toHaveAttribute('aria-invalid', 'true')
+		expect(other).toHaveFocus()
 		expect(one).not.toHaveAttribute('aria-invalid')
 		expect(other).toHaveAccessibleDescription(/Zátvorky \{ a \} musia byť vyvážené\./)
 		expect(puts()).toHaveLength(0)

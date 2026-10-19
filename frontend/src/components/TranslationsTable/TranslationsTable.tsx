@@ -247,7 +247,7 @@ const TranslationsTable = ({
 	}
 
 	return (
-		<div className={classes.scroll}>
+		<div className={`${classes.scroll} ${isExtended ? classes.scrollExtended : ''}`}>
 			<Table
 				ref={tableRef}
 				tabIndex={-1}

@@ -1,4 +1,5 @@
 .placeholder {
 	font-size: inherit;
-	color: var(--app-color-muted);
+	/* --app-color-muted is 2.5:1 on the red untranslated cell; text-secondary keeps it dimmer than the value and above AA. */
+	color: var(--app-color-text-secondary);
 }

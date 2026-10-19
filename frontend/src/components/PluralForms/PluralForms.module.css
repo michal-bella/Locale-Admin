@@ -27,5 +27,5 @@
 
 .empty {
 	font-size: inherit;
-	color: var(--app-color-muted);
+	color: var(--app-color-text-secondary);
 }

@@ -91,7 +91,7 @@ describe('UserPage', () => {
 		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
 		expect(within(card).getByRole('heading', { level: 2, name: JANA.email })).toBeInTheDocument()
 		expect(within(card).getByText('JA')).toBeInTheDocument()
-		expect(within(card).getByText('Editor')).toBeInTheDocument()
+		expect(within(card).getByRole('combobox', { name: 'Rola' })).toHaveValue('Editor')
 		expect(within(card).getByText('Vytvorený 3. 10. 2026')).toBeInTheDocument()
 
 		const table = within(getProjectsTable())
@@ -163,6 +163,65 @@ describe('UserPage', () => {
 		expect(await screen.findByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeInTheDocument()
 		expect(router.state.location.pathname).toBe(USER_URL)
 		expect(requests.some((request) => request.url === USER_URL)).toBe(false)
+	})
+})
+
+describe('UserCard role', () => {
+	it('saves a new role on change, updates the card and notifies', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		let role: ROLE = ROLE.EDITOR
+		const requests = signedInAs(ADMIN_USER, {
+			...routes(() => ({ ...JANA, role })),
+			[`PATCH ${USER_URL}`]: () => {
+				role = ROLE.ADMIN
+				return { status: 200, data: { ...JANA, role } }
+			},
+		})
+		renderApp(USER_URL)
+		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
+
+		fireEvent.click(within(card).getByRole('combobox', { name: 'Rola' }))
+		fireEvent.click(await screen.findByRole('option', { name: 'Administrátor' }))
+
+		await waitFor(() => expect(within(card).getByRole('combobox', { name: 'Rola' })).toHaveValue('Administrátor'))
+		const patches = requests.filter((request) => request.method === 'patch')
+		expect(patches).toHaveLength(1)
+		expect(JSON.parse(patches[0]?.data as string)).toEqual({ role: 'ADMIN' })
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Rola bola uložená.' }))
+	})
+
+	it('shows LAST_ADMIN as a notification and keeps the role', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		const requests = signedInAs(ADMIN_USER, { ...routes(() => ({ ...JANA, role: ROLE.ADMIN })), [`PATCH ${USER_URL}`]: apiError(409, 'LAST_ADMIN') })
+		renderApp(USER_URL)
+		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
+
+		fireEvent.click(within(card).getByRole('combobox', { name: 'Rola' }))
+		fireEvent.click(await screen.findByRole('option', { name: 'Editor' }))
+
+		await waitFor(() =>
+			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Posledný administrátor sa nemôže vzdať svojej roly.' })),
+		)
+		expect(within(card).getByRole('combobox', { name: 'Rola' })).toHaveValue('Administrátor')
+		expect(requests.filter((request) => request.method === 'patch')).toHaveLength(1)
+	})
+
+	it('updates the own role in the sidebar when the admin changes their own account', async () => {
+		const me: AdminUserDetail = { ...JANA, id: ADMIN_USER.id, email: ADMIN_USER.email, role: ROLE.ADMIN }
+		const meUrl = `/admin/users/${me.id}`
+		signedInAs(ADMIN_USER, {
+			[`GET ${meUrl}`]: () => ({ status: 200, data: me }),
+			'GET /admin/projects': () => ({ status: 200, data: { projects: [] } }),
+			'GET /admin/users': () => ({ status: 200, data: { users: [] } }),
+			[`PATCH ${meUrl}`]: () => ({ status: 200, data: { ...me, role: ROLE.EDITOR } }),
+		})
+		renderApp(meUrl)
+		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
+
+		fireEvent.click(within(card).getByRole('combobox', { name: 'Rola' }))
+		fireEvent.click(await screen.findByRole('option', { name: 'Editor' }))
+
+		await waitFor(() => expect(within(screen.getByRole('banner')).getByText('Editor')).toBeInTheDocument())
 	})
 })
 

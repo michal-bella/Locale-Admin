@@ -281,6 +281,87 @@ describe('POST /api/admin/users', () => {
 	})
 })
 
+describe('PATCH /api/admin/users/:id', () => {
+	const patchUser = (app: App, cookie: string, id: string, body: unknown) =>
+		request(app)
+			.patch(`/api/admin/users/${id}`)
+			.set('Cookie', cookie)
+			.set(CSRF_HEADERS)
+			.send(body as object)
+
+	it('changes the role of another user and returns the detail', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user: editor } = await createUser()
+		await getTestPrisma().project.create({ data: { name: 'A', slug: 'a', members: { create: { userId: editor.id } } } })
+
+		const res = await patchUser(app, cookie, editor.id, { role: ROLE.ADMIN })
+
+		expect(res.status).toBe(200)
+		const detail = adminUserDetailSchema.parse(res.body)
+		expect(detail).toMatchObject({ id: editor.id, role: ROLE.ADMIN, projectCount: 1 })
+		expect(detail.projects.map((project) => project.slug)).toEqual(['a'])
+		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: editor.id } })).role).toBe(ROLE.ADMIN)
+	})
+
+	it('demotes an admin when another admin stays, the own account included', async () => {
+		const app = createTestApp()
+		const { user: me } = await createUser({ role: ROLE.ADMIN })
+		const cookie = await loginAs(app, { email: me.email, password: TEST_PASSWORD })
+		const { user: other } = await createUser({ role: ROLE.ADMIN })
+
+		expect((await patchUser(app, cookie, other.id, { role: ROLE.EDITOR })).body).toMatchObject({ role: ROLE.EDITOR })
+		await patchUser(app, cookie, other.id, { role: ROLE.ADMIN }).expect(200)
+		expect((await patchUser(app, cookie, me.id, { role: ROLE.EDITOR })).body).toMatchObject({ role: ROLE.EDITOR })
+		expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).body).toMatchObject({ role: ROLE.EDITOR })
+	})
+
+	it('returns 409 LAST_ADMIN when the only admin would become an editor and keeps the role', async () => {
+		const app = createTestApp()
+		const { user: admin } = await createUser({ role: ROLE.ADMIN })
+		const cookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
+
+		const res = await patchUser(app, cookie, admin.id, { role: ROLE.EDITOR })
+
+		expectErrorCode(res, 409, ERROR_CODE.LAST_ADMIN)
+		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: admin.id } })).role).toBe(ROLE.ADMIN)
+		await patchUser(app, cookie, admin.id, { role: ROLE.ADMIN }).expect(200)
+	})
+
+	it('returns 400 VALIDATION_ERROR for an unknown or missing role', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user: editor } = await createUser()
+
+		const res = await patchUser(app, cookie, editor.id, { role: 'OWNER' })
+
+		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(errorResponseSchema.parse(res.body).error.details).toEqual([{ path: 'role', code: VALIDATION_CODE.INVALID }])
+		expectErrorCode(await patchUser(app, cookie, editor.id, {}), 400, ERROR_CODE.VALIDATION_ERROR)
+	})
+
+	it('returns 404 NOT_FOUND for an unknown id and a non-UUID', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+
+		expectErrorCode(await patchUser(app, cookie, '00000000-0000-4000-8000-000000000000', { role: ROLE.ADMIN }), 404, ERROR_CODE.NOT_FOUND)
+		expectErrorCode(await patchUser(app, cookie, 'not-a-uuid', { role: ROLE.ADMIN }), 404, ERROR_CODE.NOT_FOUND)
+	})
+
+	it('returns 403 FORBIDDEN for an EDITOR and 403 CSRF_REJECTED without X-Requested-With', async () => {
+		const app = createTestApp()
+		const editorCookie = await loginWithRole(app, ROLE.EDITOR)
+		const { user: target } = await createUser()
+
+		expectErrorCode(await patchUser(app, editorCookie, target.id, { role: ROLE.ADMIN }), 403, ERROR_CODE.FORBIDDEN)
+
+		const adminCookie = await loginWithRole(app, ROLE.ADMIN)
+		const res = await request(app).patch(`/api/admin/users/${target.id}`).set('Cookie', adminCookie).send({ role: ROLE.ADMIN })
+		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
+		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: target.id } })).role).toBe(ROLE.EDITOR)
+	})
+})
+
 describe('DELETE /api/admin/users/:id', () => {
 	const deleteUser = (app: App, cookie: string, id: string) => request(app).delete(`/api/admin/users/${id}`).set('Cookie', cookie).set(CSRF_HEADERS).send({})
 

@@ -11,6 +11,11 @@
 	color: var(--app-color-text-secondary);
 }
 
+.role {
+	width: 100%;
+	max-width: 14rem;
+}
+
 .email {
 	line-height: 1.5556;
 	letter-spacing: -0.02em;

@@ -13,6 +13,7 @@ Zoznam všetkých používateľov, detail používateľa s jeho projektmi, vytvo
 | `GET`    | `/api/admin/users`     | `ADMIN`     | zoznam všetkých používateľov od najnovšieho |
 | `GET`    | `/api/admin/users/:id` | `ADMIN`     | detail používateľa s jeho projektmi         |
 | `POST`   | `/api/admin/users`     | `ADMIN`     | vytvorí používateľa s danou rolou           |
+| `PATCH`  | `/api/admin/users/:id` | `ADMIN`     | zmení globálnu rolu používateľa             |
 | `DELETE` | `/api/admin/users/:id` | `ADMIN`     | odstráni používateľa                        |
 
 Celý router `/api/admin` je za `requireAuth` a `requireRole(ROLE.ADMIN)`: bez session vráti 401 `AUTH_UNAUTHENTICATED`, prihlásený `EDITOR` dostane 403 `FORBIDDEN` (viď [auth](./auth.md#oprávnenia)).
@@ -121,6 +122,28 @@ Príklady `details` pri 400:
 | neznáma rola    | `[{ "path": "role", "code": "INVALID" }]`                                                                                      |
 | chýbajúce polia | `[{ "path": "email", "code": "REQUIRED" }, { "path": "password", "code": "REQUIRED" }, { "path": "role", "code": "INVALID" }]` |
 
+## PATCH /api/admin/users/:id
+
+Telo (schéma `updateUserRequestSchema`):
+
+```json
+{ "role": "ADMIN" }
+```
+
+- `role` je povinné, `ADMIN` alebo `EDITOR`. Mení ktoréhokoľvek používateľa vrátane vlastného účtu; nová rola platí hneď (ďalšia požiadavka aj `GET /api/auth/me` ju už vrátia).
+- Posledný `ADMIN` sa nemôže stať `EDITOR`-om (409 `LAST_ADMIN`), aby mal kto spravovať používateľov. Rovnakú rolu, akú používateľ má, vráti 200 bez zmeny.
+- Pri úspechu vráti `200` s `AdminUserDetail` (ako `GET /api/admin/users/:id`).
+
+| HTTP | `code`                 | Kedy                                                                              |
+| ---- | ---------------------- | --------------------------------------------------------------------------------- |
+| 200  |                        | rola uložená, telo `AdminUserDetail`                                              |
+| 400  | `VALIDATION_ERROR`     | neznáma alebo chýbajúca rola, `details` `[{ "path": "role", "code": "INVALID" }]` |
+| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                                    |
+| 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN`                                              |
+| 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo                                               |
+| 404  | `NOT_FOUND`            | používateľ s týmto `id` neexistuje alebo `id` nie je UUID                         |
+| 409  | `LAST_ADMIN`           | posledný `ADMIN` by prišiel o rolu                                                |
+
 ## DELETE /api/admin/users/:id
 
 Odstráni ktoréhokoľvek používateľa (`ADMIN` aj `EDITOR`). Jeho session a členstvá v projektoch sa zmažú kaskádou, preto sa hneď odhlási a zmizne zo zoznamov členov. Vlastný účet odstrániť nejde, takže vždy ostane aspoň jeden admin. Projekt môže ostať bez člena; `ADMIN` ho ďalej vidí a spravuje. Odobratie z jedného projektu bez zmazania účtu je `DELETE /api/projects/:projectId/members/:userId` (viď [projekty](./projects.md#členovia)).
@@ -145,4 +168,7 @@ curl -i -b cookies.txt http://localhost:8080/api/admin/users/6f1c0f8e-1b7e-4c47-
 curl -i -b cookies.txt -X POST http://localhost:8080/api/admin/users \
   -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
   -d '{"email":"meno@firma.sk","password":"••••••••","role":"EDITOR"}'
+curl -i -b cookies.txt -X PATCH http://localhost:8080/api/admin/users/6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11 \
+  -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
+  -d '{"role":"ADMIN"}'
 ```

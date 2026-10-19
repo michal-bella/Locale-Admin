@@ -166,7 +166,9 @@
 		},
 		"card": {
 			"label": "User account",
-			"createdAt": "Created {{date}}"
+			"createdAt": "Created {{date}}",
+			"role": "Role",
+			"roleSaved": "The role was saved."
 		},
 		"projects": {
 			"title": "Projects",

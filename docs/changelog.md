@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Zmena roly používateľa v detaile (2026-10-20)
+
+- API: `PATCH /api/admin/users/:id` s `{ role }` zmení globálnu rolu, posledný `ADMIN` ostáva (409 `LAST_ADMIN`) ([API](./api/admin-users.md#patch-apiadminusersid))
+- frontend: karta na Detail používateľa má namiesto odznaku select **Rola**, ktorý sa uloží hneď pri zmene ([Frontend](./frontend.md#stránka-detail-používateľa))
+
 ### Profil: jazyk ako v hornej lište a vlastná rola (2026-10-19)
 
 - frontend: **Jazyk rozhrania** na Môj profil je `LanguageSwitcher` vo variante `form`, takže má v možnostiach vlajky ako prepínač v hornej lište ([Frontend](./frontend.md#stránka-môj-profil))

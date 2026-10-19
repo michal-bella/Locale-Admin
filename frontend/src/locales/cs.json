@@ -168,7 +168,9 @@
 		},
 		"card": {
 			"label": "Účet uživatele",
-			"createdAt": "Vytvořen {{date}}"
+			"createdAt": "Vytvořen {{date}}",
+			"role": "Role",
+			"roleSaved": "Role byla uložena."
 		},
 		"projects": {
 			"title": "Projekty",

@@ -1,3 +1,5 @@
+import { type APIRequestContext, expect } from '@playwright/test'
+
 import { withDb } from './db'
 import { type Language } from './languages'
 
@@ -42,3 +44,29 @@ export const insertTranslationKeys = (projectId: string, languages: Language[], 
 			throw error
 		}
 	})
+
+export const translationApi = (projectId: string, keyId: string, languageId: string) => `/api/projects/${projectId}/keys/${keyId}/translations/${languageId}`
+
+export type TranslationListItem = {
+	keyId: string
+	namespace: string
+	name: string
+	group: string
+	source: { value: string | null }
+	target: { value: string | null; status: 'TRANSLATED' | 'UNTRANSLATED'; updatedAt: string | null }
+}
+
+export type TranslationsResponse = {
+	items: TranslationListItem[]
+	total: number
+	page: number
+	pageSize: number
+	stats: { totalKeys: number; translated: number; untranslated: number }
+	namespaces: string[]
+}
+
+export const listTranslations = async (api: APIRequestContext, projectId: string, sourceLanguageId: string, targetLanguageId: string) => {
+	const response = await api.get(projectTranslationsApi(projectId), { params: { sourceLanguageId, targetLanguageId } })
+	expect(response.status(), `GET ${projectTranslationsApi(projectId)}`).toBe(200)
+	return (await response.json()) as TranslationsResponse
+}

@@ -68,6 +68,22 @@ const openImportReview = async (page: Page) => {
 	await expect(getImportDialog(page).getByText('Upozornenia pre stĺpec cs')).toBeVisible()
 }
 
+/** Editor of the untranslated `orders.empty.title` (en) opened: textarea, hint and the focus ring. */
+const openTranslationEditor = async (page: Page) => {
+	await page.getByRole('button', { name: 'Preklad kľúča orders.empty.title, English:' }).click()
+	await expect(page.getByRole('textbox', { name: 'Preklad kľúča orders.empty.title, English', exact: true })).toBeFocused()
+}
+
+/** Editor of `dashboard.welcome` with a rejected draft (missing `{{name}}`) and the mismatch alert under the field. */
+const openTranslationMismatch = async (page: Page) => {
+	await page.getByRole('button', { name: 'Preklad kľúča dashboard.welcome, English:' }).click()
+	const editor = page.getByRole('textbox', { name: 'Preklad kľúča dashboard.welcome, English', exact: true })
+	await editor.fill('Welcome back, friend')
+	await page.keyboard.press('Control+Enter')
+	await expect(page.getByRole('alert')).toHaveText('Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}.')
+	await expect(editor).toHaveAttribute('aria-invalid', 'true')
+}
+
 const SCREENS: Screen[] = [
 	{
 		name: 'login',
@@ -89,6 +105,18 @@ const SCREENS: Screen[] = [
 		name: 'project translations',
 		path: translationsWithKeys,
 		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam prekladov' }).locator('tr[data-status]')).toHaveCount(3),
+	},
+	{
+		name: 'translation editor',
+		path: translationsWithKeys,
+		ready: translationsReady,
+		prepare: openTranslationEditor,
+	},
+	{
+		name: 'translation editor mismatch',
+		path: translationsWithKeys,
+		ready: translationsReady,
+		prepare: openTranslationMismatch,
 	},
 	{
 		name: 'import modal step 1',

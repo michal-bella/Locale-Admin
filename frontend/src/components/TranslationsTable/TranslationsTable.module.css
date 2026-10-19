@@ -7,6 +7,58 @@
 	table-layout: fixed;
 }
 
+/* Every language is a column: the table grows past the card and scrolls inside `.scroll`; the key and status columns stick to the edges. */
+.extended {
+	width: max-content;
+	min-width: 100%;
+	table-layout: auto;
+}
+
+.keyColumnExtended {
+	width: 20rem;
+	min-width: 20rem;
+}
+
+.languageColumn {
+	width: 16rem;
+	min-width: 16rem;
+}
+
+.languageHeader {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.stickyStart,
+.stickyEnd {
+	position: sticky;
+	z-index: 1;
+	background-color: var(--app-color-surface);
+}
+
+.stickyStart {
+	left: 0;
+	box-shadow: inset -1px 0 0 var(--app-color-border-subtle);
+}
+
+.stickyEnd {
+	right: 0;
+	box-shadow: inset 1px 0 0 var(--app-color-border-subtle);
+}
+
+th.stickyStart,
+th.stickyEnd {
+	z-index: 2;
+	background-color: var(--app-color-surface-muted);
+}
+
+.groupLabel {
+	position: sticky;
+	left: 1.75rem;
+	display: inline-block;
+}
+
 .th {
 	padding: 0.75rem 1.75rem;
 	border-bottom: 1px solid var(--app-color-border);

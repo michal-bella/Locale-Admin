@@ -242,6 +242,11 @@
 			"sourceLanguage": "Source language",
 			"targetLanguage": "Target language"
 		},
+		"view": {
+			"label": "View",
+			"EXTENDED": "All languages",
+			"COMPACT": "Source → target"
+		},
 		"table": {
 			"label": "Translation list",
 			"key": "Key",

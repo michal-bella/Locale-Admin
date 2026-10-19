@@ -244,6 +244,11 @@
 			"sourceLanguage": "Zdrojový jazyk",
 			"targetLanguage": "Cílový jazyk"
 		},
+		"view": {
+			"label": "Zobrazení",
+			"EXTENDED": "Všechny jazyky",
+			"COMPACT": "Zdroj → cíl"
+		},
 		"table": {
 			"label": "Seznam překladů",
 			"key": "Klíč",

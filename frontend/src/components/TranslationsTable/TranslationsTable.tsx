@@ -10,6 +10,7 @@ import getApiErrorCode from '@/api/getApiErrorCode'
 import EditKeyModal from '@/components/EditKeyModal/EditKeyModal'
 import EditTranslationModal from '@/components/EditTranslationModal/EditTranslationModal'
 import { Edit, Upload } from '@/components/Icons'
+import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import RowAction from '@/components/RowAction/RowAction'
 import TranslationCell from '@/components/TranslationCell/TranslationCell'
 import TranslationValue from '@/components/TranslationValue/TranslationValue'
@@ -21,16 +22,15 @@ import { type TranslationsTableProps } from './types'
 
 const SKELETON_ROWS = 5
 
-const COLUMNS = 4
-
 const EMPTY_CELL: TranslationCellData = { value: null, status: 'UNTRANSLATED', updatedAt: null }
 
 type Editing = { item: TranslationListItem; language: Language }
 
 /**
- * Keys with the source and target text (Figma 3:147); the target cell is a `TranslationCell` that opens `EditTranslationModal`. With `showGroups` a group header
- * row starts every run of keys with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first and are grouped
- * inside. An untranslated cell has a soft red background. A global ADMIN gets an edit button next to every key that opens `EditKeyModal`.
+ * Keys with their translations; every translation cell is a `TranslationCell` that opens `EditTranslationModal`. `EXTENDED` shows a column per language
+ * (Excel-like, horizontal scroll, the key and status columns stick to the edges), `COMPACT` the source text and the target cell (Figma 3:147). With `showGroups`
+ * a group header row starts every run of keys with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first
+ * and are grouped inside. An untranslated cell has a soft red background. A global ADMIN gets an edit button next to every key that opens `EditKeyModal`.
  */
 const TranslationsTable = ({
 	projectId,
@@ -40,6 +40,7 @@ const TranslationsTable = ({
 	error,
 	onRetry,
 	isRetrying,
+	view,
 	languages,
 	sourceLanguage,
 	targetLanguage,
@@ -57,6 +58,10 @@ const TranslationsTable = ({
 	const [translationOpened, translationModal] = useDisclosure(false)
 	const [editingTranslation, setEditingTranslation] = useState<Editing | null>(null)
 	const baseLanguage = languages.find((language) => language.isBase)
+	const isExtended = view === 'EXTENDED'
+	const columnCount = isExtended ? languages.length + 2 : 4
+	const keyClass = `${classes.td} ${isExtended ? classes.stickyStart : ''}`
+	const statusClass = `${classes.td} ${classes.statusCell} ${isExtended ? classes.stickyEnd : ''}`
 
 	const openEdit = (item: TranslationListItem) => {
 		setEditing(item)
@@ -83,18 +88,34 @@ const TranslationsTable = ({
 
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr>
-			<Table.Td colSpan={COLUMNS} className={`${classes.td} ${classes.state}`}>
+			<Table.Td colSpan={columnCount} className={`${classes.td} ${classes.state}`}>
 				{content}
 			</Table.Td>
 		</Table.Tr>
 	)
 
+	const translationCell = (item: TranslationListItem, language: Language) => (
+		<TranslationCell
+			cell={item.translations[language.id] ?? EMPTY_CELL}
+			label={t('translationsPage.editor.label', { key: item.name, language: language.nativeName })}
+			pluralTag={item.plural ? language.tag : undefined}
+			onClick={() => openTranslation(item, language)}
+		/>
+	)
+
 	const renderItem = (item: TranslationListItem, now: Date) => {
 		const source = (sourceLanguage && item.translations[sourceLanguage.id]) ?? EMPTY_CELL
 		const target = (targetLanguage && item.translations[targetLanguage.id]) ?? EMPTY_CELL
+		// The compact view shows when the target changed, the extended one the latest change in any language.
+		const updatedAt = isExtended
+			? Object.values(item.translations).reduce<string | null>(
+					(latest, cell) => (cell.updatedAt && (!latest || cell.updatedAt > latest) ? cell.updatedAt : latest),
+					null,
+				)
+			: target.updatedAt
 		return (
 			<Table.Tr key={item.keyId} data-status={item.status} className={classes.row}>
-				<Table.Td className={classes.td}>
+				<Table.Td className={keyClass}>
 					<div className={classes.keyRow}>
 						<Text component='span' className={classes.key}>
 							{item.name}
@@ -117,30 +138,31 @@ const TranslationsTable = ({
 					)}
 					<span className={classes.meta}>
 						<span>{item.group || t('translationsPage.table.noGroup')}</span>
-						{target.updatedAt && (
+						{updatedAt && (
 							<>
 								<span aria-hidden className={classes.metaDot} />
-								<time dateTime={target.updatedAt} title={formatDateTime(target.updatedAt, i18n.language)}>
-									{formatRelativeTime(target.updatedAt, i18n.language, now, 'short')}
+								<time dateTime={updatedAt} title={formatDateTime(updatedAt, i18n.language)}>
+									{formatRelativeTime(updatedAt, i18n.language, now, 'short')}
 								</time>
 							</>
 						)}
 					</span>
 				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.value}`}>
-					<TranslationValue value={source.value} pluralTag={item.plural ? sourceLanguage?.tag : undefined} />
-				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.value}`}>
-					{targetLanguage && (
-						<TranslationCell
-							cell={target}
-							label={t('translationsPage.editor.label', { key: item.name, language: targetLanguage.nativeName })}
-							pluralTag={item.plural ? targetLanguage.tag : undefined}
-							onClick={() => openTranslation(item, targetLanguage)}
-						/>
-					)}
-				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.statusCell}`}>
+				{isExtended ? (
+					languages.map((language) => (
+						<Table.Td key={language.id} className={`${classes.td} ${classes.value}`}>
+							{translationCell(item, language)}
+						</Table.Td>
+					))
+				) : (
+					<>
+						<Table.Td className={`${classes.td} ${classes.value}`}>
+							<TranslationValue value={source.value} pluralTag={item.plural ? sourceLanguage?.tag : undefined} />
+						</Table.Td>
+						<Table.Td className={`${classes.td} ${classes.value}`}>{targetLanguage && translationCell(item, targetLanguage)}</Table.Td>
+					</>
+				)}
+				<Table.Td className={statusClass}>
 					<Badge
 						variant='light'
 						color={item.status === 'TRANSLATED' ? 'teal' : 'red'}
@@ -160,17 +182,16 @@ const TranslationsTable = ({
 		if (isPending) {
 			return Array.from({ length: SKELETON_ROWS }, (_, index) => (
 				<Table.Tr key={index}>
-					<Table.Td className={classes.td}>
+					<Table.Td className={keyClass}>
 						<Skeleton height={12} width='60%' radius='sm' />
 						<Skeleton height={8} width='30%' radius='sm' mt='xs' />
 					</Table.Td>
-					<Table.Td className={classes.td}>
-						<Skeleton height={12} width='80%' radius='sm' />
-					</Table.Td>
-					<Table.Td className={classes.td}>
-						<Skeleton height={12} width='80%' radius='sm' />
-					</Table.Td>
-					<Table.Td className={classes.td}>
+					{Array.from({ length: columnCount - 2 }, (_, column) => (
+						<Table.Td key={column} className={classes.td}>
+							<Skeleton height={12} width='80%' radius='sm' />
+						</Table.Td>
+					))}
+					<Table.Td className={statusClass}>
 						<Skeleton height={20} width={80} radius='xl' />
 					</Table.Td>
 				</Table.Tr>
@@ -214,8 +235,9 @@ const TranslationsTable = ({
 			<Fragment key={item.keyId}>
 				{showGroups && item.group !== data.items[index - 1]?.group && (
 					<Table.Tr data-group-header className={classes.groupRow}>
-						<Table.Th colSpan={COLUMNS} scope='rowgroup' className={classes.groupCell}>
-							{item.group || t('translationsPage.table.noGroup')}
+						<Table.Th colSpan={columnCount} scope='rowgroup' className={classes.groupCell}>
+							{/* Stays in view while the extended table scrolls horizontally. */}
+							<span className={classes.groupLabel}>{item.group || t('translationsPage.table.noGroup')}</span>
 						</Table.Th>
 					</Table.Tr>
 				)}
@@ -232,14 +254,32 @@ const TranslationsTable = ({
 				aria-label={t('translationsPage.table.label')}
 				aria-busy={isPending}
 				withRowBorders={false}
-				className={classes.table}
+				className={`${classes.table} ${isExtended ? classes.extended : ''}`}
+				data-view={view}
 			>
 				<Table.Thead>
 					<Table.Tr>
-						<Table.Th className={`${classes.th} ${classes.keyColumn}`}>{t('translationsPage.table.key')}</Table.Th>
-						<Table.Th className={classes.th}>{sourceLanguage?.nativeName}</Table.Th>
-						<Table.Th className={classes.th}>{targetLanguage?.nativeName}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.statusColumn} ${classes.statusCell}`}>{t('translationsPage.table.status')}</Table.Th>
+						<Table.Th className={`${classes.th} ${isExtended ? `${classes.keyColumnExtended} ${classes.stickyStart}` : classes.keyColumn}`}>
+							{t('translationsPage.table.key')}
+						</Table.Th>
+						{isExtended ? (
+							languages.map((language) => (
+								<Table.Th key={language.id} className={`${classes.th} ${classes.languageColumn}`}>
+									<span className={classes.languageHeader}>
+										<LanguageFlag code={language.flagCode} size='sm' />
+										{language.nativeName}
+									</span>
+								</Table.Th>
+							))
+						) : (
+							<>
+								<Table.Th className={classes.th}>{sourceLanguage?.nativeName}</Table.Th>
+								<Table.Th className={classes.th}>{targetLanguage?.nativeName}</Table.Th>
+							</>
+						)}
+						<Table.Th className={`${classes.th} ${classes.statusColumn} ${classes.statusCell} ${isExtended ? classes.stickyEnd : ''}`}>
+							{t('translationsPage.table.status')}
+						</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>{renderBody()}</Table.Tbody>

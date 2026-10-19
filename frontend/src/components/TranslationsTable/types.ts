@@ -1,4 +1,4 @@
-import { type Language, type TranslationsResponse } from '@locale/shared'
+import { type Language, type TranslationsResponse, type TranslationsView } from '@locale/shared'
 
 export type TranslationsTableProps = {
 	projectId: string
@@ -8,7 +8,9 @@ export type TranslationsTableProps = {
 	error: unknown
 	onRetry: () => Promise<boolean>
 	isRetrying: boolean
-	/** Every language of the project; the base one is the reference in `EditTranslationModal`. */
+	/** `EXTENDED`: a column per language with the key and status columns sticky; `COMPACT`: source and target columns. */
+	view: TranslationsView
+	/** Every language of the project in column order (base first); the base one is the reference in `EditTranslationModal`. */
 	languages: Language[]
 	/** `undefined` only for a project without languages, which shows the empty state. */
 	sourceLanguage?: Language

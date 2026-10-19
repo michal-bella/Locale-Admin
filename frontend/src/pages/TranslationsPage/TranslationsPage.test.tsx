@@ -18,7 +18,7 @@ import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
 import i18n from '@/lib/i18n'
-import { ADMIN_USER, apiError, EDITOR_USER, type MockRoutes, projectListRoute, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER as EXTENDED_ADMIN, apiError, EDITOR_USER as EXTENDED_EDITOR, type MockRoutes, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -43,6 +43,13 @@ const PROJECT: ProjectSettings = {
 }
 
 const PAGE_PATH = `/projects/${PROJECT.slug}/translations`
+
+/** The page tests below cover the Figma compact view; the extended view, the default for a new user, has its own describe at the end. */
+const compact = (user: AuthUser): AuthUser => ({ ...user, preferences: { translationsView: 'COMPACT' } })
+
+const ADMIN_USER = compact(EXTENDED_ADMIN)
+
+const EDITOR_USER = compact(EXTENDED_EDITOR)
 
 const TRANSLATIONS_URL = `/projects/${PROJECT.id}/translations`
 
@@ -94,12 +101,20 @@ type MockResponse = { status: number; data?: unknown }
 const mockPage = ({
 	languages = [SLOVAK, ENGLISH],
 	translations = response(),
-}: { languages?: Language[]; translations?: TranslationsResponse | ((config: InternalAxiosRequestConfig) => MockResponse) } = {}) => {
-	const requests = signedInAs(ADMIN_USER, {
+	user = ADMIN_USER,
+	routes = {},
+}: {
+	languages?: Language[]
+	translations?: TranslationsResponse | ((config: InternalAxiosRequestConfig) => MockResponse)
+	user?: AuthUser
+	routes?: MockRoutes
+} = {}) => {
+	const requests = signedInAs(user, {
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: languages },
 		[`GET ${TRANSLATIONS_URL}`]: typeof translations === 'function' ? translations : { status: 200, data: translations },
+		...routes,
 	})
 	return () => requests.filter((request) => request.url === TRANSLATIONS_URL)
 }
@@ -1065,5 +1080,106 @@ describe('TranslationsPage plural forms', () => {
 		expect(puts()).toHaveLength(1)
 		expect(show).not.toHaveBeenCalled()
 		show.mockRestore()
+	})
+})
+
+describe('TranslationsPage extended view', () => {
+	const viewRadio = (name: string) => screen.getByRole('radio', { name })
+
+	const cellButtons = (key: string) => within(getRow(key)).getAllByRole('button', { name: /Preklad kľúča/ })
+
+	it('is the default: a column per language, every cell editable, no language pair in the request or the toolbar', async () => {
+		const requests = mockPage({ user: EXTENDED_ADMIN, languages: [SLOVAK, ENGLISH] })
+		renderApp(`${PAGE_PATH}?source=en&target=sk`)
+		await screen.findByText('orders.empty.title')
+
+		const params = lastParams(requests)
+		expect(params).toMatchObject({ sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 50 })
+		expect(params).not.toHaveProperty('sourceLanguageId')
+		expect(params).not.toHaveProperty('targetLanguageId')
+		expect(viewRadio('Všetky jazyky')).toBeChecked()
+		expect(screen.queryByRole('combobox', { name: 'Zdrojový jazyk' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('combobox', { name: 'Cieľový jazyk' })).not.toBeInTheDocument()
+
+		const table = getTable()
+		expect(table).toHaveAttribute('data-view', 'EXTENDED')
+		const headers = within(table)
+			.getAllByRole('columnheader')
+			.filter((header) => header.getAttribute('scope') !== 'rowgroup')
+		expect(headers.map((header) => header.textContent)).toEqual(['Kľúč', 'slovenčina', 'English', 'Stav'])
+		expect(headers[0]?.className).toMatch(/stickyStart/)
+		expect(headers[3]?.className).toMatch(/stickyEnd/)
+		expect(
+			within(headers[1] as HTMLElement)
+				.getByText('slovenčina')
+				.parentElement?.querySelector('[data-flag="sk"]'),
+		).toBeInTheDocument()
+
+		// Both languages are buttons; only the empty cell is red, the row status comes from the API.
+		const title = cellButtons('orders.empty.title')
+		expect(title.map((button) => button.textContent)).toEqual([
+			'Preklad kľúča orders.empty.title, slovenčina: Zatiaľ tu nie sú žiadne objednávky',
+			'Preklad kľúča orders.empty.title, English: Bez prekladu',
+		])
+		expect(title.map((button) => button.getAttribute('data-status'))).toEqual(['TRANSLATED', 'UNTRANSLATED'])
+		expect(getRow('orders.empty.title')).toHaveAttribute('data-status', 'UNTRANSLATED')
+		expect(getRow('orders.empty.title').querySelector('td')?.className).toMatch(/stickyStart/)
+		expect(cellButtons('dashboard.welcome').map((button) => button.getAttribute('data-status'))).toEqual(['TRANSLATED', 'TRANSLATED'])
+		// The group label scrolls with the sticky key column.
+		expect(within(table).getAllByText('loc:orders.empty')[0]?.className).toMatch(/groupLabel/)
+	})
+
+	it('switches to the compact view, saves the preference and asks for the language pair', async () => {
+		const compactProfile = { ...EXTENDED_ADMIN, preferences: { translationsView: 'COMPACT' }, passwordChangedAt: '2026-10-01T00:00:00.000Z' }
+		const requests = mockPage({ user: EXTENDED_ADMIN, routes: { 'PATCH /profile/preferences': { status: 200, data: compactProfile } } })
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		fireEvent.click(viewRadio('Zdroj → cieľ'))
+
+		await waitFor(() => expect(screen.getByRole('combobox', { name: 'Cieľový jazyk' })).toBeInTheDocument())
+		expect(viewRadio('Zdroj → cieľ')).toBeChecked()
+		await waitFor(() => expect(lastParams(requests)).toMatchObject({ sourceLanguageId: SLOVAK.id, targetLanguageId: ENGLISH.id }))
+		expect(getTable()).toHaveAttribute('data-view', 'COMPACT')
+		const patches = requests().filter((request) => request.method === 'patch')
+		expect(patches).toHaveLength(0)
+		expect(queryClient.getQueryData<AuthUser>(QUERY_KEYS.AUTH.ME())?.preferences.translationsView).toBe('COMPACT')
+	})
+
+	it('falls back to the extended view with a notification when saving the preference fails', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		mockPage({ user: EXTENDED_ADMIN, routes: { 'PATCH /profile/preferences': apiError(500, 'INTERNAL_ERROR') } })
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		fireEvent.click(viewRadio('Zdroj → cieľ'))
+
+		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: i18n.t('errors.INTERNAL_ERROR') })))
+		await waitFor(() => expect(viewRadio('Všetky jazyky')).toBeChecked())
+		expect(screen.queryByRole('combobox', { name: 'Cieľový jazyk' })).not.toBeInTheDocument()
+		expect(getTable()).toHaveAttribute('data-view', 'EXTENDED')
+		show.mockRestore()
+	})
+
+	it('edits a language from its cell and the row turns translated once every language has a value', async () => {
+		const puts = mockEditing(undefined, EXTENDED_ADMIN)
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+		const english = cellButtons('orders.empty.title')[1]!
+		act(() => english.focus())
+		fireEvent.click(english)
+		const dialog = await screen.findByRole('dialog', { name: DIALOG })
+		expect(within(dialog).getByText('English')).toBeInTheDocument()
+		expect(within(dialog).getByText('Základný jazyk (slovenčina)')).toBeInTheDocument()
+
+		typeText(fieldOf(dialog, 'Preklad kľúča orders.empty.title, English'), 'No orders yet')
+		save(dialog)
+
+		await waitFor(() => expect(puts()).toHaveLength(1))
+		expect(puts()[0]?.url).toBe(putUrl(ITEMS[0]!.keyId))
+		await waitFor(() => expect(getRow('orders.empty.title')).toHaveAttribute('data-status', 'TRANSLATED'))
+		expect(cellButtons('orders.empty.title').map((button) => button.getAttribute('data-status'))).toEqual(['TRANSLATED', 'TRANSLATED'])
+		expect(screen.getByText('222')).toBeInTheDocument()
+		expect(screen.getByText('26')).toBeInTheDocument()
 	})
 })

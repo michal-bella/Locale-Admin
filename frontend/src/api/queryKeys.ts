@@ -16,6 +16,8 @@ export const QUERY_KEYS = {
 		SETTINGS: (projectId: string) => ['projects', projectId, 'settings'] as const,
 		MEMBERS: (projectId: string) => ['projects', projectId, 'members'] as const,
 		LANGUAGES: (projectId: string) => ['projects', projectId, 'languages'] as const,
+		/** Prefix of every translations page of one project, e.g. to refetch them all after an edit. */
+		TRANSLATIONS_ALL: (projectId: string) => ['projects', projectId, 'translations'] as const,
 		TRANSLATIONS: (projectId: string, query: TranslationsQueryInput) => ['projects', projectId, 'translations', query] as const,
 	},
 } as const

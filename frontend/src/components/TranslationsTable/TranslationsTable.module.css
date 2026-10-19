@@ -81,13 +81,6 @@
 	color: var(--app-color-text-strong);
 }
 
-.targetBox {
-	padding: 0.5rem;
-	border: 1px solid var(--app-color-border);
-	border-radius: var(--mantine-radius-sm);
-	background-color: var(--app-color-surface);
-}
-
 .placeholder {
 	font-size: inherit;
 	color: var(--app-color-muted);

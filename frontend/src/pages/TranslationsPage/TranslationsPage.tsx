@@ -9,6 +9,7 @@ import { TRANSLATIONS_PAGE_SIZE_DEFAULT } from '@locale/shared'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import { useProjectSettingsQuery } from '@/api/projectSettings/projectSettingsQuery'
 import { useTranslationsQuery } from '@/api/translations/translationsQuery'
+import { useUpdateTranslationMutation } from '@/api/translations/useUpdateTranslationMutation'
 import { Upload } from '@/components/Icons'
 import ImportModal from '@/components/ImportModal/ImportModal'
 import PageIntro from '@/components/PageIntro/PageIntro'
@@ -23,7 +24,7 @@ import classes from './TranslationsPage.module.css'
 const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
 
 /**
- * Translations of the project (Figma 3:2), read-only: stats for the target language, filters in the URL, the table and pagination.
+ * Translations of the project (Figma 3:2): stats for the target language, filters in the URL, the table with inline editing and pagination.
  * Without Exportovať, Posledný sync and the Na kontrolu card. Importovať opens `ImportModal`.
  */
 const TranslationsPage = () => {
@@ -43,8 +44,7 @@ const TranslationsPage = () => {
 	const sort = search.sort ?? 'UNTRANSLATED_FIRST'
 	const page = search.page ?? 1
 
-	const translationsQuery = useTranslationsQuery(
-		projectId,
+	const listQuery =
 		sourceLanguage && targetLanguage
 			? {
 					sourceLanguageId: sourceLanguage.id,
@@ -56,9 +56,10 @@ const TranslationsPage = () => {
 					page,
 					pageSize: TRANSLATIONS_PAGE_SIZE_DEFAULT,
 				}
-			: null,
-	)
+			: null
+	const translationsQuery = useTranslationsQuery(projectId, listQuery)
 	const data = translationsQuery.data
+	const updateTranslation = useUpdateTranslationMutation(projectId, listQuery)
 
 	const updateSearch = (patch: Partial<TranslationsSearch>, { resetPage = true } = {}) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch, ...(resetPage ? { page: undefined } : {}) }), replace: true })
@@ -128,6 +129,7 @@ const TranslationsPage = () => {
 					onClearFilters={clearFilters}
 					onImport={importModal.open}
 					showGroups={sort !== 'UPDATED'}
+					onSave={(keyId, value) => updateTranslation.mutateAsync({ keyId, languageId: targetLanguage?.id ?? '', value })}
 				/>
 			</div>
 			{!isError && !isPastEnd && data && data.total > 0 && (

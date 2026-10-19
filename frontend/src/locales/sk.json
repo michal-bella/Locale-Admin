@@ -190,6 +190,13 @@
 			"TRANSLATED": "Preložené",
 			"UNTRANSLATED": "Nepreložené"
 		},
+		"editor": {
+			"label": "Preklad kľúča {{key}}, {{language}}",
+			"hint": "Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc.",
+			"saving": "Ukladá sa",
+			"missing": "Chýbajú: {{list}}.",
+			"extra": "Navyše: {{list}}."
+		},
 		"pagination": {
 			"label": "Stránkovanie",
 			"previous": "Predošlá",
@@ -547,6 +554,8 @@
 		"IMPORT_FILE_INVALID": "Súbor obsahuje chyby. Opravte ich a nahrajte ho znova.",
 		"IMPORT_FILE_TOO_LARGE": "Súbor je príliš veľký. Maximálna veľkosť je 10 MB.",
 		"IMPORT_COLUMNS_INVALID": "Priradenie stĺpcov k jazykom je neplatné. Skontrolujte jazyky a skúste to znova.",
+		"PLACEHOLDER_MISMATCH": "Premenné v preklade sa nezhodujú so základným jazykom.",
+		"TRANSLATION_KEY_NOT_FOUND": "Kľúč sa nenašiel. Možno ho medzitým niekto odstránil.",
 		"RATE_LIMITED": "Príliš veľa pokusov. Skúste to znova neskôr.",
 		"INTERNAL_ERROR": "Nastala neočakávaná chyba. Skúste to znova.",
 		"UNKNOWN": "Nastala neznáma chyba. Skúste to znova."

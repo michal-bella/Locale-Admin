@@ -1,6 +1,6 @@
 ---
 title: 'Databáza'
-updated: 2026-10-18
+updated: 2026-10-19
 notion_page_id:
 ---
 
@@ -68,14 +68,14 @@ Do 2026-10-18 boli jazyky globálne (tabuľka `Language`, spravoval ich ADMIN). 
 
 Projekt (jeden prekladový hárok). Projekty vytvárajú používatelia na index stránke, seed vytvorí prvý projekt. Správanie API je v [API: projekty a členovia](./api/projects.md).
 
-| Pole                     | Typ            | Poznámka                                                              |
-| ------------------------ | -------------- | --------------------------------------------------------------------- |
-| `id`                     | UUID           | PK                                                                    |
-| `name`                   | string         | názov projektu, 1 až 100 znakov                                       |
-| `slug`                   | string, unique | malé písmená, číslice a pomlčky (`b2b-admin`), 1 až 50 znakov         |
-| `primaryColor`           | string         | `#RRGGBB` veľkými písmenami, default `#E83E8C`; zatiaľ sa iba ukladá  |
-| `protectVariables`       | boolean        | default `true`, chrániť výrazy `{{ variable }}`; zatiaľ sa iba ukladá |
-| `createdAt`, `updatedAt` | datetime       |                                                                       |
+| Pole                     | Typ            | Poznámka                                                                                                                                                                                                                               |
+| ------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                     | UUID           | PK                                                                                                                                                                                                                                     |
+| `name`                   | string         | názov projektu, 1 až 100 znakov                                                                                                                                                                                                        |
+| `slug`                   | string, unique | malé písmená, číslice a pomlčky (`b2b-admin`), 1 až 50 znakov                                                                                                                                                                          |
+| `primaryColor`           | string         | `#RRGGBB` veľkými písmenami, default `#E83E8C`; zatiaľ sa iba ukladá                                                                                                                                                                   |
+| `protectVariables`       | boolean        | default `true`, chrániť výrazy `{{ variable }}`: úprava prekladu v inom ako základnom jazyku musí mať rovnaké premenné ako základný jazyk, inak 400 `PLACEHOLDER_MISMATCH` ([API: preklady](./api/translations.md#ochrana-premenných)) |
+| `createdAt`, `updatedAt` | datetime       |                                                                                                                                                                                                                                        |
 
 Každý projekt má vlastné jazyky a vlastný základný jazyk (`ProjectLanguage`).
 
@@ -105,6 +105,8 @@ Kľúč prekladu v projekte. Správanie API je v [API: preklady](./api/translati
 
 Unikátna trojica (`projectId`, `namespace`, `name`): ten istý kľúč môže byť v projekte vo viacerých namespace. Namespace je súčasť identity kľúča a musí sa zachovať presne, lebo budúci export z neho generuje JSON súbory po jazykoch aj sekcie v CSV. V zozname prekladov slúži ako skupina a filter.
 
+Kľúče vytvára iba import (API na založenie jedného kľúča nie je). Dĺžka `name` je obmedzená na 2 000 **bajtov** v UTF-8 (`IMPORT_KEY_MAX_BYTES`, chyba `KEY_TOO_LONG`) a `namespace` na 100 znakov (`IMPORT_NAMESPACE_MAX_LENGTH`), lebo riadok btree indexu unesie najviac ~2,7 kB: 2 000 znakov v cyrilike (≈ 4 kB) by pri zápise skončilo chybou 500. Kľúč s 2 000 bajtmi a 100-znakovým namespace sa do indexu zmestí (overené integračným testom). Zmazanie projektu zmaže kľúče aj preklady kaskádou; kľúče, ktoré v importovanom súbore chýbajú, sa nemažú.
+
 ### Translation
 
 Text kľúča v jednom jazyku projektu.
@@ -117,9 +119,12 @@ Text kľúča v jednom jazyku projektu.
 | `updatedById` | UUID, nullable   | FK na `User`, kto naposledy zmenil preklad; pri zmazaní usera sa nastaví `null` |
 | `updatedAt`   | datetime         | posledná zmena                                                                  |
 
-PK je dvojica (`keyId`, `languageId`), index na `languageId`.
+PK je dvojica (`keyId`, `languageId`), index na `languageId`. Kaskády: zmazanie kľúča alebo odobratie jazyka z projektu zmaže jeho preklady, zmazanie používateľa nastaví `updatedById` na `null`.
 
-Import zapisuje kľúče a preklady dávkovo v jednej transakcii so zámkom `pg_advisory_xact_lock` na projekt, takže súbežné importy jedného projektu idú za sebou; prázdna hodnota zo súboru nikdy nevytvorí riadok s `null` (viď [API: import](./api/imports.md#transakcia-zámok-a-dávky)).
+Riadky zapisujú dva endpointy:
+
+- **Úprava v riadku** (`PUT …/keys/:keyId/translations/:languageId`): jednoriadkový upsert bez zámku (je atomický), `updatedById` je prihlásený používateľ. Prázdny text sa uloží ako `null`.
+- **Import** (`POST …/imports`): jedna transakcia (timeout 60 s) so zámkom `pg_advisory_xact_lock(hashtextextended('import:' || projectId, 0))` a `lock_timeout` 30 s, takže súbežné importy jedného projektu idú za sebou a importy rôznych projektov paralelne. Chýbajúce kľúče aj preklady sa zapisujú po dávkach 5 000 riadkov cez `INSERT … SELECT FROM unnest(…)` s `ON CONFLICT DO NOTHING` (kľúče) a `ON CONFLICT DO UPDATE … WHERE value IS DISTINCT FROM EXCLUDED.value` (preklady); `updatedAt` nemá v DB default, SQL ho nastavuje na `now()`. Prázdna hodnota zo súboru nikdy nevytvorí riadok s `null` ani nezmaže vyplnený preklad, rovnaká hodnota sa nezapisuje (viď [API: import](./api/imports.md#transakcia-zámok-a-dávky)).
 
 Stav prekladu sa neukladá. **Nepreložené** = riadok pre jazyk chýba alebo `value` je `null`, inak **Preložené**. Jazyk pridaný do projektu po importe preto nemá žiadne riadky a všetky kľúče sú v ňom nepreložené; nič sa nedopĺňa. Index `pg_trgm` pre vyhľadávanie zatiaľ nie je, 2 500 kľúčov × 10 jazykov zvládne `ILIKE` za približne 10 ms (viď [API: preklady](./api/translations.md#výkon)).
 

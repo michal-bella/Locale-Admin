@@ -1,6 +1,6 @@
 ---
 title: 'Preklady a import CSV – implementačný plán'
-updated: 2026-10-18
+updated: 2026-10-19
 notion_page_id:
 ---
 
@@ -201,6 +201,19 @@ Vetva `feature/translations` z `main`, každý míľnik vo vlastnej session s co
 | **D** Import UI | modál krok 1 a 2, chyby, pridanie jazyka, súhrn | FE testy, ručne vzorový Notino súbor (bez commitu súboru) |
 | **E** Úprava v riadku | `PUT` prekladu, placeholder ochrana, optimistický update, klávesnica | integration + FE testy |
 | **F** E2E, a11y, docs | E2E scenáre, accessibility review, docs, `changelog` | `pnpm verify`, `pnpm test:e2e` |
+
+### Stav
+
+| Míľnik | Stav | Dátum |
+|---|---|---|
+| A Dátový model + zoznam | hotové | 2026-10-18 |
+| B Parser + preview | hotové | 2026-10-18 |
+| C Zápis importu | hotové | 2026-10-18 |
+| D Import UI | hotové | 2026-10-19 |
+| E Úprava v riadku | hotové | 2026-10-19 |
+| F E2E, a11y, docs | rozpracované (docs, `translations-flow.spec.ts`, záverečný `pnpm verify` a `pnpm test:e2e`) | 2026-10-19 |
+
+Čo pribudlo v ktorom míľniku je v [changelogu](../changelog.md).
 
 ### Odložené z míľnika A
 

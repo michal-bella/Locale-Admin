@@ -1,12 +1,20 @@
 import { type RequestHandler } from 'express'
 import { z } from 'zod'
 
-import { ERROR_CODE, translationsQuerySchema, updateTranslationRequestSchema, type TranslationsResponse, type UpdateTranslationResponse } from '@locale/shared'
+import {
+	ERROR_CODE,
+	translationsQuerySchema,
+	updateTranslationKeyRequestSchema,
+	updateTranslationRequestSchema,
+	type TranslationsResponse,
+	type UpdateTranslationKeyResponse,
+	type UpdateTranslationResponse,
+} from '@locale/shared'
 
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 import { getAuth } from '../middleware/auth.middleware'
-import { listTranslations, updateTranslation } from '../services/translations.service'
+import { listTranslations, updateTranslation, updateTranslationKey } from '../services/translations.service'
 
 type Params = { projectId: string; keyId: string; languageId: string }
 
@@ -35,5 +43,15 @@ export const createUpdateTranslationController =
 		const { value } = updateTranslationRequestSchema.parse(req.body)
 		const ids = { projectId: req.params.projectId, keyId, languageId, userId: getAuth(req).user.id }
 		const body: UpdateTranslationResponse = await updateTranslation(prisma, ids, value)
+		res.status(200).json(body)
+	}
+
+export const createUpdateTranslationKeyController =
+	(prisma: PrismaClient): RequestHandler<Pick<Params, 'projectId' | 'keyId'>> =>
+	async (req, res) => {
+		const keyId = parseId(req.params.keyId, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND, 'Translation key not found')
+		const input = updateTranslationKeyRequestSchema.parse(req.body)
+		const ids = { projectId: req.params.projectId, keyId, userId: getAuth(req).user.id }
+		const body: UpdateTranslationKeyResponse = await updateTranslationKey(prisma, ids, input)
 		res.status(200).json(body)
 	}

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { translationGroup, translationListItemSchema, translationsQuerySchema, updateTranslationRequestSchema } from './translations'
+import {
+	translationGroup,
+	translationListItemSchema,
+	translationsQuerySchema,
+	updateTranslationKeyRequestSchema,
+	updateTranslationRequestSchema,
+} from './translations'
 
 const SOURCE_ID = '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d'
 const TARGET_ID = '1c7a7a6f-3a5f-4b4c-8d2e-2f3a4b5c6d7e'
@@ -33,6 +39,8 @@ describe('translationListItemSchema', () => {
 			namespace: 'loc',
 			name: 'Uložiť',
 			group: 'loc',
+			description: null,
+			plural: null,
 			source: { value: 'Uložiť' },
 			target: { value: null, status: 'UNTRANSLATED', updatedAt: null },
 		}
@@ -61,5 +69,24 @@ describe('updateTranslationRequestSchema', () => {
 	it('rejects a missing value and a value over the limit', () => {
 		expect(updateTranslationRequestSchema.safeParse({}).success).toBe(false)
 		expect(updateTranslationRequestSchema.safeParse({ value: 'x'.repeat(10_001) }).success).toBe(false)
+	})
+})
+
+describe('updateTranslationKeyRequestSchema', () => {
+	it('requires at least one field and defaults the plural variable', () => {
+		expect(updateTranslationKeyRequestSchema.safeParse({}).success).toBe(false)
+		expect(updateTranslationKeyRequestSchema.parse({ plural: {} })).toEqual({ plural: { variable: 'count' } })
+		expect(updateTranslationKeyRequestSchema.parse({ name: ' orders.title ', description: null, plural: null })).toEqual({
+			name: 'orders.title',
+			description: null,
+			plural: null,
+		})
+	})
+
+	it('rejects an empty name, a name over 2 000 bytes and an invalid variable', () => {
+		expect(updateTranslationKeyRequestSchema.safeParse({ name: ' ' }).success).toBe(false)
+		expect(updateTranslationKeyRequestSchema.safeParse({ name: 'ž'.repeat(1001) }).success).toBe(false)
+		expect(updateTranslationKeyRequestSchema.safeParse({ name: 'ž'.repeat(1000) }).success).toBe(true)
+		expect(updateTranslationKeyRequestSchema.safeParse({ plural: { variable: '1x' } }).success).toBe(false)
 	})
 })

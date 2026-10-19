@@ -6,7 +6,9 @@ import { createProject, getProjectSettings, type ProjectListItem, projectSetting
 import {
 	expectStats,
 	getCellButton,
+	getEditKeyButton,
 	getEditor,
+	getKeyName,
 	getTranslationRow,
 	getTranslationRows,
 	getTranslationsTable,
@@ -58,8 +60,8 @@ test('Ctrl+Enter saves an untranslated key: PUT { value }, the row turns transla
 	await expect(getCellButton(row, key)).toHaveAccessibleName(`Preklad kľúča ${key}, English: Bez prekladu`)
 
 	const editor = await openEditor(page, key)
-	await expect(editor).toHaveValue('')
-	await expect(editor).toHaveAccessibleDescription('Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc.')
+	await expect(editor).toHaveText('')
+	await expect(editor).toHaveAccessibleDescription('Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc. Premenné a HTML značky sú zamknuté, mažú sa celé.')
 	await editor.fill('New orders will appear here.')
 	const saved = waitForTranslationPut(page)
 	await page.keyboard.press('Control+Enter')
@@ -110,7 +112,7 @@ test('blur saves, Esc restores without a request and an emptied field saves null
 	expect(puts).toHaveLength(1)
 
 	const cleared = await openEditor(page, 'nav.home')
-	await expect(cleared).toHaveValue('Home')
+	await expect(cleared).toHaveText('Home')
 	await cleared.fill('   ')
 	const clearSave = waitForTranslationPut(page)
 	await page.getByRole('heading', { level: 1, name: 'Preklady' }).click()
@@ -132,7 +134,7 @@ test('a missing {{name}} shows the mismatch alert and keeps the draft; the fix s
 	await expect(row.locator('code')).toHaveText(['{{name}}', '{{ name }}'])
 
 	const editor = await openEditor(page, key)
-	await expect(editor).toHaveValue('Welcome back, {{ name }}')
+	await expect(editor).toHaveText('Welcome back, {{ name }}')
 	await editor.fill('Welcome back, friend')
 	const rejected = waitForTranslationPut(page)
 	await page.keyboard.press('Control+Enter')
@@ -140,7 +142,7 @@ test('a missing {{name}} shows the mismatch alert and keeps the draft; the fix s
 	const alert = page.getByRole('alert')
 	await expect(alert).toHaveText(MISMATCH_MESSAGE)
 	await expect(editor).toBeVisible()
-	await expect(editor).toHaveValue('Welcome back, friend')
+	await expect(editor).toHaveText('Welcome back, friend')
 	await expect(editor).toHaveAttribute('aria-invalid', 'true')
 	await expect(row).toHaveAttribute('data-status', 'TRANSLATED')
 	await expectStats(page, EN.translated, EN.untranslated)
@@ -178,7 +180,7 @@ test('Tab moves between target cells of consecutive rows, Enter opens the editor
 	const project = await seedProject(request, 'edit-keyboard')
 	await openTranslationsEn(page, project)
 	const puts = trackPuts(page)
-	const keyOf = async (row: Locator) => (await row.locator('td:first-child > span:first-child').textContent())!
+	const keyOf = async (row: Locator) => (await getKeyName(row).textContent())!
 	const firstRow = getTranslationRows(page).nth(0)
 	const secondRow = getTranslationRows(page).nth(1)
 	const firstKey = await keyOf(firstRow)
@@ -190,18 +192,23 @@ test('Tab moves between target cells of consecutive rows, Enter opens the editor
 	await page.keyboard.press('Escape')
 	await expect(getCellButton(firstRow, firstKey)).toBeFocused()
 
+	// As an ADMIN every row starts with the Upraviť kľúč button, so the next target cell is two stops away.
+	await page.keyboard.press(tab)
+	await expect(getEditKeyButton(secondRow, secondKey)).toBeFocused()
 	await page.keyboard.press(tab)
 	await expect(getCellButton(secondRow, secondKey)).toBeFocused()
 
 	await page.keyboard.press('Enter')
 	const editor = getEditor(page, secondKey)
 	await expect(editor).toBeFocused()
-	await expect(editor).toHaveValue('')
+	await expect(editor).toHaveText('')
 
 	await page.keyboard.press('Escape')
 	await expect(editor).toHaveCount(0)
 	await expect(getCellButton(secondRow, secondKey)).toBeFocused()
 
+	await page.keyboard.press(`Shift+${tab}`)
+	await expect(getEditKeyButton(secondRow, secondKey)).toBeFocused()
 	await page.keyboard.press(`Shift+${tab}`)
 	await expect(getCellButton(firstRow, firstKey)).toBeFocused()
 	expect(puts).toEqual([])

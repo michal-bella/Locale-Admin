@@ -48,11 +48,17 @@ export const insertTranslationKeys = (projectId: string, languages: Language[], 
 
 export const translationApi = (projectId: string, keyId: string, languageId: string) => `/api/projects/${projectId}/keys/${keyId}/translations/${languageId}`
 
+export const translationKeyApi = (projectId: string, keyId: string) => `/api/projects/${projectId}/keys/${keyId}`
+
+export type TranslationKeyPlural = { variable: string } | null
+
 export type TranslationListItem = {
 	keyId: string
 	namespace: string
 	name: string
 	group: string
+	description: string | null
+	plural: TranslationKeyPlural
 	source: { value: string | null }
 	target: { value: string | null; status: 'TRANSLATED' | 'UNTRANSLATED'; updatedAt: string | null }
 }
@@ -105,7 +111,33 @@ export const pickOption = async (page: Page, label: string, option: string | Reg
 	await page.getByRole('option', { name: option, exact: typeof option === 'string' }).click()
 }
 
-export const expectKeys = (rows: Locator, keys: string[]) => expect(rows.locator('td:first-child > span:first-child')).toHaveText(keys)
+/** The key name of a row: the first span of the key cell's first line (the edit button of an ADMIN is its sibling). */
+export const getKeyName = (rows: Locator) => rows.locator('td:first-child > div > span:first-child')
+
+export const expectKeys = (rows: Locator, keys: string[]) => expect(getKeyName(rows)).toHaveText(keys)
+
+/** `Upraviť kľúč <key>` pencil of a row (ADMIN only). */
+export const getEditKeyButton = (row: Locator, key: string) => row.getByRole('button', { name: `Upraviť kľúč ${key}`, exact: true })
+
+export const getEditKeyDialog = (page: Page) => page.getByRole('dialog', { name: 'Upraviť kľúč' })
+
+export const openEditKeyModal = async (page: Page, key: string) => {
+	await getEditKeyButton(getTranslationRow(page, key), key).click()
+	const dialog = getEditKeyDialog(page)
+	await expect(dialog).toBeVisible()
+	return dialog
+}
+
+export const isTranslationKeyPatch = (req: Request) => req.method() === 'PATCH' && /\/api\/projects\/[^/]+\/keys\/[^/]+$/.test(req.url())
+
+export const waitForTranslationKeyPatch = (page: Page) => page.waitForResponse((response) => isTranslationKeyPatch(response.request()))
+
+/** Submits the Edit key modal and resolves with the PATCH response. */
+export const submitEditKey = async (page: Page) => {
+	const patched = waitForTranslationKeyPatch(page)
+	await getEditKeyDialog(page).getByRole('button', { name: 'Uložiť' }).click()
+	return patched
+}
 
 export const rowBackground = (row: Locator) => row.evaluate((element) => getComputedStyle(element).backgroundColor)
 
@@ -117,15 +149,52 @@ export const openTranslations = async (page: Page, project: ProjectListItem, que
 /** The target cell of a row: a button named `Preklad kľúča <key>, <language>: <value>`. */
 export const getCellButton = (row: Locator, key: string, language = 'English') => row.getByRole('button', { name: `Preklad kľúča ${key}, ${language}:` })
 
-export const getEditor = (page: Page, key: string, language = 'English') =>
-	page.getByRole('textbox', { name: `Preklad kľúča ${key}, ${language}`, exact: true })
+/**
+ * The contenteditable editor of a cell (`role="textbox"`); for a plural key one per form, named with the translated form name
+ * (`form`: Jeden, Málo, Veľa, Iné). Its text is the value: Playwright's text normalization drops the zero-width spaces next to chips.
+ */
+export const getEditor = (page: Page, key: string, language = 'English', form?: string) =>
+	page.getByRole('textbox', { name: `Preklad kľúča ${key}, ${language}${form ? `, ${form}` : ''}`, exact: true })
 
-export const openEditor = async (page: Page, key: string, language = 'English') => {
+export const openEditor = async (page: Page, key: string, language = 'English', form?: string) => {
 	await getCellButton(getTranslationRow(page, key), key, language).click()
-	const editor = getEditor(page, key, language)
+	const editor = getEditor(page, key, language, form)
 	await expect(editor).toBeFocused()
 	return editor
 }
+
+/** Locked `{{var}}`, `<tag>` and `#` chips of an editor; `data-token` holds the exact source text. */
+export const getChips = (editor: Locator) => editor.locator('[data-token]')
+
+export const expectChips = (editor: Locator, tokens: string[]) => expect(getChips(editor)).toHaveText(tokens)
+
+/** Exact serialized value of the editor (text without zero-width spaces, chips by `data-token`, `<br>` as a newline); unlike `toHaveText` it keeps whitespace. */
+export const editorValue = (editor: Locator) =>
+	editor.evaluate((root) => {
+		const walk = (node: Node): string => {
+			if (node.nodeType === Node.TEXT_NODE) {
+				return (node.textContent ?? '').replace(/\u200b/g, '')
+			}
+			const element = node as HTMLElement
+			if (element.hasAttribute('data-token')) {
+				return element.getAttribute('data-token') ?? ''
+			}
+			if (element.tagName === 'BR') {
+				return element.hasAttribute('data-filler') ? '' : '\n'
+			}
+			return Array.from(node.childNodes).map(walk).join('')
+		}
+		return walk(root)
+	})
+
+/** Fires a `paste` event with `text/plain` (and `text/html`, which the editor must ignore) at the editor, as the clipboard would. */
+export const pasteInto = (editor: Locator, text: string) =>
+	editor.evaluate((root, value) => {
+		const clipboardData = new DataTransfer()
+		clipboardData.setData('text/plain', value)
+		clipboardData.setData('text/html', `<b>${value}</b>`)
+		root.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }))
+	}, text)
 
 export const isTranslationPut = (req: Request) => req.method() === 'PUT' && /\/api\/projects\/[^/]+\/keys\/[^/]+\/translations\/[^/]+$/.test(req.url())
 

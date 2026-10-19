@@ -184,7 +184,9 @@
 			"retry": "Zkusit znovu",
 			"empty": "Projekt zatím nemá žádné klíče. Přidáte je importem souboru.",
 			"noResults": "Filtrům neodpovídá žádný klíč.",
-			"clearFilters": "Zrušit filtry"
+			"clearFilters": "Zrušit filtry",
+			"edit": "Upravit klíč",
+			"editLabel": "Upravit klíč {{key}}"
 		},
 		"status": {
 			"TRANSLATED": "Přeložené",
@@ -194,9 +196,46 @@
 			"label": "Překlad klíče {{key}}, {{language}}",
 			"hint": "Uložit: Ctrl+Enter nebo klik mimo pole. Zrušit: Esc.",
 			"saving": "Ukládá se",
+			"lockedHint": "Proměnné a HTML značky jsou zamčené, mažou se celé.",
+			"hashHint": "Znak # je místo čísla.",
 			"saved": "Uloženo: {{key}}",
 			"missing": "Chybí: {{list}}.",
-			"extra": "Navíc: {{list}}."
+			"extra": "Navíc: {{list}}.",
+			"formLabel": "{{label}}, {{form}}",
+			"unbalancedBraces": "Závorky { a } musí být vyvážené.",
+			"tooLong": "Překlad je příliš dlouhý (max. 10 000 znaků celkem za všechny formy)."
+		},
+		"plural": {
+			"hash": "Číslo",
+			"forms": {
+				"zero": "Nula",
+				"one": "Jeden",
+				"two": "Dva",
+				"few": "Málo",
+				"many": "Mnoho",
+				"other": "Jiné"
+			}
+		},
+		"editKeyModal": {
+			"title": "Upravit klíč",
+			"close": "Zavřít",
+			"name": {
+				"label": "Klíč"
+			},
+			"description": {
+				"label": "Popis",
+				"placeholder": "Kontext pro překladatele (volitelné)"
+			},
+			"plural": {
+				"label": "Použít plurálové formy",
+				"description": "Zapnutí přesune aktuální text do formy Other, vypnutí ponechá text formy Other."
+			},
+			"variable": {
+				"label": "Název proměnné"
+			},
+			"cancel": "Zrušit",
+			"submit": "Uložit",
+			"success": "Klíč {{key}} byl uložen."
 		},
 		"pagination": {
 			"label": "Stránkování",
@@ -610,6 +649,7 @@
 		"IMPORT_COLUMNS_INVALID": "Přiřazení sloupců k jazykům je neplatné. Zkontrolujte jazyky a zkuste to znovu.",
 		"PLACEHOLDER_MISMATCH": "Proměnné v překladu se neshodují se základním jazykem.",
 		"TRANSLATION_KEY_NOT_FOUND": "Klíč se nenašel. Možná ho mezitím někdo odstranil.",
+		"TRANSLATION_KEY_TAKEN": "Klíč s tímto názvem už v namespace existuje.",
 		"RATE_LIMITED": "Příliš mnoho pokusů. Zkuste to znovu později.",
 		"INTERNAL_ERROR": "Nastala neočekávaná chyba. Zkuste to znovu.",
 		"UNKNOWN": "Nastala neznámá chyba. Zkuste to znovu."

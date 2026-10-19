@@ -6,14 +6,15 @@ notion_page_id:
 
 # Preklady (`/api/projects/:projectId/translations`)
 
-Zoznam kľúčov projektu s textom zdrojového a jedného cieľového jazyka pre stránku Preklady a úprava jedného prekladu v riadku. Schémy sú v `packages/shared/src/translations.ts`, dátový model v [Databáza](../database.md#translationkey).
+Zoznam kľúčov projektu s textom zdrojového a jedného cieľového jazyka pre stránku Preklady, úprava jedného prekladu v riadku a úprava kľúča (názov, popis, plurál). Schémy sú v `packages/shared/src/translations.ts`, dátový model v [Databáza](../database.md#translationkey).
 
-| Metóda | Cesta                                                           | Prístup            | Popis                                             |
-| ------ | --------------------------------------------------------------- | ------------------ | ------------------------------------------------- |
-| `GET`  | `/api/projects/:projectId/translations`                         | člen alebo `ADMIN` | stránkovaný zoznam kľúčov, štatistika a namespace |
-| `PUT`  | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | člen alebo `ADMIN` | uloženie prekladu kľúča v jednom jazyku           |
+| Metóda  | Cesta                                                           | Prístup            | Popis                                             |
+| ------- | --------------------------------------------------------------- | ------------------ | ------------------------------------------------- |
+| `GET`   | `/api/projects/:projectId/translations`                         | člen alebo `ADMIN` | stránkovaný zoznam kľúčov, štatistika a namespace |
+| `PUT`   | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | člen alebo `ADMIN` | uloženie prekladu kľúča v jednom jazyku           |
+| `PATCH` | `/api/projects/:projectId/keys/:keyId`                          | iba `ADMIN`        | premenovanie kľúča, popis, plurálové formy        |
 
-Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). `PUT` prechádza CSRF kontrolou (`Content-Type: application/json` a `X-Requested-With: XMLHttpRequest`).
+Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). `PUT` a `PATCH` prechádzajú CSRF kontrolou (`Content-Type: application/json` a `X-Requested-With: XMLHttpRequest`).
 
 ## Stav prekladu
 
@@ -75,6 +76,8 @@ Položka `items[]`:
 | `namespace`        | string                     | namespace (JSON súbor), `""` ak nemá                           |
 | `name`             | string                     | kľúč                                                           |
 | `group`            | string                     | skupina (viď vyššie)                                           |
+| `description`      | string alebo `null`        | popis kľúča pre prekladateľov (viď úprava kľúča)               |
+| `plural`           | objekt alebo `null`        | `{ variable }` pri plurálovom kľúči, inak `null`               |
 | `source.value`     | string alebo `null`        | text zdrojového jazyka, `null` ak chýba                        |
 | `target.value`     | string alebo `null`        | text cieľového jazyka, `null` ak chýba                         |
 | `target.status`    | enum                       | `TRANSLATED` alebo `UNTRANSLATED`                              |
@@ -88,6 +91,8 @@ Položka `items[]`:
 			"namespace": "loc",
 			"name": "orders.empty.title",
 			"group": "loc:orders.empty",
+			"description": null,
+			"plural": null,
 			"source": { "value": "Zatiaľ nemáte žiadne objednávky" },
 			"target": { "value": null, "status": "UNTRANSLATED", "updatedAt": "2026-10-18T12:00:00.000Z" }
 		}
@@ -120,6 +125,10 @@ Telo (schéma `updateTranslationRequestSchema`):
 
 Text sa ukladá tak, ako prišiel (bez orezania), HTML aj premenné `{{…}}` ostávajú ako text.
 
+### Plurálový kľúč
+
+Keď má kľúč zapnuté [plurálové formy](#plurálové-formy), hodnota iná ako `null` musí byť plurálová ICU správa (`parsePluralValue`) s premennou kľúča (`pluralVariable`). Obyčajný text, správa s inou premennou alebo správa, ktorú sa nedá rozobrať (napr. nevyvážené zátvorky vo forme), vráti 400 `VALIDATION_ERROR` s `details: [{ "path": "value", "code": "INVALID" }]` a nič sa nezapíše.
+
 ### Ochrana premenných
 
 Keď má projekt zapnuté `protectVariables` (nastavenia projektu, predvolene zapnuté), hodnota v inom ako základnom jazyku musí obsahovať presne tie premenné `{{…}}`, ktoré má hodnota kľúča v základnom jazyku. Premenná sa normalizuje rovnako ako pri [importe](./imports.md#upozornenia-import-prejde): bez medzier, bez úvodného `-` a bez časti od `,`, takže `{{ count }}`, `{{- count}}` aj `{{count, number}}` sú `{{count}}`. Kontrola sa preskočí, keď:
@@ -143,14 +152,14 @@ Schéma `updateTranslationResponseSchema`, rovnaký tvar ako `target` v zozname:
 
 ### Chyby
 
-| HTTP | `code`                      | Kedy                                                                                |
-| ---- | --------------------------- | ----------------------------------------------------------------------------------- |
-| 400  | `VALIDATION_ERROR`          | chýba `value`, nie je string ani `null`, alebo má viac ako 10 000 znakov            |
-| 400  | `PLACEHOLDER_MISMATCH`      | premenné sa líšia od základného jazyka (viď vyššie), `details: { missing, extra }`  |
-| 401  | `AUTH_UNAUTHENTICATED`      | bez session                                                                         |
-| 403  | `CSRF_REJECTED`             | bez `X-Requested-With` alebo JSON tela                                              |
-| 404  | `NOT_FOUND`                 | projekt mimo prístupu, alebo `languageId` nie je UUID / nie je jazyk tohto projektu |
-| 404  | `TRANSLATION_KEY_NOT_FOUND` | `keyId` nie je UUID alebo nie je kľúč tohto projektu                                |
+| HTTP | `code`                      | Kedy                                                                                                                                                                                       |
+| ---- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 400  | `VALIDATION_ERROR`          | chýba `value`, nie je string ani `null`, má viac ako 10 000 znakov, alebo pri plurálovom kľúči nie je plurálová správa s premennou kľúča (`details: [{ path: "value", code: "INVALID" }]`) |
+| 400  | `PLACEHOLDER_MISMATCH`      | premenné sa líšia od základného jazyka (viď vyššie), `details: { missing, extra }`                                                                                                         |
+| 401  | `AUTH_UNAUTHENTICATED`      | bez session                                                                                                                                                                                |
+| 403  | `CSRF_REJECTED`             | bez `X-Requested-With` alebo JSON tela                                                                                                                                                     |
+| 404  | `NOT_FOUND`                 | projekt mimo prístupu, alebo `languageId` nie je UUID / nie je jazyk tohto projektu                                                                                                        |
+| 404  | `TRANSLATION_KEY_NOT_FOUND` | `keyId` nie je UUID alebo nie je kľúč tohto projektu                                                                                                                                       |
 
 ### Príklad (curl)
 
@@ -159,6 +168,73 @@ curl -i -b cookies.txt -X PUT \
   -H "Content-Type: application/json" -H "X-Requested-With: XMLHttpRequest" \
   -d '{"value":"You have {{count}} items"}' \
   "http://localhost:8080/api/projects/<id projektu>/keys/<id kľúča>/translations/<id en>"
+```
+
+## PATCH /api/projects/:projectId/keys/:keyId
+
+Upraví kľúč: názov, popis alebo plurálové formy. Iba globálny `ADMIN` (člen s rolou `EDITOR` dostane 403 `FORBIDDEN`; kto nemá k projektu prístup, dostane 404 `NOT_FOUND` ako pri ostatných cestách projektu). Namespace sa meniť nedá.
+
+Telo (schéma `updateTranslationKeyRequestSchema`): každé pole je voliteľné, aspoň jedno musí byť uvedené.
+
+| Pole          | Typ                 | Popis                                                                                                                                                                  |
+| ------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | string              | nový názov kľúča, orezaný, neprázdny, max. 2 000 bajtov v UTF-8 (`IMPORT_KEY_MAX_BYTES`, rovnaký limit ako pri importe); skupina sa prepočíta                          |
+| `description` | string alebo `null` | voľný text pre prekladateľov, orezaný, max. 500 znakov (`TRANSLATION_KEY_DESCRIPTION_MAX_LENGTH`); `null` popis zmaže                                                  |
+| `plural`      | objekt alebo `null` | `{ variable }` zapne plurálové formy alebo premenuje premennú (`variable` voliteľné, predvolene `count`, `^[A-Za-z_][A-Za-z0-9_]*$`, max. 50 znakov); `null` ich vypne |
+
+### Plurálové formy
+
+Plurálový kľúč má v `TranslationKey.pluralVariable` názov číselnej premennej a v každom jazyku ukladá **jednu ICU správu** (`serializePluralValue` v `packages/shared/src/plurals.ts`):
+
+```text
+{count, plural, one {# položka} few {# položky} other {# položiek}}
+```
+
+Kategórie sú CLDR (`zero`, `one`, `two`, `few`, `many`, `other`), jazyk používa svoju podmnožinu (`pluralFormsForTag`: sk `one, few, many, other`, en `one, other`). Text formy môže obsahovať `{{premenné}}`, HTML aj `#` (číslo), ale zátvorky `{` a `}` v ňom musia byť vyvážené (`hasBalancedBraces`), inak sa správa nedá rozobrať späť. Presné hodnoty `=N` a `offset:` sa nerozpoznávajú (taká správa sa berie ako obyčajný text). Medzi formami môžu byť ľubovoľné biele znaky vrátane nových riadkov. Stav prekladu, vyhľadávanie a ochrana premenných pracujú s celou správou ako s textom (premenné `{{…}}` sa nájdu aj vo vnútri formy).
+
+Zmena `plural` prepíše hodnoty kľúča vo všetkých jazykoch v jednej transakcii s úpravou kľúča; `null` hodnoty ostávajú `null`, pri každej prepísanej hodnote sa nastaví `updatedById` na prihláseného administrátora:
+
+| Zmena                          | Čo sa stane s hodnotou                                                                                                                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| zapnutie (`null` → objekt)     | doterajší text sa stane formou `other`: `Máte {{count}} položiek` → `{count, plural, other {Máte {{count}} položiek}}`; text, ktorý už je plurálová správa, si formy ponechá a uloží sa s novou premennou |
+| vypnutie (objekt → `null`)     | ostane text formy `other`; hodnota, ktorá nie je plurálová správa, ostane bez zmeny                                                                                                                       |
+| premenovanie premennej         | správa sa uloží znovu s novou premennou; hodnota, ktorá nie je plurálová správa, ostane bez zmeny                                                                                                         |
+| rovnaké nastavenie ako doteraz | hodnoty sa nemenia                                                                                                                                                                                        |
+
+### Odpoveď 200
+
+Schéma `updateTranslationKeyResponseSchema`: kľúč ako v zozname, bez prekladov.
+
+```json
+{
+	"keyId": "6f1c…",
+	"namespace": "loc",
+	"name": "orders.items",
+	"group": "loc:orders",
+	"description": "Počet položiek v košíku",
+	"plural": { "variable": "count" }
+}
+```
+
+### Chyby
+
+| HTTP | `code`                      | Kedy                                                                                                                         |
+| ---- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 400  | `VALIDATION_ERROR`          | prázdne telo, prázdny alebo pridlhý `name`, `description` nad 500 znakov, `plural.variable` mimo vzoru, `details` podľa poľa |
+| 401  | `AUTH_UNAUTHENTICATED`      | bez session                                                                                                                  |
+| 403  | `FORBIDDEN`                 | člen projektu bez globálnej role `ADMIN`                                                                                     |
+| 403  | `CSRF_REJECTED`             | bez `X-Requested-With` alebo JSON tela                                                                                       |
+| 404  | `NOT_FOUND`                 | projekt mimo prístupu                                                                                                        |
+| 404  | `TRANSLATION_KEY_NOT_FOUND` | `keyId` nie je UUID alebo nie je kľúč tohto projektu                                                                         |
+| 409  | `TRANSLATION_KEY_TAKEN`     | kľúč s novým `name` už v tom istom namespace existuje (unikátny index, bez predbežnej kontroly, nič sa nezapíše)             |
+
+### Príklad (curl)
+
+```bash
+curl -i -b cookies.txt -X PATCH \
+  -H "Content-Type: application/json" -H "X-Requested-With: XMLHttpRequest" \
+  -d '{"name":"orders.items","description":"Počet položiek v košíku","plural":{"variable":"count"}}' \
+  "http://localhost:8080/api/projects/<id projektu>/keys/<id kľúča>"
 ```
 
 ## Výkon

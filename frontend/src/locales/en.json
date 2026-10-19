@@ -184,7 +184,9 @@
 			"retry": "Try again",
 			"empty": "The project has no keys yet. Add them by importing a file.",
 			"noResults": "No key matches the filters.",
-			"clearFilters": "Clear filters"
+			"clearFilters": "Clear filters",
+			"edit": "Edit key",
+			"editLabel": "Edit key {{key}}"
 		},
 		"status": {
 			"TRANSLATED": "Translated",
@@ -194,9 +196,46 @@
 			"label": "Translation of key {{key}}, {{language}}",
 			"hint": "Save: Ctrl+Enter or click outside the field. Cancel: Esc.",
 			"saving": "Saving",
+			"lockedHint": "Variables and HTML tags are locked and are deleted as a whole.",
+			"hashHint": "The # sign stands for the number.",
 			"saved": "Saved: {{key}}",
 			"missing": "Missing: {{list}}.",
-			"extra": "Extra: {{list}}."
+			"extra": "Extra: {{list}}.",
+			"formLabel": "{{label}}, {{form}}",
+			"unbalancedBraces": "Braces { and } must be balanced.",
+			"tooLong": "The translation is too long (max. 10,000 characters across all forms)."
+		},
+		"plural": {
+			"hash": "Number",
+			"forms": {
+				"zero": "Zero",
+				"one": "One",
+				"two": "Two",
+				"few": "Few",
+				"many": "Many",
+				"other": "Other"
+			}
+		},
+		"editKeyModal": {
+			"title": "Edit key",
+			"close": "Close",
+			"name": {
+				"label": "Key"
+			},
+			"description": {
+				"label": "Description",
+				"placeholder": "Context for translators (optional)"
+			},
+			"plural": {
+				"label": "Use plural forms",
+				"description": "Turning it on moves the current text into the Other form; turning it off keeps the Other form."
+			},
+			"variable": {
+				"label": "Variable name"
+			},
+			"cancel": "Cancel",
+			"submit": "Save",
+			"success": "Key {{key}} has been saved."
 		},
 		"pagination": {
 			"label": "Pagination",
@@ -606,6 +645,7 @@
 		"IMPORT_COLUMNS_INVALID": "The column-to-language mapping is invalid. Check the languages and try again.",
 		"PLACEHOLDER_MISMATCH": "The variables in the translation do not match the base language.",
 		"TRANSLATION_KEY_NOT_FOUND": "The key was not found. Someone may have removed it meanwhile.",
+		"TRANSLATION_KEY_TAKEN": "A key with this name already exists in the namespace.",
 		"RATE_LIMITED": "Too many attempts. Please try again later.",
 		"INTERNAL_ERROR": "An unexpected error occurred. Please try again.",
 		"UNKNOWN": "An unknown error occurred. Please try again."

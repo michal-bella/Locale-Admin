@@ -1,0 +1,189 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Button, Checkbox, Textarea, TextInput } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
+import { useForm, useWatch } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
+import { z } from 'zod'
+
+import {
+	ERROR_CODE,
+	PLURAL_VARIABLE_DEFAULT,
+	toValidationCode,
+	TRANSLATION_KEY_DESCRIPTION_MAX_LENGTH,
+	type TranslationListItem,
+	translationKeyNameSchema,
+	translationKeyPluralSchema,
+	type UpdateTranslationKeyRequestInput,
+} from '@locale/shared'
+
+import getApiErrorCode from '@/api/getApiErrorCode'
+import getApiErrorDetails from '@/api/getApiErrorDetails'
+import { useUpdateTranslationKeyMutation } from '@/api/translations/useUpdateTranslationKeyMutation'
+import AppModal from '@/components/AppModal/AppModal'
+
+import { type EditKeyModalProps } from './types'
+
+/** Form shape of the General tab; the request body is built from the fields that differ from the key. */
+const formSchema = z
+	.object({
+		name: translationKeyNameSchema,
+		description: z.string().trim().max(TRANSLATION_KEY_DESCRIPTION_MAX_LENGTH),
+		pluralEnabled: z.boolean(),
+		pluralVariable: z.string(),
+	})
+	.superRefine((values, context) => {
+		if (!values.pluralEnabled) {
+			return
+		}
+		// Re-added without `message`, so the resolver's translation below applies to these issues too.
+		translationKeyPluralSchema.shape.variable.safeParse(values.pluralVariable).error?.issues.forEach(({ message: _message, ...issue }) => {
+			context.addIssue({ ...issue, path: ['pluralVariable'] })
+		})
+	})
+
+type FormValues = z.infer<typeof formSchema>
+
+const FIELD_BY_PATH: Record<string, keyof FormValues> = {
+	name: 'name',
+	description: 'description',
+	'plural.variable': 'pluralVariable',
+	plural: 'pluralVariable',
+}
+
+const toFormValues = (item: TranslationListItem | null): FormValues => ({
+	name: item?.name ?? '',
+	description: item?.description ?? '',
+	pluralEnabled: item?.plural !== null && item?.plural !== undefined,
+	pluralVariable: item?.plural?.variable ?? PLURAL_VARIABLE_DEFAULT,
+})
+
+const toBody = (item: TranslationListItem, values: FormValues): UpdateTranslationKeyRequestInput => {
+	const body: UpdateTranslationKeyRequestInput = {}
+	if (values.name !== item.name) {
+		body.name = values.name
+	}
+	const description = values.description === '' ? null : values.description
+	if (description !== item.description) {
+		body.description = description
+	}
+	const plural = values.pluralEnabled ? { variable: values.pluralVariable } : null
+	if ((plural === null) !== (item.plural === null) || plural?.variable !== item.plural?.variable) {
+		body.plural = plural
+	}
+	return body
+}
+
+/** "Upraviť kľúč" (ADMIN only): name, description and plural forms of a key; sends only the changed fields. */
+const EditKeyModal = ({ projectId, item, opened, onClose }: EditKeyModalProps) => {
+	const { t } = useTranslation()
+	const updateKey = useUpdateTranslationKeyMutation(projectId)
+	const { isPending } = updateKey
+	const {
+		register,
+		handleSubmit,
+		setError,
+		reset,
+		control,
+		formState: { errors },
+	} = useForm({
+		resolver: zodResolver(formSchema, {
+			error: (issue) => {
+				// zod passes a raw issue here; the fields toValidationCode reads (code, input, minimum, maximum, format) match the final issue.
+				const { code, params } = toValidationCode(issue as Parameters<typeof toValidationCode>[0])
+				return t(`validation.${code}`, params)
+			},
+		}),
+		values: toFormValues(item),
+	})
+	const pluralEnabled = useWatch({ control, name: 'pluralEnabled' })
+
+	const resetAndClose = () => {
+		reset()
+		updateKey.reset()
+		onClose()
+	}
+
+	const handleClose = () => {
+		if (!isPending) {
+			resetAndClose()
+		}
+	}
+
+	const onSubmit = handleSubmit((values) => {
+		if (isPending || !item) {
+			return
+		}
+		const body = toBody(item, values)
+		if (Object.keys(body).length === 0) {
+			resetAndClose()
+			return
+		}
+		updateKey.mutate(
+			{ keyId: item.keyId, body },
+			{
+				onSuccess: (key) => {
+					notifications.show({ color: 'green', message: t('translationsPage.editKeyModal.success', { key: key.name }) })
+					resetAndClose()
+				},
+				onError: (error) => {
+					const code = getApiErrorCode(error)
+					const details = getApiErrorDetails(error)
+					if (code === ERROR_CODE.VALIDATION_ERROR && details.length > 0) {
+						details.forEach(({ path, code: issueCode, params }, index) =>
+							setError(FIELD_BY_PATH[path] ?? 'name', { message: t(`validation.${issueCode}`, params) }, { shouldFocus: index === 0 }),
+						)
+						return
+					}
+					if (code === ERROR_CODE.TRANSLATION_KEY_TAKEN) {
+						setError('name', { message: t('errors.TRANSLATION_KEY_TAKEN') }, { shouldFocus: true })
+						return
+					}
+					notifications.show({ color: 'red', message: t(`errors.${code}`) })
+				},
+			},
+		)
+	})
+
+	return (
+		<AppModal
+			opened={opened}
+			onClose={handleClose}
+			title={t('translationsPage.editKeyModal.title')}
+			closeLabel={t('translationsPage.editKeyModal.close')}
+			isPending={isPending}
+			onSubmit={(event) => void onSubmit(event)}
+			footer={
+				<>
+					<Button variant='default' onClick={handleClose} disabled={isPending}>
+						{t('translationsPage.editKeyModal.cancel')}
+					</Button>
+					<Button type='submit' loading={isPending}>
+						{t('translationsPage.editKeyModal.submit')}
+					</Button>
+				</>
+			}
+		>
+			<TextInput data-autofocus required label={t('translationsPage.editKeyModal.name.label')} error={errors.name?.message} {...register('name')} />
+			<Textarea
+				label={t('translationsPage.editKeyModal.description.label')}
+				placeholder={t('translationsPage.editKeyModal.description.placeholder')}
+				maxLength={TRANSLATION_KEY_DESCRIPTION_MAX_LENGTH}
+				autosize
+				minRows={2}
+				maxRows={5}
+				error={errors.description?.message}
+				{...register('description')}
+			/>
+			<Checkbox
+				label={t('translationsPage.editKeyModal.plural.label')}
+				description={t('translationsPage.editKeyModal.plural.description')}
+				{...register('pluralEnabled')}
+			/>
+			{pluralEnabled && (
+				<TextInput label={t('translationsPage.editKeyModal.variable.label')} error={errors.pluralVariable?.message} {...register('pluralVariable')} />
+			)}
+		</AppModal>
+	)
+}
+
+export default EditKeyModal

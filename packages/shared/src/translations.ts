@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+import { IMPORT_KEY_MAX_BYTES } from './imports'
+import { PLURAL_VARIABLE_DEFAULT, PLURAL_VARIABLE_MAX_LENGTH, PLURAL_VARIABLE_PATTERN } from './plurals'
+
 export const TRANSLATIONS_PAGE_SIZE_DEFAULT = 50
 
 export const TRANSLATIONS_PAGE_SIZE_MAX = 100
@@ -44,6 +47,61 @@ export type TranslationsQuery = z.infer<typeof translationsQuerySchema>
 
 export type TranslationsQueryInput = z.input<typeof translationsQuerySchema>
 
+export const TRANSLATION_KEY_DESCRIPTION_MAX_LENGTH = 500
+
+/** A plural key stores one ICU plural message per language (`serializePluralValue`); `variable` is its number variable. */
+export const translationKeyPluralSchema = z.object({
+	variable: z.string().trim().min(1).max(PLURAL_VARIABLE_MAX_LENGTH).regex(PLURAL_VARIABLE_PATTERN).default(PLURAL_VARIABLE_DEFAULT),
+})
+
+export type TranslationKeyPlural = z.infer<typeof translationKeyPluralSchema>
+
+/** UTF-8 length without `TextEncoder`, which the shared tsconfig has no DOM lib for. */
+const utf8ByteLength = (text: string): number => {
+	let bytes = 0
+	for (const char of text) {
+		const code = char.codePointAt(0) ?? 0
+		bytes += code < 0x80 ? 1 : code < 0x800 ? 2 : code < 0x10000 ? 3 : 4
+	}
+	return bytes
+}
+
+/** Name of a key: trimmed, never empty, at most `IMPORT_KEY_MAX_BYTES` UTF-8 bytes (the unique index limit). */
+export const translationKeyNameSchema = z
+	.string()
+	.trim()
+	.min(1)
+	.refine((name) => utf8ByteLength(name) <= IMPORT_KEY_MAX_BYTES, { params: { max: IMPORT_KEY_MAX_BYTES } })
+
+/**
+ * Body of `PATCH /api/projects/:projectId/keys/:keyId` (global ADMIN only). Every field is optional, at least one is required.
+ * `plural: null` turns plural forms off (the `other` form stays as the value), an object turns them on (the current value becomes
+ * the `other` form) or renames the variable. Renaming to a name used in the same namespace gives 409 `TRANSLATION_KEY_TAKEN`.
+ */
+export const updateTranslationKeyRequestSchema = z
+	.object({
+		name: translationKeyNameSchema.optional(),
+		description: z.string().trim().max(TRANSLATION_KEY_DESCRIPTION_MAX_LENGTH).nullable().optional(),
+		plural: translationKeyPluralSchema.nullable().optional(),
+	})
+	.refine((body) => body.name !== undefined || body.description !== undefined || body.plural !== undefined)
+
+export type UpdateTranslationKeyRequest = z.infer<typeof updateTranslationKeyRequestSchema>
+
+export type UpdateTranslationKeyRequestInput = z.input<typeof updateTranslationKeyRequestSchema>
+
+/** Body of `200 PATCH …/keys/:keyId`: the key as in the list, without translations. */
+export const updateTranslationKeyResponseSchema = z.object({
+	keyId: z.uuid(),
+	namespace: z.string(),
+	name: z.string(),
+	group: z.string(),
+	description: z.string().nullable(),
+	plural: translationKeyPluralSchema.nullable(),
+})
+
+export type UpdateTranslationKeyResponse = z.infer<typeof updateTranslationKeyResponseSchema>
+
 /**
  * One key with its source and target text. `group` is the namespace, plus `:prefix` for a path key
  * (`loc:orders.empty` for `orders.empty.title` in `loc`). `target.updatedAt` is `null` when the row does not exist.
@@ -53,6 +111,8 @@ export const translationListItemSchema = z.object({
 	namespace: z.string(),
 	name: z.string(),
 	group: z.string(),
+	description: z.string().nullable(),
+	plural: translationKeyPluralSchema.nullable(),
 	source: z.object({ value: z.string().nullable() }),
 	target: z.object({
 		value: z.string().nullable(),

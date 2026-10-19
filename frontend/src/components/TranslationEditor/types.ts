@@ -13,7 +13,7 @@ export type TranslationEditorProps = {
 	label: string
 	/** Set for a plural key: one field per form, saved as one ICU message. */
 	plural?: TranslationEditorPlural | null
-	/** Rejects with the API error; `PLACEHOLDER_MISMATCH` keeps the editor open, anything else shows a notification. */
+	/** Rejects with the API error; `PLACEHOLDER_MISMATCH` and a `VALIDATION_ERROR` on `value` keep the editor open, anything else shows a notification. */
 	onSave: (value: string | null) => Promise<unknown>
 	/** Read-only rendering of `value` (chips for variables). */
 	children: ReactNode

@@ -201,7 +201,9 @@
 			"saved": "Uloženo: {{key}}",
 			"missing": "Chybí: {{list}}.",
 			"extra": "Navíc: {{list}}.",
-			"formLabel": "{{label}}, {{form}}"
+			"formLabel": "{{label}}, {{form}}",
+			"unbalancedBraces": "Závorky { a } musí být vyvážené.",
+			"tooLong": "Překlad je příliš dlouhý (max. 10 000 znaků celkem za všechny formy)."
 		},
 		"plural": {
 			"hash": "Číslo",

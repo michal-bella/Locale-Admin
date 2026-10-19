@@ -989,4 +989,89 @@ describe('TranslationsPage plural forms', () => {
 		expect(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ })).toHaveFocus()
 		expect(puts()).toHaveLength(0)
 	})
+
+	it('keeps the editor open without a request when a form has unbalanced braces, then saves the fixed form', async () => {
+		const puts = mockEditing(undefined, ADMIN_USER, [PLURAL_ITEM()])
+		renderApp(PAGE_PATH)
+		await screen.findByText('items.count')
+		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ }))
+
+		const one = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Jeden' })
+		const other = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Iné' })
+		typeText(other, '# items}')
+		blur(other)
+
+		expect(screen.getByRole('alert')).toHaveTextContent('Zátvorky { a } musia byť vyvážené.')
+		expect(other).toHaveAttribute('aria-invalid', 'true')
+		expect(one).not.toHaveAttribute('aria-invalid')
+		expect(other).toHaveAccessibleDescription(/Zátvorky \{ a \} musia byť vyvážené\./)
+		expect(puts()).toHaveLength(0)
+
+		act(() => other.focus())
+		typeText(other, '# items!')
+		blur(other)
+
+		await waitFor(() => expect(puts()).toHaveLength(1))
+		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: '{count, plural, one {# item} other {# items!}}' })
+		await waitFor(() => expect(screen.queryByRole('textbox', { name: /items.count/ })).not.toBeInTheDocument())
+		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+	})
+
+	it('discards the unchanged draft on blur after the brace error, like after PLACEHOLDER_MISMATCH', async () => {
+		const puts = mockEditing(undefined, ADMIN_USER, [PLURAL_ITEM()])
+		renderApp(PAGE_PATH)
+		await screen.findByText('items.count')
+		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ }))
+
+		const other = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Iné' })
+		typeText(other, '{# items')
+		blur(other)
+		expect(screen.getByRole('alert')).toBeInTheDocument()
+
+		act(() => other.focus())
+		blur(other)
+
+		expect(screen.queryByRole('textbox', { name: /items.count/ })).not.toBeInTheDocument()
+		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+		expect(formsOf(getRow('items.count').querySelectorAll('td')[2] as HTMLElement)).toEqual(['One: # item', 'Other: # items'])
+		expect(puts()).toHaveLength(0)
+	})
+
+	it('keeps the editor open without a request when the whole ICU message would exceed the limit', async () => {
+		const puts = mockEditing(undefined, ADMIN_USER, [PLURAL_ITEM()])
+		renderApp(PAGE_PATH)
+		await screen.findByText('items.count')
+		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ }))
+
+		const one = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Jeden' })
+		const other = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Iné' })
+		typeText(one, 'a'.repeat(6000))
+		typeText(other, 'b'.repeat(6000))
+		fireEvent.keyDown(other, { key: 'Enter', ctrlKey: true })
+
+		expect(screen.getByRole('alert')).toHaveTextContent('Preklad je príliš dlhý (max. 10 000 znakov spolu za všetky formy).')
+		expect(one).toHaveAttribute('aria-invalid', 'true')
+		expect(other).toHaveAttribute('aria-invalid', 'true')
+		expect(puts()).toHaveLength(0)
+	})
+
+	it('shows the brace message under the editor when the server rejects the plural value as INVALID', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		const puts = mockEditing(apiError(400, 'VALIDATION_ERROR', { details: [{ path: 'value', code: 'INVALID' }] }), ADMIN_USER, [PLURAL_ITEM()])
+		renderApp(PAGE_PATH)
+		await screen.findByText('items.count')
+		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ }))
+
+		const other = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Iné' })
+		typeText(other, '# items!')
+		blur(other)
+
+		const alert = await screen.findByRole('alert')
+		expect(alert).toHaveTextContent('Zátvorky { a } musia byť vyvážené.')
+		expect(other).toHaveAttribute('aria-invalid', 'true')
+		expect(other).toBeInTheDocument()
+		expect(puts()).toHaveLength(1)
+		expect(show).not.toHaveBeenCalled()
+		show.mockRestore()
+	})
 })

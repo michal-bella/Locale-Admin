@@ -90,6 +90,13 @@ const lastParams = (requests: () => InternalAxiosRequestConfig[]) => requests().
 
 const getTable = () => screen.getByRole('table', { name: 'Zoznam prekladov' })
 
+const STATUS = '[role="status"]'
+
+/** The visible text of a table state or the pagination summary; the hidden live region repeats it. */
+const findVisibleText = (text: string) => screen.findByText(text, { ignore: STATUS })
+
+const getAnnouncement = (text: string) => screen.getByText(text, { selector: STATUS })
+
 const getRow = (key: string) => {
 	const row = within(getTable()).getByText(key).closest('tr')
 	if (!row) {
@@ -135,7 +142,10 @@ describe('TranslationsPage', () => {
 
 		const welcome = within(getRow('dashboard.welcome'))
 		expect(welcome.getByText('loc:dashboard')).toBeInTheDocument()
-		expect(welcome.getByText('pred 2 min')).toBeInTheDocument()
+		const updated = welcome.getByText('pred 2 min')
+		expect(updated.tagName).toBe('TIME')
+		expect(updated).toHaveAttribute('datetime', WELCOME.target.updatedAt)
+		expect(updated).toHaveAttribute('title', expect.stringMatching(/^\d{1,2}\. \d{1,2}\. \d{4},? \d{2}:\d{2}$/))
 		expect(welcome.getByText('Preložené')).toBeInTheDocument()
 		expect(within(getRow('orders.empty.title')).getByText('Nepreložené')).toBeInTheDocument()
 		expect(within(getRow('orders.empty.title')).getByText('Bez prekladu')).toBeInTheDocument()
@@ -369,7 +379,8 @@ describe('TranslationsPage', () => {
 		mockPage({ translations: response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0 }, namespaces: [] }) })
 		renderApp(PAGE_PATH)
 
-		expect(await screen.findByText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeInTheDocument()
+		expect(await findVisibleText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeInTheDocument()
+		expect(getAnnouncement('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeInTheDocument()
 		const importButtons = screen.getAllByRole('button', { name: 'Importovať' })
 		expect(importButtons).toHaveLength(2)
 		importButtons.forEach((button) => expect(button).toBeEnabled())
@@ -383,7 +394,7 @@ describe('TranslationsPage', () => {
 		const requests = mockPage({ languages: [] })
 		renderApp(PAGE_PATH)
 
-		expect(await screen.findByText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeInTheDocument()
+		expect(await findVisibleText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeInTheDocument()
 		expect(requests()).toHaveLength(0)
 	})
 
@@ -391,11 +402,13 @@ describe('TranslationsPage', () => {
 		mockPage({ translations: response({ items: [], total: 0 }) })
 		const router = renderApp(`${PAGE_PATH}?search=xyz&status=TRANSLATED&sort=KEY`)
 
-		expect(await screen.findByText('Filtrom nezodpovedá žiadny kľúč.')).toBeInTheDocument()
+		expect(await findVisibleText('Filtrom nezodpovedá žiadny kľúč.')).toBeInTheDocument()
+		expect(getAnnouncement('Filtrom nezodpovedá žiadny kľúč.')).toBeInTheDocument()
 		fireEvent.click(screen.getByRole('button', { name: 'Zrušiť filtre' }))
 
 		await waitFor(() => expect(router.state.location.search).toEqual({ sort: 'KEY' }))
 		expect(screen.getByRole('textbox', { name: 'Hľadať kľúč alebo preklad' })).toHaveValue('')
+		expect(getTable()).toHaveFocus()
 	})
 
 	it('shows the translated error code and retries', async () => {
@@ -425,9 +438,11 @@ describe('TranslationsPage', () => {
 		})
 		const router = renderApp(PAGE_PATH)
 
-		expect(await screen.findByText('Zobrazených 4 z 120 kľúčov')).toBeInTheDocument()
+		expect(await findVisibleText('Zobrazených 4 z 120 kľúčov')).toBeInTheDocument()
+		expect(getAnnouncement('Zobrazených 4 z 120 kľúčov')).toBeInTheDocument()
 		const pagination = within(screen.getByRole('navigation', { name: 'Stránkovanie' }))
-		expect(pagination.getByRole('button', { name: 'Predošlá' })).toBeDisabled()
+		expect(pagination.getByRole('button', { name: 'Predošlá' })).toHaveAttribute('aria-disabled', 'true')
+		expect(pagination.getByRole('button', { name: 'Ďalšia' })).not.toHaveAttribute('aria-disabled')
 		expect(pagination.getByRole('button', { name: 'Strana 1' })).toHaveAttribute('aria-current', 'page')
 		expect(pagination.getByRole('button', { name: 'Strana 3' })).toBeInTheDocument()
 
@@ -438,6 +453,69 @@ describe('TranslationsPage', () => {
 		await waitFor(() => expect(pagination.getByRole('button', { name: 'Strana 2' })).toHaveAttribute('aria-current', 'page'))
 	})
 
+	it('keeps the focus on Ďalšia when it reaches the last page and ignores further clicks', async () => {
+		const requests = mockPage({
+			translations: (config) => ({ status: 200, data: response({ total: 120, page: (config.params as { page: number }).page }) }),
+		})
+		const router = renderApp(`${PAGE_PATH}?page=2`)
+
+		const pagination = within(await screen.findByRole('navigation', { name: 'Stránkovanie' }))
+		const next = pagination.getByRole('button', { name: 'Ďalšia' })
+		next.focus()
+		fireEvent.click(next)
+
+		await waitFor(() => expect(pagination.getByRole('button', { name: 'Strana 3' })).toHaveAttribute('aria-current', 'page'))
+		expect(next).toHaveAttribute('aria-disabled', 'true')
+		expect(next).toHaveAttribute('data-disabled', 'true')
+		expect(next).toHaveFocus()
+
+		fireEvent.click(next)
+		await waitFor(() => expect(lastParams(requests)).toMatchObject({ page: 3 }))
+		expect(router.state.location.search).toEqual({ page: 3 })
+	})
+
+	it('announces the new count after a search', async () => {
+		mockPage({
+			translations: (config) => {
+				const query = (config.params as { search?: string }).search
+				return { status: 200, data: query ? response({ items: [ITEMS[2]!], total: 1 }) : response() }
+			},
+		})
+		renderApp(PAGE_PATH)
+
+		expect(await findVisibleText('Zobrazených 4 z 4 kľúčov')).toBeInTheDocument()
+		fireEvent.change(screen.getByRole('textbox', { name: 'Hľadať kľúč alebo preklad' }), { target: { value: 'welcome' } })
+
+		await waitFor(() => expect(getAnnouncement('Zobrazených 1 z 1 kľúča')).toBeInTheDocument())
+	})
+
+	it('moves the focus to the header Importovať when the empty state is gone by the time the import modal closes', async () => {
+		let hasKeys = false
+		mockPage({
+			translations: () => ({
+				status: 200,
+				data: hasKeys ? response() : response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0 }, namespaces: [] }),
+			}),
+		})
+		renderApp(PAGE_PATH)
+
+		await findVisibleText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')
+		const [headerImport, emptyStateImport] = screen.getAllByRole('button', { name: 'Importovať' })
+		emptyStateImport!.focus()
+		fireEvent.click(emptyStateImport!)
+		const dialog = await screen.findByRole('dialog', { name: 'Importovať preklady' })
+
+		hasKeys = true
+		await act(() => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.TRANSLATIONS_ALL(PROJECT.id) }))
+		await within(getTable()).findByText('orders.empty.title')
+		expect(emptyStateImport).not.toBeInTheDocument()
+
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Zavrieť' }))
+
+		await waitFor(() => expect(dialog).not.toBeInTheDocument())
+		await waitFor(() => expect(headerImport).toHaveFocus())
+	})
+
 	it('shows the relative time and texts in English', async () => {
 		await i18n.changeLanguage('en')
 		mockPage()
@@ -445,7 +523,7 @@ describe('TranslationsPage', () => {
 
 		expect(await screen.findByText('2 min ago')).toBeInTheDocument()
 		expect(screen.getByRole('heading', { level: 1, name: 'Translations' })).toBeInTheDocument()
-		expect(screen.getByText('Showing 4 of 4 keys')).toBeInTheDocument()
+		expect(await findVisibleText('Showing 4 of 4 keys')).toBeInTheDocument()
 	})
 })
 
@@ -554,7 +632,7 @@ describe('TranslationsPage inline edit', () => {
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: 'Welcome, {{name}}' })
 		const button = await within(getRow('dashboard.welcome')).findByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Welcome, {{name}}' })
 		expect(button).toHaveFocus()
-		expect(screen.getByRole('status')).toHaveTextContent('Uložené: dashboard.welcome')
+		expect(getAnnouncement('Uložené: dashboard.welcome')).toBeInTheDocument()
 
 		const description = await openEditor('orders.empty.description', 'Preklad kľúča orders.empty.description, English: Bez prekladu')
 		fireEvent.change(description, { target: { value: 'New orders will show up here.' } })
@@ -564,7 +642,7 @@ describe('TranslationsPage inline edit', () => {
 		expect(puts()[1]?.url).toBe(putUrl(ITEMS[1]!.keyId))
 		expect(JSON.parse(puts()[1]?.data as string)).toEqual({ value: 'New orders will show up here.' })
 		await waitFor(() => expect(getRow('orders.empty.description')).toHaveAttribute('data-status', 'TRANSLATED'))
-		await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Uložené: orders.empty.description'))
+		await waitFor(() => expect(getAnnouncement('Uložené: orders.empty.description')).toBeInTheDocument())
 	})
 
 	it('does not announce a save that failed', async () => {
@@ -577,7 +655,7 @@ describe('TranslationsPage inline edit', () => {
 		blur(field)
 
 		await waitFor(() => expect(within(getRow('dashboard.welcome')).getByRole('button', { name: WELCOME_BUTTON })).toBeInTheDocument())
-		expect(screen.getByRole('status')).toHaveTextContent('')
+		expect(screen.queryByText(/Uložené/, { selector: STATUS })).not.toBeInTheDocument()
 	})
 
 	it('does not save on plain Enter, Esc restores the value without a request', async () => {

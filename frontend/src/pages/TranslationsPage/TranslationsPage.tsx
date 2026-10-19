@@ -1,7 +1,7 @@
 import { Button, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { TRANSLATIONS_PAGE_SIZE_DEFAULT } from '@locale/shared'
@@ -36,6 +36,14 @@ const TranslationsPage = () => {
 	const languagesQuery = useProjectLanguagesQuery(projectId)
 	const languages = languagesQuery.data ?? []
 	const [importOpened, importModal] = useDisclosure(false)
+	const importButtonRef = useRef<HTMLButtonElement>(null)
+
+	// Importovať in the empty state is gone once the import added keys, so Mantine has nothing to return the focus to; the header button
+	// takes it (Mantine still moves it to the original trigger 10 ms later when that one is still there).
+	const closeImport = () => {
+		importModal.close()
+		importButtonRef.current?.focus()
+	}
 
 	const baseLanguage = languages.find((language) => language.isBase) ?? languages[0]
 	const sourceLanguage = languages.find((language) => language.tag === search.source) ?? baseLanguage
@@ -100,6 +108,20 @@ const TranslationsPage = () => {
 	const hasLanguages = languages.length > 0
 	const isPending = !isError && (languagesQuery.isPending || (hasLanguages && translationsQuery.isPending) || isPastEnd)
 
+	// The search commits 300 ms after typing and the table changes silently; one polite region says what the list shows now.
+	const resultsAnnouncement = (() => {
+		if (isPending || isError) {
+			return ''
+		}
+		if (!data || data.stats.totalKeys === 0) {
+			return t('translationsPage.table.empty')
+		}
+		if (data.items.length === 0) {
+			return t('translationsPage.table.noResults')
+		}
+		return t('translationsPage.pagination.summary', { shown: data.items.length, count: data.total })
+	})()
+
 	return (
 		<div className='mx-auto flex w-full max-w-[1440px] flex-col gap-6 p-8'>
 			<div className='flex flex-wrap items-end justify-between gap-4'>
@@ -110,7 +132,7 @@ const TranslationsPage = () => {
 					description={t('translationsPage.description')}
 					titleSize='h2'
 				/>
-				<Button variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
+				<Button ref={importButtonRef} variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
 					{t('translationsPage.importButton')}
 				</Button>
 			</div>
@@ -144,6 +166,7 @@ const TranslationsPage = () => {
 					onSave={saveTranslation}
 				/>
 			</div>
+			<VisuallyHidden role='status'>{resultsAnnouncement}</VisuallyHidden>
 			<VisuallyHidden role='status'>{savedAnnouncement}</VisuallyHidden>
 			{!isError && !isPastEnd && data && data.total > 0 && (
 				<TranslationsPagination
@@ -154,7 +177,7 @@ const TranslationsPage = () => {
 					onChange={(next) => updateSearch({ page: next === 1 ? undefined : next }, { resetPage: false })}
 				/>
 			)}
-			<ImportModal projectId={projectId} opened={importOpened} onClose={importModal.close} />
+			<ImportModal projectId={projectId} opened={importOpened} onClose={closeImport} />
 		</div>
 	)
 }

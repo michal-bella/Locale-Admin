@@ -18,3 +18,13 @@ export const formatDate = (isoDate: string, language: string) =>
 		month: 'numeric',
 		year: 'numeric',
 	}).format(new Date(isoDate))
+
+/** Numeric date with time in the UI language: `sk` → `12. 10. 2026, 10:00`, `en` → `12/10/2026, 10:00`. */
+export const formatDateTime = (isoDate: string, language: string) =>
+	new Intl.DateTimeFormat(toIntlLocale(language), {
+		day: 'numeric',
+		month: 'numeric',
+		year: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+	}).format(new Date(isoDate))

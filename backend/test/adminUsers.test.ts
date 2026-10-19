@@ -32,19 +32,26 @@ const postUser = (app: App, cookie: string, body: unknown) =>
 		.send(body as object)
 
 describe('GET /api/admin/users', () => {
-	it('returns only admins newest first without passwordHash', async () => {
+	it('returns every user newest first with their project count and without passwordHash', async () => {
 		const app = createTestApp()
 		const { user: admin } = await createUser({ role: ROLE.ADMIN, createdAt: new Date('2026-01-01T00:00:00Z') })
 		const { user: newer } = await createUser({ role: ROLE.ADMIN, createdAt: new Date('2026-03-01T00:00:00Z') })
-		await createUser({ createdAt: new Date('2026-04-01T00:00:00Z') })
+		const { user: editor } = await createUser({ createdAt: new Date('2026-04-01T00:00:00Z') })
+		await getTestPrisma().project.create({ data: { name: 'A', slug: 'a', members: { create: [{ userId: editor.id }, { userId: newer.id }] } } })
+		await getTestPrisma().project.create({ data: { name: 'B', slug: 'b', members: { create: [{ userId: editor.id }] } } })
 		const cookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
 
 		const res = await request(app).get('/api/admin/users').set('Cookie', cookie)
 
 		expect(res.status).toBe(200)
 		const { users } = adminUserListResponseSchema.parse(res.body)
-		expect(users.map(({ id }) => id)).toEqual([newer.id, admin.id])
-		expect(users[0]).toEqual({ id: newer.id, email: newer.email, role: ROLE.ADMIN, createdAt: '2026-03-01T00:00:00.000Z' })
+		expect(users.map(({ id }) => id)).toEqual([editor.id, newer.id, admin.id])
+		expect(users.map(({ role, projectCount }) => ({ role, projectCount }))).toEqual([
+			{ role: ROLE.EDITOR, projectCount: 2 },
+			{ role: ROLE.ADMIN, projectCount: 1 },
+			{ role: ROLE.ADMIN, projectCount: 0 },
+		])
+		expect(users[1]).toEqual({ id: newer.id, email: newer.email, role: ROLE.ADMIN, projectCount: 1, createdAt: '2026-03-01T00:00:00.000Z' })
 		expect(adminUserListResponseSchema.extend({ users: adminUserSchema.strict().array() }).strict().safeParse(res.body).success).toBe(true)
 		expect(JSON.stringify(res.body)).not.toContain('passwordHash')
 	})
@@ -66,19 +73,19 @@ describe('GET /api/admin/users', () => {
 })
 
 describe('POST /api/admin/users', () => {
-	it('creates an ADMIN with a normalized email even when the body asks for EDITOR', async () => {
+	it.each([ROLE.ADMIN, ROLE.EDITOR])('creates a %s with a normalized email', async (role) => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
 		const before = Date.now()
 
-		const res = await postUser(app, cookie, { email: '  Nova.Osoba@Firma.SK ', password: NEW_PASSWORD, role: ROLE.EDITOR })
+		const res = await postUser(app, cookie, { email: '  Nova.Osoba@Firma.SK ', password: NEW_PASSWORD, role })
 
 		expect(res.status).toBe(201)
 		const body = adminUserSchema.strict().parse(res.body)
-		expect(body).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.ADMIN })
+		expect(body).toMatchObject({ email: 'nova.osoba@firma.sk', role, projectCount: 0 })
 
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: body.id } })
-		expect(stored).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.ADMIN, isActive: true })
+		expect(stored).toMatchObject({ email: 'nova.osoba@firma.sk', role, isActive: true })
 		expect(stored.passwordHash).toMatch(/^\$argon2id\$/)
 		expect(await verifyPassword(stored.passwordHash, NEW_PASSWORD)).toBe(true)
 		expect(stored.passwordChangedAt.getTime()).toBeGreaterThanOrEqual(before - 1000)
@@ -88,20 +95,29 @@ describe('POST /api/admin/users', () => {
 	it('creates a user who can log in', async () => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
-		await postUser(app, cookie, { email: 'nova.osoba@firma.sk', password: NEW_PASSWORD }).expect(201)
+		await postUser(app, cookie, { email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR }).expect(201)
 
 		const res = await request(app).post('/api/auth/login').set(CSRF_HEADERS).send({ email: 'NOVA.osoba@firma.sk', password: NEW_PASSWORD })
 
 		expect(res.status).toBe(200)
-		expect(res.body).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.ADMIN })
+		expect(res.body).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.EDITOR })
 	})
 
 	it.each([
-		{ name: 'invalid email', body: { email: 'not-an-email', password: NEW_PASSWORD }, details: [{ path: 'email', code: VALIDATION_CODE.INVALID_EMAIL }] },
+		{
+			name: 'invalid email',
+			body: { email: 'not-an-email', password: NEW_PASSWORD, role: ROLE.EDITOR },
+			details: [{ path: 'email', code: VALIDATION_CODE.INVALID_EMAIL }],
+		},
 		{
 			name: 'short password',
-			body: { email: 'nova.osoba@firma.sk', password: 'short' },
+			body: { email: 'nova.osoba@firma.sk', password: 'short', role: ROLE.EDITOR },
 			details: [{ path: 'password', code: VALIDATION_CODE.TOO_SHORT, params: { min: 8 } }],
+		},
+		{
+			name: 'unknown role',
+			body: { email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: 'OWNER' },
+			details: [{ path: 'role', code: VALIDATION_CODE.INVALID }],
 		},
 		{
 			name: 'missing fields',
@@ -109,6 +125,7 @@ describe('POST /api/admin/users', () => {
 			details: [
 				{ path: 'email', code: VALIDATION_CODE.REQUIRED },
 				{ path: 'password', code: VALIDATION_CODE.REQUIRED },
+				{ path: 'role', code: VALIDATION_CODE.INVALID },
 			],
 		},
 	])('returns 400 VALIDATION_ERROR with details for $name', async ({ body, details }) => {
@@ -127,7 +144,7 @@ describe('POST /api/admin/users', () => {
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
 		await createUser({ email: 'existujuci@firma.sk' })
 
-		const res = await postUser(app, cookie, { email: 'Existujuci@FIRMA.sk', password: NEW_PASSWORD })
+		const res = await postUser(app, cookie, { email: 'Existujuci@FIRMA.sk', password: NEW_PASSWORD, role: ROLE.EDITOR })
 
 		expectErrorCode(res, 409, ERROR_CODE.EMAIL_TAKEN)
 		expect(await getTestPrisma().user.count({ where: { email: 'existujuci@firma.sk' } })).toBe(1)
@@ -138,8 +155,8 @@ describe('POST /api/admin/users', () => {
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
 
 		const responses = await Promise.all([
-			postUser(app, cookie, { email: 'subeh@firma.sk', password: NEW_PASSWORD }),
-			postUser(app, cookie, { email: 'subeh@firma.sk', password: NEW_PASSWORD }),
+			postUser(app, cookie, { email: 'subeh@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR }),
+			postUser(app, cookie, { email: 'subeh@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR }),
 		])
 
 		expect(responses.map(({ status }) => status).sort()).toEqual([201, 409])
@@ -147,7 +164,10 @@ describe('POST /api/admin/users', () => {
 	})
 
 	it('returns 401 AUTH_UNAUTHENTICATED without a session', async () => {
-		const res = await request(createTestApp()).post('/api/admin/users').set(CSRF_HEADERS).send({ email: 'nova.osoba@firma.sk', password: NEW_PASSWORD })
+		const res = await request(createTestApp())
+			.post('/api/admin/users')
+			.set(CSRF_HEADERS)
+			.send({ email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR })
 
 		expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
 		expect(await getTestPrisma().user.count()).toBe(0)
@@ -157,7 +177,7 @@ describe('POST /api/admin/users', () => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.EDITOR)
 
-		const res = await postUser(app, cookie, { email: 'nova.osoba@firma.sk', password: NEW_PASSWORD })
+		const res = await postUser(app, cookie, { email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR })
 
 		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
 		expect(await getTestPrisma().user.count()).toBe(1)
@@ -167,7 +187,10 @@ describe('POST /api/admin/users', () => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
 
-		const res = await request(app).post('/api/admin/users').set('Cookie', cookie).send({ email: 'nova.osoba@firma.sk', password: NEW_PASSWORD })
+		const res = await request(app)
+			.post('/api/admin/users')
+			.set('Cookie', cookie)
+			.send({ email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR })
 
 		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
 		expect(await getTestPrisma().user.count()).toBe(1)
@@ -203,8 +226,21 @@ describe('DELETE /api/admin/users/:id', () => {
 		expect(await getTestPrisma().user.count({ where: { id: admin.id } })).toBe(1)
 	})
 
+	it('deletes an EDITOR with their project memberships and keeps the projects', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user: editor } = await createUser()
+		const project = await getTestPrisma().project.create({ data: { name: 'A', slug: 'a', members: { create: { userId: editor.id } } } })
+
+		const res = await deleteUser(app, cookie, editor.id)
+
+		expect(res.status).toBe(204)
+		expect(await getTestPrisma().user.count({ where: { id: editor.id } })).toBe(0)
+		expect(await getTestPrisma().projectMember.count({ where: { projectId: project.id } })).toBe(0)
+		expect(await getTestPrisma().project.count({ where: { id: project.id } })).toBe(1)
+	})
+
 	it.each([
-		{ name: 'an EDITOR (members are removed in a project)', id: () => createUser().then(({ user }) => user.id) },
 		{ name: 'an unknown id', id: () => Promise.resolve('00000000-0000-4000-8000-000000000999') },
 		{ name: 'an id that is not a UUID', id: () => Promise.resolve('not-a-uuid') },
 	])('returns 404 NOT_FOUND for $name', async ({ id }) => {

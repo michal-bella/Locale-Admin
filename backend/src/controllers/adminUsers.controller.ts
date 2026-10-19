@@ -6,7 +6,7 @@ import { createUserRequestSchema, ERROR_CODE, type AdminUser, type AdminUserList
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 import { getAuth } from '../middleware/auth.middleware'
-import { createUser, deleteAdmin, listUsers } from '../services/adminUsers.service'
+import { createUser, deleteUser, listUsers } from '../services/adminUsers.service'
 
 export const createListUsersController =
 	(prisma: PrismaClient): RequestHandler =>
@@ -27,8 +27,8 @@ export const createDeleteUserController =
 	(prisma: PrismaClient): RequestHandler<{ id: string }> =>
 	async (req, res) => {
 		if (!z.uuid().safeParse(req.params.id).success) {
-			throw new AppError(404, ERROR_CODE.NOT_FOUND, 'Admin not found')
+			throw new AppError(404, ERROR_CODE.NOT_FOUND, 'User not found')
 		}
-		await deleteAdmin(prisma, req.params.id, getAuth(req).user.id)
+		await deleteUser(prisma, req.params.id, getAuth(req).user.id)
 		res.status(204).end()
 	}

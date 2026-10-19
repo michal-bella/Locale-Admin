@@ -1,11 +1,11 @@
 import { type RequestHandler } from 'express'
 import { z } from 'zod'
 
-import { createProjectMemberRequestSchema, ERROR_CODE, type ProjectMember, type ProjectMemberListResponse } from '@locale/shared'
+import { addProjectMemberRequestSchema, ERROR_CODE, type ProjectMember, type ProjectMemberListResponse } from '@locale/shared'
 
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
-import { createProjectMember, listProjectMembers } from '../services/projectMembers.service'
+import { addProjectMember, listProjectMembers } from '../services/projectMembers.service'
 import { removeProjectMember } from '../services/projects.service'
 
 export const createListProjectMembersController =
@@ -15,11 +15,11 @@ export const createListProjectMembersController =
 		res.status(200).json(body)
 	}
 
-export const createCreateProjectMemberController =
+export const createAddProjectMemberController =
 	(prisma: PrismaClient): RequestHandler<{ projectId: string }> =>
 	async (req, res) => {
-		const input = createProjectMemberRequestSchema.parse(req.body)
-		const body: ProjectMember = await createProjectMember(prisma, req.params.projectId, input)
+		const input = addProjectMemberRequestSchema.parse(req.body)
+		const body: ProjectMember = await addProjectMember(prisma, req.params.projectId, input)
 		res.status(201).json(body)
 	}
 

@@ -35,3 +35,20 @@
 	align-items: center;
 	height: 100%;
 }
+
+/* Below Tailwind's sm breakpoint every control takes the full width, the language pair splits it in two. */
+@media (max-width: 39.99em) {
+	.search {
+		max-width: none;
+	}
+
+	.select,
+	.view {
+		width: 100%;
+	}
+
+	.languageSelect {
+		flex: 1;
+		width: auto;
+	}
+}

@@ -1,4 +1,4 @@
-import { type ComboboxItem, type ComboboxLikeRenderOptionInput, SegmentedControl, Select, Text, TextInput } from '@mantine/core'
+import { type ComboboxItem, type ComboboxLikeRenderOptionInput, SegmentedControl, Select, TextInput } from '@mantine/core'
 import { useDebouncedCallback } from '@mantine/hooks'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -94,61 +94,60 @@ const TranslationsToolbar = ({
 	const namespaceOptions = namespaces.filter(Boolean)
 
 	return (
-		<div className='flex flex-wrap items-center gap-3'>
-			<div className='flex flex-1 flex-wrap items-center gap-2'>
-				<TextInput
-					aria-label={t('translationsPage.toolbar.search.label')}
-					placeholder={t('translationsPage.toolbar.search.placeholder')}
-					leftSection={<Search aria-hidden />}
-					maxLength={TRANSLATIONS_SEARCH_MAX_LENGTH}
-					className={classes.search}
-					value={searchValue}
-					onChange={(event) => {
-						setSearchValue(event.currentTarget.value)
-						commitSearch(event.currentTarget.value)
-					}}
-				/>
+		<div className='flex flex-wrap items-center gap-2'>
+			{/* One wrapping row: the view group sticks to the right edge and, once it wraps, shares a line with the last filters. */}
+			<TextInput
+				aria-label={t('translationsPage.toolbar.search.label')}
+				placeholder={t('translationsPage.toolbar.search.placeholder')}
+				leftSection={<Search aria-hidden />}
+				maxLength={TRANSLATIONS_SEARCH_MAX_LENGTH}
+				className={classes.search}
+				value={searchValue}
+				onChange={(event) => {
+					setSearchValue(event.currentTarget.value)
+					commitSearch(event.currentTarget.value)
+				}}
+			/>
+			<Select
+				aria-label={t('translationsPage.toolbar.status.label')}
+				className={classes.select}
+				data={[ALL_STATUSES, ...translationStatusSchema.options].map((value) => ({
+					value,
+					label: t(`translationsPage.toolbar.status.${value}`),
+				}))}
+				value={status ?? ALL_STATUSES}
+				onChange={(value) => {
+					const parsed = translationStatusSchema.safeParse(value)
+					onChange({ status: parsed.success ? parsed.data : undefined })
+				}}
+				allowDeselect={false}
+				withScrollArea={false}
+			/>
+			{/* An active filter stays visible even when the project has one namespace left. */}
+			{(namespaceOptions.length > 1 || namespace !== undefined) && (
 				<Select
-					aria-label={t('translationsPage.toolbar.status.label')}
+					aria-label={t('translationsPage.toolbar.namespace.label')}
+					placeholder={t('translationsPage.toolbar.namespace.placeholder')}
 					className={classes.select}
-					data={[ALL_STATUSES, ...translationStatusSchema.options].map((value) => ({
-						value,
-						label: t(`translationsPage.toolbar.status.${value}`),
-					}))}
-					value={status ?? ALL_STATUSES}
-					onChange={(value) => {
-						const parsed = translationStatusSchema.safeParse(value)
-						onChange({ status: parsed.success ? parsed.data : undefined })
-					}}
-					allowDeselect={false}
-					withScrollArea={false}
+					data={namespaceOptions}
+					value={namespace ?? null}
+					onChange={(value) => onChange({ namespace: value ?? undefined })}
+					clearable
 				/>
-				{/* An active filter stays visible even when the project has one namespace left. */}
-				{(namespaceOptions.length > 1 || namespace !== undefined) && (
-					<Select
-						aria-label={t('translationsPage.toolbar.namespace.label')}
-						placeholder={t('translationsPage.toolbar.namespace.placeholder')}
-						className={classes.select}
-						data={namespaceOptions}
-						value={namespace ?? null}
-						onChange={(value) => onChange({ namespace: value ?? undefined })}
-						clearable
-					/>
-				)}
-				<Select
-					aria-label={t('translationsPage.toolbar.sort.label')}
-					className={classes.select}
-					data={translationsSortSchema.options.map((value) => ({ value, label: t(`translationsPage.toolbar.sort.${value}`) }))}
-					value={sort}
-					onChange={(value) => {
-						const parsed = translationsSortSchema.safeParse(value)
-						onChange({ sort: parsed.success && parsed.data !== 'UNTRANSLATED_FIRST' ? parsed.data : undefined })
-					}}
-					allowDeselect={false}
-					withScrollArea={false}
-				/>
-			</div>
-			<div className='flex flex-wrap items-center gap-3'>
+			)}
+			<Select
+				aria-label={t('translationsPage.toolbar.sort.label')}
+				className={classes.select}
+				data={translationsSortSchema.options.map((value) => ({ value, label: t(`translationsPage.toolbar.sort.${value}`) }))}
+				value={sort}
+				onChange={(value) => {
+					const parsed = translationsSortSchema.safeParse(value)
+					onChange({ sort: parsed.success && parsed.data !== 'UNTRANSLATED_FIRST' ? parsed.data : undefined })
+				}}
+				allowDeselect={false}
+				withScrollArea={false}
+			/>
+			<div className='ml-auto flex flex-wrap items-center gap-3 max-sm:w-full'>
 				<SegmentedControl
 					aria-label={t('translationsPage.view.label')}
 					value={view}
@@ -164,10 +163,7 @@ const TranslationsToolbar = ({
 					classNames={{ root: classes.view, label: classes.viewLabel }}
 				/>
 				{view === 'COMPACT' && (
-					<div className='flex items-center gap-2'>
-						<Text component='span' aria-hidden fz='xs' c='var(--app-color-muted)'>
-							{t('translationsPage.toolbar.sourceLanguage')}
-						</Text>
+					<div className='flex items-center gap-2 max-sm:w-full'>
 						<LanguageSelect
 							label={t('translationsPage.toolbar.sourceLanguage')}
 							languages={languages}

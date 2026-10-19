@@ -1,6 +1,6 @@
 import { Badge, Button, Skeleton, Table, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { Fragment, type ReactNode, useRef, useState } from 'react'
+import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type Language, ROLE, type TranslationCell as TranslationCellData, type TranslationListItem } from '@locale/shared'
@@ -53,6 +53,8 @@ const TranslationsTable = ({
 	const { data: me } = useMeQuery()
 	const isAdmin = me?.role === ROLE.ADMIN
 	const tableRef = useRef<HTMLTableElement>(null)
+	const scrollRef = useRef<HTMLDivElement>(null)
+	const [overflows, setOverflows] = useState(false)
 	const [editOpened, editModal] = useDisclosure(false)
 	const [editing, setEditing] = useState<TranslationListItem | null>(null)
 	const [translationOpened, translationModal] = useDisclosure(false)
@@ -62,6 +64,19 @@ const TranslationsTable = ({
 	const columnCount = isExtended ? languages.length + 2 : 4
 	const keyClass = `${classes.td} ${isExtended ? classes.stickyStart : ''}`
 	const statusClass = `${classes.td} ${classes.statusCell} ${isExtended ? classes.stickyEnd : ''}`
+
+	// A horizontal scroll container would pin the sticky header to itself instead of the page, so the wrapper scrolls only when the table is wider.
+	useEffect(() => {
+		const scroll = scrollRef.current
+		const table = tableRef.current
+		if (!scroll || !table) {
+			return
+		}
+		const observer = new ResizeObserver(() => setOverflows(table.offsetWidth > scroll.clientWidth))
+		observer.observe(scroll)
+		observer.observe(table)
+		return () => observer.disconnect()
+	}, [])
 
 	const openEdit = (item: TranslationListItem) => {
 		setEditing(item)
@@ -247,7 +262,7 @@ const TranslationsTable = ({
 	}
 
 	return (
-		<div className={`${classes.scroll} ${isExtended ? classes.scrollExtended : ''}`}>
+		<div ref={scrollRef} className={`${classes.scroll} ${isExtended ? classes.scrollExtended : ''}`} data-overflows={overflows || undefined}>
 			<Table
 				ref={tableRef}
 				tabIndex={-1}
@@ -273,8 +288,16 @@ const TranslationsTable = ({
 							))
 						) : (
 							<>
-								<Table.Th className={classes.th}>{sourceLanguage?.nativeName}</Table.Th>
-								<Table.Th className={classes.th}>{targetLanguage?.nativeName}</Table.Th>
+								{[sourceLanguage, targetLanguage].map((language, index) => (
+									<Table.Th key={language?.id ?? index} className={classes.th}>
+										{language && (
+											<span className={classes.languageHeader}>
+												<LanguageFlag code={language.flagCode} size='sm' />
+												{language.nativeName}
+											</span>
+										)}
+									</Table.Th>
+								))}
 							</>
 						)}
 						<Table.Th className={`${classes.th} ${classes.statusColumn} ${classes.statusCell} ${isExtended ? classes.stickyEnd : ''}`}>

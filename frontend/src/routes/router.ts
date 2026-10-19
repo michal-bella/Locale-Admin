@@ -3,6 +3,7 @@ import { createRouter } from '@tanstack/react-router'
 import queryClient from '@/api/queryClient'
 import ErrorPage from '@/pages/ErrorPage/ErrorPage'
 import { adminProjectsRoute } from '@/routes/adminProjectsRoute'
+import { adminUserRoute } from '@/routes/adminUserRoute'
 import { adminUsersRoute } from '@/routes/adminUsersRoute'
 import { appLayoutRoute } from '@/routes/appLayoutRoute'
 import { authenticatedRoute } from '@/routes/authenticatedRoute'
@@ -26,6 +27,7 @@ const routeTree = rootRoute.addChildren([
 			profileRoute,
 			adminProjectsRoute,
 			adminUsersRoute,
+			adminUserRoute,
 			projectRoute.addChildren([projectIndexRoute, projectTranslationsRoute, projectSettingsRoute, projectLanguagesRoute, projectMembersRoute]),
 		]),
 	]),

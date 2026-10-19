@@ -105,6 +105,13 @@ describe('UsersPage table', () => {
 		expect(within(janaRow).getByText('3. 10. 2026')).toBeInTheDocument()
 	})
 
+	it('opens the user detail from the row', async () => {
+		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, JANA]) })
+		renderApp('/admin/users')
+
+		expect(await screen.findByRole('link', { name: `Otvoriť používateľa ${JANA.email}` })).toHaveAttribute('href', `/admin/users/${JANA.id}`)
+	})
+
 	it('formats dates in en', async () => {
 		await i18n.changeLanguage('en')
 		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, JANA]) })

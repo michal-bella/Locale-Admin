@@ -7,6 +7,8 @@ export const QUERY_KEYS = {
 	},
 	ADMIN: {
 		USERS: () => ['admin', 'users'] as const,
+		/** Under the `USERS()` prefix, so refetching the list also refetches an open user detail. */
+		USER: (userId: string) => ['admin', 'users', userId] as const,
 		PROJECTS: () => ['admin', 'projects'] as const,
 	},
 	PROFILE: () => ['profile'] as const,

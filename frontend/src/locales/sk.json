@@ -115,7 +115,9 @@
 			"retry": "Skúsiť znova",
 			"deleteLabel": "Odstrániť používateľa {{email}}",
 			"actionsColumn": "Akcie",
-			"delete": "Odstrániť"
+			"delete": "Odstrániť",
+			"open": "Otvoriť",
+			"openLabel": "Otvoriť používateľa {{email}}"
 		},
 		"createModal": {
 			"title": "Nový používateľ",
@@ -151,6 +153,61 @@
 			"cancel": "Zrušiť",
 			"confirm": "Odstrániť",
 			"success": "Používateľ {{email}} bol odstránený."
+		}
+	},
+	"userPage": {
+		"eyebrow": "Správa",
+		"title": "Detail používateľa",
+		"description": "Účet používateľa a projekty, v ktorých je členom.",
+		"loadError": "Používateľa sa nepodarilo načítať.",
+		"retry": "Skúsiť znova",
+		"notFound": {
+			"title": "Používateľ sa nenašiel",
+			"description": "Používateľ neexistuje alebo bol odstránený.",
+			"back": "Späť na používateľov"
+		},
+		"card": {
+			"label": "Účet používateľa",
+			"createdAt": "Vytvorený {{date}}"
+		},
+		"projects": {
+			"title": "Projekty",
+			"addButton": "Pridať do projektu",
+			"table": {
+				"label": "Projekty používateľa",
+				"project": "Projekt",
+				"slug": "Slug",
+				"joinedAt": "Pridaný",
+				"empty": "Používateľ zatiaľ nie je v žiadnom projekte.",
+				"actionsColumn": "Akcie",
+				"open": "Otvoriť členov",
+				"openLabel": "Otvoriť členov projektu {{name}}",
+				"remove": "Odobrať z projektu",
+				"removeLabel": "Odobrať z projektu {{name}}"
+			}
+		},
+		"addModal": {
+			"title": "Pridať do projektu",
+			"description": "Vyberte projekt, ku ktorému používateľ {{email}} získa prístup.",
+			"close": "Zavrieť",
+			"project": {
+				"label": "Projekt",
+				"placeholder": "Hľadať podľa názvu"
+			},
+			"nothingFound": "Žiadny projekt nezodpovedá hľadaniu.",
+			"loadError": "Projekty sa nepodarilo načítať.",
+			"retry": "Skúsiť znova",
+			"cancel": "Zrušiť",
+			"submit": "Pridať do projektu",
+			"success": "{{email}} bol pridaný do projektu {{name}}."
+		},
+		"removeModal": {
+			"title": "Odobrať z projektu",
+			"message": "Naozaj chcete odobrať {{email}} z projektu {{name}}? Účet ostane, späť ho môže pridať administrátor.",
+			"close": "Zavrieť",
+			"cancel": "Zrušiť",
+			"confirm": "Odobrať",
+			"success": "{{email}} bol odobraný z projektu {{name}}."
 		}
 	},
 	"translationsPage": {

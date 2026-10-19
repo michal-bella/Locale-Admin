@@ -115,7 +115,9 @@
 			"retry": "Zkusit znovu",
 			"deleteLabel": "Odstranit uživatele {{email}}",
 			"actionsColumn": "Akce",
-			"delete": "Odstranit"
+			"delete": "Odstranit",
+			"open": "Otevřít",
+			"openLabel": "Otevřít uživatele {{email}}"
 		},
 		"createModal": {
 			"title": "Nový uživatel",
@@ -151,6 +153,61 @@
 			"cancel": "Zrušit",
 			"confirm": "Odstranit",
 			"success": "Uživatel {{email}} byl odstraněn."
+		}
+	},
+	"userPage": {
+		"eyebrow": "Správa",
+		"title": "Detail uživatele",
+		"description": "Účet uživatele a projekty, ve kterých je členem.",
+		"loadError": "Uživatele se nepodařilo načíst.",
+		"retry": "Zkusit znovu",
+		"notFound": {
+			"title": "Uživatel nebyl nalezen",
+			"description": "Uživatel neexistuje nebo byl odstraněn.",
+			"back": "Zpět na uživatele"
+		},
+		"card": {
+			"label": "Účet uživatele",
+			"createdAt": "Vytvořen {{date}}"
+		},
+		"projects": {
+			"title": "Projekty",
+			"addButton": "Přidat do projektu",
+			"table": {
+				"label": "Projekty uživatele",
+				"project": "Projekt",
+				"slug": "Slug",
+				"joinedAt": "Přidán",
+				"empty": "Uživatel zatím není v žádném projektu.",
+				"actionsColumn": "Akce",
+				"open": "Otevřít členy",
+				"openLabel": "Otevřít členy projektu {{name}}",
+				"remove": "Odebrat z projektu",
+				"removeLabel": "Odebrat z projektu {{name}}"
+			}
+		},
+		"addModal": {
+			"title": "Přidat do projektu",
+			"description": "Vyberte projekt, ke kterému uživatel {{email}} získá přístup.",
+			"close": "Zavřít",
+			"project": {
+				"label": "Projekt",
+				"placeholder": "Hledat podle názvu"
+			},
+			"nothingFound": "Žádný projekt neodpovídá hledání.",
+			"loadError": "Projekty se nepodařilo načíst.",
+			"retry": "Zkusit znovu",
+			"cancel": "Zrušit",
+			"submit": "Přidat do projektu",
+			"success": "{{email}} byl přidán do projektu {{name}}."
+		},
+		"removeModal": {
+			"title": "Odebrat z projektu",
+			"message": "Opravdu chcete odebrat {{email}} z projektu {{name}}? Účet zůstane, zpět ho může přidat administrátor.",
+			"close": "Zavřít",
+			"cancel": "Zrušit",
+			"confirm": "Odebrat",
+			"success": "{{email}} byl odebrán z projektu {{name}}."
 		}
 	},
 	"translationsPage": {

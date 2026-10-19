@@ -115,7 +115,9 @@
 			"retry": "Try again",
 			"deleteLabel": "Delete user {{email}}",
 			"actionsColumn": "Actions",
-			"delete": "Delete"
+			"delete": "Delete",
+			"open": "Open",
+			"openLabel": "Open user {{email}}"
 		},
 		"createModal": {
 			"title": "New user",
@@ -149,6 +151,61 @@
 			"cancel": "Cancel",
 			"confirm": "Delete",
 			"success": "User {{email}} has been deleted."
+		}
+	},
+	"userPage": {
+		"eyebrow": "Administration",
+		"title": "User detail",
+		"description": "The user account and the projects they are a member of.",
+		"loadError": "The user could not be loaded.",
+		"retry": "Try again",
+		"notFound": {
+			"title": "User not found",
+			"description": "The user does not exist or has been deleted.",
+			"back": "Back to users"
+		},
+		"card": {
+			"label": "User account",
+			"createdAt": "Created {{date}}"
+		},
+		"projects": {
+			"title": "Projects",
+			"addButton": "Add to project",
+			"table": {
+				"label": "User projects",
+				"project": "Project",
+				"slug": "Slug",
+				"joinedAt": "Added",
+				"empty": "The user is not in any project yet.",
+				"actionsColumn": "Actions",
+				"open": "Open members",
+				"openLabel": "Open members of project {{name}}",
+				"remove": "Remove from project",
+				"removeLabel": "Remove from project {{name}}"
+			}
+		},
+		"addModal": {
+			"title": "Add to project",
+			"description": "Pick the project the user {{email}} gets access to.",
+			"close": "Close",
+			"project": {
+				"label": "Project",
+				"placeholder": "Search by name"
+			},
+			"nothingFound": "No project matches the search.",
+			"loadError": "The projects could not be loaded.",
+			"retry": "Try again",
+			"cancel": "Cancel",
+			"submit": "Add to project",
+			"success": "{{email}} has been added to the project {{name}}."
+		},
+		"removeModal": {
+			"title": "Remove from project",
+			"message": "Do you really want to remove {{email}} from the project {{name}}? The account stays and an administrator can add it back.",
+			"close": "Close",
+			"cancel": "Cancel",
+			"confirm": "Remove",
+			"success": "{{email}} has been removed from the project {{name}}."
 		}
 	},
 	"translationsPage": {

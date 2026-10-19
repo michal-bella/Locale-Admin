@@ -7,6 +7,7 @@ import {
 	expectKeys,
 	getGroupHeaders,
 	getSearch,
+	getShownCount,
 	getStat,
 	getTranslationRow,
 	getTranslationRows,
@@ -58,7 +59,7 @@ test('the project index redirects to Preklady, the first sidebar item, with the 
 	await expect(getStat(page, 'Chýbajúce')).toHaveText('2')
 	await expect(page.getByRole('progressbar', { name: 'Preložené: 60 %' })).toBeVisible()
 	await expect(page.getByRole('progressbar', { name: 'Chýbajúce: 40 %' })).toBeVisible()
-	await expect(page.getByText('Zobrazených 5 z 5 kľúčov')).toBeVisible()
+	await expect(getShownCount(page, 'Zobrazených 5 z 5 kľúčov')).toBeVisible()
 	await expect(page.getByRole('navigation', { name: 'Stránkovanie' })).toHaveCount(0)
 })
 
@@ -106,7 +107,7 @@ test('search filters key and text, is kept in the URL and survives a reload', as
 	await getSearch(page).fill('objedn')
 	await expect(page).toHaveURL(translationsPath(project, '?search=objedn'))
 	await expectKeys(getTranslationRows(page), ['orders.empty.description', 'orders.empty.title'])
-	await expect(page.getByText('Zobrazených 2 z 2 kľúčov')).toBeVisible()
+	await expect(getShownCount(page, 'Zobrazených 2 z 2 kľúčov')).toBeVisible()
 	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('5')
 
 	await page.reload()
@@ -172,7 +173,7 @@ test('more than 50 keys are paginated and a single namespace has no namespace fi
 
 	await expect(page.getByRole('combobox', { name: 'Namespace' })).toHaveCount(0)
 	await expect(getTranslationRows(page)).toHaveCount(50)
-	await expect(page.getByText('Zobrazených 50 z 60 kľúčov')).toBeVisible()
+	await expect(getShownCount(page, 'Zobrazených 50 z 60 kľúčov')).toBeVisible()
 	const pagination = page.getByRole('navigation', { name: 'Stránkovanie' })
 	await expect(pagination.getByRole('button', { name: 'Predošlá' })).toBeDisabled()
 	await expect(pagination.getByRole('button', { name: 'Strana 1' })).toHaveAttribute('aria-current', 'page')
@@ -180,7 +181,7 @@ test('more than 50 keys are paginated and a single namespace has no namespace fi
 	await pagination.getByRole('button', { name: 'Ďalšia' }).click()
 	await expect(page).toHaveURL(translationsPath(project, '?page=2'))
 	await expect(getTranslationRows(page)).toHaveCount(10)
-	await expect(page.getByText('Zobrazených 10 z 60 kľúčov')).toBeVisible()
+	await expect(getShownCount(page, 'Zobrazených 10 z 60 kľúčov')).toBeVisible()
 	await expect(pagination.getByRole('button', { name: 'Strana 2' })).toHaveAttribute('aria-current', 'page')
 	await expect(pagination.getByRole('button', { name: 'Ďalšia' })).toBeDisabled()
 	await expect(getTranslationRows(page).first()).toHaveAttribute('data-status', 'TRANSLATED')

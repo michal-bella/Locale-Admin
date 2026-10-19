@@ -25,7 +25,7 @@ const AppModal = ({
 	const content = (
 		<>
 			<div className={`${classes.fields} flex flex-col gap-4`}>{children}</div>
-			<div className={`${classes.footer} flex items-center justify-end gap-2`}>{footer}</div>
+			{footer && <div className={`${classes.footer} flex items-center justify-end gap-2`}>{footer}</div>}
 		</>
 	)
 

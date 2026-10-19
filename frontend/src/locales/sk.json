@@ -335,6 +335,57 @@
 		"LANGUAGE_UNKNOWN": "jazyk {{tag}} nie je v katalógu",
 		"BASE_LANGUAGE_UNTRANSLATED": "kľúč „{{key}}“ ({{namespace}}) nemá preklad v základnom jazyku {{tag}}"
 	},
+	"adminProjectsPage": {
+		"eyebrow": "Správa",
+		"title": "Projekty",
+		"description": "Všetky projekty v systéme. Upravte ich nastavenia alebo ich zmažte aj s jazykmi a členstvami.",
+		"createButton": "Nový projekt",
+		"table": {
+			"label": "Zoznam projektov",
+			"project": "Projekt",
+			"slug": "Slug",
+			"baseLanguage": "Základný jazyk",
+			"languages": "Jazyky",
+			"members": "Členovia",
+			"createdAt": "Vytvorený",
+			"noBaseLanguage": "Bez jazyka",
+			"empty": "Zatiaľ tu nie sú žiadne projekty.",
+			"loadError": "Zoznam projektov sa nepodarilo načítať.",
+			"retry": "Skúsiť znova",
+			"actionsColumn": "Akcie",
+			"edit": "Upraviť",
+			"editLabel": "Upraviť projekt {{name}}",
+			"open": "Otvoriť projekt",
+			"openLabel": "Otvoriť projekt {{name}}",
+			"delete": "Zmazať",
+			"deleteLabel": "Zmazať projekt {{name}}"
+		},
+		"editModal": {
+			"title": "Upraviť projekt",
+			"close": "Zavrieť",
+			"loadError": "Nastavenia projektu sa nepodarilo načítať.",
+			"retry": "Skúsiť znova"
+		},
+		"deleteModal": {
+			"title": "Zmazať projekt",
+			"message": "Naozaj chcete zmazať projekt {{name}}? {{languages}} a projekt stratí {{members}}. Účty členov ostanú. Akciu nie je možné vrátiť.",
+			"languagesImpact_one": "Zmaže sa {{count}} jazyk",
+			"languagesImpact_few": "Zmažú sa {{count}} jazyky",
+			"languagesImpact_many": "Zmaže sa {{count}} jazyka",
+			"languagesImpact_other": "Zmaže sa {{count}} jazykov",
+			"membersImpact_one": "{{count}} člena",
+			"membersImpact_few": "{{count}} členov",
+			"membersImpact_many": "{{count}} člena",
+			"membersImpact_other": "{{count}} členov",
+			"slug": {
+				"label": "Pre potvrdenie napíšte slug projektu {{slug}}"
+			},
+			"close": "Zavrieť",
+			"cancel": "Zrušiť",
+			"confirm": "Zmazať projekt",
+			"success": "Projekt {{name}} bol zmazaný."
+		}
+	},
 	"membersPage": {
 		"eyebrow": "Projekt",
 		"title": "Členovia",
@@ -496,6 +547,7 @@
 			}
 		},
 		"leave": "Opustiť projekt",
+		"cancel": "Zrušiť",
 		"save": "Uložiť zmeny",
 		"saveSuccess": "Nastavenia projektu boli uložené."
 	},
@@ -522,6 +574,7 @@
 		"allProjects": "Všetky projekty",
 		"languages": "Jazyky",
 		"admin": "Správa",
+		"adminProjects": "Projekty",
 		"users": "Používatelia",
 		"translations": "Preklady",
 		"projectSettings": "Nastavenia projektu",

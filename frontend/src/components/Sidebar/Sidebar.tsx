@@ -9,7 +9,7 @@ import { ROLE } from '@locale/shared'
 import { useMeQuery } from '@/api/auth/meQuery'
 import { projectSettingsQueryOptions } from '@/api/projectSettings/projectSettingsQuery'
 import Brand from '@/components/Brand/Brand'
-import { ArrowRight, Globe, Settings, Translate, Users } from '@/components/Icons'
+import { ArrowRight, Globe, Settings, Shield, Translate, Users } from '@/components/Icons'
 import ProjectSwitcher from '@/components/ProjectSwitcher/ProjectSwitcher'
 import UserMenu from '@/components/UserMenu/UserMenu'
 
@@ -41,7 +41,7 @@ const NavItem = ({ to, params, icon: Icon, iconClassName = '', label, onNavigate
 
 /**
  * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Preklady,
- * Nastavenia projektu, Jazyky and Členovia, outside one: Všetky projekty. ADMIN also sees Používatelia under SPRÁVA.
+ * Nastavenia projektu, Jazyky and Členovia, outside one: Všetky projekty. ADMIN also sees Projekty and Používatelia under SPRÁVA.
  */
 const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 	const { t } = useTranslation()
@@ -105,6 +105,7 @@ const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 							{t('sidebar.admin')}
 						</p>
 						<ul aria-labelledby={adminLabelId} className={classes.list}>
+							<NavItem to='/admin/projects' icon={Shield} label={t('sidebar.adminProjects')} onNavigate={onClose} />
 							<NavItem to='/admin/users' icon={Users} label={t('sidebar.users')} onNavigate={onClose} />
 						</ul>
 					</>

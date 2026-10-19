@@ -18,14 +18,15 @@ const PROJECT: ProjectSettings = {
 const findNavigation = async () => within(await screen.findByRole('navigation', { name: 'Hlavná navigácia' }))
 
 describe('Sidebar', () => {
-	it('shows Všetky projekty and, under SPRÁVA, Používatelia to an ADMIN outside a project', async () => {
+	it('shows Všetky projekty and, under SPRÁVA, Projekty and Používatelia to an ADMIN outside a project', async () => {
 		signedInAs(ADMIN_USER)
 		renderApp('/profile')
 		const navigation = await findNavigation()
 
 		expect(navigation.getByRole('link', { name: 'Všetky projekty' })).toHaveAttribute('href', '/')
 		const admin = within(navigation.getByRole('list', { name: 'Správa' }))
-		expect(admin.getAllByRole('link').map((link) => link.textContent)).toEqual(['Používatelia'])
+		expect(admin.getAllByRole('link').map((link) => link.textContent)).toEqual(['Projekty', 'Používatelia'])
+		expect(admin.getByRole('link', { name: 'Projekty' })).toHaveAttribute('href', '/admin/projects')
 		expect(admin.getByRole('link', { name: 'Používatelia' })).toHaveAttribute('href', '/admin/users')
 		expect(within(screen.getByRole('complementary')).getByText('Locale')).toBeInTheDocument()
 	})

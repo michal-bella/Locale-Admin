@@ -9,6 +9,10 @@ export type ProjectSettingsFormProps = {
 	onLeft: () => void
 	/** Called with the saved settings, after the project list and settings were refetched. */
 	onSaved: (settings: ProjectSettings) => void
+	/** Shows "Zrušiť" on the left when "Opustiť projekt" is not shown (the edit modal on Projekty). */
+	onCancel?: () => void
+	/** Replaces the error notification when the project was deleted meanwhile (the edit modal on Projekty closes itself). */
+	onNotFound?: () => void
 	/** Moves focus to the first field when it turns true (after a successful retry replaced the focused retry button). */
 	focusFirstField?: boolean
 }

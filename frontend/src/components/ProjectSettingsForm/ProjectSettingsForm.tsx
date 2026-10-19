@@ -26,8 +26,11 @@ const toFormValues = ({ name, slug, primaryColor, protectVariables, baseLanguage
 	baseLanguageId: baseLanguageId ?? undefined,
 })
 
-/** Project settings page body (Figma 3:1557). "Uložiť zmeny" saves the whole form; "Opustiť projekt" asks for confirmation. */
-const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, onSaved, focusFirstField = false }: ProjectSettingsFormProps) => {
+/**
+ * Project settings page body (Figma 3:1557), also used in the edit modal on Projekty. "Uložiť zmeny" saves the whole form;
+ * "Opustiť projekt" asks for confirmation.
+ */
+const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, onSaved, onCancel, onNotFound, focusFirstField = false }: ProjectSettingsFormProps) => {
 	const { t } = useTranslation()
 	const updateSettings = useUpdateProjectSettingsMutation(settings.id)
 	const [leaveOpened, leaveModal] = useDisclosure(false)
@@ -80,6 +83,10 @@ const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, onSaved, f
 					setError('slug', { message: t('errors.SLUG_TAKEN') }, { shouldFocus: true })
 					return
 				}
+				if (code === ERROR_CODE.NOT_FOUND && onNotFound) {
+					onNotFound()
+					return
+				}
 				notifications.show({ color: 'red', message: t(`errors.${code}`) })
 			},
 		})
@@ -100,6 +107,11 @@ const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, onSaved, f
 				{isMember && (
 					<Button variant='outline' onClick={leaveModal.open}>
 						{t('projectSettingsPage.leave')}
+					</Button>
+				)}
+				{!isMember && onCancel && (
+					<Button variant='default' onClick={onCancel} disabled={isPending}>
+						{t('projectSettingsPage.cancel')}
 					</Button>
 				)}
 				<Button type='submit' loading={isPending} disabled={!isDirty} className='ml-auto'>

@@ -335,6 +335,53 @@
 		"LANGUAGE_UNKNOWN": "language {{tag}} is not in the catalog",
 		"BASE_LANGUAGE_UNTRANSLATED": "key “{{key}}” ({{namespace}}) has no translation in the base language {{tag}}"
 	},
+	"adminProjectsPage": {
+		"eyebrow": "Administration",
+		"title": "Projects",
+		"description": "Every project in the system. Edit their settings or delete them together with their languages and memberships.",
+		"createButton": "New project",
+		"table": {
+			"label": "Project list",
+			"project": "Project",
+			"slug": "Slug",
+			"baseLanguage": "Base language",
+			"languages": "Languages",
+			"members": "Members",
+			"createdAt": "Created",
+			"noBaseLanguage": "No language",
+			"empty": "There are no projects yet.",
+			"loadError": "The project list could not be loaded.",
+			"retry": "Try again",
+			"actionsColumn": "Actions",
+			"edit": "Edit",
+			"editLabel": "Edit project {{name}}",
+			"open": "Open project",
+			"openLabel": "Open project {{name}}",
+			"delete": "Delete",
+			"deleteLabel": "Delete project {{name}}"
+		},
+		"editModal": {
+			"title": "Edit project",
+			"close": "Close",
+			"loadError": "Project settings could not be loaded.",
+			"retry": "Try again"
+		},
+		"deleteModal": {
+			"title": "Delete project",
+			"message": "Do you really want to delete the project {{name}}? {{languages}} and the project will lose {{members}}. Member accounts stay. This cannot be undone.",
+			"languagesImpact_one": "{{count}} language will be deleted",
+			"languagesImpact_other": "{{count}} languages will be deleted",
+			"membersImpact_one": "{{count}} member",
+			"membersImpact_other": "{{count}} members",
+			"slug": {
+				"label": "To confirm, type the project slug {{slug}}"
+			},
+			"close": "Close",
+			"cancel": "Cancel",
+			"confirm": "Delete project",
+			"success": "Project {{name}} has been deleted."
+		}
+	},
 	"membersPage": {
 		"eyebrow": "Project",
 		"title": "Members",
@@ -496,6 +543,7 @@
 			}
 		},
 		"leave": "Leave project",
+		"cancel": "Cancel",
 		"save": "Save changes",
 		"saveSuccess": "Project settings were saved."
 	},
@@ -522,6 +570,7 @@
 		"allProjects": "All projects",
 		"languages": "Languages",
 		"admin": "Administration",
+		"adminProjects": "Projects",
 		"users": "Users",
 		"translations": "Translations",
 		"projectSettings": "Project settings",

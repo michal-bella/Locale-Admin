@@ -28,6 +28,13 @@ notion_page_id:
 - prístupnosť: fokus na nadpis kroku pri zmene kroku, pomenované tlačidlá po riadkoch, `aria-controls` pri rozbaľovaní upozornení, nové tokeny `--app-color-warning-bg/-text`
 - E2E: `import.spec.ts` (vymyslené fixtures `e2e/fixtures/import-*.csv`), API smoke importu, axe oboch krokov modálu
 
+### Správa projektov (2026-10-19)
+
+- shared: kontrakt `adminProjectListItemSchema` / `adminProjectListResponseSchema`
+- backend: `GET /api/admin/projects` (všetky projekty so základným jazykom, počtom jazykov a členov) a `DELETE /api/admin/projects/:projectId` (členstvá a jazyky kaskádou, používatelia ostávajú), iba ADMIN ([API](./api/admin-projects.md))
+- frontend: stránka **Projekty** v sekcii SPRÁVA (`/admin/projects`, iba ADMIN, EDITOR dostane 403) s tabuľkou všetkých projektov (farba a názov, slug, základný jazyk, počet jazykov a členov, vytvorený), tlačidlom Nový projekt a akciami Upraviť (formulár nastavení v modáli), Otvoriť projekt a Zmazať (potvrdenie prepísaním slugu) ([Frontend](./frontend.md#stránka-projekty-správa))
+- plán: [admin-projects.md](./plans/admin-projects.md)
+
 ### Import prekladov: zápis (2026-10-18)
 
 - zdieľaný kontrakt: `KEY_TOO_LONG` počíta UTF-8 bajty (max. 2 000 B, 2 000 znakov v cyrilike sa nezmestilo do unikátneho indexu), namespace max. 100 znakov, chybový kód `IMPORT_COLUMNS_INVALID` (400)

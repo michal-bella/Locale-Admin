@@ -34,16 +34,18 @@ const expectUserBlock = async (page: Page, role: string) => {
 test.describe('ADMIN', () => {
 	test.use({ storageState: STORAGE_STATE.ADMIN })
 
-	test('outside a project sees Všetky projekty and, under Správa, Používatelia; the current link has aria-current', async ({ page }) => {
+	test('outside a project sees Všetky projekty and, under Správa, Projekty and Používatelia; the current link has aria-current', async ({ page }) => {
 		await page.goto('/profile')
 		const navigation = getMainNavigation(page)
 		const admin = navigation.getByRole('list', { name: 'Správa' })
 		const allProjects = navigation.getByRole('link', { name: 'Všetky projekty' })
+		const adminProjects = admin.getByRole('link', { name: 'Projekty' })
 		const users = admin.getByRole('link', { name: 'Používatelia' })
 
-		await expect(navigation.getByRole('link')).toHaveCount(2)
-		await expect(admin.getByRole('link')).toHaveText(['Používatelia'])
+		await expect(navigation.getByRole('link')).toHaveCount(3)
+		await expect(admin.getByRole('link')).toHaveText(['Projekty', 'Používatelia'])
 		await expect(allProjects).toHaveAttribute('href', '/')
+		await expect(adminProjects).toHaveAttribute('href', '/admin/projects')
 		await expect(users).toHaveAttribute('href', '/admin/users')
 		await expect(users).not.toHaveAttribute('aria-current')
 

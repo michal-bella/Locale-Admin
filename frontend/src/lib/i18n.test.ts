@@ -16,13 +16,28 @@ const flatTranslations = Object.fromEntries(Object.values(LANGUAGE).map((languag
 	Record<string, unknown>
 >
 
+const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/
+
+// Plural forms differ per language (sk and cs have few and many, en does not), so they are compared by their base key.
+const baseKeys = (language: LANGUAGE) => new Set(Object.keys(flatTranslations[language]).map((key) => key.replace(PLURAL_SUFFIX, '')))
+
 describe('translation key parity', () => {
 	it('has the same keys in every language', () => {
-		const allKeys = new Set(Object.values(flatTranslations).flatMap((translation) => Object.keys(translation)))
+		const allKeys = new Set(Object.values(LANGUAGE).flatMap((language) => [...baseKeys(language)]))
 		const missing = Object.fromEntries(
-			Object.values(LANGUAGE).map((language) => [language, [...allKeys].filter((key) => !(key in flatTranslations[language])).sort()]),
+			Object.values(LANGUAGE).map((language) => [language, [...allKeys].filter((key) => !baseKeys(language).has(key)).sort()]),
 		)
 		expect(missing).toEqual(Object.fromEntries(Object.values(LANGUAGE).map((language) => [language, []])))
+	})
+
+	it.each(Object.values(LANGUAGE))('has every plural form of the language (%s)', (language) => {
+		const keys = Object.keys(flatTranslations[language])
+		const pluralKeys = new Set(keys.filter((key) => PLURAL_SUFFIX.test(key)).map((key) => key.replace(PLURAL_SUFFIX, '')))
+		const { pluralCategories } = new Intl.PluralRules(language).resolvedOptions()
+		const missing = [...pluralKeys].flatMap((key) =>
+			pluralCategories.filter((category) => !keys.includes(`${key}_${category}`)).map((category) => `${key}_${category}`),
+		)
+		expect(missing).toEqual([])
 	})
 
 	it.each(Object.values(LANGUAGE))('has no empty string values (%s)', (language) => {

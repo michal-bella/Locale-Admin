@@ -335,6 +335,57 @@
 		"LANGUAGE_UNKNOWN": "jazyk {{tag}} není v katalogu",
 		"BASE_LANGUAGE_UNTRANSLATED": "klíč „{{key}}“ ({{namespace}}) nemá překlad v základním jazyce {{tag}}"
 	},
+	"adminProjectsPage": {
+		"eyebrow": "Správa",
+		"title": "Projekty",
+		"description": "Všechny projekty v systému. Upravte jejich nastavení nebo je smažte i s jazyky a členstvími.",
+		"createButton": "Nový projekt",
+		"table": {
+			"label": "Seznam projektů",
+			"project": "Projekt",
+			"slug": "Slug",
+			"baseLanguage": "Základní jazyk",
+			"languages": "Jazyky",
+			"members": "Členové",
+			"createdAt": "Vytvořen",
+			"noBaseLanguage": "Bez jazyka",
+			"empty": "Zatím zde nejsou žádné projekty.",
+			"loadError": "Seznam projektů se nepodařilo načíst.",
+			"retry": "Zkusit znovu",
+			"actionsColumn": "Akce",
+			"edit": "Upravit",
+			"editLabel": "Upravit projekt {{name}}",
+			"open": "Otevřít projekt",
+			"openLabel": "Otevřít projekt {{name}}",
+			"delete": "Smazat",
+			"deleteLabel": "Smazat projekt {{name}}"
+		},
+		"editModal": {
+			"title": "Upravit projekt",
+			"close": "Zavřít",
+			"loadError": "Nastavení projektu se nepodařilo načíst.",
+			"retry": "Zkusit znovu"
+		},
+		"deleteModal": {
+			"title": "Smazat projekt",
+			"message": "Opravdu chcete smazat projekt {{name}}? {{languages}} a projekt přijde o {{members}}. Účty členů zůstanou. Akci nelze vrátit.",
+			"languagesImpact_one": "Smaže se {{count}} jazyk",
+			"languagesImpact_few": "Smažou se {{count}} jazyky",
+			"languagesImpact_many": "Smaže se {{count}} jazyka",
+			"languagesImpact_other": "Smaže se {{count}} jazyků",
+			"membersImpact_one": "{{count}} člena",
+			"membersImpact_few": "{{count}} členy",
+			"membersImpact_many": "{{count}} člena",
+			"membersImpact_other": "{{count}} členů",
+			"slug": {
+				"label": "Pro potvrzení napište slug projektu {{slug}}"
+			},
+			"close": "Zavřít",
+			"cancel": "Zrušit",
+			"confirm": "Smazat projekt",
+			"success": "Projekt {{name}} byl smazán."
+		}
+	},
 	"membersPage": {
 		"eyebrow": "Projekt",
 		"title": "Členové",
@@ -496,6 +547,7 @@
 			}
 		},
 		"leave": "Opustit projekt",
+		"cancel": "Zrušit",
 		"save": "Uložit změny",
 		"saveSuccess": "Nastavení projektu bylo uloženo."
 	},
@@ -522,6 +574,7 @@
 		"allProjects": "Všechny projekty",
 		"languages": "Jazyky",
 		"admin": "Správa",
+		"adminProjects": "Projekty",
 		"users": "Uživatelé",
 		"translations": "Překlady",
 		"projectSettings": "Nastavení projektu",

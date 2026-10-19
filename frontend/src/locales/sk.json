@@ -184,7 +184,9 @@
 			"retry": "Skúsiť znova",
 			"empty": "Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.",
 			"noResults": "Filtrom nezodpovedá žiadny kľúč.",
-			"clearFilters": "Zrušiť filtre"
+			"clearFilters": "Zrušiť filtre",
+			"edit": "Upraviť kľúč",
+			"editLabel": "Upraviť kľúč {{key}}"
 		},
 		"status": {
 			"TRANSLATED": "Preložené",
@@ -196,7 +198,39 @@
 			"saving": "Ukladá sa",
 			"saved": "Uložené: {{key}}",
 			"missing": "Chýbajú: {{list}}.",
-			"extra": "Navyše: {{list}}."
+			"extra": "Navyše: {{list}}.",
+			"formLabel": "{{label}}, {{form}}"
+		},
+		"plural": {
+			"forms": {
+				"zero": "Nula",
+				"one": "Jeden",
+				"two": "Dva",
+				"few": "Málo",
+				"many": "Veľa",
+				"other": "Iné"
+			}
+		},
+		"editKeyModal": {
+			"title": "Upraviť kľúč",
+			"close": "Zavrieť",
+			"name": {
+				"label": "Kľúč"
+			},
+			"description": {
+				"label": "Popis",
+				"placeholder": "Kontext pre prekladateľov (voliteľné)"
+			},
+			"plural": {
+				"label": "Použiť plurálové formy",
+				"description": "Zapnutie presunie aktuálny text do formy Other, vypnutie ponechá text formy Other."
+			},
+			"variable": {
+				"label": "Názov premennej"
+			},
+			"cancel": "Zrušiť",
+			"submit": "Uložiť",
+			"success": "Kľúč {{key}} bol uložený."
 		},
 		"pagination": {
 			"label": "Stránkovanie",
@@ -557,6 +591,7 @@
 		"IMPORT_COLUMNS_INVALID": "Priradenie stĺpcov k jazykom je neplatné. Skontrolujte jazyky a skúste to znova.",
 		"PLACEHOLDER_MISMATCH": "Premenné v preklade sa nezhodujú so základným jazykom.",
 		"TRANSLATION_KEY_NOT_FOUND": "Kľúč sa nenašiel. Možno ho medzitým niekto odstránil.",
+		"TRANSLATION_KEY_TAKEN": "Kľúč s týmto názvom už v namespace existuje.",
 		"RATE_LIMITED": "Príliš veľa pokusov. Skúste to znova neskôr.",
 		"INTERNAL_ERROR": "Nastala neočakávaná chyba. Skúste to znova.",
 		"UNKNOWN": "Nastala neznáma chyba. Skúste to znova."

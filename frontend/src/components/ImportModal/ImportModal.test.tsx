@@ -330,7 +330,9 @@ describe('ImportModal step 2 (review)', () => {
 
 		fireEvent.click(languageSelect(dialog, 'sk'))
 		fireEvent.click(await screen.findByRole('option', { name: 'Preskočiť' }))
-		expect(within(dialog).getByRole('button', { name: 'Importovať' })).toBeDisabled()
+		const submit = within(dialog).getByRole('button', { name: 'Importovať' })
+		expect(submit).toBeDisabled()
+		expect(submit).toHaveAccessibleDescription('Priraďte aspoň jeden stĺpec jazyku projektu.')
 		expect(within(dialog).getByText('0 prekladov sa prepíše')).toBeInTheDocument()
 	})
 

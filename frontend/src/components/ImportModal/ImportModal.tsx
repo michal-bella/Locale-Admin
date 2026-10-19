@@ -68,6 +68,7 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 	const [placeholdersOpened, placeholders] = useDisclosure(false)
 	const stepRef = useRef<HTMLHeadingElement>(null)
 	const placeholdersId = useId()
+	const nothingMappedId = useId()
 
 	// The footer button that triggered the step change is disabled or replaced, so focus would fall back to the body otherwise.
 	useDidUpdate(() => {
@@ -255,7 +256,12 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 				<Button variant='default' onClick={() => setStep('UPLOAD')} disabled={isPending}>
 					{t('importModal.back')}
 				</Button>
-				<Button loading={importMutation.isPending} disabled={mappedCount === 0 || (isPending && !importMutation.isPending)} onClick={submitImport}>
+				<Button
+					loading={importMutation.isPending}
+					disabled={mappedCount === 0 || (isPending && !importMutation.isPending)}
+					aria-describedby={mappedCount === 0 ? nothingMappedId : undefined}
+					onClick={submitImport}
+				>
 					{t('importModal.submit')}
 				</Button>
 			</>
@@ -316,6 +322,11 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 							<li>{t('importModal.review.summary.newTranslations', { count: newTranslations })}</li>
 							{baseUntranslated.length > 0 && <li>{t('importModal.review.summary.baseUntranslated', { count: baseUntranslated.length })}</li>}
 						</ul>
+						{mappedCount === 0 && (
+							<Text id={nothingMappedId} size='xs'>
+								{t('importModal.review.summary.nothingMapped')}
+							</Text>
+						)}
 						{hasManualMapping && <Text size='xs'>{t('importModal.review.summary.approximate')}</Text>}
 						{placeholderMismatches.length > 0 && (
 							<div className='flex flex-col gap-2'>

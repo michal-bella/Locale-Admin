@@ -282,6 +282,7 @@
 				"baseUntranslated_many": "{{count}} keys without a translation in the base language",
 				"baseUntranslated_other": "{{count}} keys without a translation in the base language",
 				"approximate": "The counts are approximate: manually mapped columns are not included.",
+				"nothingMapped": "Map at least one column to a project language.",
 				"placeholderToggle_one": "Placeholder difference ({{count}})",
 				"placeholderToggle_few": "Placeholder differences ({{count}})",
 				"placeholderToggle_many": "Placeholder differences ({{count}})",

@@ -282,6 +282,7 @@
 				"baseUntranslated_many": "{{count}} kľúčov bez prekladu v základnom jazyku",
 				"baseUntranslated_other": "{{count}} kľúčov bez prekladu v základnom jazyku",
 				"approximate": "Počty sú približné: ručne priradené stĺpce sa do nich nepočítajú.",
+				"nothingMapped": "Priraďte aspoň jeden stĺpec jazyku projektu.",
 				"placeholderToggle_one": "Rozdiel v premenných ({{count}})",
 				"placeholderToggle_few": "Rozdiely v premenných ({{count}})",
 				"placeholderToggle_many": "Rozdiely v premenných ({{count}})",

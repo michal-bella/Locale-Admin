@@ -18,7 +18,6 @@ export const loginRequestSchema = z.object({
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>
 
-/** Body of `GET /api/auth/me` and `POST /api/auth/login`. */
 /** Choices of the user that every screen needs on load; changed with `PATCH /api/profile/preferences`. */
 export const userPreferencesSchema = z.object({
 	translationsView: translationsViewSchema,
@@ -26,6 +25,7 @@ export const userPreferencesSchema = z.object({
 
 export type UserPreferences = z.infer<typeof userPreferencesSchema>
 
+/** Body of `GET /api/auth/me` and `POST /api/auth/login`. */
 export const authUserSchema = z.object({
 	id: z.uuid(),
 	email: z.email(),

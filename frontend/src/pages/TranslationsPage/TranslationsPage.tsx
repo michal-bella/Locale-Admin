@@ -152,6 +152,7 @@ const TranslationsPage = () => {
 						sort={sort}
 						view={view}
 						onViewChange={changeView}
+						isViewSaving={updatePreferences.isPending}
 						languages={languages}
 						sourceLanguage={sourceLanguage}
 						targetLanguage={targetLanguage}

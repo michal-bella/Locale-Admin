@@ -24,7 +24,6 @@ const TokenEditor = ({
 	invalid = false,
 	readOnly = false,
 	maxLength,
-	focusOnMount = false,
 	modalAutofocus = false,
 	onKeyDown,
 	onBlur,
@@ -63,16 +62,6 @@ const TokenEditor = ({
 			}
 		}
 	})
-
-	useLayoutEffect(() => {
-		const root = rootRef.current
-		if (focusOnMount && root) {
-			root.focus()
-			setCaret(root, value.length)
-		}
-		// Only on mount, like the `autoFocus` attribute.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
 
 	const current = () => renderedRef.current ?? value
 

@@ -1,4 +1,4 @@
-import { createEvent, fireEvent, render, screen } from '@testing-library/react'
+import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vite-plus/test'
 
@@ -167,9 +167,10 @@ describe('TokenEditor', () => {
 		expect(onChange).not.toHaveBeenCalled()
 	})
 
-	it('focuses itself on mount with the caret at the end when asked', () => {
-		const { field } = renderEditor('abc', { focusOnMount: true })
-		expect(field).toHaveFocus()
+	it('marks itself for the focus trap of a modal and puts the caret at the end on that first focus', () => {
+		const { field } = renderEditor('abc', { modalAutofocus: true })
+		expect(field).toHaveAttribute('data-autofocus')
+		act(() => field.focus())
 		expect(selectionOffsets(field)).toEqual([3, 3])
 	})
 

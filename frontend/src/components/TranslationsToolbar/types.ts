@@ -10,6 +10,8 @@ export type TranslationsToolbarProps = {
 	/** `EXTENDED` shows every language as a column, `COMPACT` the source → target pair with the two selects. */
 	view: TranslationsView
 	onViewChange: (view: TranslationsView) => void
+	/** While the preference saves, so two quick switches cannot race. */
+	isViewSaving?: boolean
 	languages: Language[]
 	sourceLanguage?: Language
 	targetLanguage?: Language

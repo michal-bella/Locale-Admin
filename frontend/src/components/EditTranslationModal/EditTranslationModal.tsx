@@ -5,10 +5,12 @@ import { useTranslation } from 'react-i18next'
 
 import {
 	hasBalancedBraces,
+	type Language,
 	type PlaceholderMismatchDetails,
 	type PluralForm,
 	serializePluralValue,
 	TRANSLATION_VALUE_MAX_LENGTH,
+	type TranslationListItem,
 	updateTranslationRequestSchema,
 	VALIDATION_CODE,
 } from '@locale/shared'
@@ -68,13 +70,12 @@ const EditTranslationModal = ({ item, language, baseLanguage, opened, onClose, o
 	)
 }
 
-type FieldsProps = Required<Pick<EditTranslationModalProps, 'item' | 'language'>> &
-	Pick<EditTranslationModalProps, 'baseLanguage' | 'onClose' | 'onSave'> & {
-		item: NonNullable<EditTranslationModalProps['item']>
-		language: NonNullable<EditTranslationModalProps['language']>
-		saving: boolean
-		setSaving: (saving: boolean) => void
-	}
+type FieldsProps = Pick<EditTranslationModalProps, 'baseLanguage' | 'onClose' | 'onSave'> & {
+	item: TranslationListItem
+	language: Language
+	saving: boolean
+	setSaving: (saving: boolean) => void
+}
 
 const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSave }: FieldsProps) => {
 	const { t } = useTranslation()

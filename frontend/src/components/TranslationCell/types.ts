@@ -8,5 +8,4 @@ export type TranslationCellProps = {
 	pluralTag?: string
 	/** Opens the edit modal for this key and language. */
 	onClick: () => void
-	ref?: React.Ref<HTMLButtonElement>
 }

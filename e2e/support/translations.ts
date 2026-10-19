@@ -94,6 +94,9 @@ export const expectStats = async (page: Page, translated: number, untranslated: 
 	await expect(getStat(page, 'Chýbajúce')).toHaveText(String(untranslated))
 }
 
+/** The visible „Zobrazených X z Y kľúčov“ paragraph; the hidden `role="status"` live region repeats the same text, so `getByText` alone is ambiguous. */
+export const getShownCount = (page: Page, text: string) => page.locator('p').filter({ hasText: new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) })
+
 export const getSearch = (page: Page) => page.getByRole('textbox', { name: 'Hľadať kľúč alebo preklad' })
 
 /** Picks a portalled option of a toolbar select (Stav, Namespace, Zoradenie, Zdrojový / Cieľový jazyk). */

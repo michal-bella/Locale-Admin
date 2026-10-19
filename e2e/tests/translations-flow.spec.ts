@@ -25,6 +25,7 @@ import {
 	expectStats,
 	getCellButton,
 	getSearch,
+	getShownCount,
 	getStat,
 	getTranslationRow,
 	getTranslationRows,
@@ -129,7 +130,7 @@ test('a new project: import with a missing language, translate inline, filter, s
 	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
 	await expectStats(page, SAMPLE.en.translations, SAMPLE.en.untranslated)
 	await expect(page.getByRole('progressbar', { name: 'Preložené: 70 %' })).toBeVisible()
-	await expect(page.getByText('Zobrazených 10 z 10 kľúčov')).toBeVisible()
+	await expect(getShownCount(page, 'Zobrazených 10 z 10 kľúčov')).toBeVisible()
 	await expectKeys(getTranslationRows(page), EN_UNTRANSLATED_FIRST)
 	expect(await getTranslationRows(page).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-status')))).toEqual(statuses(10, 3))
 
@@ -163,7 +164,7 @@ test('a new project: import with a missing language, translate inline, filter, s
 	await getSearch(page).fill(key)
 	await expect(page).toHaveURL(/\?(?=.*target=cs)(?=.*search=orders\.empty\.title)/)
 	await expectKeys(getTranslationRows(page), [key])
-	await expect(page.getByText('Zobrazených 1 z 1 kľúča')).toBeVisible()
+	await expect(getShownCount(page, 'Zobrazených 1 z 1 kľúča')).toBeVisible()
 	await getSearch(page).clear()
 	await expect(page).toHaveURL(translationsPath(project, '?target=cs'))
 	await expect(getTranslationRows(page)).toHaveCount(10)

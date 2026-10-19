@@ -1,18 +1,19 @@
 ---
 title: 'API: preklady'
-updated: 2026-10-18
+updated: 2026-10-19
 notion_page_id:
 ---
 
 # Preklady (`/api/projects/:projectId/translations`)
 
-Zoznam kľúčov projektu s textom zdrojového a jedného cieľového jazyka pre stránku Preklady. Schémy sú v `packages/shared/src/translations.ts`, dátový model v [Databáza](../database.md#translationkey).
+Zoznam kľúčov projektu s textom zdrojového a jedného cieľového jazyka pre stránku Preklady a úprava jedného prekladu v riadku. Schémy sú v `packages/shared/src/translations.ts`, dátový model v [Databáza](../database.md#translationkey).
 
-| Metóda | Cesta                                   | Prístup            | Popis                                             |
-| ------ | --------------------------------------- | ------------------ | ------------------------------------------------- |
-| `GET`  | `/api/projects/:projectId/translations` | člen alebo `ADMIN` | stránkovaný zoznam kľúčov, štatistika a namespace |
+| Metóda | Cesta                                                           | Prístup            | Popis                                             |
+| ------ | --------------------------------------------------------------- | ------------------ | ------------------------------------------------- |
+| `GET`  | `/api/projects/:projectId/translations`                         | člen alebo `ADMIN` | stránkovaný zoznam kľúčov, štatistika a namespace |
+| `PUT`  | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | člen alebo `ADMIN` | uloženie prekladu kľúča v jednom jazyku           |
 
-Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)).
+Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). `PUT` prechádza CSRF kontrolou (`Content-Type: application/json` a `X-Requested-With: XMLHttpRequest`).
 
 ## Stav prekladu
 
@@ -107,11 +108,64 @@ Položka `items[]`:
 | 401  | `AUTH_UNAUTHENTICATED` | bez session                                                                                                                                         |
 | 404  | `NOT_FOUND`            | projekt mimo prístupu, alebo `sourceLanguageId` / `targetLanguageId` nie je jazyk tohto projektu                                                    |
 
+## PUT /api/projects/:projectId/keys/:keyId/translations/:languageId
+
+Uloží preklad kľúča `keyId` v jazyku `languageId` (základný aj ostatné jazyky). Riadok `Translation` sa vytvorí alebo prepíše (upsert), `updatedById` je prihlásený používateľ, `updatedAt` čas uloženia.
+
+Telo (schéma `updateTranslationRequestSchema`):
+
+| Pole    | Typ                 | Popis                                                                                                                |
+| ------- | ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `value` | string alebo `null` | max. 10 000 znakov (`TRANSLATION_VALUE_MAX_LENGTH`); `null`, `""` aj samé medzery sa uložia ako `null` (Nepreložené) |
+
+Text sa ukladá tak, ako prišiel (bez orezania), HTML aj premenné `{{…}}` ostávajú ako text.
+
+### Ochrana premenných
+
+Keď má projekt zapnuté `protectVariables` (nastavenia projektu, predvolene zapnuté), hodnota v inom ako základnom jazyku musí obsahovať presne tie premenné `{{…}}`, ktoré má hodnota kľúča v základnom jazyku. Premenná sa normalizuje rovnako ako pri [importe](./imports.md#upozornenia-import-prejde): bez medzier, bez úvodného `-` a bez časti od `,`, takže `{{ count }}`, `{{- count}}` aj `{{count, number}}` sú `{{count}}`. Kontrola sa preskočí, keď:
+
+- sa upravuje základný jazyk (ten je zdrojom pravdy),
+- je `value` `null`,
+- kľúč nemá v základnom jazyku hodnotu (riadok chýba alebo je `null`),
+- projekt má `protectVariables` vypnuté.
+
+Pri nezhode sa nič nezapíše a vráti sa 400 `PLACEHOLDER_MISMATCH` s `details: { missing, extra }` – normalizované premenné, ktoré v hodnote chýbajú oproti základnému jazyku, a ktoré sú navyše.
+
+Úprava neberie advisory lock importu: jeden riadok sa zapíše atomicky a súbežný import ostane konzistentný, iba jeho počty (`changes`) môžu byť o tento riadok posunuté.
+
+### Odpoveď 200
+
+Schéma `updateTranslationResponseSchema`, rovnaký tvar ako `target` v zozname:
+
+```json
+{ "value": "You have {{count}} items", "status": "TRANSLATED", "updatedAt": "2026-10-19T09:30:00.000Z" }
+```
+
+### Chyby
+
+| HTTP | `code`                      | Kedy                                                                                |
+| ---- | --------------------------- | ----------------------------------------------------------------------------------- |
+| 400  | `VALIDATION_ERROR`          | chýba `value`, nie je string ani `null`, alebo má viac ako 10 000 znakov            |
+| 400  | `PLACEHOLDER_MISMATCH`      | premenné sa líšia od základného jazyka (viď vyššie), `details: { missing, extra }`  |
+| 401  | `AUTH_UNAUTHENTICATED`      | bez session                                                                         |
+| 403  | `CSRF_REJECTED`             | bez `X-Requested-With` alebo JSON tela                                              |
+| 404  | `NOT_FOUND`                 | projekt mimo prístupu, alebo `languageId` nie je UUID / nie je jazyk tohto projektu |
+| 404  | `TRANSLATION_KEY_NOT_FOUND` | `keyId` nie je UUID alebo nie je kľúč tohto projektu                                |
+
+### Príklad (curl)
+
+```bash
+curl -i -b cookies.txt -X PUT \
+  -H "Content-Type: application/json" -H "X-Requested-With: XMLHttpRequest" \
+  -d '{"value":"You have {{count}} items"}' \
+  "http://localhost:8080/api/projects/<id projektu>/keys/<id kľúča>/translations/<id en>"
+```
+
 ## Výkon
 
 Integračný test vytvorí 2 500 kľúčov v 10 jazykoch (95 % riadkov, 10 % z nich `null`). Celá požiadavka vrátane prihlásenia trvá lokálne okolo 10 ms (predvolené zoradenie, vyhľadávanie, `UPDATED` na 10. stránke, filter stavu a namespace). Index `pg_trgm` pre vyhľadávanie preto zatiaľ netreba.
 
-## Príklad (curl)
+## Príklad zoznamu (curl)
 
 ```bash
 curl -i -b cookies.txt "http://localhost:8080/api/projects/<id projektu>/translations?sourceLanguageId=<id sk>&targetLanguageId=<id en>&status=UNTRANSLATED&search=objedn"

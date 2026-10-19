@@ -15,7 +15,7 @@ import { Close } from '@/components/Icons'
 import classes from './CreateUserModal.module.css'
 import { type CreateUserModalProps } from './types'
 
-/** "Nový používateľ" modal (Figma 28:191) with the global role (Admin / Člen). Members of projects are added from these users. */
+/** "Nový používateľ" modal (Figma 28:191) with the global role (Admin / Editor). Members of projects are added from these users. */
 const CreateUserModal = ({ opened, onClose, defaultRole = ROLE.EDITOR, onCreated }: CreateUserModalProps) => {
 	const { t } = useTranslation()
 	const roleId = useId()

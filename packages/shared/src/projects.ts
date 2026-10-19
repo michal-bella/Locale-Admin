@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { ROLE } from './auth'
 import { LANGUAGE_TAGS } from './languages'
 import { projectNameSchema, projectSlugSchema } from './projectSettings'
 
@@ -40,12 +41,18 @@ export const addProjectMemberRequestSchema = z.object({
 
 export type AddProjectMemberRequest = z.infer<typeof addProjectMemberRequestSchema>
 
-/** One member in `GET /api/projects/:projectId/members` and the body of `201 POST`. `createdAt` is when the user joined the project. */
+/**
+ * One member in `GET /api/projects/:projectId/members` and the body of `201 POST`. `role` is the global role and
+ * `projectCount` the number of projects the user is a member of (as on `/admin/users`); `createdAt` is when the user
+ * joined the project.
+ */
 export const projectMemberSchema = z.object({
 	id: z.uuid(),
 	email: z.email(),
 	firstName: z.string().nullable(),
 	lastName: z.string().nullable(),
+	role: z.enum(ROLE),
+	projectCount: z.number().int(),
 	createdAt: z.iso.datetime(),
 })
 

@@ -6,7 +6,7 @@ import { ROLE } from '@locale/shared'
 import classes from './RoleBadge.module.css'
 import { type RoleBadgeProps } from './types'
 
-/** Global role of a user as a pill: Administrátor in the brand tint, Člen muted. */
+/** Global role of a user as a pill: Administrátor in the brand tint, Editor muted. */
 const RoleBadge = ({ role }: RoleBadgeProps) => {
 	const { t } = useTranslation()
 

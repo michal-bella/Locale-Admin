@@ -100,7 +100,7 @@ describe('UsersPage table', () => {
 		expect(within(martinRow).getByText('12. 10. 2026')).toBeInTheDocument()
 		expect(within(janaRow).getByText('JA')).toBeInTheDocument()
 		expect(within(janaRow).getByText(JANA.email)).toBeInTheDocument()
-		expect(within(janaRow).getByText('Člen')).toBeInTheDocument()
+		expect(within(janaRow).getByText('Editor')).toBeInTheDocument()
 		expect(within(janaRow).getByRole('cell', { name: '1' })).toBeInTheDocument()
 		expect(within(janaRow).getByText('3. 10. 2026')).toBeInTheDocument()
 	})
@@ -257,7 +257,7 @@ describe('CreateUserModal', () => {
 		expect(within(reopened).getByLabelText('E-mail')).toHaveValue('')
 	})
 
-	it('defaults to Člen, explains the picked role and sends ADMIN when picked', async () => {
+	it('defaults to Editor, explains the picked role and sends ADMIN when picked', async () => {
 		const requests = signedInAs(ADMIN_USER, {
 			'GET /admin/users': usersResponse([JANA]),
 			'POST /admin/users': { status: 201, data: { ...NEW_USER, role: ROLE.ADMIN } },
@@ -266,7 +266,7 @@ describe('CreateUserModal', () => {
 		const dialog = await openModal()
 
 		const group = within(dialog).getByRole('radiogroup', { name: 'Rola' })
-		expect(within(group).getByRole('radio', { name: 'Člen' })).toBeChecked()
+		expect(within(group).getByRole('radio', { name: 'Editor' })).toBeChecked()
 		expect(group).toHaveAccessibleDescription('Prekladá iba v projektoch, do ktorých ho pridá administrátor.')
 
 		fireEvent.click(within(group).getByRole('radio', { name: 'Administrátor' }))

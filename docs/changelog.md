@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Členovia projektu ako tabuľka používateľov (2026-10-19)
+
+- API: `ProjectMember` v `GET /api/projects/:projectId/members` a `201 POST` nesie aj `role` a `projectCount` ([API](./api/projects.md#členovia))
+- frontend: tabuľka Členovia má stĺpce Rola a Projekty ako Používatelia (vidí ich aj člen) a pre `ADMIN` odkaz Otvoriť do detailu používateľa; rola `EDITOR` sa v UI volá **Editor** namiesto „Člen“ ([Frontend](./frontend.md#stránka-členovia))
+
 ### Zobrazenia prekladov, krok 4: E2E, review a prístupnosť (2026-10-19)
 
 - E2E: `translation-edit.spec.ts` (modál), `translations.spec.ts` (rozšírené zobrazenie, sticky stĺpce, prepínač uložený na účet), `translations-flow.spec.ts`, `key-editing.spec.ts`, `import.spec.ts`, `api-smoke.spec.ts` (oba režimy zoznamu, `PATCH /api/profile/preferences`), `accessibility.spec.ts` (obe zobrazenia a modál Upraviť preklad); testy prepínača sa prihlasujú ako nový ADMIN ([Testovanie](./testing.md))

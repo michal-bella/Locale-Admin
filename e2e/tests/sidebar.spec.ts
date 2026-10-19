@@ -145,7 +145,7 @@ test.describe('EDITOR', () => {
 		const navigation = getMainNavigation(page)
 		await expect(navigation.getByRole('link')).toHaveText(['Všetky projekty'])
 		await expect(navigation.getByText('Správa')).toHaveCount(0)
-		await expectUserBlock(page, 'Člen')
+		await expectUserBlock(page, 'Editor')
 
 		const menu = await openUserMenu(page)
 		await expect(menu.getByRole('menuitem')).toHaveText(['Môj profil', 'Odhlásiť sa'])

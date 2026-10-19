@@ -46,14 +46,15 @@ describe('projectListItemSchema', () => {
 })
 
 describe('projectMemberSchema', () => {
-	it('strips passwordHash and role', () => {
+	it('keeps role and projectCount and strips passwordHash', () => {
 		const member = {
 			id: ID,
 			email: 'jana.novakova@firma.sk',
 			firstName: null,
 			lastName: null,
-			createdAt: '2026-10-18T08:00:00.000Z',
 			role: 'EDITOR',
+			projectCount: 2,
+			createdAt: '2026-10-18T08:00:00.000Z',
 			passwordHash: 'secret-hash',
 		}
 		expect(projectMemberSchema.parse(member)).toEqual({
@@ -61,8 +62,15 @@ describe('projectMemberSchema', () => {
 			email: 'jana.novakova@firma.sk',
 			firstName: null,
 			lastName: null,
+			role: 'EDITOR',
+			projectCount: 2,
 			createdAt: '2026-10-18T08:00:00.000Z',
 		})
+	})
+
+	it('requires role and projectCount', () => {
+		const member = { id: ID, email: 'jana.novakova@firma.sk', firstName: null, lastName: null, createdAt: '2026-10-18T08:00:00.000Z' }
+		expect(projectMemberSchema.safeParse(member).success).toBe(false)
 	})
 })
 

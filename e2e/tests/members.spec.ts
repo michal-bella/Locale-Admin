@@ -65,7 +65,7 @@ test.describe('ADMIN', () => {
 		await dialog.getByRole('button', { name: 'Vytvoriť nového používateľa' }).click()
 		const createDialog = page.getByRole('dialog', { name: 'Nový používateľ' })
 		await expect(createDialog).toBeVisible()
-		await expect(createDialog.getByRole('radio', { name: 'Člen' })).toBeChecked()
+		await expect(createDialog.getByRole('radio', { name: 'Editor' })).toBeChecked()
 		await createDialog.getByLabel('E-mail', { exact: true }).fill(credentials.email)
 		await createDialog.getByLabel('Heslo', { exact: true }).fill(credentials.password)
 		const created = page.waitForResponse((response) => response.url().endsWith('/api/admin/users') && response.request().method() === 'POST')

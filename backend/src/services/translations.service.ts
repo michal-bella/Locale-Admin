@@ -5,10 +5,12 @@ import {
 	type TranslationsQuery,
 	type TranslationsResponse,
 	type TranslationsSort,
+	type UpdateTranslationResponse,
 } from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
 import { AppError } from '../lib/errors'
+import { comparePlaceholders, placeholders } from '../lib/placeholders'
 import { type PrismaClient } from '../lib/prisma'
 
 type ItemRow = {
@@ -103,4 +105,42 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 		stats: { totalKeys: stats.totalKeys, translated: stats.translated, untranslated: stats.totalKeys - stats.translated },
 		namespaces: namespaces.map((row) => row.namespace),
 	}
+}
+
+/**
+ * Upserts the target cell. With `protectVariables` a non-base value must keep the `{{…}}` placeholders of the base
+ * language value (skipped when that is missing or `null`). No advisory lock: a concurrent import stays consistent,
+ * only its counts may be off by this row (plan, "Odložené z míľnika A").
+ */
+export const updateTranslation = async (
+	prisma: PrismaClient,
+	{ projectId, keyId, languageId, userId }: { projectId: string; keyId: string; languageId: string; userId: string },
+	value: string | null,
+): Promise<UpdateTranslationResponse> => {
+	const key = await prisma.translationKey.findFirst({ where: { id: keyId, projectId }, select: { project: { select: { protectVariables: true } } } })
+	if (!key) {
+		throw new AppError(404, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND, 'Translation key not found')
+	}
+	const language = await prisma.projectLanguage.findFirst({ where: { id: languageId, projectId }, select: { isBase: true } })
+	if (!language) {
+		throw new AppError(404, ERROR_CODE.NOT_FOUND, 'Language not found')
+	}
+
+	if (value !== null && !language.isBase && key.project.protectVariables) {
+		const base = await prisma.translation.findFirst({ where: { keyId, language: { projectId, isBase: true } }, select: { value: true } })
+		if (base?.value != null) {
+			const { missing, extra } = comparePlaceholders(placeholders(base.value), value)
+			if (missing.length > 0 || extra.length > 0) {
+				throw new AppError(400, ERROR_CODE.PLACEHOLDER_MISMATCH, 'Placeholders differ from the base language', { missing, extra })
+			}
+		}
+	}
+
+	const row = await prisma.translation.upsert({
+		where: { keyId_languageId: { keyId, languageId } },
+		create: { keyId, languageId, value, updatedById: userId },
+		update: { value, updatedById: userId },
+		select: { value: true, updatedAt: true },
+	})
+	return { value: row.value, status: row.value === null ? 'UNTRANSLATED' : 'TRANSLATED', updatedAt: row.updatedAt.toISOString() }
 }

@@ -15,6 +15,7 @@ import { type Prisma } from '../generated/prisma/client'
 import { AppError } from '../lib/errors'
 import { parseCsv } from '../lib/import/csvParser'
 import { type ParsedFile } from '../lib/import/parsedFile'
+import { comparePlaceholders, placeholders } from '../lib/placeholders'
 import { type PrismaClient } from '../lib/prisma'
 
 type KeyRow = { id: string; namespace: string; name: string; languageId: string | null; value: string | null }
@@ -27,8 +28,6 @@ type ValueChange = 'new' | 'changed' | 'unchanged' | 'keptBecauseNull'
 const IMPORT_BATCH_SIZE = 5000
 
 const CATALOG_TAGS = new Set(SUPPORTED_LANGUAGES.map(({ tag }) => tag.toLowerCase()))
-
-const PLACEHOLDER_PATTERN = /\{\{(.*?)\}\}/g
 
 const keyIdentity = (namespace: string, name: string) => `${namespace}\u0000${name}`
 
@@ -47,14 +46,6 @@ export const parseImportFile = (content: string): ParsedFile => {
 	}
 	return result.file
 }
-
-/** i18next variants are the same placeholder: `{{ count }}`, `{{- count}}` (unescaped) and `{{count, number}}` (formatted) are `{{count}}`. */
-const normalizePlaceholder = (inner: string) => `{{${inner.replace(/\s+/g, '').replace(/^-/, '').split(',')[0] ?? ''}}}`
-
-/** The set keeps the order of first appearance. */
-const placeholders = (value: string): Set<string> => new Set([...value.matchAll(PLACEHOLDER_PATTERN)].map((match) => normalizePlaceholder(match[1] ?? '')))
-
-const difference = (a: Set<string>, b: Set<string>) => [...a].filter((item) => !b.has(item))
 
 /**
  * The file's keys in the project with their values by language id, by key identity. A key without translations has an empty map.
@@ -149,9 +140,7 @@ export const previewImport = async (prisma: PrismaClient, projectId: string, fil
 			if (value === null || basePlaceholders === undefined) {
 				return
 			}
-			const own = placeholders(value)
-			const missing = difference(basePlaceholders, own)
-			const extra = difference(own, basePlaceholders)
+			const { missing, extra } = comparePlaceholders(basePlaceholders, value)
 			if (missing.length > 0 || extra.length > 0) {
 				column.stats.warnings += 1
 				warnings.push({

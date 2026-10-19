@@ -11,6 +11,8 @@ const ZWSP_PATTERN = new RegExp(ZWSP, 'g')
 
 export type ChipClassNames = Record<Exclude<Token['type'], 'text'>, string | undefined>
 
+export type ChipTitles = Partial<Record<Exclude<Token['type'], 'text'>, string>>
+
 const isChip = (node: Node): node is HTMLElement => node instanceof HTMLElement && node.hasAttribute(TOKEN_ATTRIBUTE)
 
 const isFiller = (node: Node) => node instanceof HTMLElement && node.hasAttribute(FILLER_ATTRIBUTE)
@@ -53,7 +55,7 @@ export const serialize = (root: Node): string =>
 		.join('')
 
 /** Rebuilds the editor content: text nodes and chips, ZWSP where a caret could not be placed otherwise, a filler `<br>` after a trailing newline. */
-export const render = (root: HTMLElement, tokens: Token[], classNames: ChipClassNames) => {
+export const render = (root: HTMLElement, tokens: Token[], classNames: ChipClassNames, titles: ChipTitles = {}) => {
 	root.replaceChildren()
 	let previousWasChip = true
 	for (const token of tokens) {
@@ -69,6 +71,10 @@ export const render = (root: HTMLElement, tokens: Token[], classNames: ChipClass
 		chip.setAttribute(TOKEN_ATTRIBUTE, token.value)
 		chip.setAttribute('contenteditable', 'false')
 		chip.className = classNames[token.type] ?? ''
+		const title = titles[token.type]
+		if (title) {
+			chip.title = title
+		}
 		chip.textContent = token.value
 		root.append(chip)
 		previousWasChip = true

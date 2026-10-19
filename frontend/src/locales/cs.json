@@ -196,12 +196,15 @@
 			"label": "Překlad klíče {{key}}, {{language}}",
 			"hint": "Uložit: Ctrl+Enter nebo klik mimo pole. Zrušit: Esc.",
 			"saving": "Ukládá se",
+			"lockedHint": "Proměnné a HTML značky jsou zamčené, mažou se celé.",
+			"hashHint": "Znak # je místo čísla.",
 			"saved": "Uloženo: {{key}}",
 			"missing": "Chybí: {{list}}.",
 			"extra": "Navíc: {{list}}.",
 			"formLabel": "{{label}}, {{form}}"
 		},
 		"plural": {
+			"hash": "Číslo",
 			"forms": {
 				"zero": "Nula",
 				"one": "Jeden",

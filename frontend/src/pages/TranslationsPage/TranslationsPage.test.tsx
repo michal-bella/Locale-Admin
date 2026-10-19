@@ -622,7 +622,7 @@ describe('TranslationsPage inline edit', () => {
 		expect(field).toHaveTextContent('Welcome back, {{name}}')
 		expect(field).toHaveFocus()
 		expect(field).toHaveAttribute('aria-multiline', 'true')
-		expect(field).toHaveAccessibleDescription('Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc.')
+		expect(field).toHaveAccessibleDescription('Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc. Premenné a HTML značky sú zamknuté, mažú sa celé.')
 		expect(field).toHaveAttribute('data-maxlength', '10000')
 		// The source cell keeps its chip and the field shows the placeholder as a locked chip.
 		const chip = within(field).getByText('{{name}}')
@@ -703,6 +703,8 @@ describe('TranslationsPage inline edit', () => {
 		renderApp(PAGE_PATH)
 
 		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
+		// The live region is in the DOM before saving starts, so the announcement is reliable.
+		expect(within(getRow('dashboard.welcome')).getByRole('status')).toBeEmptyDOMElement()
 		typeText(field, '   ')
 		blur(field)
 
@@ -866,7 +868,7 @@ const PLURAL_ITEM = (): TranslationListItem => ({
 })
 
 const formsOf = (cell: HTMLElement) =>
-	Array.from(cell.querySelectorAll('[title]')).map(
+	Array.from(cell.querySelectorAll('span[title]')).map(
 		(chip) => `${chip.textContent}: ${chip.parentElement?.textContent?.slice(chip.textContent?.length ?? 0) ?? ''}`,
 	)
 
@@ -883,8 +885,8 @@ describe('TranslationsPage plural forms', () => {
 		expect(
 			within(cells[1] as HTMLElement)
 				.getAllByText('#')
-				.map((chip) => chip.tagName),
-		).toEqual(['CODE', 'CODE', 'CODE', 'CODE'])
+				.map((chip) => `${chip.tagName} ${chip.getAttribute('title')}`),
+		).toEqual(['CODE Číslo', 'CODE Číslo', 'CODE Číslo', 'CODE Číslo'])
 		expect(within(cells[1] as HTMLElement).getByText('One')).toHaveAttribute('title', 'Jeden')
 		expect(row).toHaveAttribute('data-status', 'TRANSLATED')
 	})
@@ -916,7 +918,10 @@ describe('TranslationsPage plural forms', () => {
 		expect(one).toHaveTextContent('# item')
 		expect(one.querySelectorAll('[data-token]')).toHaveLength(1)
 		expect(screen.queryByRole('textbox', { name: /Málo/ })).not.toBeInTheDocument()
-		expect(one).toHaveAccessibleDescription('Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc.')
+		expect(one).toHaveAccessibleDescription(
+			'Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc. Premenné a HTML značky sú zamknuté, mažú sa celé. Znak # je miesto čísla.',
+		)
+		expect(one.querySelector('[data-token="#"]')).toHaveAttribute('title', 'Číslo')
 
 		// Moving between the forms is not leaving the cell.
 		act(() => other.focus())

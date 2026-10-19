@@ -126,8 +126,12 @@ describe('EditKeyModal', () => {
 		mockPage()
 		renderApp(PAGE_PATH)
 		await screen.findByText('dashboard.welcome')
-		expect(screen.getByRole('button', { name: 'Upraviť kľúč dashboard.welcome' })).toBeInTheDocument()
+		const edit = screen.getByRole('button', { name: 'Upraviť kľúč dashboard.welcome' })
 		expect(screen.getByText('Greeting on the dashboard')).toBeInTheDocument()
+
+		// Keyboard users see the tooltip too.
+		fireEvent.focus(edit)
+		expect(await screen.findByRole('tooltip')).toHaveTextContent('Upraviť kľúč')
 	})
 
 	it('hides the edit button from a member', async () => {

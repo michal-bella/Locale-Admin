@@ -196,12 +196,15 @@
 			"label": "Translation of key {{key}}, {{language}}",
 			"hint": "Save: Ctrl+Enter or click outside the field. Cancel: Esc.",
 			"saving": "Saving",
+			"lockedHint": "Variables and HTML tags are locked and are deleted as a whole.",
+			"hashHint": "The # sign stands for the number.",
 			"saved": "Saved: {{key}}",
 			"missing": "Missing: {{list}}.",
 			"extra": "Extra: {{list}}.",
 			"formLabel": "{{label}}, {{form}}"
 		},
 		"plural": {
+			"hash": "Number",
 			"forms": {
 				"zero": "Zero",
 				"one": "One",

@@ -14,6 +14,11 @@ export type TokenEditorProps = {
 	maxLength?: number
 	/** Focuses the editor on mount with the caret at the end. */
 	focusOnMount?: boolean
+	/**
+	 * Lets the focus trap of an enclosing Mantine modal focus the editor (`data-autofocus`), the caret at the end. `focusOnMount` would
+	 * grab the focus before the modal records the opener, so the focus could not return to it on close.
+	 */
+	modalAutofocus?: boolean
 	/** Runs first; a handler that calls `preventDefault` stops the editor's own Enter handling. */
 	onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void
 	onBlur?: (event: FocusEvent<HTMLDivElement>) => void

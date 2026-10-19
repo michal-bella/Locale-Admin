@@ -8,6 +8,8 @@ export type TranslationsTableProps = {
 	error: unknown
 	onRetry: () => Promise<boolean>
 	isRetrying: boolean
+	/** Every language of the project; the base one is the reference in `EditTranslationModal`. */
+	languages: Language[]
 	/** `undefined` only for a project without languages, which shows the empty state. */
 	sourceLanguage?: Language
 	targetLanguage?: Language
@@ -16,6 +18,6 @@ export type TranslationsTableProps = {
 	onImport: () => void
 	/** Group header rows only make sense when the sort keeps a group together (not for `UPDATED`). */
 	showGroups: boolean
-	/** Saves the target value of a key; rejects with the API error (see `TranslationEditor`). */
-	onSave: (keyId: string, value: string | null) => Promise<unknown>
+	/** Saves the value of a key in a language; rejects with the API error (see `EditTranslationModal`). */
+	onSave: (keyId: string, languageId: string, value: string | null) => Promise<unknown>
 }

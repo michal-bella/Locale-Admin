@@ -605,16 +605,28 @@ const holdPuts = () => {
 	return release
 }
 
-const openEditor = async (key: string, buttonName: string) => {
-	await screen.findByText('orders.empty.title')
-	fireEvent.click(within(getRow(key)).getByRole('button', { name: buttonName }))
-	return screen.getByRole('textbox', { name: `Preklad kľúča ${key}, English` })
+const DIALOG = 'Upraviť preklad'
+
+/** A real click focuses the cell button first; the modal returns the focus to it on close. */
+const clickCell = (key: string, buttonName: string | RegExp) => {
+	const button = within(getRow(key)).getByRole('button', { name: buttonName })
+	act(() => button.focus())
+	fireEvent.click(button)
 }
 
-const WELCOME_BUTTON = 'Preklad kľúča dashboard.welcome, English: Welcome back, {{name}}'
+const openModal = async (key: string, buttonName: string | RegExp) => {
+	await screen.findByText('orders.empty.title')
+	clickCell(key, buttonName)
+	return screen.findByRole('dialog', { name: DIALOG })
+}
 
-/** `fireEvent.blur` keeps the element focused in jsdom; a real blur moves the focus away like a click elsewhere or Tab. */
-const blur = (field: HTMLElement) => act(() => field.blur())
+const fieldOf = (dialog: HTMLElement, name: string | RegExp) => within(dialog).getByRole('textbox', { name })
+
+const save = (dialog: HTMLElement) => fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť' }))
+
+const waitForClosed = () => waitFor(() => expect(screen.queryByRole('dialog', { name: DIALOG })).not.toBeInTheDocument())
+
+const WELCOME_BUTTON = 'Preklad kľúča dashboard.welcome, English: Welcome back, {{name}}'
 
 /** Replaces the content of the contenteditable editor like typing would; the editor serializes the DOM on `input`. */
 const typeText = (field: HTMLElement, text: string) => {
@@ -625,52 +637,50 @@ const typeText = (field: HTMLElement, text: string) => {
 	fireEvent.input(field)
 }
 
-describe('TranslationsPage inline edit', () => {
-	it('turns the target cell into a textarea on click and saves on blur', async () => {
-		const puts = mockEditing()
+describe('TranslationsPage edit modal', () => {
+	it('opens the modal from the cell with the key, the language, the base value and the field', async () => {
+		mockEditing()
 		renderApp(PAGE_PATH)
 
-		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
+		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		expect(within(dialog).getByText('dashboard.welcome')).toBeInTheDocument()
+		expect(within(dialog).getByText('English')).toBeInTheDocument()
+		expect(within(dialog).getByText('Základný jazyk (slovenčina)')).toBeInTheDocument()
+		expect(within(dialog).getByText('Vitajte späť,', { exact: false })).toBeInTheDocument()
+		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English')
 		expect(field).toHaveTextContent('Welcome back, {{name}}')
-		expect(field).toHaveFocus()
+		await waitFor(() => expect(field).toHaveFocus())
 		expect(field).toHaveAttribute('aria-multiline', 'true')
-		expect(field).toHaveAccessibleDescription('Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc. Premenné a HTML značky sú zamknuté, mažú sa celé.')
+		expect(field).toHaveAccessibleDescription('Premenné a HTML značky sú zamknuté, mažú sa celé.')
 		expect(field).toHaveAttribute('data-maxlength', '10000')
-		// The source cell keeps its chip and the field shows the placeholder as a locked chip.
 		const chip = within(field).getByText('{{name}}')
 		expect(chip).toHaveAttribute('contenteditable', 'false')
 		expect(chip).toHaveAttribute('data-token', '{{name}}')
+		expect(within(dialog).getByRole('button', { name: 'Zrušiť' })).toBeInTheDocument()
+	})
 
-		typeText(field, 'Welcome back, {{name}}!')
-		blur(field)
+	it('saves with the button, closes, announces and returns the focus to the cell', async () => {
+		const puts = mockEditing()
+		renderApp(PAGE_PATH)
+
+		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		typeText(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English'), 'Welcome back, {{name}}!')
+		save(dialog)
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
 		expect(puts()[0]?.url).toBe(putUrl(WELCOME.keyId))
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: 'Welcome back, {{name}}!' })
-		await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Preklad kľúča dashboard.welcome, English' })).not.toBeInTheDocument())
+		await waitForClosed()
 		const row = within(getRow('dashboard.welcome'))
-		expect(row.getByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Welcome back, {{name}}!' })).not.toHaveFocus()
+		const button = await row.findByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Welcome back, {{name}}!' })
+		await waitFor(() => expect(button).toHaveFocus())
 		expect(row.getAllByText('{{name}}').map((chip) => chip.tagName)).toEqual(['CODE', 'CODE'])
 		expect(row.getByText('Preložené')).toBeInTheDocument()
-	})
-
-	it('saves with Cmd+Enter and Ctrl+Enter and returns the focus to the cell', async () => {
-		const puts = mockEditing()
-		renderApp(PAGE_PATH)
-
-		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
-		typeText(field, 'Welcome, {{name}}')
-		fireEvent.keyDown(field, { key: 'Enter', metaKey: true })
-
-		await waitFor(() => expect(puts()).toHaveLength(1))
-		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: 'Welcome, {{name}}' })
-		const button = await within(getRow('dashboard.welcome')).findByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Welcome, {{name}}' })
-		expect(button).toHaveFocus()
 		expect(getAnnouncement('Uložené: dashboard.welcome')).toBeInTheDocument()
 
-		const description = await openEditor('orders.empty.description', 'Preklad kľúča orders.empty.description, English: Bez prekladu')
-		typeText(description, 'New orders will show up here.')
-		fireEvent.keyDown(description, { key: 'Enter', ctrlKey: true })
+		const description = await openModal('orders.empty.description', 'Preklad kľúča orders.empty.description, English: Bez prekladu')
+		typeText(fieldOf(description, 'Preklad kľúča orders.empty.description, English'), 'New orders will show up here.')
+		save(description)
 
 		await waitFor(() => expect(puts()).toHaveLength(2))
 		expect(puts()[1]?.url).toBe(putUrl(ITEMS[1]!.keyId))
@@ -679,156 +689,146 @@ describe('TranslationsPage inline edit', () => {
 		await waitFor(() => expect(getAnnouncement('Uložené: orders.empty.description')).toBeInTheDocument())
 	})
 
-	it('does not announce a save that failed', async () => {
-		vi.spyOn(notifications, 'show')
-		mockEditing(apiError(500, 'INTERNAL_ERROR'))
-		renderApp(PAGE_PATH)
-
-		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
-		typeText(field, 'Broken')
-		blur(field)
-
-		await waitFor(() => expect(within(getRow('dashboard.welcome')).getByRole('button', { name: WELCOME_BUTTON })).toBeInTheDocument())
-		expect(screen.queryByText(/Uložené/, { selector: STATUS })).not.toBeInTheDocument()
-	})
-
-	it('does not save on plain Enter, Esc restores the value without a request', async () => {
+	it('does not save on Enter in the field, Zrušiť and Esc close without a request', async () => {
 		const puts = mockEditing()
 		renderApp(PAGE_PATH)
 
-		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
+		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English')
 		typeText(field, 'Changed')
 		fireEvent.keyDown(field, { key: 'Enter' })
-		expect(field).toBeInTheDocument()
-
-		fireEvent.keyDown(field, { key: 'Escape' })
-
-		expect(screen.queryByRole('textbox', { name: 'Preklad kľúča dashboard.welcome, English' })).not.toBeInTheDocument()
-		const button = within(getRow('dashboard.welcome')).getByRole('button', { name: WELCOME_BUTTON })
-		expect(button).toHaveFocus()
 		expect(puts()).toHaveLength(0)
+		expect(dialog).toBeInTheDocument()
+
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Zrušiť' }))
+		await waitForClosed()
+		expect(puts()).toHaveLength(0)
+		expect(within(getRow('dashboard.welcome')).getByRole('button', { name: WELCOME_BUTTON })).toBeInTheDocument()
+
+		const again = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		typeText(fieldOf(again, 'Preklad kľúča dashboard.welcome, English'), 'Changed again')
+		fireEvent.keyDown(again, { key: 'Escape' })
+		await waitForClosed()
+		expect(puts()).toHaveLength(0)
+		expect(within(getRow('dashboard.welcome')).getByRole('button', { name: WELCOME_BUTTON })).toBeInTheDocument()
 	})
 
-	it('saves empty text as null and flips the status, the row background and the stats optimistically', async () => {
+	it('reopens with the stored value after a cancelled draft', async () => {
+		mockEditing()
+		renderApp(PAGE_PATH)
+
+		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		typeText(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English'), 'Draft')
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Zrušiť' }))
+		await waitForClosed()
+
+		const again = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		expect(fieldOf(again, 'Preklad kľúča dashboard.welcome, English')).toHaveTextContent('Welcome back, {{name}}')
+	})
+
+	it('saves empty text as null and flips the status, the cell background and the stats optimistically', async () => {
 		const puts = mockEditing()
 		const release = holdPuts()
 		renderApp(PAGE_PATH)
 
-		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
-		// The live region is in the DOM before saving starts, so the announcement is reliable.
-		expect(within(getRow('dashboard.welcome')).getByRole('status')).toBeEmptyDOMElement()
+		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English')
 		typeText(field, '   ')
-		blur(field)
+		save(dialog)
 
 		await waitFor(() => expect(getRow('dashboard.welcome')).toHaveAttribute('data-status', 'UNTRANSLATED'))
 		expect(within(getRow('dashboard.welcome')).getByText('Nepreložené')).toBeInTheDocument()
 		expect(screen.getByText('220')).toBeInTheDocument()
 		expect(screen.getByText('28')).toBeInTheDocument()
 		expect(field).toHaveAttribute('aria-readonly', 'true')
-		// A live region announces its text content; `status` takes no name from content.
-		expect(within(getRow('dashboard.welcome')).getByRole('status')).toHaveTextContent('Ukladá sa')
+		expect(within(dialog).getByRole('button', { name: 'Zrušiť' })).toBeDisabled()
+		expect(within(dialog).getByRole('button', { name: 'Zavrieť' })).toBeDisabled()
 
 		release()
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: null })
-		expect(
-			await within(getRow('dashboard.welcome')).findByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Bez prekladu' }),
-		).toBeInTheDocument()
+		await waitForClosed()
+		const button = within(getRow('dashboard.welcome')).getByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Bez prekladu' })
+		expect(button).toHaveAttribute('data-status', 'UNTRANSLATED')
 		expect(getRow('dashboard.welcome')).toHaveAttribute('data-status', 'UNTRANSLATED')
 		expect(screen.getByText('220')).toBeInTheDocument()
 	})
 
-	it('keeps the editor open with the missing and extra variables on PLACEHOLDER_MISMATCH and rolls the list back', async () => {
+	it('keeps the modal open with the missing and extra variables on PLACEHOLDER_MISMATCH and rolls the list back', async () => {
 		mockEditing(apiError(400, 'PLACEHOLDER_MISMATCH', { details: { missing: ['{{name}}'], extra: ['{{user}}'] } }))
 		renderApp(PAGE_PATH)
 
-		const field = await openEditor('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
+		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
+		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, English')
 		typeText(field, 'Hello {{user}}')
-		blur(field)
+		save(dialog)
 
-		const alert = await screen.findByRole('alert')
+		const alert = await within(dialog).findByRole('alert')
 		expect(alert).toHaveTextContent('Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}. Navyše: {{user}}.')
-		expect(field).toBeInTheDocument()
 		expect(field).toHaveTextContent('Hello {{user}}')
 		expect(field).toHaveAttribute('aria-invalid', 'true')
 		expect(field).not.toHaveAttribute('aria-readonly')
+		expect(field).toHaveAccessibleDescription(/Chýbajú: \{\{name\}\}/)
 		expect(getRow('orders.empty.title')).toHaveAttribute('data-status', 'UNTRANSLATED')
 		expect(screen.getByText('221')).toBeInTheDocument()
 		expect(screen.queryByText('English message that must not be shown')).not.toBeInTheDocument()
 
-		fireEvent.keyDown(field, { key: 'Escape' })
-		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Zrušiť' }))
+		await waitForClosed()
 		expect(within(getRow('orders.empty.title')).getByText('Bez prekladu')).toBeInTheDocument()
 	})
 
-	it('saves the corrected text on blur after PLACEHOLDER_MISMATCH', async () => {
+	it('clears the error on typing and saves the corrected text after PLACEHOLDER_MISMATCH', async () => {
 		const puts = mockEditing((value) =>
 			value === 'Hello {{user}}' ? apiError(400, 'PLACEHOLDER_MISMATCH', { details: { missing: ['{{name}}'], extra: ['{{user}}'] } }) : undefined,
 		)
 		renderApp(PAGE_PATH)
 
-		const field = await openEditor('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
+		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
+		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, English')
 		typeText(field, 'Hello {{user}}')
-		blur(field)
-		await screen.findByRole('alert')
+		save(dialog)
+		await within(dialog).findByRole('alert')
 
-		// A real blur moved the focus away; the user clicks back into the field to fix the text.
-		act(() => field.focus())
 		typeText(field, 'Hello {{name}}')
-		blur(field)
+		expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument()
+		save(dialog)
 
-		await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Preklad kľúča orders.empty.title, English' })).not.toBeInTheDocument())
+		await waitForClosed()
 		expect(puts()).toHaveLength(2)
 		expect(JSON.parse(puts()[1]!.data as string)).toEqual({ value: 'Hello {{name}}' })
-		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 		expect(within(getRow('orders.empty.title')).getByText('{{name}}')).toBeInTheDocument()
 		expect(getRow('orders.empty.title')).toHaveAttribute('data-status', 'TRANSLATED')
 	})
 
-	it('discards the unchanged draft without a request on blur after PLACEHOLDER_MISMATCH', async () => {
-		const puts = mockEditing(apiError(400, 'PLACEHOLDER_MISMATCH', { details: { missing: ['{{name}}'], extra: [] } }))
-		renderApp(PAGE_PATH)
-
-		const field = await openEditor('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
-		typeText(field, 'Hello')
-		blur(field)
-		await screen.findByRole('alert')
-		expect(puts()).toHaveLength(1)
-
-		act(() => field.focus())
-		blur(field)
-
-		expect(screen.queryByRole('textbox', { name: 'Preklad kľúča orders.empty.title, English' })).not.toBeInTheDocument()
-		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-		expect(within(getRow('orders.empty.title')).getByText('Bez prekladu')).toBeInTheDocument()
-		expect(puts()).toHaveLength(1)
-	})
-
-	it('rolls back and shows a notification on another error', async () => {
+	it('keeps the modal open, rolls back and shows a notification on another error', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		const puts = mockEditing(apiError(500, 'INTERNAL_ERROR'))
 		renderApp(PAGE_PATH)
 
-		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
-		typeText(field, 'Broken')
-		blur(field)
+		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		typeText(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English'), 'Broken')
+		save(dialog)
 
 		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: i18n.t('errors.INTERNAL_ERROR') })))
 		expect(puts()).toHaveLength(1)
-		expect(screen.queryByRole('textbox', { name: 'Preklad kľúča dashboard.welcome, English' })).not.toBeInTheDocument()
+		expect(dialog).toBeInTheDocument()
+		expect(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English')).toHaveTextContent('Broken')
 		expect(within(getRow('dashboard.welcome')).getByRole('button', { name: WELCOME_BUTTON })).toBeInTheDocument()
 		expect(screen.getByText('221')).toBeInTheDocument()
+		expect(screen.queryByText(/Uložené/, { selector: STATUS })).not.toBeInTheDocument()
+		show.mockRestore()
 	})
 
-	it('does not send a request when the value did not change', async () => {
+	it('closes without a request when the value did not change', async () => {
 		const puts = mockEditing()
 		renderApp(PAGE_PATH)
 
-		const field = await openEditor('dashboard.welcome', WELCOME_BUTTON)
-		blur(field)
+		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		save(dialog)
 
-		expect(screen.queryByRole('textbox', { name: 'Preklad kľúča dashboard.welcome, English' })).not.toBeInTheDocument()
+		await waitForClosed()
 		expect(puts()).toHaveLength(0)
 	})
 
@@ -847,6 +847,8 @@ describe('TranslationsPage inline edit', () => {
 			'Preklad kľúča Uložiť zmeny, English: Save changes',
 		])
 		expect(getRow('dashboard.welcome').querySelector('td:nth-child(2) button')).toBeNull()
+		// Only the untranslated cells are red, never the row.
+		expect(focusable.map((element) => element.getAttribute('data-status'))).toEqual(['UNTRANSLATED', 'UNTRANSLATED', 'TRANSLATED', 'TRANSLATED'])
 	})
 
 	it('adds the edit key button before the target cell of every row for an admin', async () => {
@@ -918,28 +920,35 @@ describe('TranslationsPage plural forms', () => {
 		expect(formsOf(cart)).toEqual(['One: Bez prekladu', 'Other: Items'])
 	})
 
+	const openPlural = async (name: string | RegExp = /Preklad kľúča items.count, English/) => {
+		await screen.findByText('items.count')
+		clickCell('items.count', name)
+		return screen.findByRole('dialog', { name: DIALOG })
+	}
+
 	it('edits every form of the target language in its own field and saves one ICU message', async () => {
 		const puts = mockEditing(undefined, ADMIN_USER, [PLURAL_ITEM()])
 		renderApp(PAGE_PATH)
-		await screen.findByText('items.count')
-		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ }))
+		const dialog = await openPlural()
 
-		const one = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Jeden' })
-		const other = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Iné' })
-		expect(one).toHaveFocus()
+		const one = fieldOf(dialog, 'Preklad kľúča items.count, English, Jeden')
+		const other = fieldOf(dialog, 'Preklad kľúča items.count, English, Iné')
+		await waitFor(() => expect(one).toHaveFocus())
 		expect(one).toHaveTextContent('# item')
 		expect(one.querySelectorAll('[data-token]')).toHaveLength(1)
-		expect(screen.queryByRole('textbox', { name: /Málo/ })).not.toBeInTheDocument()
-		expect(one).toHaveAccessibleDescription(
-			'Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc. Premenné a HTML značky sú zamknuté, mažú sa celé. Znak # je miesto čísla.',
-		)
+		expect(within(dialog).queryByRole('textbox', { name: /Málo/ })).not.toBeInTheDocument()
+		expect(one).toHaveAccessibleDescription('Premenné a HTML značky sú zamknuté, mažú sa celé. Znak # je miesto čísla.')
 		expect(one.querySelector('[data-token="#"]')).toHaveAttribute('title', 'Číslo')
+		// The base language forms are the reference.
+		expect(formsOf(within(dialog).getByText('Základný jazyk (slovenčina)').parentElement as HTMLElement)).toEqual([
+			'One: # položka',
+			'Few: # položky',
+			'Many: # položiek',
+			'Other: # položiek',
+		])
 
-		// Moving between the forms is not leaving the cell.
-		act(() => other.focus())
-		expect(puts()).toHaveLength(0)
 		typeText(other, '# items!')
-		fireEvent.keyDown(other, { key: 'Enter', ctrlKey: true })
+		save(dialog)
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: '{count, plural, one {# item} other {# items!}}' })
@@ -955,19 +964,20 @@ describe('TranslationsPage plural forms', () => {
 			},
 		])
 		renderApp(`${PAGE_PATH}?source=en&target=sk`)
-		await screen.findByText('items.count')
-		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: 'Preklad kľúča items.count, slovenčina: Bez prekladu' }))
+		const dialog = await openPlural('Preklad kľúča items.count, slovenčina: Bez prekladu')
 
-		const fields = screen.getAllByRole('textbox', { name: /Preklad kľúča items.count, slovenčina/ })
+		const fields = within(dialog).getAllByRole('textbox', { name: /Preklad kľúča items.count, slovenčina/ })
 		expect(fields.map((field) => field.getAttribute('aria-label'))).toEqual([
 			'Preklad kľúča items.count, slovenčina, Jeden',
 			'Preklad kľúča items.count, slovenčina, Málo',
 			'Preklad kľúča items.count, slovenčina, Veľa',
 			'Preklad kľúča items.count, slovenčina, Iné',
 		])
+		// Slovak is the base language, so there is no reference block.
+		expect(within(dialog).queryByText(/Základný jazyk/)).not.toBeInTheDocument()
 		typeText(fields[0]!, '# položka')
 		typeText(fields[3]!, '# položiek')
-		fireEvent.keyDown(fields[3]!, { key: 'Enter', ctrlKey: true })
+		save(dialog)
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: '{count, plural, one {# položka} few {} many {} other {# položiek}}' })
@@ -976,112 +986,82 @@ describe('TranslationsPage plural forms', () => {
 	it('saves null when every form is empty', async () => {
 		const puts = mockEditing(undefined, ADMIN_USER, [PLURAL_ITEM()])
 		renderApp(PAGE_PATH)
-		await screen.findByText('items.count')
-		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ }))
+		const dialog = await openPlural()
 
-		typeText(screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Jeden' }), '')
-		const other = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Iné' })
-		typeText(other, '  ')
-		blur(other)
+		typeText(fieldOf(dialog, 'Preklad kľúča items.count, English, Jeden'), '')
+		typeText(fieldOf(dialog, 'Preklad kľúča items.count, English, Iné'), '  ')
+		save(dialog)
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: null })
 		await waitFor(() => expect(getRow('items.count')).toHaveAttribute('data-status', 'UNTRANSLATED'))
 	})
 
-	it('does not send a request when no form changed', async () => {
+	it('closes without a request when no form changed', async () => {
 		const puts = mockEditing(undefined, ADMIN_USER, [PLURAL_ITEM()])
 		renderApp(PAGE_PATH)
-		await screen.findByText('items.count')
-		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ }))
+		const dialog = await openPlural()
 
-		const one = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Jeden' })
-		fireEvent.keyDown(one, { key: 'Escape' })
-		expect(screen.queryByRole('textbox', { name: /items.count/ })).not.toBeInTheDocument()
-		expect(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ })).toHaveFocus()
+		save(dialog)
+
+		await waitForClosed()
 		expect(puts()).toHaveLength(0)
 	})
 
-	it('keeps the editor open without a request when a form has unbalanced braces, then saves the fixed form', async () => {
+	it('keeps the modal open without a request when a form has unbalanced braces, then saves the fixed form', async () => {
 		const puts = mockEditing(undefined, ADMIN_USER, [PLURAL_ITEM()])
 		renderApp(PAGE_PATH)
-		await screen.findByText('items.count')
-		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ }))
+		const dialog = await openPlural()
 
-		const one = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Jeden' })
-		const other = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Iné' })
+		const one = fieldOf(dialog, 'Preklad kľúča items.count, English, Jeden')
+		const other = fieldOf(dialog, 'Preklad kľúča items.count, English, Iné')
 		typeText(other, '# items}')
-		blur(other)
+		save(dialog)
 
-		expect(screen.getByRole('alert')).toHaveTextContent('Zátvorky { a } musia byť vyvážené.')
+		expect(within(dialog).getByRole('alert')).toHaveTextContent('Zátvorky { a } musia byť vyvážené.')
 		expect(other).toHaveAttribute('aria-invalid', 'true')
 		expect(one).not.toHaveAttribute('aria-invalid')
 		expect(other).toHaveAccessibleDescription(/Zátvorky \{ a \} musia byť vyvážené\./)
 		expect(puts()).toHaveLength(0)
 
-		act(() => other.focus())
 		typeText(other, '# items!')
-		blur(other)
+		save(dialog)
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: '{count, plural, one {# item} other {# items!}}' })
-		await waitFor(() => expect(screen.queryByRole('textbox', { name: /items.count/ })).not.toBeInTheDocument())
-		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+		await waitForClosed()
 	})
 
-	it('discards the unchanged draft on blur after the brace error, like after PLACEHOLDER_MISMATCH', async () => {
+	it('keeps the modal open without a request when the whole ICU message would exceed the limit', async () => {
 		const puts = mockEditing(undefined, ADMIN_USER, [PLURAL_ITEM()])
 		renderApp(PAGE_PATH)
-		await screen.findByText('items.count')
-		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ }))
+		const dialog = await openPlural()
 
-		const other = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Iné' })
-		typeText(other, '{# items')
-		blur(other)
-		expect(screen.getByRole('alert')).toBeInTheDocument()
-
-		act(() => other.focus())
-		blur(other)
-
-		expect(screen.queryByRole('textbox', { name: /items.count/ })).not.toBeInTheDocument()
-		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-		expect(formsOf(getRow('items.count').querySelectorAll('td')[2] as HTMLElement)).toEqual(['One: # item', 'Other: # items'])
-		expect(puts()).toHaveLength(0)
-	})
-
-	it('keeps the editor open without a request when the whole ICU message would exceed the limit', async () => {
-		const puts = mockEditing(undefined, ADMIN_USER, [PLURAL_ITEM()])
-		renderApp(PAGE_PATH)
-		await screen.findByText('items.count')
-		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ }))
-
-		const one = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Jeden' })
-		const other = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Iné' })
+		const one = fieldOf(dialog, 'Preklad kľúča items.count, English, Jeden')
+		const other = fieldOf(dialog, 'Preklad kľúča items.count, English, Iné')
 		typeText(one, 'a'.repeat(6000))
 		typeText(other, 'b'.repeat(6000))
-		fireEvent.keyDown(other, { key: 'Enter', ctrlKey: true })
+		save(dialog)
 
-		expect(screen.getByRole('alert')).toHaveTextContent('Preklad je príliš dlhý (max. 10 000 znakov spolu za všetky formy).')
+		expect(within(dialog).getByRole('alert')).toHaveTextContent('Preklad je príliš dlhý (max. 10 000 znakov spolu za všetky formy).')
 		expect(one).toHaveAttribute('aria-invalid', 'true')
 		expect(other).toHaveAttribute('aria-invalid', 'true')
 		expect(puts()).toHaveLength(0)
 	})
 
-	it('shows the brace message under the editor when the server rejects the plural value as INVALID', async () => {
+	it('shows the brace message under the fields when the server rejects the plural value as INVALID', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		const puts = mockEditing(apiError(400, 'VALIDATION_ERROR', { details: [{ path: 'value', code: 'INVALID' }] }), ADMIN_USER, [PLURAL_ITEM()])
 		renderApp(PAGE_PATH)
-		await screen.findByText('items.count')
-		fireEvent.click(within(getRow('items.count')).getByRole('button', { name: /Preklad kľúča items.count, English/ }))
+		const dialog = await openPlural()
 
-		const other = screen.getByRole('textbox', { name: 'Preklad kľúča items.count, English, Iné' })
+		const other = fieldOf(dialog, 'Preklad kľúča items.count, English, Iné')
 		typeText(other, '# items!')
-		blur(other)
+		save(dialog)
 
-		const alert = await screen.findByRole('alert')
+		const alert = await within(dialog).findByRole('alert')
 		expect(alert).toHaveTextContent('Zátvorky { a } musia byť vyvážené.')
 		expect(other).toHaveAttribute('aria-invalid', 'true')
-		expect(other).toBeInTheDocument()
 		expect(puts()).toHaveLength(1)
 		expect(show).not.toHaveBeenCalled()
 		show.mockRestore()

@@ -1,0 +1,4 @@
+.placeholder {
+	font-size: inherit;
+	color: var(--app-color-muted);
+}

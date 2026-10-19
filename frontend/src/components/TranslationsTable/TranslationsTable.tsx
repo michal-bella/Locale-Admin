@@ -3,16 +3,16 @@ import { useDisclosure } from '@mantine/hooks'
 import { Fragment, type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ROLE, type TranslationCell, type TranslationListItem } from '@locale/shared'
+import { type Language, ROLE, type TranslationCell as TranslationCellData, type TranslationListItem } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import EditKeyModal from '@/components/EditKeyModal/EditKeyModal'
+import EditTranslationModal from '@/components/EditTranslationModal/EditTranslationModal'
 import { Edit, Upload } from '@/components/Icons'
-import PluralForms from '@/components/PluralForms/PluralForms'
 import RowAction from '@/components/RowAction/RowAction'
-import TranslationEditor from '@/components/TranslationEditor/TranslationEditor'
-import TranslationText from '@/components/TranslationText/TranslationText'
+import TranslationCell from '@/components/TranslationCell/TranslationCell'
+import TranslationValue from '@/components/TranslationValue/TranslationValue'
 import { formatDateTime } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 
@@ -23,25 +23,14 @@ const SKELETON_ROWS = 5
 
 const COLUMNS = 4
 
-const EMPTY_CELL: TranslationCell = { value: null, status: 'UNTRANSLATED', updatedAt: null }
+const EMPTY_CELL: TranslationCellData = { value: null, status: 'UNTRANSLATED', updatedAt: null }
 
-/** `tag` is the language of the cell; set for a plural key, its forms are stacked. */
-const Value = ({ value, tag }: { value: string | null; tag?: string }) => {
-	const { t } = useTranslation()
-	if (value === null) {
-		return (
-			<Text component='span' className={classes.placeholder}>
-				{t('translationsPage.table.emptyValue')}
-			</Text>
-		)
-	}
-	return tag ? <PluralForms value={value} tag={tag} /> : <TranslationText value={value} />
-}
+type Editing = { item: TranslationListItem; language: Language }
 
 /**
- * Keys with the source and target text (Figma 3:147); the target cell is a `TranslationEditor`. With `showGroups` a group header row starts every run of keys
- * with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first and are grouped inside. Untranslated rows have a soft red background.
- * A global ADMIN gets an edit button next to every key that opens `EditKeyModal`.
+ * Keys with the source and target text (Figma 3:147); the target cell is a `TranslationCell` that opens `EditTranslationModal`. With `showGroups` a group header
+ * row starts every run of keys with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first and are grouped
+ * inside. An untranslated cell has a soft red background. A global ADMIN gets an edit button next to every key that opens `EditKeyModal`.
  */
 const TranslationsTable = ({
 	projectId,
@@ -51,6 +40,7 @@ const TranslationsTable = ({
 	error,
 	onRetry,
 	isRetrying,
+	languages,
 	sourceLanguage,
 	targetLanguage,
 	onClearFilters,
@@ -64,10 +54,18 @@ const TranslationsTable = ({
 	const tableRef = useRef<HTMLTableElement>(null)
 	const [editOpened, editModal] = useDisclosure(false)
 	const [editing, setEditing] = useState<TranslationListItem | null>(null)
+	const [translationOpened, translationModal] = useDisclosure(false)
+	const [editingTranslation, setEditingTranslation] = useState<Editing | null>(null)
+	const baseLanguage = languages.find((language) => language.isBase)
 
 	const openEdit = (item: TranslationListItem) => {
 		setEditing(item)
 		editModal.open()
+	}
+
+	const openTranslation = (item: TranslationListItem, language: Language) => {
+		setEditingTranslation({ item, language })
+		translationModal.open()
 	}
 
 	// A successful retry replaces the focused retry button with the rows.
@@ -130,17 +128,17 @@ const TranslationsTable = ({
 					</span>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.value}`}>
-					<Value value={source.value} tag={item.plural ? sourceLanguage?.tag : undefined} />
+					<TranslationValue value={source.value} pluralTag={item.plural ? sourceLanguage?.tag : undefined} />
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.value}`}>
-					<TranslationEditor
-						value={target.value}
-						label={t('translationsPage.editor.label', { key: item.name, language: targetLanguage?.nativeName ?? '' })}
-						plural={item.plural && targetLanguage ? { variable: item.plural.variable, tag: targetLanguage.tag } : null}
-						onSave={(value) => onSave(item.keyId, value)}
-					>
-						<Value value={target.value} tag={item.plural ? targetLanguage?.tag : undefined} />
-					</TranslationEditor>
+					{targetLanguage && (
+						<TranslationCell
+							cell={target}
+							label={t('translationsPage.editor.label', { key: item.name, language: targetLanguage.nativeName })}
+							pluralTag={item.plural ? targetLanguage.tag : undefined}
+							onClick={() => openTranslation(item, targetLanguage)}
+						/>
+					)}
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.statusCell}`}>
 					<Badge
@@ -247,6 +245,14 @@ const TranslationsTable = ({
 				<Table.Tbody>{renderBody()}</Table.Tbody>
 			</Table>
 			{isAdmin && <EditKeyModal projectId={projectId} item={editing} opened={editOpened} onClose={editModal.close} />}
+			<EditTranslationModal
+				item={editingTranslation?.item ?? null}
+				language={editingTranslation?.language ?? null}
+				baseLanguage={baseLanguage}
+				opened={translationOpened}
+				onClose={translationModal.close}
+				onSave={onSave}
+			/>
 		</div>
 	)
 }

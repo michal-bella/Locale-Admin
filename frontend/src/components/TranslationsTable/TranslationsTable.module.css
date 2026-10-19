@@ -38,10 +38,6 @@
 	padding-inline: 1rem;
 }
 
-.row[data-status='UNTRANSLATED'] {
-	background-color: var(--app-color-untranslated-bg);
-}
-
 .row:last-child .td {
 	border-bottom: 0;
 }
@@ -105,11 +101,6 @@
 	font-size: var(--mantine-font-size-md);
 	line-height: 1.5;
 	color: var(--app-color-text-strong);
-}
-
-.placeholder {
-	font-size: inherit;
-	color: var(--app-color-muted);
 }
 
 .status {

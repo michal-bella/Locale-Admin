@@ -264,8 +264,6 @@
 		},
 		"editor": {
 			"label": "Preklad kľúča {{key}}, {{language}}",
-			"hint": "Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc.",
-			"saving": "Ukladá sa",
 			"lockedHint": "Premenné a HTML značky sú zamknuté, mažú sa celé.",
 			"hashHint": "Znak # je miesto čísla.",
 			"saved": "Uložené: {{key}}",
@@ -274,6 +272,16 @@
 			"formLabel": "{{label}}, {{form}}",
 			"unbalancedBraces": "Zátvorky { a } musia byť vyvážené.",
 			"tooLong": "Preklad je príliš dlhý (max. 10 000 znakov spolu za všetky formy)."
+		},
+		"editModal": {
+			"title": "Upraviť preklad",
+			"close": "Zavrieť",
+			"key": "Kľúč",
+			"language": "Jazyk",
+			"baseLanguage": "Základný jazyk ({{language}})",
+			"value": "Preklad",
+			"cancel": "Zrušiť",
+			"submit": "Uložiť"
 		},
 		"plural": {
 			"hash": "Číslo",

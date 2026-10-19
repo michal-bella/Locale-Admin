@@ -24,7 +24,7 @@ import classes from './TranslationsPage.module.css'
 const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
 
 /**
- * Translations of the project (Figma 3:2): stats for the target language, filters in the URL, the table with inline editing and pagination.
+ * Translations of the project (Figma 3:2): stats for the target language, filters in the URL, the table (cells open the edit modal) and pagination.
  * Without Exportovať, Posledný sync and the Na kontrolu card. Importovať opens `ImportModal`.
  */
 const TranslationsPage = () => {
@@ -71,12 +71,9 @@ const TranslationsPage = () => {
 	const [savedAnnouncement, setSavedAnnouncement] = useState('')
 
 	// The status badge flips silently for a screen reader; the live region below says it. Clearing first makes a repeated save of the same key announce again.
-	const saveTranslation = async (keyId: string, value: string | null) => {
-		if (!listQuery) {
-			return
-		}
+	const saveTranslation = async (keyId: string, languageId: string, value: string | null) => {
 		setSavedAnnouncement('')
-		const result = await updateTranslation.mutateAsync({ keyId, languageId: listQuery.targetLanguageId, value })
+		const result = await updateTranslation.mutateAsync({ keyId, languageId, value })
 		setSavedAnnouncement(t('translationsPage.editor.saved', { key: data?.items.find((item) => item.keyId === keyId)?.name ?? '' }))
 		return result
 	}
@@ -159,6 +156,7 @@ const TranslationsPage = () => {
 					error={languagesQuery.error ?? translationsQuery.error}
 					onRetry={retry}
 					isRetrying={languagesQuery.isRefetching || translationsQuery.isRefetching}
+					languages={languages}
 					sourceLanguage={sourceLanguage}
 					targetLanguage={targetLanguage}
 					onClearFilters={clearFilters}

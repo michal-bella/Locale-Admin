@@ -1,6 +1,6 @@
 ---
 title: 'API: projekty a členovia'
-updated: 2026-10-18
+updated: 2026-10-19
 notion_page_id:
 ---
 
@@ -131,22 +131,24 @@ Vráti `200 { members: ProjectMember[] }` (schéma `projectMemberListResponseSch
 
 ### POST /api/projects/:projectId/members
 
-Telo (schéma `createProjectMemberRequestSchema`, rovnaká validácia ako `POST /api/admin/users`): `{ "email": "meno@firma.sk", "password": "••••••••" }`. Vytvorí nového používateľa s rolou `EDITOR` a v tej istej operácii ho pridá do projektu. Pridanie existujúceho používateľa do ďalšieho projektu zatiaľ nie je.
+Iba `ADMIN` (`requireRole(ROLE.ADMIN)` za kontrolou prístupu k projektu). Telo (schéma `addProjectMemberRequestSchema`): `{ "userId": "<uuid>" }`. Pridá existujúceho používateľa (ktoréhokoľvek z `GET /api/admin/users`) do projektu; jeho účet, rola ani heslo sa nemenia. Nových používateľov zakladá iba `POST /api/admin/users` (viď [správa používateľov](./admin-users.md)).
 
-| HTTP | `code`             | Kedy                                          |
-| ---- | ------------------ | --------------------------------------------- |
-| 201  |                    | telo `ProjectMember`                          |
-| 400  | `VALIDATION_ERROR` | nevalidný e-mail alebo krátke heslo           |
-| 404  | `NOT_FOUND`        | viď [Prístup k projektu](#prístup-k-projektu) |
-| 409  | `EMAIL_TAKEN`      | používateľ s týmto e-mailom existuje          |
+| HTTP | `code`             | Kedy                                                                                                         |
+| ---- | ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| 201  |                    | telo `ProjectMember`                                                                                         |
+| 400  | `VALIDATION_ERROR` | `userId` chýba (`REQUIRED`) alebo nie je UUID (`INVALID`)                                                    |
+| 403  | `FORBIDDEN`        | prihlásený člen projektu, ktorý nie je `ADMIN`                                                               |
+| 404  | `NOT_FOUND`        | projekt mimo prístupu (viď [Prístup k projektu](#prístup-k-projektu)) alebo používateľ s `userId` neexistuje |
+| 409  | `ALREADY_MEMBER`   | používateľ už je členom projektu                                                                             |
 
 ### DELETE /api/projects/:projectId/members/:userId
 
-Odoberie člena z projektu (zmaže `ProjectMember`), účet používateľa ostane a môže byť v iných projektoch. Môže to každý člen projektu aj `ADMIN`, projektové role zatiaľ nie sú. Rovnako ako pri opustení projektu drží zámok riadku projektu a posledného člena odobrať nejde. UI vlastný riadok neponúka, na to je Opustiť projekt.
+Iba `ADMIN`. Odoberie člena z projektu (zmaže `ProjectMember`), účet používateľa ostane a môže byť v iných projektoch. Člen projektu vidí zoznam, ale odoberať nemôže, projektové role zatiaľ nie sú. Rovnako ako pri opustení projektu drží zámok riadku projektu a posledného člena odobrať nejde. UI vlastný riadok neponúka, na to je Opustiť projekt.
 
 | HTTP | `code`        | Kedy                                                                       |
 | ---- | ------------- | -------------------------------------------------------------------------- |
 | 204  |               | člen odobraný                                                              |
+| 403  | `FORBIDDEN`   | prihlásený člen projektu, ktorý nie je `ADMIN`                             |
 | 404  | `NOT_FOUND`   | projekt mimo prístupu, používateľ nie je členom alebo `userId` nie je UUID |
 | 409  | `LAST_MEMBER` | odoberaný je posledný člen projektu                                        |
 

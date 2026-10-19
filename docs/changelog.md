@@ -1,12 +1,20 @@
 ---
 title: 'Changelog'
-updated: 2026-10-18
+updated: 2026-10-19
 notion_page_id:
 ---
 
 # Changelog
 
 ## Po fáze 1
+
+### Členovia projektu z existujúcich používateľov (2026-10-19)
+
+- zdieľaný kontrakt: `createUserRequestSchema` má povinné `role` (`ADMIN` / `EDITOR`), `adminUserSchema` má `projectCount`, `addProjectMemberRequestSchema { userId }` nahradil `createProjectMemberRequestSchema`, nový chybový kód `ALREADY_MEMBER` (409)
+- backend: `GET /api/admin/users` vracia všetkých používateľov s počtom projektov, `POST` berie rolu, `DELETE` zmaže ktoréhokoľvek používateľa okrem vlastného účtu; `POST /api/projects/:projectId/members` pridá existujúceho používateľa (404 neznámy, 409 už člen) a spolu s `DELETE …/members/:userId` je iba pre `ADMIN` (člen 403), zoznam členov ostáva pre každého člena ([API](./api/admin-users.md), [projekty](./api/projects.md#členovia))
+- frontend: Používatelia zobrazujú rolu a počet projektov, modál Nový používateľ má výber roly (predvolene Člen), Odstrániť používateľa uvádza počet projektov; Členovia projektu: tlačidlo Pridať člena a odobratie iba pre `ADMIN`, modál Pridať člena s vyhľadávacím selectom existujúcich používateľov a tlačidlom Vytvoriť nového používateľa (vytvorený sa predvyberie) ([Frontend](./frontend.md))
+- E2E: `members.spec.ts` a `users.spec.ts` prepísané na nový tok, API smoke overuje 403 pre člena a 409 `ALREADY_MEMBER`; pomocné funkcie `createMember()` a `addMember()` v `e2e/support/users.ts`
+- rozhodnutia: bez pozvánok emailom (používateľov zakladá admin s interným heslom), `LAST_MEMBER` sa nemení, detail používateľa s jeho projektmi je druhá časť plánu ([plán](./plans/project-members.md))
 
 ### Úprava kľúča, plurálové formy a zamknuté tokeny v editore (2026-10-19)
 

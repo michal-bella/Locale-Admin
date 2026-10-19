@@ -12,17 +12,17 @@ PostgreSQL 17, Prisma 7 s driver adapterom `@prisma/adapter-pg`. Schéma je v `b
 
 ### User
 
-| Pole                     | Typ                | Poznámka                                                                                                           |
-| ------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `id`                     | UUID               | PK                                                                                                                 |
-| `email`                  | string, unique     | uložený normalizovaný (`trim()` + malé písmená)                                                                    |
-| `passwordHash`           | string             | argon2id, nikdy sa nevracia v API                                                                                  |
-| `role`                   | enum `ROLE`        | `ADMIN` alebo `EDITOR`, default `EDITOR`; `POST /api/admin/users` zakladá `ADMIN`, členov zakladá stránka Členovia |
-| `firstName`, `lastName`  | string, nullable   | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                                             |
-| `isActive`               | boolean            | default `true`, neaktívny user sa neprihlási                                                                       |
-| `lastLoginAt`            | datetime, nullable | nastaví sa pri úspešnom logine                                                                                     |
-| `passwordChangedAt`      | datetime           | default čas vytvorenia                                                                                             |
-| `createdAt`, `updatedAt` | datetime           |                                                                                                                    |
+| Pole                     | Typ                | Poznámka                                                                                                             |
+| ------------------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `id`                     | UUID               | PK                                                                                                                   |
+| `email`                  | string, unique     | uložený normalizovaný (`trim()` + malé písmená)                                                                      |
+| `passwordHash`           | string             | argon2id, nikdy sa nevracia v API                                                                                    |
+| `role`                   | enum `ROLE`        | `ADMIN` alebo `EDITOR`, default `EDITOR`; nastavuje ho `POST /api/admin/users` (jediná cesta, ako používateľ vzniká) |
+| `firstName`, `lastName`  | string, nullable   | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                                               |
+| `isActive`               | boolean            | default `true`, neaktívny user sa neprihlási                                                                         |
+| `lastLoginAt`            | datetime, nullable | nastaví sa pri úspešnom logine                                                                                       |
+| `passwordChangedAt`      | datetime           | default čas vytvorenia                                                                                               |
+| `createdAt`, `updatedAt` | datetime           |                                                                                                                      |
 
 ### Session
 
@@ -81,7 +81,7 @@ Každý projekt má vlastné jazyky a vlastný základný jazyk (`ProjectLanguag
 
 ### ProjectMember
 
-Členstvo používateľa v projekte. Určuje, ktoré projekty vidí `EDITOR` a ku ktorým má prístup (`ADMIN` má prístup ku všetkým). Vzniká pri vytvorení projektu (tvorca), pri vytvorení člena na stránke Členovia a zo seedu; zaniká akciou Opustiť projekt.
+Členstvo používateľa v projekte. Určuje, ktoré projekty vidí `EDITOR` a ku ktorým má prístup (`ADMIN` má prístup ku všetkým). Vzniká pri vytvorení projektu (tvorca), pridaním existujúceho používateľa na stránke Členovia (iba `ADMIN`) a zo seedu; zaniká akciou Opustiť projekt, odobratím členom `ADMIN`-om alebo kaskádou pri zmazaní používateľa či projektu.
 
 | Pole        | Typ      | Poznámka                                       |
 | ----------- | -------- | ---------------------------------------------- |

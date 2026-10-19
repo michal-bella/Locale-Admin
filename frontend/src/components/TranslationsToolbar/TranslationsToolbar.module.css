@@ -11,6 +11,19 @@
 	width: 12rem;
 }
 
+/* The chosen status shows as the badge in the left section; the input keeps the text for the accessible value but paints it invisible. */
+.statusInputWithBadge {
+	color: transparent;
+}
+
+.statusBadgeSection {
+	padding-inline-start: 0.875rem;
+}
+
+.statusInputWithBadge::selection {
+	color: transparent;
+}
+
 .languageSelect {
 	width: 7rem;
 }

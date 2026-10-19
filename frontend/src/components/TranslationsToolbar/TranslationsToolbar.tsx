@@ -127,6 +127,10 @@ const TranslationsToolbar = ({
 					onChange({ status: parsed.success ? parsed.data : undefined })
 				}}
 				renderOption={renderStatusOption}
+				leftSection={status && <TranslationStatusBadge status={status} />}
+				leftSectionWidth={status ? 'auto' : undefined}
+				leftSectionProps={{ className: status ? classes.statusBadgeSection : undefined }}
+				classNames={{ input: status ? classes.statusInputWithBadge : undefined }}
 				allowDeselect={false}
 				withScrollArea={false}
 			/>

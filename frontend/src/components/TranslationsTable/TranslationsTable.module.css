@@ -52,6 +52,12 @@
 	box-shadow: inset 1px 0 0 var(--app-color-border-subtle);
 }
 
+/* The key column reads as the label side of the table: muted like the header, with a divider before the editable cells. */
+.keyCell {
+	background-color: var(--app-color-surface-muted);
+	box-shadow: inset -1px 0 0 var(--app-color-border);
+}
+
 th.stickyStart,
 th.stickyEnd {
 	z-index: 2;
@@ -93,6 +99,16 @@ th.stickyEnd {
 /* 8.5rem minus 2 × 1rem leaves 104 px; the longest badge (Untranslated) is 99 px. */
 .statusCell {
 	padding-inline: 1rem;
+	text-align: center;
+}
+
+/* Softer than the cell tints, so the status column reads as a verdict and not as another translation. */
+.row[data-status='TRANSLATED'] .statusCell {
+	background-color: var(--app-color-status-translated-bg);
+}
+
+.row[data-status='UNTRANSLATED'] .statusCell {
+	background-color: var(--app-color-status-untranslated-bg);
 }
 
 .row:last-child .td {
@@ -171,10 +187,12 @@ th.stickyEnd {
 	overflow: hidden;
 }
 
+/* A shade darker than the muted key column with a firmer top edge, so a group reads as a divider rather than a key. */
 .groupCell {
 	padding: 0.5rem 1.75rem;
+	border-top: 1px solid var(--app-color-border);
 	border-bottom: 1px solid var(--app-color-border-subtle);
-	background-color: var(--app-color-surface-muted);
+	background-color: var(--app-color-border-subtle);
 	font-size: var(--mantine-font-size-2xs);
 	font-weight: 700;
 	line-height: 1.5;

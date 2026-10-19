@@ -13,12 +13,15 @@ type StatCardProps = {
 	label: string
 	value?: number
 	icon: ComponentType<SVGProps<SVGSVGElement>>
-	tone: 'brand' | 'warning'
+	tone: 'brand' | 'success' | 'danger'
 	/** Share of all keys in percent; the card without it has no progress bar. */
 	percent?: number
 	/** Sets the table's status filter to this card's keys; `active` while that filter is on. */
 	filter?: { label: string; active: boolean; onClick: () => void }
 }
+
+/* Same hues as the status badges: Preložené teal, Nepreložené red. */
+const TONE_COLOR = { brand: 'brand', success: 'teal', danger: 'red' } as const
 
 const StatCard = ({ label, value, icon: Icon, tone, percent, filter }: StatCardProps) => {
 	const { t } = useTranslation()
@@ -35,6 +38,7 @@ const StatCard = ({ label, value, icon: Icon, tone, percent, filter }: StatCardP
 						<Button
 							size='compact-xs'
 							variant='subtle'
+							color={TONE_COLOR[tone]}
 							rightSection={<ArrowRight aria-hidden />}
 							aria-pressed={filter.active}
 							className={classes.filterButton}
@@ -50,11 +54,7 @@ const StatCard = ({ label, value, icon: Icon, tone, percent, filter }: StatCardP
 			</div>
 			{percent !== undefined && (
 				<Progress.Root size={4} radius='xl' mt='md' classNames={{ root: classes.track }}>
-					<Progress.Section
-						value={percent}
-						color={tone === 'brand' ? 'brand' : 'yellow'}
-						aria-label={t('translationsPage.stats.progressLabel', { label, percent })}
-					/>
+					<Progress.Section value={percent} color={TONE_COLOR[tone]} aria-label={t('translationsPage.stats.progressLabel', { label, percent })} />
 				</Progress.Root>
 			)}
 		</div>
@@ -63,7 +63,7 @@ const StatCard = ({ label, value, icon: Icon, tone, percent, filter }: StatCardP
 
 const toPercent = (part: number, total: number) => (total === 0 ? 0 : Math.round((part / total) * 100))
 
-/** Celkom kľúčov, Preložené and Chýbajúce of Figma 3:62 for the target language. The Na kontrolu card is left out, that status does not exist. */
+/** Celkom kľúčov, Preložené and Nepreložené of Figma 3:62 for the target language. The Na kontrolu card is left out, that status does not exist. */
 const TranslationStats = ({ stats, status, onStatusChange }: TranslationStatsProps) => {
 	const { t } = useTranslation()
 
@@ -82,7 +82,7 @@ const TranslationStats = ({ stats, status, onStatusChange }: TranslationStatsPro
 				label={t('translationsPage.stats.translated')}
 				value={stats?.translated}
 				icon={Check}
-				tone='brand'
+				tone='success'
 				percent={stats && toPercent(stats.translated, stats.totalKeys)}
 				filter={filterFor('TRANSLATED', t('translationsPage.stats.showTranslated'))}
 			/>
@@ -90,7 +90,7 @@ const TranslationStats = ({ stats, status, onStatusChange }: TranslationStatsPro
 				label={t('translationsPage.stats.missing')}
 				value={stats?.untranslated}
 				icon={File}
-				tone='warning'
+				tone='danger'
 				percent={stats && toPercent(stats.untranslated, stats.totalKeys)}
 				filter={filterFor('UNTRANSLATED', t('translationsPage.stats.showMissing'))}
 			/>

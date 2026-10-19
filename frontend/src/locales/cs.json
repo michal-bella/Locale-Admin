@@ -217,10 +217,10 @@
 		"stats": {
 			"totalKeys": "Celkem klíčů",
 			"translated": "Přeložené",
-			"missing": "Chybějící",
+			"missing": "Nepřeložené",
 			"progressLabel": "{{label}}: {{percent}} %",
 			"showTranslated": "Zobrazit přeložené",
-			"showMissing": "Zobrazit chybějící",
+			"showMissing": "Zobrazit nepřeložené",
 			"showAll": "Zobrazit všechny"
 		},
 		"toolbar": {

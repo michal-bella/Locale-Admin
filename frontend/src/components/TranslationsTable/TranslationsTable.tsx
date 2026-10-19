@@ -61,7 +61,7 @@ const TranslationsTable = ({
 	const baseLanguage = languages.find((language) => language.isBase)
 	const isExtended = view === 'EXTENDED'
 	const columnCount = isExtended ? languages.length + 2 : 4
-	const keyClass = `${classes.td} ${isExtended ? classes.stickyStart : ''}`
+	const keyClass = `${classes.td} ${classes.keyCell} ${isExtended ? classes.stickyStart : ''}`
 	const statusClass = `${classes.td} ${classes.statusCell} ${isExtended ? classes.stickyEnd : ''}`
 
 	const openEdit = (item: TranslationListItem) => {

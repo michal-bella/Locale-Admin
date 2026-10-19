@@ -124,6 +124,16 @@ const goToReview = async () => {
 
 const languageSelect = (dialog: HTMLElement, tag: string) => within(dialog).getByRole('combobox', { name: `Jazyk pre stĺpec ${tag}` })
 
+const summaryItems = (dialog: HTMLElement) =>
+	within(within(dialog).getByRole('list', { name: 'Súhrn' }))
+		.getAllByRole('listitem')
+		.map((item) => item.textContent)
+
+const pickOption = async (select: HTMLElement, name: string) => {
+	fireEvent.click(select)
+	fireEvent.click(await screen.findByRole('option', { name }))
+}
+
 beforeAll(() => {
 	queryClient.setQueryDefaults(QUERY_KEYS.PROJECTS.DETAIL(PROJECT.id), { retry: false })
 })
@@ -183,6 +193,21 @@ describe('ImportModal step 1 (upload)', () => {
 		chooseFile(dialog, file)
 
 		expect(await within(dialog).findByRole('alert')).toHaveTextContent('Súbor je príliš veľký. Maximálna veľkosť je 10 MB.')
+		expect(within(dialog).getByRole('button', { name: 'Pokračovať na kontrolu' })).toBeDisabled()
+		expect(sent(requests, 'post', PREVIEW_URL)).toHaveLength(0)
+	})
+
+	it('shows the read error when the FileReader fails', async () => {
+		const requests = mockPage()
+		vi.spyOn(FileReader.prototype, 'readAsText').mockImplementation(function (this: FileReader) {
+			this.dispatchEvent(new Event('error'))
+		})
+		renderApp(PAGE_PATH)
+		const dialog = await openModal()
+
+		chooseFile(dialog, csvFile())
+
+		expect(await within(dialog).findByRole('alert')).toHaveTextContent('Súbor sa nepodarilo prečítať. Skúste to znova.')
 		expect(within(dialog).getByRole('button', { name: 'Pokračovať na kontrolu' })).toBeDisabled()
 		expect(sent(requests, 'post', PREVIEW_URL)).toHaveLength(0)
 	})
@@ -286,10 +311,13 @@ describe('ImportModal step 2 (review)', () => {
 			'Riadok 6, stĺpec 2: kľúč „Nový kľúč“ (common) nemá preklad v základnom jazyku sk',
 		)
 
-		expect(within(dialog).getByText('2 nové kľúče')).toBeInTheDocument()
-		expect(within(dialog).getByText('1 preklad sa prepíše')).toBeInTheDocument()
-		expect(within(dialog).getByText('3 nové preklady')).toBeInTheDocument()
-		expect(within(dialog).getByText('1 kľúč bez prekladu v základnom jazyku')).toBeInTheDocument()
+		expect(summaryItems(dialog)).toEqual([
+			'2 nové kľúče',
+			'1 preklad sa prepíše',
+			'3 nové preklady',
+			'1 kľúč bez prekladu v základnom jazyku',
+			'1 stĺpec sa preskočí',
+		])
 		expect(within(dialog).getByRole('button', { name: 'Importovať' })).toBeEnabled()
 		expect(within(dialog).getByRole('button', { name: 'Späť' })).toBeInTheDocument()
 	})
@@ -315,7 +343,82 @@ describe('ImportModal step 2 (review)', () => {
 		expect(within(dialog).queryByText('Jazyk ru nie je v projekte.')).not.toBeInTheDocument()
 		const ruRow = languageSelect(dialog, 'ru').closest('tr')!
 		expect(within(ruRow).getByText('2 / 0')).toBeInTheDocument()
-		expect(within(dialog).getByText('5 nových prekladov')).toBeInTheDocument()
+		expect(summaryItems(dialog)).toEqual(['2 nové kľúče', '1 preklad sa prepíše', '5 nových prekladov', '1 kľúč bez prekladu v základnom jazyku'])
+	})
+
+	it('keeps a manual choice on a matched column when Pridať jazyk runs the preview again', async () => {
+		let languages = [SLOVAK, ENGLISH]
+		mockPage({
+			[`GET ${LANGUAGES_URL}`]: () => ({ status: 200, data: languages }),
+			[`POST ${PREVIEW_URL}`]: () => ({ status: 200, data: languages.includes(RUSSIAN) ? PREVIEW_WITH_RUSSIAN : PREVIEW }),
+			[`POST ${LANGUAGES_URL}`]: () => {
+				languages = [SLOVAK, ENGLISH, RUSSIAN]
+				return { status: 201, data: RUSSIAN }
+			},
+		})
+		renderApp(PAGE_PATH)
+		const dialog = await goToReview()
+		await pickOption(languageSelect(dialog, 'sk'), 'Preskočiť')
+
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Pridať jazyk ru' }))
+
+		await waitFor(() => expect(languageSelect(dialog, 'ru')).toHaveValue('Russian (ru)'))
+		expect(languageSelect(dialog, 'sk')).toHaveValue('Preskočiť')
+		expect(summaryItems(dialog)).toContain('1 stĺpec sa preskočí')
+	})
+
+	it('still runs the preview again when Pridať jazyk answers LANGUAGE_TAKEN', async () => {
+		let previews = 0
+		const requests = mockPage(
+			{
+				[`POST ${PREVIEW_URL}`]: () => ({ status: 200, data: previews++ === 0 ? PREVIEW : PREVIEW_WITH_RUSSIAN }),
+				[`POST ${LANGUAGES_URL}`]: apiError(409, 'LANGUAGE_TAKEN'),
+			},
+			[SLOVAK, ENGLISH, RUSSIAN],
+		)
+		renderApp(PAGE_PATH)
+		const dialog = await goToReview()
+
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Pridať jazyk ru' }))
+
+		await waitFor(() => expect(languageSelect(dialog, 'ru')).toHaveValue('Russian (ru)'))
+		expect(sent(requests, 'post', PREVIEW_URL)).toHaveLength(2)
+		expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument()
+	})
+
+	it('shows a non-422 preview error under the summary in the review step', async () => {
+		let previews = 0
+		mockPage({
+			[`POST ${PREVIEW_URL}`]: () => (previews++ === 0 ? { status: 200, data: PREVIEW } : apiError(500, 'INTERNAL_ERROR')),
+			[`POST ${LANGUAGES_URL}`]: { status: 201, data: RUSSIAN },
+		})
+		renderApp(PAGE_PATH)
+		const dialog = await goToReview()
+
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Pridať jazyk ru' }))
+
+		expect(await within(dialog).findByRole('alert')).toHaveTextContent('Nastala neočakávaná chyba. Skúste to znova.')
+		expect(within(dialog).getByText('Krok 2 z 2 · Kontrola')).toBeInTheDocument()
+		expect(within(dialog).getByRole('table', { name: 'Stĺpce jazykov v súbore' })).toBeInTheDocument()
+	})
+
+	it('shows the unknown-language text without Pridať jazyk for an UNKNOWN column', async () => {
+		mockPage({
+			[`POST ${PREVIEW_URL}`]: {
+				status: 200,
+				data: {
+					...PREVIEW,
+					columns: [PREVIEW.columns[0]!, { tag: 'xx', columnIndex: 3, match: 'UNKNOWN', stats: { translations: 2, untranslated: 4, warnings: 0 } }],
+				},
+			},
+		})
+		renderApp(PAGE_PATH)
+		const dialog = await goToReview()
+
+		const row = languageSelect(dialog, 'xx').closest('tr')!
+		expect(within(row).getByText('Jazyk xx nie je v katalógu. Priraďte stĺpec jazyku projektu alebo ho preskočte.')).toBeInTheDocument()
+		expect(within(row).queryByRole('button', { name: /Pridať jazyk/ })).not.toBeInTheDocument()
+		expect(within(row).getByRole('button', { name: 'Preskočiť stĺpec xx' })).toBeInTheDocument()
 	})
 
 	it('skips a column and keeps Importovať disabled while every column is skipped', async () => {
@@ -328,12 +431,38 @@ describe('ImportModal step 2 (review)', () => {
 		expect(within(dialog).queryByText('Jazyk ru nie je v projekte.')).not.toBeInTheDocument()
 		expect(within(dialog).getByRole('button', { name: 'Importovať' })).toBeEnabled()
 
-		fireEvent.click(languageSelect(dialog, 'sk'))
-		fireEvent.click(await screen.findByRole('option', { name: 'Preskočiť' }))
+		expect(summaryItems(dialog)).toContain('1 stĺpec sa preskočí')
+
+		await pickOption(languageSelect(dialog, 'sk'), 'Preskočiť')
 		const submit = within(dialog).getByRole('button', { name: 'Importovať' })
 		expect(submit).toBeDisabled()
 		expect(submit).toHaveAccessibleDescription('Priraďte aspoň jeden stĺpec jazyku projektu.')
-		expect(within(dialog).getByText('0 prekladov sa prepíše')).toBeInTheDocument()
+		expect(summaryItems(dialog)).toEqual([
+			'2 nové kľúče',
+			'0 prekladov sa prepíše',
+			'0 nových prekladov',
+			'1 kľúč bez prekladu v základnom jazyku',
+			'2 stĺpce sa preskočia',
+		])
+	})
+
+	it('forgets the column choices and the preview when another file is chosen after a 422 on import', async () => {
+		mockPage({
+			[`POST ${IMPORT_URL}`]: apiError(422, 'IMPORT_FILE_INVALID', { details: { issues: [{ code: 'ROW_EMPTY_KEY', line: 3, column: 1 }], total: 1 } }),
+		})
+		renderApp(PAGE_PATH)
+		const dialog = await goToReview()
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Preskočiť stĺpec ru' }))
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Importovať' }))
+		await within(dialog).findByText('Riadok 3, stĺpec 1: prázdny kľúč')
+
+		chooseFile(dialog, csvFile('opravene.csv'))
+		await within(dialog).findByText('opravene.csv')
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Pokračovať na kontrolu' }))
+
+		await within(dialog).findByRole('table', { name: 'Stĺpce jazykov v súbore' })
+		expect(languageSelect(dialog, 'ru')).toHaveValue('')
+		expect(within(dialog).getByText('Jazyk ru nie je v projekte.')).toBeInTheDocument()
 	})
 
 	it('marks the counts as approximate when a column is mapped by hand', async () => {
@@ -377,9 +506,7 @@ describe('ImportModal step 2 (review)', () => {
 			],
 			createMissingKeys: false,
 		})
-		expect(show).toHaveBeenCalledWith(
-			expect.objectContaining({ color: 'green', message: 'Import dokončený: 2 nových kľúčov, 3 nových prekladov, 1 prepísaných.' }),
-		)
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Import dokončený: 2 nové kľúče, 3 nové preklady, 1 prepísaný.' }))
 		await waitFor(() => expect(sent(requests, 'get', TRANSLATIONS_URL).length).toBeGreaterThan(translationRequestsBefore))
 
 		// The next opening starts from scratch.

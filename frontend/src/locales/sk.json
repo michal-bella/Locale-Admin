@@ -248,7 +248,6 @@
 			"languageSelect": "Jazyk pre stĺpec {{tag}}",
 			"languagePlaceholder": "Vyberte jazyk",
 			"skip": "Preskočiť",
-			"skipButton": "Preskočiť",
 			"addLanguage": "Pridať jazyk",
 			"addLanguageLabel": "Pridať jazyk {{tag}}",
 			"skipColumnLabel": "Preskočiť stĺpec {{tag}}",
@@ -281,6 +280,10 @@
 				"baseUntranslated_few": "{{count}} kľúče bez prekladu v základnom jazyku",
 				"baseUntranslated_many": "{{count}} kľúčov bez prekladu v základnom jazyku",
 				"baseUntranslated_other": "{{count}} kľúčov bez prekladu v základnom jazyku",
+				"skippedColumns_one": "{{count}} stĺpec sa preskočí",
+				"skippedColumns_few": "{{count}} stĺpce sa preskočia",
+				"skippedColumns_many": "{{count}} stĺpcov sa preskočí",
+				"skippedColumns_other": "{{count}} stĺpcov sa preskočí",
 				"approximate": "Počty sú približné: ručne priradené stĺpce sa do nich nepočítajú.",
 				"nothingMapped": "Priraďte aspoň jeden stĺpec jazyku projektu.",
 				"placeholderToggle_one": "Rozdiel v premenných ({{count}})",
@@ -294,7 +297,19 @@
 				"moreWarnings_other": "a ďalších {{count}} upozornení, ktoré sa tu nezobrazujú"
 			}
 		},
-		"success": "Import dokončený: {{keys}} nových kľúčov, {{created}} nových prekladov, {{updated}} prepísaných."
+		"success": "Import dokončený: {{keys}}, {{translations}}, {{overwritten}}.",
+		"successKeys_one": "{{count}} nový kľúč",
+		"successKeys_few": "{{count}} nové kľúče",
+		"successKeys_many": "{{count}} nových kľúčov",
+		"successKeys_other": "{{count}} nových kľúčov",
+		"successTranslations_one": "{{count}} nový preklad",
+		"successTranslations_few": "{{count}} nové preklady",
+		"successTranslations_many": "{{count}} nových prekladov",
+		"successTranslations_other": "{{count}} nových prekladov",
+		"successOverwritten_one": "{{count}} prepísaný",
+		"successOverwritten_few": "{{count}} prepísané",
+		"successOverwritten_many": "{{count}} prepísaných",
+		"successOverwritten_other": "{{count}} prepísaných"
 	},
 	"importIssues": {
 		"FILE_EMPTY": "Súbor je prázdny alebo obsahuje iba hlavičku.",

@@ -248,7 +248,6 @@
 			"languageSelect": "Jazyk pro sloupec {{tag}}",
 			"languagePlaceholder": "Vyberte jazyk",
 			"skip": "Přeskočit",
-			"skipButton": "Přeskočit",
 			"addLanguage": "Přidat jazyk",
 			"addLanguageLabel": "Přidat jazyk {{tag}}",
 			"skipColumnLabel": "Přeskočit sloupec {{tag}}",
@@ -281,6 +280,10 @@
 				"baseUntranslated_few": "{{count}} klíče bez překladu v základním jazyce",
 				"baseUntranslated_many": "{{count}} klíčů bez překladu v základním jazyce",
 				"baseUntranslated_other": "{{count}} klíčů bez překladu v základním jazyce",
+				"skippedColumns_one": "{{count}} sloupec se přeskočí",
+				"skippedColumns_few": "{{count}} sloupce se přeskočí",
+				"skippedColumns_many": "{{count}} sloupců se přeskočí",
+				"skippedColumns_other": "{{count}} sloupců se přeskočí",
 				"approximate": "Počty jsou přibližné: ručně přiřazené sloupce se do nich nepočítají.",
 				"nothingMapped": "Přiřaďte alespoň jeden sloupec jazyku projektu.",
 				"placeholderToggle_one": "Rozdíl v proměnných ({{count}})",
@@ -294,7 +297,19 @@
 				"moreWarnings_other": "a dalších {{count}} upozornění, která se zde nezobrazují"
 			}
 		},
-		"success": "Import dokončen: {{keys}} nových klíčů, {{created}} nových překladů, {{updated}} přepsaných."
+		"success": "Import dokončen: {{keys}}, {{translations}}, {{overwritten}}.",
+		"successKeys_one": "{{count}} nový klíč",
+		"successKeys_few": "{{count}} nové klíče",
+		"successKeys_many": "{{count}} nových klíčů",
+		"successKeys_other": "{{count}} nových klíčů",
+		"successTranslations_one": "{{count}} nový překlad",
+		"successTranslations_few": "{{count}} nové překlady",
+		"successTranslations_many": "{{count}} nových překladů",
+		"successTranslations_other": "{{count}} nových překladů",
+		"successOverwritten_one": "{{count}} přepsaný",
+		"successOverwritten_few": "{{count}} přepsané",
+		"successOverwritten_many": "{{count}} přepsaných",
+		"successOverwritten_other": "{{count}} přepsaných"
 	},
 	"importIssues": {
 		"FILE_EMPTY": "Soubor je prázdný nebo obsahuje pouze hlavičku.",

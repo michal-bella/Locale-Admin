@@ -74,7 +74,7 @@ const ImportReviewTable = ({ preview, languages, mapping, onChange, onAddLanguag
 						aria-label={t('importModal.review.skipColumnLabel', { tag: column.tag })}
 						onClick={() => onChange(column.columnIndex, null)}
 					>
-						{t('importModal.review.skipButton')}
+						{t('importModal.review.skip')}
 					</Button>
 				</span>
 			</div>

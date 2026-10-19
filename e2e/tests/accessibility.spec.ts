@@ -1,11 +1,12 @@
 import AxeBuilder from '@axe-core/playwright'
 import { type APIRequest, expect, type Page, test, type TestInfo } from '@playwright/test'
 
+import { MUTATION_HEADERS } from '../support/api'
 import { ANONYMOUS } from '../support/auth'
 import { getImportDialog, SAMPLE_CSV } from '../support/imports'
 import { listLanguages, newAdminApi } from '../support/languages'
 import { createProject } from '../support/projects'
-import { insertTranslationKeys } from '../support/translations'
+import { insertTranslationKeys, listTranslations, translationKeyApi } from '../support/translations'
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 const COLOR_SCHEMES = ['light', 'dark'] as const
@@ -48,6 +49,25 @@ const translationsWithKeys = async (request: APIRequest) => {
 	}
 }
 
+/** `cart.items` made plural through the API: sk shows One/Few/Many/Other, en One/Other, the old text in Other. */
+const translationsWithPluralKey = async (request: APIRequest) => {
+	const api = await newAdminApi(request)
+	try {
+		const project = await createProject(api, 'a11y-plural')
+		const languages = await listLanguages(api, project.id)
+		const [sk, en] = languages
+		await insertTranslationKeys(project.id, languages, [
+			{ namespace: 'loc', name: 'cart.items', values: { sk: 'Máte {{count}} položiek', en: 'You have {{count}} items' } },
+		])
+		const { keyId } = (await listTranslations(api, project.id, sk!.id, en!.id)).items[0]!
+		const response = await api.patch(translationKeyApi(project.id, keyId), { data: { plural: { variable: 'count' } }, headers: MUTATION_HEADERS })
+		expect(response.status(), `PATCH ${translationKeyApi(project.id, keyId)}`).toBe(200)
+		return `/projects/${project.slug}/translations`
+	} finally {
+		await api.dispose()
+	}
+}
+
 const translationsReady = (page: Page) => expect(page.getByRole('table', { name: 'Zoznam prekladov' })).toHaveAttribute('aria-busy', 'false')
 
 /** Step 1 with the sample file selected (name, size and the checkbox visible). */
@@ -80,6 +100,22 @@ const openTranslationMismatch = async (page: Page) => {
 	await page.keyboard.press('Control+Enter')
 	await expect(page.getByRole('alert')).toHaveText('Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}.')
 	await expect(editor).toHaveAttribute('aria-invalid', 'true')
+}
+
+/** Edit key modal of `dashboard.welcome` with the plural checkbox on, so the variable field is scanned too. */
+const openEditKeyModal = async (page: Page) => {
+	await page.getByRole('button', { name: 'Upraviť kľúč dashboard.welcome', exact: true }).click()
+	const dialog = page.getByRole('dialog', { name: 'Upraviť kľúč' })
+	await expect(dialog.getByRole('textbox', { name: 'Kľúč', exact: true })).toHaveValue('dashboard.welcome')
+	await dialog.getByRole('checkbox', { name: 'Použiť plurálové formy' }).check()
+	await expect(dialog.getByLabel('Názov premennej', { exact: true })).toHaveValue('count')
+}
+
+/** Both en forms of the plural row open for editing (One empty, Other with `#`-less text), the stacked sk forms next to them. */
+const openPluralEditor = async (page: Page) => {
+	await page.getByRole('button', { name: 'Preklad kľúča cart.items, English:' }).click()
+	await expect(page.getByRole('textbox', { name: 'Preklad kľúča cart.items, English, Jeden', exact: true })).toBeFocused()
+	await expect(page.getByRole('textbox', { name: 'Preklad kľúča cart.items, English, Iné', exact: true })).toHaveText('You have {{count}} items')
 }
 
 const SCREENS: Screen[] = [
@@ -115,6 +151,18 @@ const SCREENS: Screen[] = [
 		path: translationsWithKeys,
 		ready: translationsReady,
 		prepare: openTranslationMismatch,
+	},
+	{
+		name: 'edit key modal',
+		path: translationsWithKeys,
+		ready: translationsReady,
+		prepare: openEditKeyModal,
+	},
+	{
+		name: 'plural row editor',
+		path: translationsWithPluralKey,
+		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam prekladov' }).locator('tr[data-status]')).toHaveCount(1),
+		prepare: openPluralEditor,
 	},
 	{
 		name: 'import modal step 1',

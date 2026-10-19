@@ -15,7 +15,7 @@ import {
 	projectSettingsApi,
 	TEST_PROJECT_SLUG_PREFIX,
 } from '../support/projects'
-import { insertTranslationKeys, listTranslations, projectTranslationsApi, translationApi } from '../support/translations'
+import { insertTranslationKeys, listTranslations, projectTranslationsApi, translationApi, translationKeyApi } from '../support/translations'
 import { createEditor, newTestUserCredentials } from '../support/users'
 
 const CREDENTIALS = { email: 'csrf-check@example.com', password: 'irrelevant' }
@@ -327,6 +327,8 @@ test.describe('/api/projects/:projectId/translations', () => {
 					namespace: 'loc',
 					name: 'orders.empty.title',
 					group: 'loc:orders.empty',
+					description: null,
+					plural: null,
 					source: { value: 'Zatiaľ nemáte žiadne objednávky' },
 					target: { value: null, status: 'UNTRANSLATED', updatedAt: expect.any(String) },
 				},
@@ -335,6 +337,8 @@ test.describe('/api/projects/:projectId/translations', () => {
 					namespace: 'paths',
 					name: 'Adresa nie je kompletná. Uistite sa',
 					group: 'paths',
+					description: null,
+					plural: null,
 					source: { value: 'Adresa' },
 					target: { value: null, status: 'UNTRANSLATED', updatedAt: null },
 				},
@@ -343,6 +347,8 @@ test.describe('/api/projects/:projectId/translations', () => {
 					namespace: 'loc',
 					name: 'dashboard.welcome',
 					group: 'loc:dashboard',
+					description: null,
+					plural: null,
 					source: { value: 'Vitajte, {{name}}' },
 					target: { value: 'Welcome, {{name}}', status: 'TRANSLATED', updatedAt: expect.any(String) },
 				},
@@ -469,6 +475,123 @@ test.describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId
 		expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
 		await anonymous.dispose()
 		expect(await targetOf(welcome.keyId)).toEqual(body)
+	})
+})
+
+test.describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
+	test.use({ storageState: STORAGE_STATE.ADMIN })
+
+	test('renames, describes and makes a key plural with the error contract for taken names, validation, roles, unknown keys, CSRF and anonymous', async ({
+		request,
+		playwright,
+		baseURL,
+	}) => {
+		const project = await createProject(request, 'smoke-key', ['sk', 'en'])
+		const languages = await listLanguages(request, project.id)
+		const [sk, en] = languages
+		await insertTranslationKeys(project.id, languages, [
+			{ namespace: 'loc', name: 'cart.items', values: { sk: 'Máte {{count}} položiek', en: 'You have {{count}} items' } },
+			{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky', en: null } },
+		])
+		const list = () => listTranslations(request, project.id, sk!.id, en!.id)
+		const itemOf = async (keyId: string) => (await list()).items.find((item) => item.keyId === keyId)!
+		const cart = (await list()).items.find(({ name }) => name === 'cart.items')!
+		const url = translationKeyApi(project.id, cart.keyId)
+		const patch = (data: unknown) => request.patch(url, { data, headers: MUTATION_HEADERS })
+
+		const renamed = await patch({ name: '  orders.items ' })
+		expect(renamed.status()).toBe(200)
+		expect(await renamed.json()).toEqual({
+			keyId: cart.keyId,
+			namespace: 'loc',
+			name: 'orders.items',
+			group: 'loc:orders',
+			description: null,
+			plural: null,
+		})
+		expect(await itemOf(cart.keyId)).toMatchObject({ name: 'orders.items', group: 'loc:orders', description: null, plural: null })
+
+		const described = await patch({ description: ' Počet položiek v košíku ', plural: {} })
+		expect(described.status()).toBe(200)
+		expect(await described.json()).toMatchObject({ name: 'orders.items', description: 'Počet položiek v košíku', plural: { variable: 'count' } })
+		expect(await itemOf(cart.keyId)).toMatchObject({
+			description: 'Počet položiek v košíku',
+			plural: { variable: 'count' },
+			source: { value: '{count, plural, other {Máte {{count}} položiek}}' },
+			target: { value: '{count, plural, other {You have {{count}} items}}', status: 'TRANSLATED' },
+		})
+
+		const renamedVariable = await patch({ plural: { variable: 'n' } })
+		expect(renamedVariable.status()).toBe(200)
+		expect(await itemOf(cart.keyId)).toMatchObject({
+			plural: { variable: 'n' },
+			source: { value: '{n, plural, other {Máte {{count}} položiek}}' },
+			target: { value: '{n, plural, other {You have {{count}} items}}' },
+		})
+
+		const disabled = await patch({ plural: null, description: null })
+		expect(disabled.status()).toBe(200)
+		expect(await disabled.json()).toMatchObject({ description: null, plural: null })
+		expect(await itemOf(cart.keyId)).toMatchObject({
+			description: null,
+			plural: null,
+			source: { value: 'Máte {{count}} položiek' },
+			target: { value: 'You have {{count}} items' },
+		})
+
+		const taken = await patch({ name: 'orders.empty.title' })
+		expect(taken.status()).toBe(409)
+		expect((await readApiError(taken)).code).toBe('TRANSLATION_KEY_TAKEN')
+		expect((await itemOf(cart.keyId)).name).toBe('orders.items')
+
+		for (const [data, path] of [
+			[{}, undefined],
+			[{ name: '   ' }, 'name'],
+			[{ name: 'x'.repeat(2001) }, 'name'],
+			[{ description: 'x'.repeat(501) }, 'description'],
+			[{ plural: { variable: '1count' } }, 'plural.variable'],
+			[{ plural: { variable: 'a b' } }, 'plural.variable'],
+		] as const) {
+			const invalid = await patch(data)
+			expect(invalid.status(), JSON.stringify(data).slice(0, 40)).toBe(400)
+			const error = await readApiError(invalid)
+			expect(error.code).toBe('VALIDATION_ERROR')
+			if (path) {
+				expect(error.details).toEqual([expect.objectContaining({ path, code: expect.any(String) })])
+			}
+		}
+		expect(await itemOf(cart.keyId)).toMatchObject({ name: 'orders.items', description: null, plural: null })
+
+		for (const keyId of [randomUUID(), 'not-a-uuid']) {
+			const unknownKey = await request.patch(translationKeyApi(project.id, keyId), { data: { name: 'x' }, headers: MUTATION_HEADERS })
+			expect(unknownKey.status(), keyId).toBe(404)
+			expect((await readApiError(unknownKey)).code).toBe('TRANSLATION_KEY_NOT_FOUND')
+		}
+
+		const editor = await playwright.request.newContext({ baseURL, storageState: STORAGE_STATE.EDITOR })
+		const [ownProject] = await listProjects(editor)
+		const [ownSk] = await listLanguages(editor, ownProject!.id)
+		await insertTranslationKeys(ownProject!.id, [ownSk!], [{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov' } }])
+		const ownKey = (await listTranslations(editor, ownProject!.id, ownSk!.id, ownSk!.id)).items.find(({ name }) => name === 'nav.home')!
+		const asMember = await editor.patch(translationKeyApi(ownProject!.id, ownKey.keyId), { data: { name: 'nav.start' }, headers: MUTATION_HEADERS })
+		expect(asMember.status()).toBe(403)
+		expect((await readApiError(asMember)).code).toBe('FORBIDDEN')
+		expect((await listTranslations(editor, ownProject!.id, ownSk!.id, ownSk!.id)).items.map(({ name }) => name)).toEqual(['nav.home'])
+		const asNonMember = await editor.patch(url, { data: { name: 'x' }, headers: MUTATION_HEADERS })
+		expect(asNonMember.status()).toBe(404)
+		expect((await readApiError(asNonMember)).code).toBe('NOT_FOUND')
+		await editor.dispose()
+
+		const withoutCsrfHeader = await request.patch(url, { data: { name: 'x' } })
+		expect(withoutCsrfHeader.status()).toBe(403)
+		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
+
+		const anonymous = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
+		const unauthenticated = await anonymous.patch(url, { data: { name: 'x' }, headers: MUTATION_HEADERS })
+		expect(unauthenticated.status()).toBe(401)
+		expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
+		await anonymous.dispose()
+		expect((await itemOf(cart.keyId)).name).toBe('orders.items')
 	})
 })
 

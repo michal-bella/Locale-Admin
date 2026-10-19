@@ -246,7 +246,7 @@
 			"table": {
 				"label": "Sloupce jazyků v souboru",
 				"language": "Jazyk",
-				"column": "Sloupec v souboru",
+				"column": "Sloupec",
 				"translations": "Překlady",
 				"untranslated": "Nepřeložené",
 				"warnings": "Upozornění",

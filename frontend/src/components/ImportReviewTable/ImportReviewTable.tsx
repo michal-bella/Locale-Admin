@@ -1,4 +1,4 @@
-import { Button, Select, Table, Text } from '@mantine/core'
+import { Button, Select, type SelectProps, Table, Text } from '@mantine/core'
 import { Fragment, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -6,6 +6,7 @@ import { type ImportIssue, type ImportPreviewColumn } from '@locale/shared'
 
 import { AlertTriangle, ChevronDown } from '@/components/Icons'
 import ImportIssueList from '@/components/ImportIssueList/ImportIssueList'
+import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 
 import classes from './ImportReviewTable.module.css'
 import { type ImportReviewTableProps } from './types'
@@ -35,6 +36,18 @@ const ImportReviewTable = ({ preview, languages, mapping, onChange, onAddLanguag
 		})),
 		{ value: SKIP_VALUE, label: t('importModal.review.skip') },
 	]
+
+	const findLanguage = (id: string | null | undefined) => languages.find((language) => language.id === id)
+
+	const renderLanguageOption: SelectProps['renderOption'] = ({ option }) => {
+		const language = findLanguage(option.value)
+		return (
+			<span className='flex items-center gap-2'>
+				{language && <LanguageFlag code={language.flagCode} size='sm' />}
+				{option.label}
+			</span>
+		)
+	}
 
 	const renderChanges = (column: ImportPreviewColumn) => {
 		const changes = preview.changes.find((item) => item.columnIndex === column.columnIndex)
@@ -119,6 +132,7 @@ const ImportReviewTable = ({ preview, languages, mapping, onChange, onAddLanguag
 				<Table.Tbody>
 					{preview.columns.map((column) => {
 						const choice = mapping[column.columnIndex]
+						const selected = findLanguage(choice)
 						const undecided = choice === undefined && column.match !== 'PROJECT'
 						const columnWarnings = preview.warnings.filter((issue) => issue.column === column.columnIndex && COLUMN_WARNING_CODES.has(issue.code))
 						return (
@@ -138,6 +152,8 @@ const ImportReviewTable = ({ preview, languages, mapping, onChange, onAddLanguag
 												}}
 												allowDeselect={false}
 												disabled={disabled}
+												renderOption={renderLanguageOption}
+												leftSection={selected && <LanguageFlag code={selected.flagCode} size='sm' />}
 												rightSection={<ChevronDown aria-hidden />}
 												rightSectionPointerEvents='none'
 												comboboxProps={{ withinPortal: true }}

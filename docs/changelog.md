@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Zobrazenia prekladov, krok 4: E2E, review a prístupnosť (2026-10-19)
+
+- E2E: `translation-edit.spec.ts` (modál), `translations.spec.ts` (rozšírené zobrazenie, sticky stĺpce, prepínač uložený na účet), `translations-flow.spec.ts`, `key-editing.spec.ts`, `import.spec.ts`, `api-smoke.spec.ts` (oba režimy zoznamu, `PATCH /api/profile/preferences`), `accessibility.spec.ts` (obe zobrazenia a modál Upraviť preklad); testy prepínača sa prihlasujú ako nový ADMIN ([Testovanie](./testing.md))
+- review: odstránený nepoužitý `focusOnMount` a `ref`, prepínač zobrazenia je počas ukladania vypnutý, dokumentácia bez „úpravy v riadku“
+
 ### Zobrazenia prekladov, krok 3: rozšírené zobrazenie a prepínač (2026-10-19)
 
 - frontend: nové predvolené zobrazenie **Všetky jazyky** – stĺpec na každý jazyk projektu, vodorovný scroll, stĺpce Kľúč a Stav zafixované na okrajoch, červená len bunka bez prekladu, riadok je Nepreložené, kým chýba hoci jeden jazyk; dnešné zobrazenie **Zdroj → cieľ** ostáva ako kompaktné; prepínač v toolbare sa ukladá na účet používateľa (`PATCH /api/profile/preferences`, hook `useUpdatePreferencesMutation`), nie do URL ([Frontend](./frontend.md#stránka-preklady))

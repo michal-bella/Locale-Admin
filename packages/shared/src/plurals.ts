@@ -17,6 +17,22 @@ export const pluralFormsForTag = (tag: string): PluralForm[] => {
 
 export type PluralValue = { variable: string; forms: Partial<Record<PluralForm, string>> }
 
+/** A form text must keep `{` and `}` balanced, otherwise the ICU message cannot be parsed back (the serializer does not escape braces). */
+export const hasBalancedBraces = (text: string): boolean => {
+	let depth = 0
+	for (const char of text) {
+		if (char === '{') {
+			depth += 1
+		} else if (char === '}') {
+			depth -= 1
+			if (depth < 0) {
+				return false
+			}
+		}
+	}
+	return depth === 0
+}
+
 /**
  * A plural key stores one ICU message per language: `{count, plural, one {# položka} few {# položky} other {# položiek}}`.
  * Form texts may contain `{{var}}`, HTML and `#` (the number); braces inside a form are balanced like in ICU.
@@ -26,7 +42,7 @@ export const serializePluralValue = ({ variable, forms }: PluralValue): string =
 	return `{${variable}, plural, ${parts.join(' ')}}`
 }
 
-/** `null` when the value is not a plural message of this shape; parsing is strict so plain text is never mistaken for a plural. */
+/** `null` when the value is not a plural message of this shape (`=N` and `offset:` are not supported); strict so plain text is never mistaken for a plural. */
 export const parsePluralValue = (value: string): PluralValue | null => {
 	const head = /^\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*,\s*plural\s*,/.exec(value)
 	if (!head || !value.endsWith('}')) {
@@ -36,7 +52,7 @@ export const parsePluralValue = (value: string): PluralValue | null => {
 	let index = head[0].length
 	const end = value.length - 1
 	while (index < end) {
-		while (index < end && value[index] === ' ') {
+		while (index < end && /\s/.test(value[index] ?? '')) {
 			index += 1
 		}
 		if (index >= end) {

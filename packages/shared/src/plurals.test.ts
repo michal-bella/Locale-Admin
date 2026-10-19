@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parsePluralValue, pluralFormsForTag, serializePluralValue } from './plurals'
+import { hasBalancedBraces, parsePluralValue, pluralFormsForTag, serializePluralValue } from './plurals'
 
 describe('pluralFormsForTag', () => {
 	it('returns the CLDR categories of a language in display order', () => {
@@ -29,5 +29,21 @@ describe('plural values', () => {
 		expect(parsePluralValue('Máte {{count}} položiek')).toBeNull()
 		expect(parsePluralValue('{count, plural, one {x}')).toBeNull()
 		expect(parsePluralValue('{count, plural, bogus {x}}')).toBeNull()
+	})
+})
+
+describe('hasBalancedBraces', () => {
+	it('accepts balanced and nested braces and rejects unbalanced ones', () => {
+		expect(hasBalancedBraces('a {{name}} b {x}')).toBe(true)
+		expect(hasBalancedBraces('')).toBe(true)
+		expect(hasBalancedBraces('a}')).toBe(false)
+		expect(hasBalancedBraces('{a')).toBe(false)
+		expect(hasBalancedBraces('}{')).toBe(false)
+	})
+})
+
+describe('parsePluralValue separators', () => {
+	it('accepts newlines and tabs between forms', () => {
+		expect(parsePluralValue('{count, plural,\n\tone {a}\n\tother {b}\n}')).toEqual({ variable: 'count', forms: { one: 'a', other: 'b' } })
 	})
 })

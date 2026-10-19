@@ -282,6 +282,7 @@
 				"baseUntranslated_many": "{{count}} klíčů bez překladu v základním jazyce",
 				"baseUntranslated_other": "{{count}} klíčů bez překladu v základním jazyce",
 				"approximate": "Počty jsou přibližné: ručně přiřazené sloupce se do nich nepočítají.",
+				"nothingMapped": "Přiřaďte alespoň jeden sloupec jazyku projektu.",
 				"placeholderToggle_one": "Rozdíl v proměnných ({{count}})",
 				"placeholderToggle_few": "Rozdíly v proměnných ({{count}})",
 				"placeholderToggle_many": "Rozdíly v proměnných ({{count}})",

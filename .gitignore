@@ -19,3 +19,4 @@ e2e/.auth/
 
 # Playwright MCP screenshots
 .playwright-mcp/
+.claude/launch.json

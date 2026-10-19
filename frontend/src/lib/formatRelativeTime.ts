@@ -10,9 +10,12 @@ const SECONDS_PER_UNIT: [Intl.RelativeTimeFormatUnit, number][] = [
 	['second', 1],
 ]
 
-/** Time relative to `now` in the UI language with the largest fitting unit: `sk` → `pred 3 mesiacmi`, `včera`; `en` → `3 months ago`, `yesterday`. */
-export const formatRelativeTime = (isoDate: string, language: string, now: Date = new Date()) => {
+/**
+ * Time relative to `now` in the UI language with the largest fitting unit: `sk` → `pred 3 mesiacmi`, `včera`; `en` → `3 months ago`, `yesterday`.
+ * `style: 'short'` abbreviates the unit: `pred 2 min`, `2 min ago`.
+ */
+export const formatRelativeTime = (isoDate: string, language: string, now: Date = new Date(), style: Intl.RelativeTimeFormatStyle = 'long') => {
 	const diffSeconds = (new Date(isoDate).getTime() - now.getTime()) / 1000
 	const [unit, seconds] = SECONDS_PER_UNIT.find(([, unitSeconds]) => Math.abs(diffSeconds) >= unitSeconds) ?? ['second', 1]
-	return new Intl.RelativeTimeFormat(toIntlLocale(language), { numeric: 'auto' }).format(Math.round(diffSeconds / seconds), unit)
+	return new Intl.RelativeTimeFormat(toIntlLocale(language), { numeric: 'auto', style }).format(Math.round(diffSeconds / seconds), unit)
 }

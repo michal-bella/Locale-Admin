@@ -59,7 +59,10 @@ test.describe('ADMIN', () => {
 		await expect(getSidebar(page)).toHaveCount(0)
 	})
 
-	test('inside a project sees the switcher with Nastavenia projektu and Členovia; switching keeps the page', async ({ page, playwright }) => {
+	test('inside a project sees the switcher with Preklady, Nastavenia projektu and Členovia; switching keeps the page, from settings opens translations', async ({
+		page,
+		playwright,
+	}) => {
 		const api = await newAdminApi(playwright.request)
 		const project = await createProject(api, 'sidebar')
 		const other = await createProject(api, 'sidebar-other')
@@ -69,7 +72,7 @@ test.describe('ADMIN', () => {
 		const section = getMainNavigation(page).getByRole('list', { name: project.name })
 		const settings = section.getByRole('link', { name: 'Nastavenia projektu' })
 		const members = section.getByRole('link', { name: 'Členovia' })
-		await expect(section.getByRole('link')).toHaveText(['Nastavenia projektu', 'Jazyky', 'Členovia'])
+		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Nastavenia projektu', 'Jazyky', 'Členovia'])
 		await expect(settings).toHaveAttribute('aria-current', 'page')
 
 		await members.click()
@@ -86,8 +89,16 @@ test.describe('ADMIN', () => {
 		await expect(page).toHaveURL(`/projects/${other.slug}/members`)
 		await expect(getSidebar(page).getByRole('button', { name: `Prepnúť projekt, aktuálny ${other.name}` })).toBeVisible()
 
+		await getMainNavigation(page).getByRole('list', { name: other.name }).getByRole('link', { name: 'Nastavenia projektu' }).click()
+		await expect(page).toHaveURL(`/projects/${other.slug}/settings`)
 		await getSidebar(page)
 			.getByRole('button', { name: `Prepnúť projekt, aktuálny ${other.name}` })
+			.click()
+		await page.getByRole('menu').getByRole('menuitem', { name: project.name }).click()
+		await expect(page).toHaveURL(`/projects/${project.slug}/translations`)
+
+		await getSidebar(page)
+			.getByRole('button', { name: `Prepnúť projekt, aktuálny ${project.name}` })
 			.click()
 		await page.getByRole('menu').getByRole('menuitem', { name: 'Všetky projekty' }).click()
 		await expect(page).toHaveURL('/')

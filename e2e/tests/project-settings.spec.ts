@@ -90,7 +90,10 @@ test.describe('ADMIN', () => {
 
 	test('opens the project from the project list and sees the saved values prefilled', async ({ page }) => {
 		await page.goto('/')
-		await page.getByRole('list', { name: 'Zoznam projektov' }).getByRole('link', { name: original.name, exact: true }).click()
+		await page
+			.getByRole('list', { name: 'Zoznam projektov' })
+			.getByRole('link', { name: `Nastavenia projektu ${original.name}`, exact: true })
+			.click()
 		await expect(page).toHaveURL(settingsPath(original.slug))
 		await expect(page.getByRole('heading', PAGE_HEADING)).toBeVisible()
 		const item = getMainNavigation(page).getByRole('list', { name: original.name }).getByRole('link', { name: 'Nastavenia projektu' })

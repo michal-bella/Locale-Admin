@@ -44,3 +44,6 @@ Object.defineProperty(window, 'ResizeObserver', {
 		disconnect() {}
 	},
 })
+
+// jsdom has no document.fonts (the autosize Textarea listens for loaded fonts).
+Object.defineProperty(document, 'fonts', { value: { addEventListener: () => undefined, removeEventListener: () => undefined } })

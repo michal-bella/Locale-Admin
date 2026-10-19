@@ -1,0 +1,126 @@
+.scroll {
+	overflow-x: auto;
+}
+
+.table {
+	min-width: 56rem;
+	table-layout: fixed;
+}
+
+.th {
+	padding: 0.75rem 1.75rem;
+	border-bottom: 1px solid var(--app-color-border);
+	background-color: var(--app-color-surface-muted);
+	font-size: var(--mantine-font-size-3xs);
+	font-weight: 700;
+	line-height: 1.5;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--app-color-muted);
+}
+
+.keyColumn {
+	width: 34%;
+}
+
+.statusColumn {
+	width: 10rem;
+}
+
+.td {
+	padding: 0.875rem 1.75rem;
+	border-bottom: 1px solid var(--app-color-border-subtle);
+	vertical-align: middle;
+}
+
+/* 10rem minus 2 × 1rem leaves 128 px; the longest label (Untranslated, Nepřeložené) needs about 100 px. */
+.statusCell {
+	padding-inline: 1rem;
+}
+
+.row[data-status='UNTRANSLATED'] {
+	background-color: var(--app-color-untranslated-bg);
+}
+
+.row:last-child .td {
+	border-bottom: 0;
+}
+
+.key {
+	display: block;
+	font-family: var(--mantine-font-family-monospace);
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	line-height: 1.5;
+	color: var(--app-color-label);
+	overflow-wrap: anywhere;
+}
+
+.meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	padding-top: 0.25rem;
+	font-size: var(--mantine-font-size-3xs);
+	line-height: 1.5;
+	color: var(--app-color-muted);
+	overflow-wrap: anywhere;
+}
+
+.metaDot {
+	width: 2px;
+	height: 2px;
+	border-radius: 50%;
+	background-color: currentColor;
+}
+
+.value {
+	font-size: var(--mantine-font-size-md);
+	line-height: 1.5;
+	color: var(--app-color-text-strong);
+}
+
+.placeholder {
+	font-size: inherit;
+	color: var(--app-color-muted);
+}
+
+.status {
+	flex-shrink: 0;
+	max-width: none;
+	height: 1.4375rem;
+	padding-inline: 0.625rem;
+	font-size: var(--mantine-font-size-3xs);
+	font-weight: 600;
+}
+
+/* Mantine's light badge text (teal-9 on teal-1) is 4.3:1; a touch of black takes it over 4.5:1 without changing the tint. */
+[data-mantine-color-scheme='light'] .status {
+	color: color-mix(in srgb, var(--badge-color) 85%, var(--mantine-color-black));
+}
+
+.statusDot {
+	display: block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background-color: currentColor;
+}
+
+.groupCell {
+	padding: 0.5rem 1.75rem;
+	border-bottom: 1px solid var(--app-color-border-subtle);
+	background-color: var(--app-color-surface-muted);
+	font-size: var(--mantine-font-size-2xs);
+	font-weight: 700;
+	line-height: 1.5;
+	text-align: start;
+	color: var(--app-color-text-secondary);
+	overflow-wrap: anywhere;
+}
+
+.state {
+	padding: 2.5rem 1.25rem;
+	text-align: center;
+}

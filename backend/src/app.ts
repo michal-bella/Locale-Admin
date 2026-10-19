@@ -8,6 +8,7 @@ import { type Config } from './config/env'
 import { type PrismaClient } from './lib/prisma'
 import { csrfMiddleware } from './middleware/csrf.middleware'
 import { errorMiddleware } from './middleware/error.middleware'
+import { createJsonBodyMiddleware } from './middleware/jsonBody.middleware'
 import { notFoundMiddleware } from './middleware/notFound.middleware'
 import { createAdminRouter } from './routes/admin.routes'
 import { createAuthRouter } from './routes/auth.routes'
@@ -35,9 +36,9 @@ export const createApp = (config: Config, deps: AppDeps): Express => {
 		}),
 	)
 	app.use(cookieParser())
-	// Before express.json() so a rejected request is never parsed.
+	// Before the JSON parser so a rejected request is never parsed.
 	app.use(csrfMiddleware)
-	app.use(express.json())
+	app.use(createJsonBodyMiddleware())
 
 	app.use('/api/health', createHealthRouter(deps.prisma, config.appVersion))
 	app.use('/api/auth', createAuthRouter(deps.prisma, config))

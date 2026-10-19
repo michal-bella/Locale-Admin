@@ -39,7 +39,7 @@ describe('Sidebar', () => {
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
 
-	it('shows the project name with Nastavenia projektu and Členovia inside a project', async () => {
+	it('shows the project name with Preklady first, then Nastavenia projektu, Jazyky and Členovia inside a project', async () => {
 		signedInAs(EDITOR_USER, {
 			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 			[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [] },
@@ -49,7 +49,8 @@ describe('Sidebar', () => {
 		const navigation = await findNavigation()
 
 		const project = within(await navigation.findByRole('list', { name: 'Booking Web' }))
-		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Nastavenia projektu', 'Jazyky', 'Členovia'])
+		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Preklady', 'Nastavenia projektu', 'Jazyky', 'Členovia'])
+		expect(project.getByRole('link', { name: 'Preklady' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/translations`)
 		expect(project.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/languages`)
 		expect(project.getByRole('link', { name: 'Členovia' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/members`)
 		await waitFor(() => expect(project.getByRole('link', { name: 'Nastavenia projektu' })).toHaveAttribute('aria-current', 'page'))
@@ -79,6 +80,40 @@ describe('Sidebar', () => {
 
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${other.slug}/members`))
 		expect(await screen.findByRole('button', { name: 'Prepnúť projekt, aktuálny Demo project' })).toBeInTheDocument()
+	})
+
+	it.each(['translations', 'languages'])('keeps /%s when switching projects', async (subPage) => {
+		const other = { ...PROJECT, id: '00000000-0000-4000-8000-000000000302', name: 'Demo project', slug: 'demo-project', primaryColor: '#FACC15' }
+		signedInAs(EDITOR_USER, {
+			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
+			[`GET /projects/${other.id}/settings`]: { status: 200, data: other },
+			[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [] },
+			[`GET /projects/${other.id}/languages`]: { status: 200, data: [] },
+			...projectListRoute(PROJECT, other),
+		})
+		const router = renderApp(`/projects/${PROJECT.slug}/${subPage}`)
+
+		fireEvent.click(await screen.findByRole('button', { name: 'Prepnúť projekt, aktuálny Booking Web' }))
+		fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: /Demo project/ }))
+
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${other.slug}/${subPage}`))
+	})
+
+	it('opens Preklady when switching projects from Nastavenia projektu', async () => {
+		const other = { ...PROJECT, id: '00000000-0000-4000-8000-000000000302', name: 'Demo project', slug: 'demo-project', primaryColor: '#FACC15' }
+		signedInAs(EDITOR_USER, {
+			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
+			[`GET /projects/${other.id}/settings`]: { status: 200, data: other },
+			[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [] },
+			[`GET /projects/${other.id}/languages`]: { status: 200, data: [] },
+			...projectListRoute(PROJECT, other),
+		})
+		const router = renderApp(`/projects/${PROJECT.slug}/settings`)
+
+		fireEvent.click(await screen.findByRole('button', { name: 'Prepnúť projekt, aktuálny Booking Web' }))
+		fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: /Demo project/ }))
+
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/${other.slug}/translations`))
 	})
 
 	it('marks the item of the current route as the current page', async () => {

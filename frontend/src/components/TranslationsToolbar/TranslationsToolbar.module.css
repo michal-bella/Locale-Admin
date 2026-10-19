@@ -1,0 +1,25 @@
+.search {
+	flex: 1 1 15rem;
+	max-width: 20.625rem;
+}
+
+.search svg {
+	color: var(--app-color-muted);
+}
+
+.select {
+	width: 12rem;
+}
+
+.languageSelect {
+	width: 6.5rem;
+}
+
+.optionHint {
+	color: var(--app-color-muted);
+}
+
+.arrow {
+	flex-shrink: 0;
+	color: var(--app-color-muted);
+}

@@ -1,7 +1,10 @@
+import { randomUUID } from 'node:crypto'
+
 import { type APIRequestContext, expect, test } from '@playwright/test'
 
 import { type AdminUser, MUTATION_HEADERS, readApiError } from '../support/api'
 import { ANONYMOUS, STORAGE_STATE } from '../support/auth'
+import { BROKEN_CSV, importApi, importFile, importPreviewApi, readFixture, SAMPLE_CSV } from '../support/imports'
 import { type Language, listLanguages, projectLanguagesApi } from '../support/languages'
 import {
 	createProject,
@@ -12,6 +15,7 @@ import {
 	projectSettingsApi,
 	TEST_PROJECT_SLUG_PREFIX,
 } from '../support/projects'
+import { insertTranslationKeys, listTranslations, projectTranslationsApi, translationApi } from '../support/translations'
 import { createEditor, newTestUserCredentials } from '../support/users'
 
 const CREDENTIALS = { email: 'csrf-check@example.com', password: 'irrelevant' }
@@ -295,5 +299,287 @@ test.describe('ADMIN /api/projects', () => {
 		const project = (await listProjects(request)).find(({ id }) => id === ownedByMember.id)
 		expect(project).toEqual({ ...ownedByMember, isMember: false })
 		expect((await request.get(projectSettingsApi(ownedByMember.id))).status()).toBe(200)
+	})
+})
+
+test.describe('/api/projects/:projectId/translations', () => {
+	test.use({ storageState: STORAGE_STATE.ADMIN })
+
+	test('lists keys with stats and namespaces, validates the query and hides foreign projects and languages', async ({ request, playwright, baseURL }) => {
+		const project = await createProject(request, 'smoke-tr', ['sk', 'en'])
+		const languages = await listLanguages(request, project.id)
+		const [sk, en] = languages
+		await insertTranslationKeys(project.id, languages, [
+			{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky', en: null } },
+			{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte, {{name}}', en: 'Welcome, {{name}}' } },
+			{ namespace: 'paths', name: 'Adresa nie je kompletná. Uistite sa', values: { sk: 'Adresa' } },
+		])
+		const url = projectTranslationsApi(project.id)
+		const languageParams = { sourceLanguageId: sk!.id, targetLanguageId: en!.id }
+
+		const list = await request.get(url, { params: languageParams })
+		expect(list.status()).toBe(200)
+		const body = (await list.json()) as { items: { target: { updatedAt: string | null } }[] }
+		expect(body).toEqual({
+			items: [
+				{
+					keyId: expect.any(String),
+					namespace: 'loc',
+					name: 'orders.empty.title',
+					group: 'loc:orders.empty',
+					source: { value: 'Zatiaľ nemáte žiadne objednávky' },
+					target: { value: null, status: 'UNTRANSLATED', updatedAt: expect.any(String) },
+				},
+				{
+					keyId: expect.any(String),
+					namespace: 'paths',
+					name: 'Adresa nie je kompletná. Uistite sa',
+					group: 'paths',
+					source: { value: 'Adresa' },
+					target: { value: null, status: 'UNTRANSLATED', updatedAt: null },
+				},
+				{
+					keyId: expect.any(String),
+					namespace: 'loc',
+					name: 'dashboard.welcome',
+					group: 'loc:dashboard',
+					source: { value: 'Vitajte, {{name}}' },
+					target: { value: 'Welcome, {{name}}', status: 'TRANSLATED', updatedAt: expect.any(String) },
+				},
+			],
+			total: 3,
+			page: 1,
+			pageSize: 50,
+			stats: { totalKeys: 3, translated: 1, untranslated: 2 },
+			namespaces: ['loc', 'paths'],
+		})
+		expect(new Date(body.items[0]!.target.updatedAt!).toISOString()).toBe(body.items[0]!.target.updatedAt)
+
+		const filtered = await request.get(url, { params: { ...languageParams, search: 'WELCOME', status: 'TRANSLATED', namespace: 'loc', pageSize: 1 } })
+		expect(filtered.status()).toBe(200)
+		expect(await filtered.json()).toMatchObject({ items: [{ name: 'dashboard.welcome' }], total: 1, pageSize: 1, stats: { totalKeys: 3 } })
+		const pastEnd = await request.get(url, { params: { ...languageParams, page: 5 } })
+		expect(await pastEnd.json()).toMatchObject({ items: [], total: 3, page: 5 })
+
+		for (const params of [
+			{},
+			{ ...languageParams, sourceLanguageId: 'not-a-uuid' },
+			{ ...languageParams, status: 'REVIEW' },
+			{ ...languageParams, sort: 'RANDOM' },
+			{ ...languageParams, pageSize: 101 },
+		]) {
+			const invalid = await request.get(url, { params })
+			expect(invalid.status(), JSON.stringify(params)).toBe(400)
+			const error = await readApiError(invalid)
+			expect(error.code).toBe('VALIDATION_ERROR')
+			expect(error.details).toEqual(expect.arrayContaining([expect.objectContaining({ path: expect.any(String), code: expect.any(String) })]))
+		}
+
+		const other = await createProject(request, 'smoke-tr-other', ['sk'])
+		const [otherSk] = await listLanguages(request, other.id)
+		const foreignLanguage = await request.get(url, { params: { ...languageParams, targetLanguageId: otherSk!.id } })
+		expect(foreignLanguage.status()).toBe(404)
+		expect((await readApiError(foreignLanguage)).code).toBe('NOT_FOUND')
+
+		const editor = await playwright.request.newContext({ baseURL, storageState: STORAGE_STATE.EDITOR })
+		const foreignProject = await editor.get(url, { params: languageParams })
+		expect(foreignProject.status()).toBe(404)
+		expect((await readApiError(foreignProject)).code).toBe('NOT_FOUND')
+		await editor.dispose()
+
+		const anonymous = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
+		const unauthenticated = await anonymous.get(url, { params: languageParams })
+		expect(unauthenticated.status()).toBe(401)
+		expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
+		await anonymous.dispose()
+	})
+})
+
+test.describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', () => {
+	test.use({ storageState: STORAGE_STATE.ADMIN })
+
+	test('saves a translation, maps "" to null and returns the error contract for placeholders, unknown ids, length, CSRF and anonymous', async ({
+		request,
+		playwright,
+		baseURL,
+	}) => {
+		const project = await createProject(request, 'smoke-tr-put', ['sk', 'en'])
+		const languages = await listLanguages(request, project.id)
+		const [sk, en] = languages
+		await insertTranslationKeys(project.id, languages, [
+			{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte späť, {{name}}', en: null } },
+			{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov' } },
+		])
+		const list = () => listTranslations(request, project.id, sk!.id, en!.id)
+		const items = (await list()).items
+		const welcome = items.find(({ name }) => name === 'dashboard.welcome')!
+		const home = items.find(({ name }) => name === 'nav.home')!
+		const url = translationApi(project.id, welcome.keyId, en!.id)
+		const targetOf = async (keyId: string) => (await list()).items.find((item) => item.keyId === keyId)!.target
+
+		const saved = await request.put(url, { data: { value: 'Welcome back, {{ name }}' }, headers: MUTATION_HEADERS })
+		expect(saved.status()).toBe(200)
+		const body = (await saved.json()) as { updatedAt: string }
+		expect(body).toEqual({ value: 'Welcome back, {{ name }}', status: 'TRANSLATED', updatedAt: expect.any(String) })
+		expect(new Date(body.updatedAt).toISOString()).toBe(body.updatedAt)
+		expect(await targetOf(welcome.keyId)).toEqual(body)
+		expect(await list()).toMatchObject({ stats: { totalKeys: 2, translated: 1, untranslated: 1 } })
+
+		const created = await request.put(translationApi(project.id, home.keyId, en!.id), { data: { value: 'Home' }, headers: MUTATION_HEADERS })
+		expect(created.status()).toBe(200)
+		expect(await created.json()).toMatchObject({ value: 'Home', status: 'TRANSLATED' })
+		const emptied = await request.put(translationApi(project.id, home.keyId, en!.id), { data: { value: '' }, headers: MUTATION_HEADERS })
+		expect(emptied.status()).toBe(200)
+		expect(await emptied.json()).toEqual({ value: null, status: 'UNTRANSLATED', updatedAt: expect.any(String) })
+		expect(await list()).toMatchObject({ stats: { totalKeys: 2, translated: 1, untranslated: 1 } })
+
+		const mismatch = await request.put(url, { data: { value: 'Welcome back, {{user}}' }, headers: MUTATION_HEADERS })
+		expect(mismatch.status()).toBe(400)
+		const mismatchError = await readApiError(mismatch)
+		expect(mismatchError.code).toBe('PLACEHOLDER_MISMATCH')
+		expect(mismatchError.details).toEqual({ missing: ['{{name}}'], extra: ['{{user}}'] })
+		expect(await targetOf(welcome.keyId)).toEqual(body)
+
+		const unknownKey = await request.put(translationApi(project.id, randomUUID(), en!.id), { data: { value: 'X' }, headers: MUTATION_HEADERS })
+		expect(unknownKey.status()).toBe(404)
+		expect((await readApiError(unknownKey)).code).toBe('TRANSLATION_KEY_NOT_FOUND')
+
+		const other = await createProject(request, 'smoke-tr-put-other', ['sk'])
+		const [otherSk] = await listLanguages(request, other.id)
+		const foreignLanguage = await request.put(translationApi(project.id, welcome.keyId, otherSk!.id), { data: { value: 'X' }, headers: MUTATION_HEADERS })
+		expect(foreignLanguage.status()).toBe(404)
+		expect((await readApiError(foreignLanguage)).code).toBe('NOT_FOUND')
+
+		for (const data of [{ value: 'x'.repeat(10_001) }, { value: 42 }, {}]) {
+			const invalid = await request.put(url, { data, headers: MUTATION_HEADERS })
+			expect(invalid.status(), JSON.stringify(data).slice(0, 30)).toBe(400)
+			const error = await readApiError(invalid)
+			expect(error.code).toBe('VALIDATION_ERROR')
+			expect(error.details).toEqual([expect.objectContaining({ path: 'value' })])
+		}
+		expect(await targetOf(welcome.keyId)).toEqual(body)
+
+		const withoutCsrfHeader = await request.put(url, { data: { value: 'X' } })
+		expect(withoutCsrfHeader.status()).toBe(403)
+		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
+
+		const anonymous = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
+		const unauthenticated = await anonymous.put(url, { data: { value: 'X' }, headers: MUTATION_HEADERS })
+		expect(unauthenticated.status()).toBe(401)
+		expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
+		await anonymous.dispose()
+		expect(await targetOf(welcome.keyId)).toEqual(body)
+	})
+})
+
+test.describe('/api/projects/:projectId/imports', () => {
+	test.use({ storageState: STORAGE_STATE.ADMIN })
+
+	test('previews and imports the sample file with the error contract for broken, oversized and fully skipped files', async ({
+		request,
+		playwright,
+		baseURL,
+	}) => {
+		const project = await createProject(request, 'smoke-import', ['sk', 'en'])
+		const [sk, en] = await listLanguages(request, project.id)
+		const sample = { fileName: 'import-sample.csv', content: readFixture(SAMPLE_CSV) }
+
+		const preview = await request.post(importPreviewApi(project.id), { data: sample, headers: MUTATION_HEADERS })
+		expect(preview.status()).toBe(200)
+		expect(await preview.json()).toEqual({
+			columns: [
+				{ tag: 'sk', columnIndex: 2, match: 'PROJECT', languageId: sk!.id, stats: { translations: 9, untranslated: 1, warnings: 1 } },
+				{ tag: 'en', columnIndex: 3, match: 'PROJECT', languageId: en!.id, stats: { translations: 7, untranslated: 3, warnings: 0 } },
+				{ tag: 'cs', columnIndex: 4, match: 'CATALOG', stats: { translations: 6, untranslated: 4, warnings: 1 } },
+			],
+			keys: { total: 10, new: 10, existing: 0 },
+			namespaces: [
+				{ namespace: 'loc', keys: 7 },
+				{ namespace: 'paths', keys: 3 },
+			],
+			changes: [
+				{ tag: 'sk', columnIndex: 2, new: 9, changed: 0, unchanged: 1, keptBecauseNull: 0 },
+				{ tag: 'en', columnIndex: 3, new: 7, changed: 0, unchanged: 3, keptBecauseNull: 0 },
+			],
+			warnings: [
+				{ code: 'LANGUAGE_NOT_IN_PROJECT', line: 1, column: 4, params: { tag: 'cs' } },
+				{
+					code: 'PLACEHOLDER_MISMATCH',
+					line: 6,
+					column: 4,
+					params: { tag: 'cs', key: 'cart.items', namespace: 'loc', missing: '{{count}}', extra: '' },
+				},
+				{ code: 'BASE_LANGUAGE_UNTRANSLATED', line: 9, column: 2, params: { tag: 'sk', key: 'legal.terms', namespace: 'loc' } },
+			],
+			warningsTotal: 3,
+		})
+		const translations = () => request.get(projectTranslationsApi(project.id), { params: { sourceLanguageId: sk!.id, targetLanguageId: en!.id } })
+		expect(await (await translations()).json()).toMatchObject({ stats: { totalKeys: 0 } })
+
+		const columns = [
+			{ columnIndex: 2, languageId: sk!.id },
+			{ columnIndex: 3, languageId: en!.id },
+			{ columnIndex: 4, languageId: null },
+		]
+		expect(await importFile(request, project.id, SAMPLE_CSV, columns)).toEqual({
+			keysCreated: 10,
+			translationsCreated: 16,
+			translationsUpdated: 0,
+			skippedColumns: 1,
+		})
+		expect(await importFile(request, project.id, SAMPLE_CSV, columns)).toEqual({
+			keysCreated: 0,
+			translationsCreated: 0,
+			translationsUpdated: 0,
+			skippedColumns: 1,
+		})
+		expect(await (await translations()).json()).toMatchObject({ stats: { totalKeys: 10, translated: 7, untranslated: 3 }, namespaces: ['loc', 'paths'] })
+
+		const broken = { fileName: 'import-broken.csv', content: readFixture(BROKEN_CSV) }
+		for (const url of [importPreviewApi(project.id), importApi(project.id)]) {
+			const response = await request.post(url, { data: { ...broken, columns }, headers: MUTATION_HEADERS })
+			expect(response.status(), url).toBe(422)
+			const error = await readApiError(response)
+			expect(error.code).toBe('IMPORT_FILE_INVALID')
+			expect(error.details).toEqual({
+				issues: [
+					{ code: 'ROW_COLUMN_COUNT', line: 3, params: { expected: 3, actual: 4 } },
+					{ code: 'ROW_EMPTY_KEY', line: 4, column: 1 },
+				],
+				total: 2,
+			})
+		}
+
+		const tooLarge = await request.post(importPreviewApi(project.id), {
+			data: { fileName: 'big.csv', content: `Keys; sk\n a; ${'x'.repeat(10 * 1024 * 1024)}\n` },
+			headers: MUTATION_HEADERS,
+		})
+		expect(tooLarge.status()).toBe(413)
+		expect((await readApiError(tooLarge)).code).toBe('IMPORT_FILE_TOO_LARGE')
+
+		const allSkipped = await request.post(importApi(project.id), {
+			data: { ...sample, columns: columns.map(({ columnIndex }) => ({ columnIndex, languageId: null })) },
+			headers: MUTATION_HEADERS,
+		})
+		expect(allSkipped.status()).toBe(400)
+		expect((await readApiError(allSkipped)).code).toBe('IMPORT_COLUMNS_INVALID')
+
+		const notCsv = await request.post(importPreviewApi(project.id), { data: { ...sample, fileName: 'import-sample.txt' }, headers: MUTATION_HEADERS })
+		expect(notCsv.status()).toBe(400)
+		const notCsvError = await readApiError(notCsv)
+		expect(notCsvError.code).toBe('VALIDATION_ERROR')
+		expect(notCsvError.details).toEqual([expect.objectContaining({ path: 'fileName' })])
+
+		const withoutCsrfHeader = await request.post(importPreviewApi(project.id), { data: sample })
+		expect(withoutCsrfHeader.status()).toBe(403)
+		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
+
+		const anonymous = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
+		for (const url of [importPreviewApi(project.id), importApi(project.id)]) {
+			const unauthenticated = await anonymous.post(url, { data: { ...sample, columns }, headers: MUTATION_HEADERS })
+			expect(unauthenticated.status(), url).toBe(401)
+			expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
+		}
+		await anonymous.dispose()
 	})
 })

@@ -29,6 +29,14 @@ describe('formatRelativeTime', () => {
 		expect(formatRelativeTime(ago(seconds), language, NOW)).toBe(expected)
 	})
 
+	it.each([
+		[LANGUAGE.SK, 2 * MINUTE, 'pred 2 min'],
+		[LANGUAGE.CS, 3 * HOUR, 'před 3 h'],
+		[LANGUAGE.EN, 2 * MINUTE, '2 min ago'],
+	])('formats the short style in %s: %i s ago → %s', (language, seconds, expected) => {
+		expect(formatRelativeTime(ago(seconds), language, NOW, 'short')).toBe(expected)
+	})
+
 	it('falls back to sk for an unknown language', () => {
 		expect(formatRelativeTime(ago(90 * DAY), 'de', NOW)).toBe('pred 3 mesiacmi')
 	})

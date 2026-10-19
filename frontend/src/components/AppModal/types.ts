@@ -1,3 +1,4 @@
+import { type MantineSize } from '@mantine/core'
 import { type FormEventHandler, type ReactNode } from 'react'
 
 export type AppModalProps = {
@@ -14,6 +15,8 @@ export type AppModalProps = {
 	isPending?: boolean
 	/** Another modal is open on top: Mantine listens for Esc on window, so this one must ignore it and release the focus trap. */
 	inBackground?: boolean
-	size?: number
+	size?: MantineSize | number
+	/** Takes the whole viewport, e.g. a wide modal on a phone. */
+	fullScreen?: boolean
 	zIndex?: number
 }

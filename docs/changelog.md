@@ -8,6 +8,47 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Preklady a import: záverečné E2E, prístupnosť a dokumentácia (2026-10-19)
+
+- E2E: `translations-flow.spec.ts` – celý tok import → pridanie chýbajúceho jazyka → preklad v riadku → filtre v URL → opakovaný import bez zmien; zdieľané pomocné funkcie stránky Preklady a modálu importu v `e2e/support/`
+- prístupnosť stránky Preklady: stránkovanie nestráca fokus na krajných stranách (`aria-disabled`), oznámenie počtu výsledkov po vyhľadávaní a filtroch (živý región), chybový stav ako `role="alert"`, čas poslednej zmeny ako `<time>` s úplným dátumom, tmavší text odznakov stavu v svetlom režime; otvorené: žltá výplň progress baru Chýbajúce (netextový kontrast 1,7 : 1, rozhodnutie dizajnu)
+- dokumentácia: prehľad, databáza, frontend, API a testovanie zosúladené s kódom, doménová tabuľka v `AGENTS.md` (limit kľúča v bajtoch, namespace, import), stav míľnikov v pláne
+
+### Úprava prekladu v riadku (2026-10-19)
+
+- zdieľaný kontrakt: `updateTranslationRequestSchema` (`{ value }`, max. 10 000 znakov, prázdny text = `null`), chybové kódy `PLACEHOLDER_MISMATCH` (400, `details { missing, extra }`) a `TRANSLATION_KEY_NOT_FOUND` (404)
+- backend: `PUT /api/projects/:projectId/keys/:keyId/translations/:languageId` – upsert prekladu; pri zapnutom `protectVariables` porovná premenné `{{…}}` so základným jazykom (normalizácia zdieľaná s importom v `lib/placeholders.ts`) a nesúlad odmietne ([API](./api/translations.md))
+- frontend: klik do bunky cieľového jazyka otvorí `Textarea`, uloží sa pri strate fokusu alebo Ctrl/Cmd+Enter, Esc zruší; optimistická aktualizácia hodnoty, stavu aj kariet s návratom pri chybe; nesúlad premenných sa zobrazí pod poľom a editor ostane otvorený ([Frontend](./frontend.md))
+- E2E: `translation-edit.spec.ts`, API smoke `PUT` prekladu, axe s otvoreným editorom
+
+### Import prekladov: modál (2026-10-19)
+
+- frontend: tlačidlo Importovať na stránke Preklady otvára modál v dvoch krokoch – nahratie CSV (vlastná dropzone, kontrola prípony a veľkosti ešte pred odoslaním, checkbox Vytvoriť chýbajúce kľúče, zoznam chýb súboru s číslami riadkov) a kontrola (priradenie stĺpcov k jazykom projektu, Pridať jazyk priamo z riadku s automatickým opakovaním kontroly, Preskočiť, upozornenia na premenné, súhrn nových kľúčov a prekladov); po importe notifikácia so súhrnom a obnovenie zoznamu ([Frontend](./frontend.md))
+- i18n: texty modálu a všetky kódy chýb a upozornení importu v sk, cs, en
+- prístupnosť: fokus na nadpis kroku pri zmene kroku, pomenované tlačidlá po riadkoch, `aria-controls` pri rozbaľovaní upozornení, nové tokeny `--app-color-warning-bg/-text`
+- E2E: `import.spec.ts` (vymyslené fixtures `e2e/fixtures/import-*.csv`), API smoke importu, axe oboch krokov modálu
+
+### Import prekladov: zápis (2026-10-18)
+
+- zdieľaný kontrakt: `KEY_TOO_LONG` počíta UTF-8 bajty (max. 2 000 B, 2 000 znakov v cyrilike sa nezmestilo do unikátneho indexu), namespace max. 100 znakov, chybový kód `IMPORT_COLUMNS_INVALID` (400)
+- backend: `POST /api/projects/:projectId/imports` – priradenie stĺpcov k jazykom (alebo preskočenie), voliteľné vytvorenie chýbajúcich kľúčov, zápis v jednej transakcii s `pg_advisory_xact_lock` na projekt a dávkovým upsertom; `null` v súbore nikdy neprepíše vyplnený preklad, rovnaké hodnoty sa nemenia, opakovaný import = 0 zmien ([Import](./api/imports.md))
+- výkon: 2 500 kľúčov × 10 jazykov (25 000 prekladov) za ~0,7 s
+
+### Import prekladov: parser CSV a kontrola súboru (2026-10-18)
+
+- zdieľaný kontrakt: `importPreviewRequestSchema`, `importPreviewResponseSchema`, `importRequestSchema` (pre ďalší krok), kódy `IMPORT_ISSUE_CODES`, chybové kódy `IMPORT_FILE_INVALID` (422, `details.issues`) a `IMPORT_FILE_TOO_LARGE` (413)
+- backend: parser formátu GoodRequest i18nextJsonToCsv (`; `, sekcie `--namespace--`, `null` aj `""` = nepreložené) s chybami po riadkoch; `POST /api/projects/:projectId/imports/preview` spáruje stĺpce s jazykmi, porovná súbor s DB a vráti počty zmien a upozornenia, nič nezapisuje ([Import](./api/imports.md))
+- limity: telo do 12 MB len na routách importu (inde 100 kB), obsah súboru do 10 MB, nginx `client_max_body_size 12m` pre `/api/`
+- zistenie: 2 000-znakový kľúč v cyrilike sa do DB nezmestí (limit btree indexu), treba rozhodnúť pred zápisom importu
+
+### Preklady: dátový model a zoznam na čítanie (2026-10-18)
+
+- databáza: tabuľky `TranslationKey` (projekt, namespace, názov, unikátne v projekte + namespace) a `Translation` (kľúč + jazyk, `value` `null` = nepreložené), cascade z projektu, jazyka aj kľúča; seed pridá nový seedovaný projekt s ~30 vymyslenými kľúčmi v 2 namespace ([Databáza](./database.md))
+- zdieľaný kontrakt: `translationsQuerySchema`, `translationsResponseSchema`, stavy `TRANSLATED` / `UNTRANSLATED` (odvodené, neukladajú sa)
+- backend: `GET /api/projects/:projectId/translations` s vyhľadávaním (kľúč aj text), filtrom stavu a namespace, zoradením, stránkovaním a štatistikami pre cieľový jazyk ([API](./api/translations.md))
+- frontend: stránka Preklady (`/projects/<slug>/translations`) ako prvá položka sidebaru a predvolená stránka projektu, karty štatistík, filtre v URL, zoskupenie podľa namespace a prefixu kľúča, nepreložené riadky s červeným pozadím; Importovať je zatiaľ neaktívne ([Frontend](./frontend.md))
+- E2E: stránka Preklady, API smoke a axe kontrola v light aj dark režime
+
 ### Slug v URL projektu, čeština a akcie v tabuľkách (2026-10-18)
 
 - frontend: projekt má v URL slug namiesto id (`/projects/<slug>/settings`), API ostáva na id; po zmene slugu v nastaveniach sa URL prepíše na nový ([Frontend](./frontend.md))

@@ -1,0 +1,13 @@
+.control {
+	min-width: 1.875rem;
+	height: 1.875rem;
+	padding-inline: 0.5625rem;
+	border-radius: var(--mantine-radius-sm);
+	font-size: var(--mantine-font-size-2xs);
+	font-weight: 600;
+}
+
+.dots {
+	padding-inline: 0.25rem;
+	color: var(--app-color-muted);
+}

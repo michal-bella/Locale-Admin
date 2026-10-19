@@ -103,6 +103,9 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
 		'--app-color-avatar': 'var(--mantine-color-slate-9)',
 		'--app-color-avatar-muted': 'var(--mantine-color-slate-1)',
 		'--app-color-brand-tint': 'var(--mantine-color-brand-0)',
+		'--app-color-untranslated-bg': 'var(--mantine-color-red-0)',
+		'--app-color-warning-bg': 'var(--mantine-color-yellow-0)',
+		'--app-color-warning-text': 'color-mix(in srgb, var(--mantine-color-orange-9) 60%, var(--mantine-color-black))',
 	},
 	dark: {
 		'--mantine-color-body': 'var(--mantine-color-black)',
@@ -127,5 +130,8 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
 		'--app-color-avatar': 'var(--mantine-color-slate-7)',
 		'--app-color-avatar-muted': 'var(--mantine-color-slate-8)',
 		'--app-color-brand-tint': 'color-mix(in srgb, var(--mantine-color-brand-9) 30%, var(--mantine-color-slate-9))',
+		'--app-color-untranslated-bg': 'color-mix(in srgb, var(--mantine-color-red-9) 14%, var(--mantine-color-slate-9))',
+		'--app-color-warning-bg': 'color-mix(in srgb, var(--mantine-color-yellow-9) 16%, var(--mantine-color-slate-9))',
+		'--app-color-warning-text': 'var(--mantine-color-yellow-3)',
 	},
 })

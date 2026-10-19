@@ -9,7 +9,7 @@ import { ROLE } from '@locale/shared'
 import { useMeQuery } from '@/api/auth/meQuery'
 import { projectSettingsQueryOptions } from '@/api/projectSettings/projectSettingsQuery'
 import Brand from '@/components/Brand/Brand'
-import { ArrowRight, Globe, Settings, Users } from '@/components/Icons'
+import { ArrowRight, Globe, Settings, Translate, Users } from '@/components/Icons'
 import ProjectSwitcher from '@/components/ProjectSwitcher/ProjectSwitcher'
 import UserMenu from '@/components/UserMenu/UserMenu'
 
@@ -40,8 +40,8 @@ const NavItem = ({ to, params, icon: Icon, iconClassName = '', label, onNavigate
 )
 
 /**
- * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Nastavenia projektu,
- * Jazyky and Členovia, outside one: Všetky projekty. ADMIN also sees Používatelia under SPRÁVA.
+ * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Preklady,
+ * Nastavenia projektu, Jazyky and Členovia, outside one: Všetky projekty. ADMIN also sees Používatelia under SPRÁVA.
  */
 const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 	const { t } = useTranslation()
@@ -70,6 +70,13 @@ const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 			<nav aria-label={t('sidebar.label')} className={classes.nav}>
 				{projectSlug && project ? (
 					<ul aria-label={project.name} className={classes.list}>
+						<NavItem
+							to='/projects/$projectSlug/translations'
+							params={{ projectSlug }}
+							icon={Translate}
+							label={t('sidebar.translations')}
+							onNavigate={onClose}
+						/>
 						<NavItem
 							to='/projects/$projectSlug/settings'
 							params={{ projectSlug }}

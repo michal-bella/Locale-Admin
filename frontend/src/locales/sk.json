@@ -140,6 +140,201 @@
 			"success": "Administrátor {{email}} bol odstránený."
 		}
 	},
+	"translationsPage": {
+		"title": "Preklady",
+		"description": "Spravujte texty a preklady vášho projektu na jednom mieste.",
+		"importButton": "Importovať",
+		"stats": {
+			"totalKeys": "Celkom kľúčov",
+			"translated": "Preložené",
+			"missing": "Chýbajúce",
+			"progressLabel": "{{label}}: {{percent}} %"
+		},
+		"toolbar": {
+			"search": {
+				"label": "Hľadať kľúč alebo preklad",
+				"placeholder": "Hľadať kľúč alebo preklad…"
+			},
+			"status": {
+				"label": "Stav",
+				"ALL": "Všetky stavy",
+				"UNTRANSLATED": "Nepreložené",
+				"TRANSLATED": "Preložené"
+			},
+			"namespace": {
+				"label": "Namespace",
+				"placeholder": "Všetky namespace"
+			},
+			"sort": {
+				"label": "Zoradenie",
+				"UNTRANSLATED_FIRST": "Nepreložené najprv",
+				"KEY": "Podľa kľúča",
+				"UPDATED": "Naposledy upravené"
+			},
+			"sourceLanguage": "Zdrojový jazyk",
+			"targetLanguage": "Cieľový jazyk"
+		},
+		"table": {
+			"label": "Zoznam prekladov",
+			"key": "Kľúč",
+			"status": "Stav",
+			"noGroup": "Bez skupiny",
+			"emptyValue": "Bez prekladu",
+			"loadError": "Preklady sa nepodarilo načítať.",
+			"retry": "Skúsiť znova",
+			"empty": "Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.",
+			"noResults": "Filtrom nezodpovedá žiadny kľúč.",
+			"clearFilters": "Zrušiť filtre"
+		},
+		"status": {
+			"TRANSLATED": "Preložené",
+			"UNTRANSLATED": "Nepreložené"
+		},
+		"editor": {
+			"label": "Preklad kľúča {{key}}, {{language}}",
+			"hint": "Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc.",
+			"saving": "Ukladá sa",
+			"saved": "Uložené: {{key}}",
+			"missing": "Chýbajú: {{list}}.",
+			"extra": "Navyše: {{list}}."
+		},
+		"pagination": {
+			"label": "Stránkovanie",
+			"previous": "Predošlá",
+			"next": "Ďalšia",
+			"page": "Strana {{page}}",
+			"summary_one": "Zobrazených {{shown}} z {{count}} kľúča",
+			"summary_few": "Zobrazených {{shown}} z {{count}} kľúčov",
+			"summary_many": "Zobrazených {{shown}} z {{count}} kľúčov",
+			"summary_other": "Zobrazených {{shown}} z {{count}} kľúčov"
+		}
+	},
+	"importModal": {
+		"title": "Importovať preklady",
+		"description": "Nahrajte súbor a skontrolujte zmeny pred importom.",
+		"close": "Zavrieť",
+		"cancel": "Zrušiť",
+		"back": "Späť",
+		"continue": "Pokračovať na kontrolu",
+		"submit": "Importovať",
+		"steps": {
+			"upload": "Krok 1 z 2 · Nahratie",
+			"review": "Krok 2 z 2 · Kontrola"
+		},
+		"dropzone": {
+			"label": "Súbor s prekladmi",
+			"prompt": "Presuňte súbor sem alebo kliknite pre výber",
+			"hint": "CSV · maximálne {{max}} MB",
+			"replace": "{{size}} · kliknite alebo presuňte sem iný súbor",
+			"format": "CSV",
+			"invalidType": "Podporovaný je iba súbor CSV (prípona .csv).",
+			"readError": "Súbor sa nepodarilo prečítať. Skúste to znova."
+		},
+		"createMissingKeys": {
+			"label": "Vytvoriť chýbajúce kľúče",
+			"description": "Existujúce preklady sa prepíšu až po vašom potvrdení."
+		},
+		"issues": {
+			"line": "Riadok {{line}}",
+			"lineColumn": "Riadok {{line}}, stĺpec {{column}}",
+			"more_one": "a ďalší {{count}}",
+			"more_few": "a ďalšie {{count}}",
+			"more_many": "a ďalších {{count}}",
+			"more_other": "a ďalších {{count}}"
+		},
+		"review": {
+			"table": {
+				"label": "Stĺpce jazykov v súbore",
+				"language": "Jazyk",
+				"column": "Stĺpec v súbore",
+				"translations": "Preklady",
+				"untranslated": "Nepreložené",
+				"warnings": "Upozornenia",
+				"changes": "Nové / zmenené"
+			},
+			"columnIndex": "stĺpec {{index}}",
+			"languageSelect": "Jazyk pre stĺpec {{tag}}",
+			"languagePlaceholder": "Vyberte jazyk",
+			"skip": "Preskočiť",
+			"addLanguage": "Pridať jazyk",
+			"addLanguageLabel": "Pridať jazyk {{tag}}",
+			"skipColumnLabel": "Preskočiť stĺpec {{tag}}",
+			"notInProject": "Jazyk {{tag}} nie je v projekte.",
+			"unknownLanguage": "Jazyk {{tag}} nie je v katalógu. Priraďte stĺpec jazyku projektu alebo ho preskočte.",
+			"warningsButton_one": "{{count}} upozornenie pre stĺpec {{tag}}",
+			"warningsButton_few": "{{count}} upozornenia pre stĺpec {{tag}}",
+			"warningsButton_many": "{{count}} upozornení pre stĺpec {{tag}}",
+			"warningsButton_other": "{{count}} upozornení pre stĺpec {{tag}}",
+			"columnWarningsTitle": "Upozornenia pre stĺpec {{tag}}",
+			"summary": {
+				"title": "Súhrn",
+				"newKeys_one": "{{count}} nový kľúč",
+				"newKeys_few": "{{count}} nové kľúče",
+				"newKeys_many": "{{count}} nových kľúčov",
+				"newKeys_other": "{{count}} nových kľúčov",
+				"newKeysSkipped_one": "{{count}} nový kľúč sa nevytvorí (vypnuté Vytvoriť chýbajúce kľúče)",
+				"newKeysSkipped_few": "{{count}} nové kľúče sa nevytvoria (vypnuté Vytvoriť chýbajúce kľúče)",
+				"newKeysSkipped_many": "{{count}} nových kľúčov sa nevytvorí (vypnuté Vytvoriť chýbajúce kľúče)",
+				"newKeysSkipped_other": "{{count}} nových kľúčov sa nevytvorí (vypnuté Vytvoriť chýbajúce kľúče)",
+				"overwritten_one": "{{count}} preklad sa prepíše",
+				"overwritten_few": "{{count}} preklady sa prepíšu",
+				"overwritten_many": "{{count}} prekladov sa prepíše",
+				"overwritten_other": "{{count}} prekladov sa prepíše",
+				"newTranslations_one": "{{count}} nový preklad",
+				"newTranslations_few": "{{count}} nové preklady",
+				"newTranslations_many": "{{count}} nových prekladov",
+				"newTranslations_other": "{{count}} nových prekladov",
+				"baseUntranslated_one": "{{count}} kľúč bez prekladu v základnom jazyku",
+				"baseUntranslated_few": "{{count}} kľúče bez prekladu v základnom jazyku",
+				"baseUntranslated_many": "{{count}} kľúčov bez prekladu v základnom jazyku",
+				"baseUntranslated_other": "{{count}} kľúčov bez prekladu v základnom jazyku",
+				"skippedColumns_one": "{{count}} stĺpec sa preskočí",
+				"skippedColumns_few": "{{count}} stĺpce sa preskočia",
+				"skippedColumns_many": "{{count}} stĺpcov sa preskočí",
+				"skippedColumns_other": "{{count}} stĺpcov sa preskočí",
+				"approximate": "Počty sú približné: ručne priradené stĺpce sa do nich nepočítajú.",
+				"nothingMapped": "Priraďte aspoň jeden stĺpec jazyku projektu.",
+				"placeholderToggle_one": "Rozdiel v premenných ({{count}})",
+				"placeholderToggle_few": "Rozdiely v premenných ({{count}})",
+				"placeholderToggle_many": "Rozdiely v premenných ({{count}})",
+				"placeholderToggle_other": "Rozdiely v premenných ({{count}})",
+				"placeholderTitle": "Premenné {{…}} sa líšia od základného jazyka",
+				"moreWarnings_one": "a ďalšie {{count}} upozornenie, ktoré sa tu nezobrazuje",
+				"moreWarnings_few": "a ďalšie {{count}} upozornenia, ktoré sa tu nezobrazujú",
+				"moreWarnings_many": "a ďalších {{count}} upozornení, ktoré sa tu nezobrazujú",
+				"moreWarnings_other": "a ďalších {{count}} upozornení, ktoré sa tu nezobrazujú"
+			}
+		},
+		"success": "Import dokončený: {{keys}}, {{translations}}, {{overwritten}}.",
+		"successKeys_one": "{{count}} nový kľúč",
+		"successKeys_few": "{{count}} nové kľúče",
+		"successKeys_many": "{{count}} nových kľúčov",
+		"successKeys_other": "{{count}} nových kľúčov",
+		"successTranslations_one": "{{count}} nový preklad",
+		"successTranslations_few": "{{count}} nové preklady",
+		"successTranslations_many": "{{count}} nových prekladov",
+		"successTranslations_other": "{{count}} nových prekladov",
+		"successOverwritten_one": "{{count}} prepísaný",
+		"successOverwritten_few": "{{count}} prepísané",
+		"successOverwritten_many": "{{count}} prepísaných",
+		"successOverwritten_other": "{{count}} prepísaných"
+	},
+	"importIssues": {
+		"FILE_EMPTY": "Súbor je prázdny alebo obsahuje iba hlavičku.",
+		"FILE_NOT_UTF8": "riadok nie je v kódovaní UTF-8",
+		"HEADER_INVALID": "hlavička musí začínať stĺpcom Keys a obsahovať aspoň jeden jazyk",
+		"HEADER_EMPTY_TAG": "prázdny názov stĺpca jazyka",
+		"HEADER_DUPLICATE_TAG": "jazyk {{tag}} je v hlavičke druhýkrát (prvýkrát v stĺpci {{firstColumn}})",
+		"ROW_COLUMN_COUNT": "očakávaných {{expected}} stĺpcov, nájdených {{actual}}",
+		"ROW_EMPTY_KEY": "prázdny kľúč",
+		"ROW_DUPLICATE_KEY": "kľúč „{{key}}“ je v namespace „{{namespace}}“ druhýkrát (prvýkrát na riadku {{firstLine}})",
+		"KEY_TOO_LONG": "kľúč je príliš dlhý ({{length}} B, maximum {{max}} B)",
+		"NAMESPACE_INVALID": "neplatný názov namespace „{{namespace}}“",
+		"PLACEHOLDER_MISMATCH": "kľúč „{{key}}“ ({{namespace}}, {{tag}}) má iné premenné ako základný jazyk – chýba: {{missing}}, navyše: {{extra}}",
+		"LANGUAGE_NOT_IN_PROJECT": "jazyk {{tag}} nie je v projekte",
+		"LANGUAGE_UNKNOWN": "jazyk {{tag}} nie je v katalógu",
+		"BASE_LANGUAGE_UNTRANSLATED": "kľúč „{{key}}“ ({{namespace}}) nemá preklad v základnom jazyku {{tag}}"
+	},
 	"membersPage": {
 		"eyebrow": "Projekt",
 		"title": "Členovia",
@@ -328,6 +523,7 @@
 		"languages": "Jazyky",
 		"admin": "Správa",
 		"users": "Používatelia",
+		"translations": "Preklady",
 		"projectSettings": "Nastavenia projektu",
 		"members": "Členovia",
 		"projectSwitcher": {
@@ -356,6 +552,11 @@
 		"SLUG_TAKEN": "Projekt s týmto slugom už existuje.",
 		"LAST_MEMBER": "Projekt musí mať aspoň jedného člena.",
 		"SELF_DELETE": "Vlastný účet nemôžete odstrániť.",
+		"IMPORT_FILE_INVALID": "Súbor obsahuje chyby. Opravte ich a nahrajte ho znova.",
+		"IMPORT_FILE_TOO_LARGE": "Súbor je príliš veľký. Maximálna veľkosť je 10 MB.",
+		"IMPORT_COLUMNS_INVALID": "Priradenie stĺpcov k jazykom je neplatné. Skontrolujte jazyky a skúste to znova.",
+		"PLACEHOLDER_MISMATCH": "Premenné v preklade sa nezhodujú so základným jazykom.",
+		"TRANSLATION_KEY_NOT_FOUND": "Kľúč sa nenašiel. Možno ho medzitým niekto odstránil.",
 		"RATE_LIMITED": "Príliš veľa pokusov. Skúste to znova neskôr.",
 		"INTERNAL_ERROR": "Nastala neočakávaná chyba. Skúste to znova.",
 		"UNKNOWN": "Nastala neznáma chyba. Skúste to znova."

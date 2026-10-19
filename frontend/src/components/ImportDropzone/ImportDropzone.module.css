@@ -1,0 +1,62 @@
+.root {
+	position: relative;
+	padding: 2.5rem 1.5rem;
+	border: 1px dashed var(--app-color-border);
+	border-radius: var(--mantine-radius-xl);
+	background-color: color-mix(in srgb, var(--app-color-surface-muted) 70%, transparent);
+	cursor: pointer;
+	transition: border-color 150ms ease;
+}
+
+.root:hover,
+.root[data-dragging] {
+	border-color: var(--mantine-primary-color-filled);
+}
+
+.root:has(.input:focus-visible) {
+	outline: 2px solid var(--mantine-primary-color-filled);
+	outline-offset: 2px;
+}
+
+.root[data-disabled] {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.iconTile {
+	display: grid;
+	place-items: center;
+	width: 3rem;
+	height: 3rem;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-lg);
+	background-color: var(--app-color-surface);
+	box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.1);
+	color: var(--mantine-primary-color-filled);
+}
+
+.prompt {
+	overflow-wrap: anywhere;
+}
+
+.chip {
+	padding: 0.25rem 0.625rem;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-sm);
+	font-size: var(--mantine-font-size-2xs);
+	font-weight: 600;
+	line-height: 1.5;
+	color: var(--app-color-text-secondary);
+}

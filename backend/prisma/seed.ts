@@ -1,6 +1,6 @@
 import { formatEnvError, seedEnvSchema } from '../src/config/env'
 import { createPrismaClient } from '../src/lib/prisma'
-import { SEED_ADMIN_EMAIL, SEED_LANGUAGE_TAGS, SEED_PROJECT, seedAdmin, seedProject } from '../src/services/seed.service'
+import { SEED_ADMIN_EMAIL, SEED_LANGUAGE_TAGS, SEED_PROJECT, SEED_TRANSLATIONS, seedAdmin, seedProject } from '../src/services/seed.service'
 
 const env = seedEnvSchema.safeParse(process.env)
 if (!env.success) {
@@ -15,7 +15,7 @@ try {
 	const project = await seedProject(prisma)
 	console.info(
 		project === 'created'
-			? `Seed: project ${SEED_PROJECT.slug} with languages ${SEED_LANGUAGE_TAGS.join(', ')} created`
+			? `Seed: project ${SEED_PROJECT.slug} with languages ${SEED_LANGUAGE_TAGS.join(', ')} and ${SEED_TRANSLATIONS.length} translation keys created`
 			: 'Seed: project already exists, nothing changed',
 	)
 } catch (error) {

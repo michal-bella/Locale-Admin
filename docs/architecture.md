@@ -1,6 +1,6 @@
 ---
 title: 'Architektúra'
-updated: 2026-10-16
+updated: 2026-10-18
 notion_page_id:
 ---
 
@@ -43,7 +43,7 @@ FE a BE bežia na rovnakom origine: v Dockeri cez nginx proxy, vo vývoji cez Vi
 
 - Backend pri štarte spustí `prisma migrate deploy`, idempotentný seed a server (`docker/backend-entrypoint.sh`, server dostane SIGTERM a korektne sa ukončí). Beží ako používateľ `node`, súbory aplikácie patria `root` a nedajú sa meniť.
 - Porty `5433` (DB) a `3001` (BE) sú naviazané iba na `127.0.0.1`.
-- nginx proxuje `/api/*` na `backend:3000` s hlavičkami `X-Forwarded-*` (Express má `trust proxy 1`), statické assety cachuje natrvalo a pre ostatné cesty vracia `index.html` (SPA fallback).
+- nginx proxuje `/api/*` na `backend:3000` s hlavičkami `X-Forwarded-*` (Express má `trust proxy 1`), statické assety cachuje natrvalo a pre ostatné cesty vracia `index.html` (SPA fallback). Pre `/api/` má `client_max_body_size 12m` (predvolené 1 MB by nepustilo import súboru); backend sám obmedzuje telo na 100 kB okrem rout importu (12 MB, [Import](./api/imports.md#limity)).
 - Služby štartujú v poradí `db` → `backend` → `frontend`, každá čaká na zelený healthcheck predchádzajúcej.
 - V kontajneri compose prepisuje `DATABASE_URL` na host `db`, lokálny `.env` ukazuje na `localhost:5433`.
 

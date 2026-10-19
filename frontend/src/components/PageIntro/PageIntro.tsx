@@ -6,12 +6,19 @@ import classes from './PageIntro.module.css'
 import { type PageIntroProps } from './types'
 
 /** Eyebrow, heading and description at the top of a page. The heading is also the page's `document.title`. */
-const PageIntro = ({ eyebrow, title, description, titleSize }: PageIntroProps) => {
+const PageIntro = ({ eyebrow, eyebrowBadge = false, title, description, titleSize }: PageIntroProps) => {
 	useDocumentTitle(title)
 
 	return (
 		<div className='flex flex-col gap-2'>
-			<Text fz='3xs' fw={700} c='var(--app-color-eyebrow)' lh={1.5} tt='uppercase' className={classes.eyebrow}>
+			<Text
+				fz='3xs'
+				fw={700}
+				c='var(--app-color-eyebrow)'
+				lh={1.5}
+				tt='uppercase'
+				className={`${classes.eyebrow} ${eyebrowBadge ? classes.eyebrowBadge : ''}`}
+			>
 				{eyebrow}
 			</Text>
 			<Title order={1} size={titleSize} c='var(--app-color-heading)' className={classes.title}>

@@ -7,7 +7,7 @@ import http from '@/api/http'
 type MockResponse = { status: number; data?: unknown; headers?: Record<string, string> }
 
 /** Keys are `METHOD /url` relative to `/api`, e.g. `GET /auth/me`. */
-type MockRoutes = Record<string, MockResponse | ((config: InternalAxiosRequestConfig) => MockResponse)>
+export type MockRoutes = Record<string, MockResponse | ((config: InternalAxiosRequestConfig) => MockResponse)>
 
 const originalAdapter = http.defaults.adapter
 

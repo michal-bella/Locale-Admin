@@ -65,9 +65,7 @@ test('the project index redirects to Preklady, the first sidebar item, with the 
 	await expect(section.getByRole('link')).toHaveText(['Preklady', 'Nastavenia projektu', 'Jazyky', 'Členovia'])
 	await expect(section.getByRole('link', { name: 'Preklady' })).toHaveAttribute('aria-current', 'page')
 
-	const importButton = page.getByRole('button', { name: 'Importovať' })
-	await expect(importButton).toBeVisible()
-	await expect(importButton).toBeDisabled()
+	await expect(page.getByRole('button', { name: 'Importovať' })).toBeEnabled()
 	await expect(page.getByRole('button', { name: 'Exportovať' })).toHaveCount(0)
 
 	await expect(page.getByRole('combobox', { name: 'Zdrojový jazyk' })).toHaveValue('SK')
@@ -210,12 +208,15 @@ test('more than 50 keys are paginated and a single namespace has no namespace fi
 	await expect(getRows(page).first()).toHaveAttribute('data-status', 'UNTRANSLATED')
 })
 
-test('a project without keys shows the empty state with a disabled Importovať', async ({ page, request }) => {
+test('a project without keys shows the empty state with Importovať, which opens the import modal', async ({ page, request }) => {
 	const project = await createProjectWithKeys(request, 'tr-empty', [])
 	await openTranslations(page, project)
 
 	await expect(getTable(page).getByText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeVisible()
-	await expect(getTable(page).getByRole('button', { name: 'Importovať' })).toBeDisabled()
+	await getTable(page).getByRole('button', { name: 'Importovať' }).click()
+	await expect(page.getByRole('dialog', { name: 'Importovať preklady' })).toBeVisible()
+	await page.keyboard.press('Escape')
+	await expect(page.getByRole('dialog', { name: 'Importovať preklady' })).toHaveCount(0)
 	await expect(getRows(page)).toHaveCount(0)
 	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('0')
 })

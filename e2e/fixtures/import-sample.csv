@@ -1,0 +1,14 @@
+Keys; sk ; en ; cs 
+--loc--
+ orders.empty.title; Zatiaľ nemáte žiadne objednávky; You have no orders yet; null
+ orders.empty.description; Nové objednávky sa zobrazia tu.; null; null
+ dashboard.welcome; Vitajte späť, {{name}}; Welcome back, {{ name }}; Vítejte zpět, {{name}}
+ cart.items; Máte {{count}} položiek; You have {{count}} items; Máte položek
+ promo.banner; Zľava <strong>20 %</strong>; ""; Sleva <strong>20 %</strong>
+ nav.home; Domov; Home; Domů
+ legal.terms; null; Terms; null
+
+--paths--
+ Adresa nie je kompletná. Uistite sa; Adresa nie je kompletná.; The address is incomplete.; null
+ Pokračovať do pokladne; Pokračovať do pokladne; Continue to checkout; Pokračovat do pokladny
+ Vrátiť sa do obchodu; Vrátiť sa do obchodu; null; Vrátit se do obchodu

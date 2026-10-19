@@ -68,6 +68,11 @@ const values = async (keyId: string) => {
 	return Object.fromEntries(rows.map((row) => [row.languageId, row.value]))
 }
 
+const updatedBy = async (keyId: string) => {
+	const rows = await getTestPrisma().translation.findMany({ where: { keyId }, select: { languageId: true, updatedById: true } })
+	return Object.fromEntries(rows.map((row) => [row.languageId, row.updatedById]))
+}
+
 const list = async (app: App, cookie: string, projectId: string, sourceLanguageId: string, targetLanguageId: string) => {
 	const res = await request(app).get(`/api/projects/${projectId}/translations`).query({ sourceLanguageId, targetLanguageId }).set('Cookie', cookie)
 	expect(res.status).toBe(200)
@@ -120,15 +125,25 @@ describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		expect((await findKey(key.id)).description).toBeNull()
 	})
 
-	it('turns plural on: wraps every non-null value as the other form, null stays null', async () => {
+	it('turns plural on: wraps every non-null value as the other form, null stays null, converted rows get updatedById', async () => {
 		const app = createTestApp()
-		const { project, sk, en, cookie } = await setup(app)
+		const { user, project, sk, en, cookie } = await setup(app)
 		const key = await createKey(project.id, 'items', { values: { [sk.id]: '{{count}} položiek', [en.id]: null } })
 
 		expect(await patchOk(app, cookie, project.id, key.id, { plural: {} })).toMatchObject({ plural: { variable: 'count' } })
 		expect(await values(key.id)).toEqual({ [sk.id]: '{count, plural, other {{{count}} položiek}}', [en.id]: null })
+		expect(await updatedBy(key.id)).toEqual({ [sk.id]: user.id, [en.id]: null })
 		expect((await findKey(key.id)).pluralVariable).toBe('count')
 		expect((await list(app, cookie, project.id, sk.id, en.id)).items[0]?.plural).toEqual({ variable: 'count' })
+	})
+
+	it('turns plural on: a value that already is a plural message keeps its forms under the new variable', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie } = await setup(app)
+		const key = await createKey(project.id, 'items', { values: { [sk.id]: '{n, plural, one {# položka} other {# položiek}}' } })
+
+		await patchOk(app, cookie, project.id, key.id, { plural: { variable: 'count' } })
+		expect(await values(key.id)).toEqual({ [sk.id]: '{count, plural, one {# položka} other {# položiek}}' })
 	})
 
 	it('turns plural off: keeps the other form, leaves an unparseable value as is', async () => {
@@ -144,9 +159,9 @@ describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		expect((await findKey(key.id)).pluralVariable).toBeNull()
 	})
 
-	it('renames the plural variable: re-serializes parseable values, leaves others untouched', async () => {
+	it('renames the plural variable: re-serializes parseable values with updatedById, leaves others untouched', async () => {
 		const app = createTestApp()
-		const { project, sk, en, cookie } = await setup(app)
+		const { user, project, sk, en, cookie } = await setup(app)
 		const key = await createKey(project.id, 'items', {
 			pluralVariable: 'count',
 			values: { [sk.id]: '{count, plural, one {# položka} other {# položiek}}', [en.id]: 'not a plural' },
@@ -154,6 +169,7 @@ describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 
 		expect(await patchOk(app, cookie, project.id, key.id, { plural: { variable: 'n' } })).toMatchObject({ plural: { variable: 'n' } })
 		expect(await values(key.id)).toEqual({ [sk.id]: '{n, plural, one {# položka} other {# položiek}}', [en.id]: 'not a plural' })
+		expect(await updatedBy(key.id)).toEqual({ [sk.id]: user.id, [en.id]: null })
 	})
 
 	it('leaves values alone when the plural setting does not change', async () => {

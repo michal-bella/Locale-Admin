@@ -51,6 +51,7 @@ export const createUpdateTranslationKeyController =
 	async (req, res) => {
 		const keyId = parseId(req.params.keyId, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND, 'Translation key not found')
 		const input = updateTranslationKeyRequestSchema.parse(req.body)
-		const body: UpdateTranslationKeyResponse = await updateTranslationKey(prisma, { projectId: req.params.projectId, keyId }, input)
+		const ids = { projectId: req.params.projectId, keyId, userId: getAuth(req).user.id }
+		const body: UpdateTranslationKeyResponse = await updateTranslationKey(prisma, ids, input)
 		res.status(200).json(body)
 	}

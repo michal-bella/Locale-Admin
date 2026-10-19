@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Import prekladov: modál (2026-10-19)
+
+- frontend: tlačidlo Importovať na stránke Preklady otvára modál v dvoch krokoch – nahratie CSV (vlastná dropzone, kontrola prípony a veľkosti ešte pred odoslaním, checkbox Vytvoriť chýbajúce kľúče, zoznam chýb súboru s číslami riadkov) a kontrola (priradenie stĺpcov k jazykom projektu, Pridať jazyk priamo z riadku s automatickým opakovaním kontroly, Preskočiť, upozornenia na premenné, súhrn nových kľúčov a prekladov); po importe notifikácia so súhrnom a obnovenie zoznamu ([Frontend](./frontend.md))
+- i18n: texty modálu a všetky kódy chýb a upozornení importu v sk, cs, en
+- prístupnosť: fokus na nadpis kroku pri zmene kroku, pomenované tlačidlá po riadkoch, `aria-controls` pri rozbaľovaní upozornení, nové tokeny `--app-color-warning-bg/-text`
+- E2E: `import.spec.ts` (vymyslené fixtures `e2e/fixtures/import-*.csv`), API smoke importu, axe oboch krokov modálu
+
 ### Import prekladov: zápis (2026-10-18)
 
 - zdieľaný kontrakt: `KEY_TOO_LONG` počíta UTF-8 bajty (max. 2 000 B, 2 000 znakov v cyrilike sa nezmestilo do unikátneho indexu), namespace max. 100 znakov, chybový kód `IMPORT_COLUMNS_INVALID` (400)

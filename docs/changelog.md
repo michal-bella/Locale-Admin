@@ -8,6 +8,15 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Úprava kľúča, plurálové formy a zamknuté tokeny v editore (2026-10-19)
+
+- zdieľaný kontrakt: `PATCH /api/projects/:projectId/keys/:keyId` (`updateTranslationKeyRequestSchema`: názov, popis, plurál s názvom premennej), `TRANSLATION_KEY_TAKEN` (409), ICU helpery plurálu (`parsePluralValue`, `serializePluralValue`, `pluralFormsForTag` z `Intl.PluralRules`), `description` a `plural` v položke zoznamu
+- databáza: `TranslationKey.description` a `TranslationKey.pluralVariable` (migrácia `translation_key_meta`); plurálový kľúč ukladá na jazyk jednu ICU správu `{count, plural, one {…} other {…}}` ([Databáza](./database.md))
+- backend: úprava kľúča len pre globálneho ADMIN-a (člen 403), premenovanie na obsadený názov v namespace 409; zapnutie plurálu presunie existujúci text do formy `other`, vypnutie ponechá `other`, premenovanie premennej správu preserializuje; oprava regexu premenných (`{{{name}}` v plurálovej forme) ([API](./api/translations.md))
+- frontend: editor bunky je `contenteditable` s uzamknutými chipmi pre `{{premenné}}` aj HTML značky (kurzor ich preskakuje, Backspace/Delete ich zmaže celé, vloženie je čistý text); plurálový kľúč zobrazuje formy jazyka ako v Tolgee (One/Few/Many/Other) a edituje sa po formách; ikona ceruzky pri kľúči (ADMIN) otvára modál Upraviť kľúč (Kľúč, Popis, Použiť plurálové formy, Názov premennej) ([Frontend](./frontend.md))
+- prístupnosť a E2E: skrytá nápoveda o zamknutých tokenoch a znaku `#`, tooltip ikony riadku aj pri fokuse z klávesnice; `key-editing.spec.ts` (chipy v oboch prehliadačoch, modál, plurály, API smoke `PATCH` kľúča, axe)
+- otvorené: pri zapnutej ochrane premenných sa plurálová forma s `#` namiesto `{{count}}` odmietne (rozhodnutie produktu, či `#` počítať ako premennú); ADMIN má v riadku o jeden Tab stop navyše (ceruzka)
+
 ### Preklady a import: záverečné E2E, prístupnosť a dokumentácia (2026-10-19)
 
 - E2E: `translations-flow.spec.ts` – celý tok import → pridanie chýbajúceho jazyka → preklad v riadku → filtre v URL → opakovaný import bez zmien; zdieľané pomocné funkcie stránky Preklady a modálu importu v `e2e/support/`

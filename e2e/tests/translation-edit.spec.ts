@@ -61,7 +61,7 @@ test('Ctrl+Enter saves an untranslated key: PUT { value }, the row turns transla
 
 	const editor = await openEditor(page, key)
 	await expect(editor).toHaveText('')
-	await expect(editor).toHaveAccessibleDescription('Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc.')
+	await expect(editor).toHaveAccessibleDescription('Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc. Premenné a HTML značky sú zamknuté, mažú sa celé.')
 	await editor.fill('New orders will appear here.')
 	const saved = waitForTranslationPut(page)
 	await page.keyboard.press('Control+Enter')

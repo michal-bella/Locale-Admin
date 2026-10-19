@@ -285,7 +285,7 @@ describe('ImportModal step 2 (review)', () => {
 			within(table)
 				.getAllByRole('columnheader')
 				.map((header) => header.textContent),
-		).toEqual(['Jazyk', 'Stĺpec v súbore', 'Preklady', 'Nepreložené', 'Upozornenia', 'Nové / zmenené'])
+		).toEqual(['Jazyk', 'Stĺpec', 'Preklady', 'Nepreložené', 'Upozornenia', 'Nové / zmenené'])
 		expect(languageSelect(dialog, 'sk')).toHaveValue('Slovak (sk)')
 		expect(languageSelect(dialog, 'ru')).toHaveValue('')
 

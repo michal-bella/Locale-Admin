@@ -285,7 +285,7 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 			description={t('importModal.description')}
 			closeLabel={t('importModal.close')}
 			isPending={isPending}
-			size='xl'
+			size={step === 'UPLOAD' ? 'xl' : 960}
 			fullScreen={isMobile}
 			footer={footer}
 		>

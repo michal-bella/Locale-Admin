@@ -285,7 +285,7 @@
 			"table": {
 				"label": "Language columns in the file",
 				"language": "Language",
-				"column": "Column in the file",
+				"column": "Column",
 				"translations": "Translations",
 				"untranslated": "Untranslated",
 				"warnings": "Warnings",

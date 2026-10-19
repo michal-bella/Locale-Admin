@@ -41,6 +41,7 @@ const TranslationsTable = ({
 	sourceLanguage,
 	targetLanguage,
 	onClearFilters,
+	onImport,
 	showGroups,
 }: TranslationsTableProps) => {
 	const { t, i18n } = useTranslation()
@@ -137,7 +138,7 @@ const TranslationsTable = ({
 			return stateRow(
 				<div className='flex flex-col items-center gap-4'>
 					<Text size='sm'>{t('translationsPage.table.empty')}</Text>
-					<Button variant='default' leftSection={<Upload aria-hidden />} disabled>
+					<Button variant='default' leftSection={<Upload aria-hidden />} onClick={onImport}>
 						{t('translationsPage.importButton')}
 					</Button>
 				</div>,

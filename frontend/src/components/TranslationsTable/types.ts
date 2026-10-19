@@ -11,6 +11,8 @@ export type TranslationsTableProps = {
 	sourceLanguage?: Language
 	targetLanguage?: Language
 	onClearFilters: () => void
+	/** Importovať in the empty state of a project without keys. */
+	onImport: () => void
 	/** Group header rows only make sense when the sort keeps a group together (not for `UPDATED`). */
 	showGroups: boolean
 }

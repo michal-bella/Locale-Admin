@@ -1,4 +1,5 @@
 import { Button } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +10,7 @@ import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguage
 import { useProjectSettingsQuery } from '@/api/projectSettings/projectSettingsQuery'
 import { useTranslationsQuery } from '@/api/translations/translationsQuery'
 import { Upload } from '@/components/Icons'
+import ImportModal from '@/components/ImportModal/ImportModal'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import TranslationStats from '@/components/TranslationStats/TranslationStats'
 import TranslationsPagination from '@/components/TranslationsPagination/TranslationsPagination'
@@ -22,7 +24,7 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
 
 /**
  * Translations of the project (Figma 3:2), read-only: stats for the target language, filters in the URL, the table and pagination.
- * Without Exportovať, Posledný sync and the Na kontrolu card; Importovať is disabled until the import exists.
+ * Without Exportovať, Posledný sync and the Na kontrolu card. Importovať opens `ImportModal`.
  */
 const TranslationsPage = () => {
 	const { t } = useTranslation()
@@ -32,6 +34,7 @@ const TranslationsPage = () => {
 	const { data: project } = useProjectSettingsQuery(projectId)
 	const languagesQuery = useProjectLanguagesQuery(projectId)
 	const languages = languagesQuery.data ?? []
+	const [importOpened, importModal] = useDisclosure(false)
 
 	const baseLanguage = languages.find((language) => language.isBase) ?? languages[0]
 	const sourceLanguage = languages.find((language) => language.tag === search.source) ?? baseLanguage
@@ -94,7 +97,7 @@ const TranslationsPage = () => {
 					description={t('translationsPage.description')}
 					titleSize='h2'
 				/>
-				<Button variant='default' leftSection={<Upload aria-hidden />} disabled>
+				<Button variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
 					{t('translationsPage.importButton')}
 				</Button>
 			</div>
@@ -123,6 +126,7 @@ const TranslationsPage = () => {
 					sourceLanguage={sourceLanguage}
 					targetLanguage={targetLanguage}
 					onClearFilters={clearFilters}
+					onImport={importModal.open}
 					showGroups={sort !== 'UPDATED'}
 				/>
 			</div>
@@ -135,6 +139,7 @@ const TranslationsPage = () => {
 					onChange={(next) => updateSearch({ page: next === 1 ? undefined : next }, { resetPage: false })}
 				/>
 			)}
+			<ImportModal projectId={projectId} opened={importOpened} onClose={importModal.close} />
 		</div>
 	)
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 
-import { ERROR_CODE, VALIDATION_CODE } from '@locale/shared'
+import { ERROR_CODE, IMPORT_ISSUE_CODES, VALIDATION_CODE } from '@locale/shared'
 
 import { UNKNOWN_ERROR_CODE } from '@/lib/constants'
 import { LANGUAGE } from '@/lib/enum'
@@ -42,6 +42,10 @@ describe.each(Object.values(LANGUAGE))('translations (%s)', (language) => {
 
 	it.each(Object.values(VALIDATION_CODE))('has validation.%s', (code) => {
 		expect(translation.validation).toHaveProperty(code, expect.any(String))
+	})
+
+	it.each(IMPORT_ISSUE_CODES)('has importIssues.%s', (code) => {
+		expect(translation.importIssues).toHaveProperty(code, expect.any(String))
 	})
 
 	it('interpolates length limits', () => {

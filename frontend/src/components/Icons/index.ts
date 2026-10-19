@@ -1,3 +1,4 @@
+export { default as AlertTriangle } from './AlertTriangle'
 export { default as ArrowRight } from './ArrowRight'
 export { default as Bell } from './Bell'
 export { default as Check } from './Check'

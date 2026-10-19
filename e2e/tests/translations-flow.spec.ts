@@ -1,0 +1,238 @@
+import { expect, test } from '@playwright/test'
+
+import {
+	BROKEN_CSV,
+	continueToReview,
+	expectColumnStats,
+	getColumnRow,
+	getFileInput,
+	getImportDialog,
+	getLanguageSelect,
+	getReviewTable,
+	getSummary,
+	importApi,
+	importPreviewApi,
+	importSample,
+	importSuccessMessage,
+	SAMPLE,
+	SAMPLE_CSV,
+	submitImport,
+} from '../support/imports'
+import { listLanguages } from '../support/languages'
+import { createProject } from '../support/projects'
+import {
+	expectKeys,
+	expectStats,
+	getCellButton,
+	getSearch,
+	getStat,
+	getTranslationRow,
+	getTranslationRows,
+	getTranslationsTable,
+	listTranslations,
+	openEditor,
+	openTranslations,
+	pickOption,
+	translationsPath,
+	waitForTranslationPut,
+} from '../support/translations'
+
+const CS = 'čeština'
+
+/** Keys of `import-sample.csv` in the order of the list (untranslated first, then by group and name). */
+const EN_UNTRANSLATED_FIRST = [
+	'orders.empty.description',
+	'promo.banner',
+	'Vrátiť sa do obchodu',
+	'cart.items',
+	'dashboard.welcome',
+	'legal.terms',
+	'nav.home',
+	'orders.empty.title',
+	'Adresa nie je kompletná. Uistite sa',
+	'Pokračovať do pokladne',
+]
+
+const CS_UNTRANSLATED_FIRST = [
+	'legal.terms',
+	'orders.empty.description',
+	'orders.empty.title',
+	'Adresa nie je kompletná. Uistite sa',
+	'cart.items',
+	'dashboard.welcome',
+	'nav.home',
+	'promo.banner',
+	'Pokračovať do pokladne',
+	'Vrátiť sa do obchodu',
+]
+
+const BY_KEY = [
+	'cart.items',
+	'dashboard.welcome',
+	'legal.terms',
+	'nav.home',
+	'orders.empty.description',
+	'orders.empty.title',
+	'promo.banner',
+	'Adresa nie je kompletná. Uistite sa',
+	'Pokračovať do pokladne',
+	'Vrátiť sa do obchodu',
+]
+
+const statuses = (count: number, untranslated: number) => [
+	...Array<string>(untranslated).fill('UNTRANSLATED'),
+	...Array<string>(count - untranslated).fill('TRANSLATED'),
+]
+
+test('a new project: import with a missing language, translate inline, filter, sort, reload and re-import', async ({ page, request, browserName }) => {
+	// Cmd+Enter on macOS Safari, Ctrl+Enter elsewhere: the editor accepts both.
+	const submitKey = browserName === 'webkit' ? 'Meta+Enter' : 'Control+Enter'
+	const project = await createProject(request, 'flow', ['sk', 'en'])
+	await openTranslations(page, project, '?target=en')
+
+	await expect(getTranslationsTable(page).getByText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeVisible()
+	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('0')
+	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('EN')
+	await getTranslationsTable(page).getByRole('button', { name: 'Importovať' }).click()
+	await expect(getImportDialog(page)).toBeVisible()
+	await expect(getImportDialog(page).getByText('Krok 1 z 2 · Nahratie')).toBeVisible()
+
+	await getFileInput(page).setInputFiles(SAMPLE_CSV)
+	await expect(getImportDialog(page).getByText('import-sample.csv')).toBeVisible()
+	await continueToReview(page)
+	await expect(getLanguageSelect(page, 'sk')).toHaveValue('Slovak (sk)')
+	await expect(getLanguageSelect(page, 'en')).toHaveValue('English (en)')
+	const csRow = getColumnRow(page, 'cs')
+	await expect(csRow).toHaveAttribute('data-undecided', 'true')
+	await expect(csRow.getByText('Jazyk cs nie je v projekte.')).toBeVisible()
+	await expect(getSummary(page).getByRole('listitem')).toContainText(['10 nových kľúčov', '16 nových prekladov', '1 stĺpec sa preskočí'])
+
+	const secondPreview = page.waitForResponse((response) => response.url().endsWith(importPreviewApi(project.id)) && response.request().method() === 'POST')
+	await csRow.getByRole('button', { name: 'Pridať jazyk' }).click()
+	expect((await secondPreview).status()).toBe(200)
+	await expect(getLanguageSelect(page, 'cs')).toHaveValue('Czech (cs)')
+	await expect(csRow).not.toHaveAttribute('data-undecided')
+	await expectColumnStats(page, 'cs', SAMPLE.cs, 1, '6 / 0')
+	await expect(getSummary(page).getByRole('listitem')).toHaveText([
+		'10 nových kľúčov',
+		'0 prekladov sa prepíše',
+		'22 nových prekladov',
+		'1 kľúč bez prekladu v základnom jazyku',
+	])
+	expect((await listLanguages(request, project.id)).map(({ tag }) => tag).sort()).toEqual(['cs', 'en', 'sk'])
+
+	expect((await submitImport(page, project.id)).postDataJSON()).toMatchObject({ fileName: 'import-sample.csv', createMissingKeys: true })
+	await expect(page.getByText(importSuccessMessage(10, 22, 0))).toBeVisible()
+	await expect(getImportDialog(page)).toHaveCount(0)
+
+	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('EN')
+	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
+	await expectStats(page, SAMPLE.en.translations, SAMPLE.en.untranslated)
+	await expect(page.getByRole('progressbar', { name: 'Preložené: 70 %' })).toBeVisible()
+	await expect(page.getByText('Zobrazených 10 z 10 kľúčov')).toBeVisible()
+	await expectKeys(getTranslationRows(page), EN_UNTRANSLATED_FIRST)
+	expect(await getTranslationRows(page).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-status')))).toEqual(statuses(10, 3))
+
+	await pickOption(page, 'Cieľový jazyk', /^CS/)
+	await expect(page).toHaveURL(translationsPath(project, '?target=cs'))
+	await expect(getTranslationsTable(page).getByRole('columnheader')).toContainText(['Kľúč', 'slovenčina', CS, 'Stav'])
+	await expectStats(page, SAMPLE.cs.translations, SAMPLE.cs.untranslated)
+	await expect(page.getByRole('progressbar', { name: 'Preložené: 60 %' })).toBeVisible()
+	await expect(page.getByRole('progressbar', { name: 'Chýbajúce: 40 %' })).toBeVisible()
+	await expectKeys(getTranslationRows(page), CS_UNTRANSLATED_FIRST)
+	expect(await getTranslationRows(page).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-status')))).toEqual(statuses(10, 4))
+	await expect(getTranslationRow(page, 'nav.home')).toContainText('Domů')
+
+	const key = 'orders.empty.title'
+	const row = getTranslationRow(page, key)
+	await expect(getCellButton(row, key, CS)).toHaveAccessibleName(`Preklad kľúča ${key}, ${CS}: Bez prekladu`)
+	const editor = await openEditor(page, key, CS)
+	await editor.fill('Zatím nemáte žádné objednávky')
+	const saved = waitForTranslationPut(page)
+	await page.keyboard.press(submitKey)
+	const response = await saved
+	expect(response.status()).toBe(200)
+	expect(response.request().postDataJSON()).toEqual({ value: 'Zatím nemáte žádné objednávky' })
+	await expect(editor).toHaveCount(0)
+	await expect(row).toHaveAttribute('data-status', 'TRANSLATED')
+	await expect(row.getByText('Preložené', { exact: true })).toBeVisible()
+	await expect(row).toContainText('Zatím nemáte žádné objednávky')
+	await expectStats(page, SAMPLE.cs.translations + 1, SAMPLE.cs.untranslated - 1)
+	await expect(page.getByRole('progressbar', { name: 'Preložené: 70 %' })).toBeVisible()
+
+	await getSearch(page).fill(key)
+	await expect(page).toHaveURL(/\?(?=.*target=cs)(?=.*search=orders\.empty\.title)/)
+	await expectKeys(getTranslationRows(page), [key])
+	await expect(page.getByText('Zobrazených 1 z 1 kľúča')).toBeVisible()
+	await getSearch(page).clear()
+	await expect(page).toHaveURL(translationsPath(project, '?target=cs'))
+	await expect(getTranslationRows(page)).toHaveCount(10)
+
+	await pickOption(page, 'Zoradenie', 'Podľa kľúča')
+	await expect(page).toHaveURL(/\?(?=.*target=cs)(?=.*sort=KEY)/)
+	await expectKeys(getTranslationRows(page), BY_KEY)
+
+	await page.reload()
+	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+	await expect(page).toHaveURL(/\?(?=.*target=cs)(?=.*sort=KEY)/)
+	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('CS')
+	await expect(page.getByRole('combobox', { name: 'Zoradenie' })).toHaveValue('Podľa kľúča')
+	await expectKeys(getTranslationRows(page), BY_KEY)
+	await expect(getTranslationRow(page, key)).toHaveAttribute('data-status', 'TRANSLATED')
+
+	await page.goto(`/projects/${project.slug}/languages`)
+	const languagesTable = page.getByRole('table', { name: 'Zoznam jazykov' })
+	await expect(languagesTable).toHaveAttribute('aria-busy', 'false')
+	await expect(languagesTable.getByText('· cs')).toBeVisible()
+	await expect(languagesTable.getByText('Czech', { exact: true })).toBeVisible()
+
+	await openTranslations(page, project, '?target=cs')
+	await page.getByRole('main').getByRole('button', { name: 'Importovať' }).click()
+	await getFileInput(page).setInputFiles(SAMPLE_CSV)
+	await continueToReview(page)
+	await expect(getLanguageSelect(page, 'cs')).toHaveValue('Czech (cs)')
+	await expectColumnStats(page, 'cs', SAMPLE.cs, 1, '0 / 0')
+	await expect(getSummary(page).getByRole('listitem')).toContainText(['0 nových kľúčov', '0 prekladov sa prepíše', '0 nových prekladov'])
+	await submitImport(page, project.id)
+	await expect(page.getByText(importSuccessMessage(0, 0, 0))).toBeVisible()
+	await expect(getImportDialog(page)).toHaveCount(0)
+	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
+	await expectStats(page, SAMPLE.cs.translations + 1, SAMPLE.cs.untranslated - 1)
+	await expect(getTranslationRow(page, key)).toContainText('Zatím nemáte žádné objednávky')
+})
+
+test('a broken file shows its issues with line numbers and imports nothing', async ({ page, request }) => {
+	const project = await createProject(request, 'flow-broken', ['sk', 'en'])
+	await importSample(request, project.id, { sk: 'sk', en: 'en', cs: null })
+	await openTranslations(page, project, '?target=en')
+	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
+	await expectStats(page, SAMPLE.en.translations, SAMPLE.en.untranslated)
+	const importRequests: string[] = []
+	page.on('request', (req) => {
+		if (req.url().endsWith(importApi(project.id)) && req.method() === 'POST') {
+			importRequests.push(req.url())
+		}
+	})
+
+	await page.getByRole('main').getByRole('button', { name: 'Importovať' }).click()
+	await getFileInput(page).setInputFiles(BROKEN_CSV)
+	await getImportDialog(page).getByRole('button', { name: 'Pokračovať na kontrolu' }).click()
+	const issues = getImportDialog(page).getByRole('alert').filter({ hasText: 'Súbor obsahuje chyby. Opravte ich a nahrajte ho znova.' })
+	await expect(issues).toBeVisible()
+	await expect(issues.getByRole('listitem')).toHaveText(['Riadok 3: očakávaných 3 stĺpcov, nájdených 4', 'Riadok 4, stĺpec 1: prázdny kľúč'])
+	await expect(getImportDialog(page).getByText('Krok 1 z 2 · Nahratie')).toBeVisible()
+	await expect(getReviewTable(page)).toHaveCount(0)
+
+	await getImportDialog(page).getByRole('button', { name: 'Zrušiť' }).click()
+	await expect(getImportDialog(page)).toHaveCount(0)
+	expect(importRequests).toEqual([])
+	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
+	await expectStats(page, SAMPLE.en.translations, SAMPLE.en.untranslated)
+	await expect(getTranslationRows(page)).toHaveCount(10)
+
+	const languages = await listLanguages(request, project.id)
+	const languageId = (tag: string) => languages.find((language) => language.tag === tag)!.id
+	const list = await listTranslations(request, project.id, languageId('sk'), languageId('en'))
+	expect(list.stats).toEqual({ totalKeys: 10, translated: SAMPLE.en.translations, untranslated: SAMPLE.en.untranslated })
+	expect(list.items.map(({ name }) => name)).not.toContain('')
+})

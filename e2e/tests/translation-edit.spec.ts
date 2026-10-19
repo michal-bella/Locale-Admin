@@ -1,9 +1,21 @@
 import { type APIRequestContext, expect, type Locator, type Page, type Request, test } from '@playwright/test'
 
 import { MUTATION_HEADERS } from '../support/api'
-import { importFile, SAMPLE_CSV } from '../support/imports'
-import { listLanguages } from '../support/languages'
+import { importSample } from '../support/imports'
 import { createProject, getProjectSettings, type ProjectListItem, projectSettingsApi } from '../support/projects'
+import {
+	expectStats,
+	getCellButton,
+	getEditor,
+	getTranslationRow,
+	getTranslationRows,
+	getTranslationsTable,
+	isTranslationPut,
+	openEditor,
+	openTranslations,
+	rowBackground,
+	waitForTranslationPut,
+} from '../support/translations'
 
 const MISMATCH_MESSAGE = 'Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}.'
 
@@ -15,53 +27,14 @@ const EN = { translated: 7, untranslated: 3 } as const
 
 const seedProject = async (api: APIRequestContext, label: string) => {
 	const project = await createProject(api, label, ['sk', 'en'])
-	const languages = await listLanguages(api, project.id)
-	const languageId = (tag: string) => languages.find((language) => language.tag === tag)!.id
-	await importFile(api, project.id, SAMPLE_CSV, [
-		{ columnIndex: 2, languageId: languageId('sk') },
-		{ columnIndex: 3, languageId: languageId('en') },
-		{ columnIndex: 4, languageId: null },
-	])
+	await importSample(api, project.id, { sk: 'sk', en: 'en', cs: null })
 	return project
 }
 
-const getTable = (page: Page) => page.getByRole('table', { name: 'Zoznam prekladov' })
-
-const getRows = (page: Page) => getTable(page).locator('tr[data-status]')
-
-const getRow = (page: Page, key: string) => getRows(page).filter({ has: page.getByText(key, { exact: true }) })
-
-const getCellButton = (row: Locator, key: string) => row.getByRole('button', { name: `Preklad kľúča ${key}, English:` })
-
-const getEditor = (page: Page, key: string) => page.getByRole('textbox', { name: `Preklad kľúča ${key}, English`, exact: true })
-
-const getStat = (page: Page, label: string) =>
-	page
-		.locator('p')
-		.filter({ hasText: new RegExp(`^${label}$`) })
-		.locator('xpath=following-sibling::*[1]')
-
-const expectStats = async (page: Page, translated: number, untranslated: number) => {
-	await expect(getStat(page, 'Preložené')).toHaveText(String(translated))
-	await expect(getStat(page, 'Chýbajúce')).toHaveText(String(untranslated))
-}
-
-const background = (row: Locator) => row.evaluate((element) => getComputedStyle(element).backgroundColor)
-
-const openTranslations = async (page: Page, project: ProjectListItem) => {
-	await page.goto(`/projects/${project.slug}/translations?target=en`)
-	await expect(getTable(page)).toHaveAttribute('aria-busy', 'false')
+const openTranslationsEn = async (page: Page, project: ProjectListItem) => {
+	await openTranslations(page, project, '?target=en')
 	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('EN')
 }
-
-const openEditor = async (page: Page, key: string) => {
-	await getCellButton(getRow(page, key), key).click()
-	const editor = getEditor(page, key)
-	await expect(editor).toBeFocused()
-	return editor
-}
-
-const isTranslationPut = (req: Request) => req.method() === 'PUT' && /\/api\/projects\/[^/]+\/keys\/[^/]+\/translations\/[^/]+$/.test(req.url())
 
 /** Collects every PUT of a translation so a test can assert that Esc sends nothing. */
 const trackPuts = (page: Page) => {
@@ -74,23 +47,21 @@ const trackPuts = (page: Page) => {
 	return puts
 }
 
-const waitForPut = (page: Page) => page.waitForResponse((response) => isTranslationPut(response.request()))
-
 test('Ctrl+Enter saves an untranslated key: PUT { value }, the row turns translated, the cards update and a reload keeps it', async ({ page, request }) => {
 	const project = await seedProject(request, 'edit-save')
-	await openTranslations(page, project)
+	await openTranslationsEn(page, project)
 	await expectStats(page, EN.translated, EN.untranslated)
 	const key = 'orders.empty.description'
-	const row = getRow(page, key)
+	const row = getTranslationRow(page, key)
 	await expect(row).toHaveAttribute('data-status', 'UNTRANSLATED')
-	const untranslatedBackground = await background(row)
+	const untranslatedBackground = await rowBackground(row)
 	await expect(getCellButton(row, key)).toHaveAccessibleName(`Preklad kľúča ${key}, English: Bez prekladu`)
 
 	const editor = await openEditor(page, key)
 	await expect(editor).toHaveValue('')
 	await expect(editor).toHaveAccessibleDescription('Uložiť: Ctrl+Enter alebo klik mimo pole. Zrušiť: Esc.')
 	await editor.fill('New orders will appear here.')
-	const saved = waitForPut(page)
+	const saved = waitForTranslationPut(page)
 	await page.keyboard.press('Control+Enter')
 	const response = await saved
 	expect(response.status()).toBe(200)
@@ -102,68 +73,68 @@ test('Ctrl+Enter saves an untranslated key: PUT { value }, the row turns transla
 	await expect(getCellButton(row, key)).toBeFocused()
 	await expect(row.getByText('Preložené', { exact: true })).toBeVisible()
 	await expect(row).toHaveAttribute('data-status', 'TRANSLATED')
-	expect(await background(row)).not.toBe(untranslatedBackground)
+	expect(await rowBackground(row)).not.toBe(untranslatedBackground)
 	await expectStats(page, EN.translated + 1, EN.untranslated - 1)
-	await expect(getRows(page).first()).not.toContainText(key)
+	await expect(getTranslationRows(page).first()).not.toContainText(key)
 
 	await page.reload()
-	await expect(getTable(page)).toHaveAttribute('aria-busy', 'false')
-	await expect(getRow(page, key)).toHaveAttribute('data-status', 'TRANSLATED')
-	await expect(getRow(page, key)).toContainText('New orders will appear here.')
+	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+	await expect(getTranslationRow(page, key)).toHaveAttribute('data-status', 'TRANSLATED')
+	await expect(getTranslationRow(page, key)).toContainText('New orders will appear here.')
 	await expectStats(page, EN.translated + 1, EN.untranslated - 1)
 })
 
 test('blur saves, Esc restores without a request and an emptied field saves null', async ({ page, request }) => {
 	const project = await seedProject(request, 'edit-blur')
-	await openTranslations(page, project)
+	await openTranslationsEn(page, project)
 	const puts = trackPuts(page)
 
 	const blurred = await openEditor(page, 'promo.banner')
 	await blurred.fill('Discount <strong>20 %</strong>')
-	const blurSave = waitForPut(page)
+	const blurSave = waitForTranslationPut(page)
 	await page.getByRole('heading', { level: 1, name: 'Preklady' }).click()
 	expect((await blurSave).request().postDataJSON()).toEqual({ value: 'Discount <strong>20 %</strong>' })
 	await expect(blurred).toHaveCount(0)
-	await expect(getRow(page, 'promo.banner').getByText('Discount <strong>20 %</strong>', { exact: true })).toBeVisible()
-	await expect(getRow(page, 'promo.banner')).toHaveAttribute('data-status', 'TRANSLATED')
+	await expect(getTranslationRow(page, 'promo.banner').getByText('Discount <strong>20 %</strong>', { exact: true })).toBeVisible()
+	await expect(getTranslationRow(page, 'promo.banner')).toHaveAttribute('data-status', 'TRANSLATED')
 	await expectStats(page, EN.translated + 1, EN.untranslated - 1)
-	await expect(getCellButton(getRow(page, 'promo.banner'), 'promo.banner')).not.toBeFocused()
+	await expect(getCellButton(getTranslationRow(page, 'promo.banner'), 'promo.banner')).not.toBeFocused()
 
 	const escaped = await openEditor(page, 'Vrátiť sa do obchodu')
 	await escaped.fill('Back to the shop')
 	await page.keyboard.press('Escape')
 	await expect(escaped).toHaveCount(0)
-	await expect(getCellButton(getRow(page, 'Vrátiť sa do obchodu'), 'Vrátiť sa do obchodu')).toBeFocused()
-	await expect(getRow(page, 'Vrátiť sa do obchodu').getByText('Bez prekladu', { exact: true })).toBeVisible()
-	await expect(getRow(page, 'Vrátiť sa do obchodu')).toHaveAttribute('data-status', 'UNTRANSLATED')
+	await expect(getCellButton(getTranslationRow(page, 'Vrátiť sa do obchodu'), 'Vrátiť sa do obchodu')).toBeFocused()
+	await expect(getTranslationRow(page, 'Vrátiť sa do obchodu').getByText('Bez prekladu', { exact: true })).toBeVisible()
+	await expect(getTranslationRow(page, 'Vrátiť sa do obchodu')).toHaveAttribute('data-status', 'UNTRANSLATED')
 	expect(puts).toHaveLength(1)
 
 	const cleared = await openEditor(page, 'nav.home')
 	await expect(cleared).toHaveValue('Home')
 	await cleared.fill('   ')
-	const clearSave = waitForPut(page)
+	const clearSave = waitForTranslationPut(page)
 	await page.getByRole('heading', { level: 1, name: 'Preklady' }).click()
 	const response = await clearSave
 	expect(response.request().postDataJSON()).toEqual({ value: null })
 	expect(await response.json()).toEqual({ value: null, status: 'UNTRANSLATED', updatedAt: expect.any(String) })
-	await expect(getRow(page, 'nav.home').getByText('Bez prekladu', { exact: true })).toBeVisible()
-	await expect(getRow(page, 'nav.home').getByText('Nepreložené', { exact: true })).toBeVisible()
-	await expect(getRow(page, 'nav.home')).toHaveAttribute('data-status', 'UNTRANSLATED')
+	await expect(getTranslationRow(page, 'nav.home').getByText('Bez prekladu', { exact: true })).toBeVisible()
+	await expect(getTranslationRow(page, 'nav.home').getByText('Nepreložené', { exact: true })).toBeVisible()
+	await expect(getTranslationRow(page, 'nav.home')).toHaveAttribute('data-status', 'UNTRANSLATED')
 	await expectStats(page, EN.translated, EN.untranslated)
 	expect(puts).toHaveLength(2)
 })
 
 test('a missing {{name}} shows the mismatch alert and keeps the draft; the fix saves; without protectVariables it saves as is', async ({ page, request }) => {
 	const project = await seedProject(request, 'edit-placeholders')
-	await openTranslations(page, project)
+	await openTranslationsEn(page, project)
 	const key = 'dashboard.welcome'
-	const row = getRow(page, key)
+	const row = getTranslationRow(page, key)
 	await expect(row.locator('code')).toHaveText(['{{name}}', '{{ name }}'])
 
 	const editor = await openEditor(page, key)
 	await expect(editor).toHaveValue('Welcome back, {{ name }}')
 	await editor.fill('Welcome back, friend')
-	const rejected = waitForPut(page)
+	const rejected = waitForTranslationPut(page)
 	await page.keyboard.press('Control+Enter')
 	expect((await rejected).status()).toBe(400)
 	const alert = page.getByRole('alert')
@@ -175,7 +146,7 @@ test('a missing {{name}} shows the mismatch alert and keeps the draft; the fix s
 	await expectStats(page, EN.translated, EN.untranslated)
 
 	await editor.fill('Welcome back, {{name}}')
-	const accepted = waitForPut(page)
+	const accepted = waitForTranslationPut(page)
 	await page.keyboard.press('Control+Enter')
 	expect((await accepted).status()).toBe(200)
 	await expect(editor).toHaveCount(0)
@@ -192,7 +163,7 @@ test('a missing {{name}} shows the mismatch alert and keeps the draft; the fix s
 
 	const unprotected = await openEditor(page, key)
 	await unprotected.fill('Welcome back, friend')
-	const saved = waitForPut(page)
+	const saved = waitForTranslationPut(page)
 	await page.keyboard.press('Control+Enter')
 	expect((await saved).status()).toBe(200)
 	await expect(unprotected).toHaveCount(0)
@@ -205,11 +176,11 @@ test('Tab moves between target cells of consecutive rows, Enter opens the editor
 	// WebKit keeps the Safari default: plain Tab skips buttons, Option+Tab reaches every focusable element.
 	const tab = browserName === 'webkit' ? 'Alt+Tab' : 'Tab'
 	const project = await seedProject(request, 'edit-keyboard')
-	await openTranslations(page, project)
+	await openTranslationsEn(page, project)
 	const puts = trackPuts(page)
 	const keyOf = async (row: Locator) => (await row.locator('td:first-child > span:first-child').textContent())!
-	const firstRow = getRows(page).nth(0)
-	const secondRow = getRows(page).nth(1)
+	const firstRow = getTranslationRows(page).nth(0)
+	const secondRow = getTranslationRows(page).nth(1)
 	const firstKey = await keyOf(firstRow)
 	const secondKey = await keyOf(secondRow)
 	await expect(firstRow).toHaveAttribute('data-status', 'UNTRANSLATED')

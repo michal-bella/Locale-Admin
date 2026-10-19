@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { emailSchema } from './email'
 import { PASSWORD_MAX_LENGTH } from './password'
+import { translationsViewSchema } from './translations'
 
 /** Global role stored on `User.role`. Project roles are a different concept (later phases). */
 export enum ROLE {
@@ -18,12 +19,20 @@ export const loginRequestSchema = z.object({
 export type LoginRequest = z.infer<typeof loginRequestSchema>
 
 /** Body of `GET /api/auth/me` and `POST /api/auth/login`. */
+/** Choices of the user that every screen needs on load; changed with `PATCH /api/profile/preferences`. */
+export const userPreferencesSchema = z.object({
+	translationsView: translationsViewSchema,
+})
+
+export type UserPreferences = z.infer<typeof userPreferencesSchema>
+
 export const authUserSchema = z.object({
 	id: z.uuid(),
 	email: z.email(),
 	role: z.enum(ROLE),
 	firstName: z.string().nullable(),
 	lastName: z.string().nullable(),
+	preferences: userPreferencesSchema,
 })
 
 export type AuthUser = z.infer<typeof authUserSchema>

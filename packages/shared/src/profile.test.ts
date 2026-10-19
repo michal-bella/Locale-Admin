@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { ROLE } from './auth'
 import { toValidationIssues, VALIDATION_CODE } from './errors'
-import { PERSON_NAME_MAX_LENGTH, profileSchema, updateProfileRequestSchema } from './profile'
+import { PERSON_NAME_MAX_LENGTH, profileSchema, updatePreferencesRequestSchema, updateProfileRequestSchema } from './profile'
 
 describe('updateProfileRequestSchema', () => {
 	it('trims names and drops fields that are not editable', () => {
@@ -35,9 +35,18 @@ describe('profileSchema', () => {
 			role: ROLE.EDITOR,
 			firstName: 'Martin',
 			lastName: 'Kováč',
+			preferences: { translationsView: 'EXTENDED' },
 			passwordChangedAt: '2026-07-17T08:00:00.000Z',
 			passwordHash: 'secret-hash',
 		}
 		expect(profileSchema.parse(profile)).not.toHaveProperty('passwordHash')
+	})
+})
+
+describe('updatePreferencesRequestSchema', () => {
+	it('accepts only a known view', () => {
+		expect(updatePreferencesRequestSchema.parse({ translationsView: 'COMPACT' })).toEqual({ translationsView: 'COMPACT' })
+		const result = updatePreferencesRequestSchema.safeParse({ translationsView: 'WIDE' })
+		expect(result.success ? [] : toValidationIssues(result.error)).toEqual([{ path: 'translationsView', code: VALIDATION_CODE.INVALID }])
 	})
 })

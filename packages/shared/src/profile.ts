@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { authUserSchema } from './auth'
+import { authUserSchema, userPreferencesSchema } from './auth'
 
 export const PERSON_NAME_MAX_LENGTH = 100
 
@@ -20,3 +20,8 @@ export const profileSchema = authUserSchema.extend({
 })
 
 export type Profile = z.infer<typeof profileSchema>
+
+/** Body of `PATCH /api/profile/preferences`; the response is the `Profile`. */
+export const updatePreferencesRequestSchema = userPreferencesSchema
+
+export type UpdatePreferencesRequest = z.infer<typeof updatePreferencesRequestSchema>

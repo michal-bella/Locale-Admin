@@ -86,6 +86,7 @@ Spolu približne 4 až 4,5 session.
 ### Stav
 
 - **Krok 1 (2026-10-19): hotový.** Kontrakt (`translationCellSchema`, `status` + `translations` v položke, voliteľná dvojica jazykov so sémantikou zobrazenia, `userPreferencesSchema`, `updatePreferencesRequestSchema`), migrácia `user_translations_view`, `listTranslations` v oboch režimoch, `PATCH /api/profile/preferences`, `preferences` v `me` a profile; FE adaptér (tabuľka a optimistická mutácia čítajú bunky z mapy). E2E `api-smoke.spec.ts` a `e2e/support/translations.ts` ešte používajú starý tvar položky, prepíšu sa v kroku 4.
+- **Krok 2 (2026-10-19): hotový.** `EditTranslationModal` (kľúč, jazyk, hodnota základného jazyka, `TokenEditor` po formách, Zrušiť / Uložiť), `TranslationCell` (červené pozadie len na bunke), `TranslationValue`; `TranslationEditor` zmazaný, uloženie na blur a Ctrl+Enter odstránené, unit testy prepísané, i18n `translationsPage.editModal.*`. `TokenEditor` dostal `modalAutofocus` (fokus cez focus trap Mantine, aby sa po zatvorení vrátil na bunku). E2E `translation-edit.spec.ts` a `key-editing.spec.ts` sa prepíšu v kroku 4.
 
 ## Riziká
 

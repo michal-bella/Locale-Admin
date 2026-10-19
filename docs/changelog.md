@@ -8,6 +8,12 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Zobrazenia prekladov, krok 2: modál Upraviť preklad (2026-10-19)
+
+- frontend: klik na bunku prekladu otvorí modál **Upraviť preklad** (kľúč s popisom, jazyk s vlajkou, hodnota základného jazyka ako nápoveda, pole s uzamknutými tokenmi po plurálových formách, Zrušiť / Uložiť); úprava v riadku, uloženie klikom mimo pole a Ctrl+Enter sú odstránené; validácia a chyby (`PLACEHOLDER_MISMATCH`, zátvorky, limit dĺžky) ostali; červené pozadie má len bunka bez prekladu, nie riadok ([Frontend](./frontend.md#modál-upraviť-preklad))
+- `TokenEditor`: `modalAutofocus` – pole v modáli fokusuje focus trap Mantine, takže sa fokus po zatvorení vráti na bunku
+- otvorené: E2E `translation-edit.spec.ts`, `key-editing.spec.ts` a `api-smoke.spec.ts` sa prepíšu v kroku 4 plánu
+
 ### Zobrazenia prekladov, krok 1: kontrakt a backend (2026-10-19)
 
 - zdieľaný kontrakt: položka zoznamu prekladov nesie `status` riadku a `translations` (bunka pre každý jazyk projektu podľa `ProjectLanguage.id`) namiesto `source`/`target`; `sourceLanguageId` a `targetLanguageId` sú voliteľné (obidva alebo žiadny) a určujú zobrazenie: kompaktné (stav, filter, zoradenie, štatistiky a vyhľadávanie podľa cieľového jazyka) alebo rozšírené (riadok je preložený, keď má hodnotu každý jazyk; vyhľadávanie vo všetkých jazykoch); `preferences.translationsView` v `AuthUser` a `Profile`, `PATCH /api/profile/preferences` ([API](./api/translations.md), [profil](./api/profile.md))

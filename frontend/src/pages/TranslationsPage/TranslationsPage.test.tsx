@@ -725,6 +725,23 @@ describe('TranslationsPage edit modal', () => {
 		expect(within(dialog).getByRole('button', { name: 'Zrušiť' })).toBeInTheDocument()
 	})
 
+	it('copies the base language text into the field with the copy button, focused and ready to save', async () => {
+		const puts = mockEditing()
+		renderApp(PAGE_PATH)
+
+		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English')
+		typeText(field, 'draft')
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Prevziať text zo základného jazyka (slovenčina) do prekladu' }))
+
+		expect(field).toHaveTextContent('Vitajte späť, {{name}}')
+		expect(field).toHaveFocus()
+		expect(within(field).getByText('{{name}}')).toHaveAttribute('data-token', '{{name}}')
+		save(dialog)
+		await waitFor(() => expect(puts()).toHaveLength(1))
+		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: 'Vitajte späť, {{name}}' })
+	})
+
 	it('saves with the button, closes, announces and returns the focus to the cell', async () => {
 		const puts = mockEditing()
 		renderApp(PAGE_PATH)
@@ -1072,7 +1089,7 @@ describe('TranslationsPage plural forms', () => {
 		expect(one).toHaveAccessibleDescription('Premenné a HTML značky sú zamknuté, mažú sa celé. Znak # je miesto čísla.')
 		expect(one.querySelector('[data-token="#"]')).toHaveAttribute('title', 'Číslo')
 		// The base language forms are the reference.
-		expect(formsOf(within(dialog).getByText('Základný jazyk (slovenčina)').parentElement as HTMLElement)).toEqual([
+		expect(formsOf(within(dialog).getByText('Základný jazyk (slovenčina)').parentElement?.parentElement as HTMLElement)).toEqual([
 			'One: # položka',
 			'Few: # položky',
 			'Many: # položiek',
@@ -1112,6 +1129,20 @@ describe('TranslationsPage plural forms', () => {
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: '{count, plural, one {# položka} few {} other {# položiek}}' })
+	})
+
+	it('copies the base forms into the target forms, a form the base lacks taking its Other form', async () => {
+		const puts = mockEditing(undefined, ADMIN_USER, [{ ...PLURAL_ITEM(), translations: { ...PLURAL_ITEM().translations, [ENGLISH.id]: cell(null) } }])
+		renderApp(PAGE_PATH)
+		const dialog = await openPlural('Preklad kľúča items.count, English: Bez prekladu')
+
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Prevziať text zo základného jazyka (slovenčina) do prekladu' }))
+		expect(fieldOf(dialog, 'Preklad kľúča items.count, English, Jeden')).toHaveTextContent('# položka')
+		expect(fieldOf(dialog, 'Preklad kľúča items.count, English, Iné')).toHaveTextContent('# položiek')
+		save(dialog)
+
+		await waitFor(() => expect(puts()).toHaveLength(1))
+		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: '{count, plural, one {# položka} other {# položiek}}' })
 	})
 
 	it('saves null when every form is empty', async () => {

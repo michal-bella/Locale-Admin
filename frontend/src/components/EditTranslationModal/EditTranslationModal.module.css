@@ -7,6 +7,19 @@
 	color: var(--app-color-text-strong);
 }
 
+/* The copy button sits on the label line; its negative margin keeps the line as tall as a plain label. */
+.labelRow {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-block: -0.5rem 0.25rem;
+}
+
+.labelRow .label {
+	margin-bottom: 0;
+}
+
 .key {
 	font-family: var(--mantine-font-family-monospace);
 	font-size: var(--mantine-font-size-xs);

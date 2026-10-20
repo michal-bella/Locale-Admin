@@ -549,6 +549,7 @@
 		},
 		"fileName": {
 			"label": "Názov súboru",
+			"extensionHint": ", prípona .csv sa doplní",
 			"required": "Zadajte názov súboru.",
 			"invalid": "Názov súboru nesmie obsahovať znaky \\ / : * ? \" < > |.",
 			"tooLong": "Názov súboru môže mať najviac {{max}} znakov."
@@ -556,13 +557,13 @@
 		"issues": {
 			"value": {
 				"SEMICOLON": "„{{key}}“: preklad {{language}} obsahuje bodkočiarku (;).",
-				"LINE_BREAK": "„{{key}}“: preklad {{language}} obsahuje nový riadok.",
-				"SECTION_MARKER": "„{{key}}“: preklad {{language}} obsahuje text v tvare --názov--."
+				"LINE_BREAK": "„{{key}}“: preklad {{language}} obsahuje nový riadok."
 			},
 			"row": {
 				"SEMICOLON": "Kľúč „{{key}}“ obsahuje bodkočiarku (;).",
 				"LINE_BREAK": "Kľúč „{{key}}“ obsahuje nový riadok.",
-				"SECTION_MARKER": "„{{key}}“: riadok obsahuje text v tvare --názov--, ktorý by sa načítal ako nová sekcia."
+				"SECTION_MARKER": "„{{key}}“: riadok obsahuje text v tvare --názov--, ktorý by sa načítal ako nová sekcia.",
+				"NAMESPACE": "Namespace „{{namespace}}“ by sa v CSV načítal inak (obsahuje -- alebo končí pomlčkou). Premenujte ho."
 			},
 			"more_one": "… a ešte {{count}} ďalší.",
 			"more_few": "… a ešte {{count}} ďalšie.",

@@ -8,6 +8,12 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Export prekladov do CSV – E2E a review (2026-10-20)
+
+- testy: E2E `export.spec.ts` (Chromium aj WebKit): stiahnutie `translations.csv`, presný obsah, opätovný import bez zmien, filter Nepreložené s vlastným názvom súboru, zablokovaný export; modál exportu v axe kontrole (predvolený stav, chyby polí, zoznam 422)
+- API: export blokuje aj namespace, ktorý `convert-csv-to-json` prečíta inak (`a--b`, `x-`), kódom `NAMESPACE`; filter stavu sa vyhodnocuje nad dávkou v JS namiesto korelovaného poddotazu ([API](./api/exports.md))
+- frontend: modál exportu po chybe presunie fokus na hlásenie, pri neplatnom formulári na prvé neplatné pole, po otvorení na kartu CSV; kontrast popisov, prípony `.csv` a nezaškrtnutého štvorčeka jazyka ([Frontend](./frontend.md#modál-exportovať-preklady))
+
 ### Export prekladov do CSV – frontend (2026-10-20)
 
 - frontend: tlačidlo **Exportovať** v hlavičke stránky Preklady otvára modál **Exportovať preklady** (Figma 3:2768): formát CSV (JSON, XLSX, ARB neaktívne „Čoskoro“), jazyky (predvolene všetky), stav, názov súboru (predvolene `translations`), zoznam hodnôt, ktoré export zablokovali ([Frontend](./frontend.md#modál-exportovať-preklady))

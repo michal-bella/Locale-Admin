@@ -109,7 +109,7 @@ Očakávanie: max. 3 používatelia, tisíce kľúčov (vzorka: 2 459 kľúčov 
 - Tlačidlo **Exportovať** (ikona download) v hlavičke stránky Preklady vedľa **Importovať** (`TranslationsPage.tsx`; stránka Prehľad z Figmy v aplikácii zatiaľ nie je).
 - `ExportModal` (`components/ExportModal/`): Mantine `Modal`, nadpis „Exportovať preklady“, podnadpis „Vyberte jazyky a formát výstupného súboru.“
   - **Formát výstupu**: karta CSV „Univerzálna tabuľka“ označená; ostatné karty neaktívne s „Čoskoro“ (rozhodnutie 6).
-  - **Názov súboru**: `TextInput` predvolene `translations`, prípona `.csv` za poľom; **Jazyky**: checkbox chipy v poradí jazykov projektu (základný prvý, potom `position`), predvolene všetky; bez výberu je **Exportovať** neaktívne s hláškou.
+  - **Názov súboru**: `TextInput` predvolene `translations`, prípona `.csv` za poľom; **Jazyky**: checkbox chipy v poradí jazykov projektu (základný prvý, potom `position`), predvolene všetky; bez výberu ostane **Exportovať CSV** aktívne a po kliknutí sa zobrazí chyba a fokus prejde na prvý jazyk.
   - **Stav**: `SegmentedControl` Všetky / Preložené / Nepreložené, predvolene Všetky.
   - Päta: **Zrušiť**, **Exportovať CSV** (loading počas sťahovania).
 - Stiahnutie: `axios.get(…, { responseType: 'blob' })` → `URL.createObjectURL` → dočasný `<a download>` → `revokeObjectURL`. Pri chybe sa blob prečíta ako JSON a zobrazí sa preložený `code` (pravidlo 3). Blob ~1 MB je v prehliadači bez problému.
@@ -148,7 +148,7 @@ Očakávanie: max. 3 používatelia, tisíce kľúčov (vzorka: 2 459 kľúčov 
 
 ### D – Frontend modál (`frontend-developer`, paralelne s B a C po A)
 
-1. API hook `useExportTranslations`, `ExportModal`, tlačidlo v hlavičke, i18n.
+1. API hook `useExportMutation`, `ExportModal`, tlačidlo v hlavičke, i18n.
 2. Porovnanie s Figmou (potvrdí používateľ).
 3. Unit testy modálu (predvolené hodnoty, žiadny jazyk, chyba 429).
 4. `docs/frontend.md`.

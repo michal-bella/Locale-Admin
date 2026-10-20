@@ -48,7 +48,7 @@
 	font-size: var(--mantine-font-size-2xs);
 	font-weight: 700;
 	line-height: 1.5;
-	color: var(--mantine-color-text);
+	color: var(--app-color-text-secondary);
 }
 
 .format[data-checked] .formatBadge {
@@ -66,7 +66,7 @@
 .formatDescription {
 	font-size: var(--mantine-font-size-2xs);
 	line-height: 1.5;
-	color: var(--mantine-color-text);
+	color: var(--app-color-text-secondary);
 }
 
 .language {
@@ -77,6 +77,15 @@
 	padding: 0.5rem 0.75rem;
 	border: 1px solid var(--app-color-border);
 	border-radius: var(--mantine-radius-sm);
+}
+
+/* Mantine's default border (gray-4) is 1.5:1 on white, too faint for an unchecked box (WCAG 1.4.11). */
+.indicator:not([data-checked]) {
+	border-color: var(--mantine-color-slate-5);
+}
+
+[data-mantine-color-scheme='dark'] .indicator:not([data-checked]) {
+	border-color: var(--mantine-color-slate-4);
 }
 
 .languageLabel {

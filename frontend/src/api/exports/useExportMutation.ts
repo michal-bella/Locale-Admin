@@ -1,16 +1,14 @@
 import { useMutation } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 
-import { type ExportStatus } from '@locale/shared'
+import { type ExportQuery } from '@locale/shared'
 
 import http from '@/api/http'
-
-type ExportVariables = { languageIds: string[]; status: ExportStatus }
 
 /** Downloads the CSV as a Blob. An error body is a Blob too, so it is parsed back to JSON for `getApiErrorCode`. */
 export const useExportMutation = (projectId: string) =>
 	useMutation({
-		mutationFn: async ({ languageIds, status }: ExportVariables) => {
+		mutationFn: async ({ languageIds, status }: Pick<ExportQuery, 'languageIds' | 'status'>) => {
 			try {
 				return (
 					await http.get<Blob>(`/projects/${projectId}/export`, {

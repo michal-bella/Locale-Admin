@@ -549,6 +549,7 @@
 		},
 		"fileName": {
 			"label": "Název souboru",
+			"extensionHint": ", přípona .csv se doplní",
 			"required": "Zadejte název souboru.",
 			"invalid": "Název souboru nesmí obsahovat znaky \\ / : * ? \" < > |.",
 			"tooLong": "Název souboru může mít nejvýše {{max}} znaků."
@@ -556,13 +557,13 @@
 		"issues": {
 			"value": {
 				"SEMICOLON": "„{{key}}“: překlad {{language}} obsahuje středník (;).",
-				"LINE_BREAK": "„{{key}}“: překlad {{language}} obsahuje nový řádek.",
-				"SECTION_MARKER": "„{{key}}“: překlad {{language}} obsahuje text ve tvaru --název--."
+				"LINE_BREAK": "„{{key}}“: překlad {{language}} obsahuje nový řádek."
 			},
 			"row": {
 				"SEMICOLON": "Klíč „{{key}}“ obsahuje středník (;).",
 				"LINE_BREAK": "Klíč „{{key}}“ obsahuje nový řádek.",
-				"SECTION_MARKER": "„{{key}}“: řádek obsahuje text ve tvaru --název--, který by se načetl jako nová sekce."
+				"SECTION_MARKER": "„{{key}}“: řádek obsahuje text ve tvaru --název--, který by se načetl jako nová sekce.",
+				"NAMESPACE": "Namespace „{{namespace}}“ by se v CSV načetl jinak (obsahuje -- nebo končí pomlčkou). Přejmenujte ho."
 			},
 			"more_one": "… a ještě {{count}} další.",
 			"more_few": "… a ještě {{count}} další.",

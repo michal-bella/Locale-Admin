@@ -210,6 +210,50 @@ describe('GET /api/projects/:projectId/export', () => {
 		])
 	})
 
+	it('filters by status in every batch, also when a batch has no matching key', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie } = await setup(app)
+		const count = EXPORT_BATCH_SIZE * 2 + 3
+		const names = Array.from({ length: count }, (_, index) => `key.${String(index).padStart(5, '0')}`)
+		await getTestPrisma().translationKey.createMany({ data: names.map((name) => ({ projectId: project.id, namespace: 'a', name })) })
+		// Translated: every key of the first batch and every third key after it.
+		const translated = names.filter((_, index) => index < EXPORT_BATCH_SIZE || index % 3 === 0)
+		const keys = await getTestPrisma().translationKey.findMany({ where: { projectId: project.id, name: { in: translated } }, select: { id: true } })
+		await getTestPrisma().translation.createMany({ data: keys.map((key) => ({ keyId: key.id, languageId: sk.id, value: 'V' })) })
+
+		const lines = (status: string) => exportOk(app, cookie, project.id, { languageIds: sk.id, status }).then((text) => text.trimEnd().split('\n').slice(2))
+
+		expect(await lines('TRANSLATED')).toEqual(translated.map((name) => ` ${name}; V`))
+		expect(await lines('UNTRANSLATED')).toEqual(names.filter((name) => !translated.includes(name)).map((name) => ` ${name}; null`))
+	})
+
+	it('refuses a namespace that the converter would read back differently, once per namespace', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie } = await setup(app)
+		const first = await createKey(project.id, 'a--b', 'first', { [sk.id]: 'A' })
+		await createKey(project.id, 'a--b', 'second', { [sk.id]: 'B' })
+		await createKey(project.id, 'loc', 'ok', { [sk.id]: 'C' })
+
+		const res = await exportCsv(app, cookie, project.id, { languageIds: sk.id })
+
+		expectErrorCode(res, 422, ERROR_CODE.EXPORT_VALUE_UNSAFE)
+		expect(errorResponseSchema.parse(res.body).error.details).toEqual({
+			issues: [{ code: 'NAMESPACE', keyId: first.id, namespace: 'a--b', key: 'first', languageTag: null }],
+			total: 1,
+		})
+	})
+
+	it('lets a global ADMIN export a project they are not a member of', async () => {
+		const app = createTestApp()
+		const { user } = await createUser({ role: ROLE.ADMIN })
+		const project = await createProject()
+		const sk = await createLanguage(project.id, 'sk', { isBase: true })
+		await createKey(project.id, 'loc', 'a', { [sk.id]: 'A' })
+		const cookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
+
+		expect(await exportOk(app, cookie, project.id, { languageIds: sk.id })).toBe('Keys; sk \n--loc--\n a; A\n')
+	})
+
 	it('returns 400 for a language of another project and an invalid query', async () => {
 		const app = createTestApp()
 		const { project, sk, cookie } = await setup(app)

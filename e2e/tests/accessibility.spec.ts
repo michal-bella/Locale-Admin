@@ -3,6 +3,7 @@ import { type APIRequest, expect, type Page, test, type TestInfo } from '@playwr
 
 import { MUTATION_HEADERS } from '../support/api'
 import { ANONYMOUS } from '../support/auth'
+import { getExportDialog } from '../support/exports'
 import { getImportDialog, SAMPLE_CSV } from '../support/imports'
 import { listLanguages, newAdminApi } from '../support/languages'
 import { createProject } from '../support/projects'
@@ -61,6 +62,20 @@ const translationsWithKeys = async (request: APIRequest) => {
 	}
 }
 
+/** A `;` in the en value of `nav.home` blocks the export, so the modal shows the 422 list. */
+const translationsWithUnsafeValue = async (request: APIRequest) => {
+	const api = await newAdminApi(request)
+	try {
+		const project = await createProject(api, 'a11y')
+		await insertTranslationKeys(project.id, await listLanguages(api, project.id), [
+			{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov', en: 'Home&nbsp;page' } },
+		])
+		return `/projects/${project.slug}/translations`
+	} finally {
+		await api.dispose()
+	}
+}
+
 /** `cart.items` made plural through the API: sk shows One/Few/Many/Other, en One/Other, the old text in Other. */
 const translationsWithPluralKey = async (request: APIRequest) => {
 	const api = await newAdminApi(request)
@@ -94,6 +109,30 @@ const openImportReview = async (page: Page) => {
 	await expect(getImportDialog(page).getByRole('table', { name: 'Stĺpce jazykov v súbore' })).toBeVisible()
 	await getImportDialog(page).getByRole('button', { name: '1 upozornenie pre stĺpec cs' }).click()
 	await expect(getImportDialog(page).getByText('Upozornenia pre stĺpec cs')).toBeVisible()
+}
+
+/** The export modal with its defaults: CSV checked, the other formats disabled, every language, Všetky and the file name. */
+const openExport = async (page: Page) => {
+	await page.getByRole('main').getByRole('button', { name: 'Exportovať' }).click()
+	await expect(getExportDialog(page).getByRole('checkbox', { name: 'Slovenčina' })).toBeChecked()
+}
+
+/** Every language unchecked and an invalid file name: both field errors. */
+const openExportWithFieldErrors = async (page: Page) => {
+	await openExport(page)
+	const dialog = getExportDialog(page)
+	await dialog.getByRole('checkbox', { name: 'Slovenčina' }).click()
+	await dialog.getByRole('checkbox', { name: 'Angličtina' }).click()
+	await dialog.getByRole('textbox', { name: /^Názov súboru/ }).fill('preklady/sk')
+	await dialog.getByRole('button', { name: 'Exportovať CSV' }).click()
+	await expect(dialog.getByText('Vyberte aspoň jeden jazyk.')).toBeVisible()
+}
+
+/** The 422 list of values that would break the CSV. */
+const openExportWithUnsafeValues = async (page: Page) => {
+	await openExport(page)
+	await getExportDialog(page).getByRole('button', { name: 'Exportovať CSV' }).click()
+	await expect(getExportDialog(page).getByRole('alert')).toBeVisible()
 }
 
 /** Edit translation modal of the untranslated `orders.empty.title` (en): key, language, the base language reference, the empty field and the buttons. */
@@ -202,6 +241,24 @@ const SCREENS: Screen[] = [
 		path: inNewProject('translations'),
 		ready: translationsReady,
 		prepare: openImportReview,
+	},
+	{
+		name: 'export modal',
+		path: inNewProject('translations'),
+		ready: translationsReady,
+		prepare: openExport,
+	},
+	{
+		name: 'export modal with field errors',
+		path: inNewProject('translations'),
+		ready: translationsReady,
+		prepare: openExportWithFieldErrors,
+	},
+	{
+		name: 'export modal with unsafe values',
+		path: translationsWithUnsafeValue,
+		ready: translationsReady,
+		prepare: openExportWithUnsafeValues,
 	},
 	{
 		name: 'admin projects',

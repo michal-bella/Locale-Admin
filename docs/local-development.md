@@ -82,7 +82,7 @@ flowchart LR
 | `EXPORT_MAX_CONCURRENT`                             | BE               | počet exportov, ktoré bežia naraz v jednom procese (pode), default `2` ([export](./api/exports.md#súbežné-exporty)) |
 | `EXPORT_QUEUE_MAX`                                  | BE               | koľko exportov môže čakať vo fronte, default `20`; plná fronta → 429 `EXPORT_BUSY`                                  |
 | `EXPORT_QUEUE_TIMEOUT_MS`                           | BE               | najdlhšie čakanie vo fronte v ms, default `10000`; potom 429                                                        |
-| `EXPORT_TIMEOUT_MS`                                 | BE               | najdlhší export v ms vrátane sťahovania, default `60000`; potom sa transakcia zruší a spojenie zavrie               |
+| `EXPORT_TIMEOUT_MS`                                 | BE               | najdlhší export v ms vrátane sťahovania, default `60000`; potom backend zavrie spojenie a export skončí             |
 
 ## Troubleshooting
 

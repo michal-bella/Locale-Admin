@@ -27,6 +27,15 @@ const fieldIssue = (field: string): ExportIssueCode | null => {
 	return /[\r\n]/.test(field) ? 'LINE_BREAK' : null
 }
 
+/**
+ * A namespace that `convert-csv-to-json` reads back differently from its section line: `a--b` becomes `a`, `x-` becomes `x`,
+ * `-` is not a section at all. Reported once, on the first exported key of the namespace.
+ */
+export const namespaceIssue = (row: ExportRow): ExportIssue | null =>
+	row.namespace !== '' && SECTION_MARKER_PATTERN.exec(csvSection(row.namespace))?.[0] !== row.namespace
+		? { code: 'NAMESPACE', keyId: row.keyId, namespace: row.namespace, key: row.key, languageTag: null }
+		: null
+
 /** Everything in the row that would break the file for `convert-csv-to-json`; `tags` are the languages of `values`. */
 export const rowIssues = (row: ExportRow, tags: string[]): ExportIssue[] => {
 	const issue = (code: ExportIssueCode, languageTag: string | null): ExportIssue => ({

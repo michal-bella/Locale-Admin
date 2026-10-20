@@ -547,6 +547,7 @@
 		},
 		"fileName": {
 			"label": "File name",
+			"extensionHint": ", the .csv extension is added",
 			"required": "Enter a file name.",
 			"invalid": "The file name cannot contain \\ / : * ? \" < > |.",
 			"tooLong": "The file name can have at most {{max}} characters."
@@ -554,13 +555,13 @@
 		"issues": {
 			"value": {
 				"SEMICOLON": "“{{key}}”: the {{language}} translation contains a semicolon (;).",
-				"LINE_BREAK": "“{{key}}”: the {{language}} translation contains a line break.",
-				"SECTION_MARKER": "“{{key}}”: the {{language}} translation contains text like --name--."
+				"LINE_BREAK": "“{{key}}”: the {{language}} translation contains a line break."
 			},
 			"row": {
 				"SEMICOLON": "The key “{{key}}” contains a semicolon (;).",
 				"LINE_BREAK": "The key “{{key}}” contains a line break.",
-				"SECTION_MARKER": "“{{key}}”: the row contains text like --name--, which would be read as a new section."
+				"SECTION_MARKER": "“{{key}}”: the row contains text like --name--, which would be read as a new section.",
+				"NAMESPACE": "The namespace “{{namespace}}” would be read back differently from the CSV (it contains -- or ends with a dash). Rename it."
 			},
 			"more_one": "… and {{count}} more.",
 			"more_other": "… and {{count}} more."

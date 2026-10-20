@@ -48,7 +48,7 @@ export type Config = {
 	exportMaxConcurrent: number
 	exportQueueMax: number
 	exportQueueTimeoutMs: number
-	/** Whole export including the client download; the transaction is rolled back and the connection closed after it. */
+	/** Whole export including the client download; after it the connection is closed and the export stops at its next database call. */
 	exportTimeoutMs: number
 }
 

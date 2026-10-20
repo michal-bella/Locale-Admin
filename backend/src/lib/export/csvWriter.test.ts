@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { parseCsv } from '../import/csvParser'
 
-import { csvHeader, csvRow, csvSection, rowIssues, type ExportRow } from './csvWriter'
+import { csvHeader, csvRow, csvSection, namespaceIssue, rowIssues, type ExportRow } from './csvWriter'
 
 const KEY_ID = '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d'
 
@@ -46,5 +46,14 @@ describe('csvWriter', () => {
 		expect(rowIssues(row('a --', ['-- b']), ['sk'])).toMatchObject([{ code: 'SECTION_MARKER' }])
 		expect(rowIssues(row('a', ['x ---- y', 'Jeden -- druhý']), ['sk', 'en'])).toEqual([])
 		expect(rowIssues(row('a', [null, 'ok']), ['sk', 'en'])).toEqual([])
+	})
+
+	it('reports a namespace that convert-csv-to-json reads back differently', () => {
+		for (const namespace of ['', 'loc', 'notino-partner', 'b2b.web', 'a-b-c', '-start']) {
+			expect(namespaceIssue(row('k', [], namespace))).toBeNull()
+		}
+		for (const namespace of ['a--b', 'x-', '-']) {
+			expect(namespaceIssue(row('k', [], namespace))).toEqual({ code: 'NAMESPACE', keyId: KEY_ID, namespace, key: 'k', languageTag: null })
+		}
 	})
 })

@@ -43,15 +43,16 @@ export type ExportQueryInput = z.input<typeof exportQuerySchema>
 
 /**
  * What would break the CSV for `convert-csv-to-json` of GoodRequest/i18nextJsonToCsv: it splits rows on `;`,
- * lines on a line break, and takes any line with `--name--` in it for a new namespace section.
+ * lines on a line break, takes any line with `--name--` in it for a new namespace section, and reads a namespace
+ * with `--` or a trailing `-` back differently (`NAMESPACE`).
  */
-export const EXPORT_ISSUE_CODES = ['SEMICOLON', 'LINE_BREAK', 'SECTION_MARKER'] as const
+export const EXPORT_ISSUE_CODES = ['SEMICOLON', 'LINE_BREAK', 'SECTION_MARKER', 'NAMESPACE'] as const
 
 export const exportIssueCodeSchema = z.enum(EXPORT_ISSUE_CODES)
 
 export type ExportIssueCode = z.infer<typeof exportIssueCodeSchema>
 
-/** `languageTag` is the language of the value, `null` for the key itself or the whole row (`SECTION_MARKER`). */
+/** `languageTag` is the language of the value, `null` for the key itself, the whole row (`SECTION_MARKER`) or its namespace (`NAMESPACE`). */
 export const exportIssueSchema = z.object({
 	code: exportIssueCodeSchema,
 	keyId: z.uuid(),

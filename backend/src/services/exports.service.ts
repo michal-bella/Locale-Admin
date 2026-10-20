@@ -2,7 +2,7 @@ import { ERROR_CODE, EXPORT_ISSUES_MAX, type ExportIssue, type ExportQuery, type
 
 import { Prisma } from '../generated/prisma/client'
 import { AppError } from '../lib/errors'
-import { csvHeader, csvRow, csvSection, rowIssues, type ExportRow } from '../lib/export/csvWriter'
+import { csvHeader, csvRow, csvSection, namespaceIssue, rowIssues, type ExportRow } from '../lib/export/csvWriter'
 import { type PrismaClient } from '../lib/prisma'
 
 type Tx = Prisma.TransactionClient
@@ -18,20 +18,16 @@ export const EXPORT_BATCH_SIZE = 1000
 /** Same order as the Languages page: the base language first, then the drag and drop position. */
 const LANGUAGE_ORDER = [{ isBase: 'desc' }, { position: 'asc' }, { tag: 'asc' }] satisfies Prisma.ProjectLanguageOrderByWithRelationInput[]
 
-/** A key misses an exported language when it has no row or a `null` value for it. */
-const statusCondition = (status: ExportStatus, languageIds: string[]): Prisma.Sql => {
-	if (status === 'ALL') {
-		return Prisma.empty
-	}
-	const missing = Prisma.sql`EXISTS (
-		SELECT 1 FROM unnest(${languageIds}::uuid[]) AS l(id)
-		WHERE NOT EXISTS (SELECT 1 FROM "Translation" x WHERE x."keyId" = k.id AND x."languageId" = l.id AND x.value IS NOT NULL))`
-	return status === 'UNTRANSLATED' ? Prisma.sql`AND ${missing}` : Prisma.sql`AND NOT ${missing}`
-}
+/** Prisma's transaction timer outlives the controller's export timeout, so a timed out export ends its callback before Prisma closes it. */
+const TRANSACTION_TIMEOUT_MARGIN_MS = 5000
+
+/** A key misses an exported language when its value is `null` (no row or a `null` value). */
+const matchesStatus = (row: ExportRow, status: ExportStatus) => status === 'ALL' || row.values.includes(null) === (status === 'UNTRANSLATED')
 
 /**
  * Keys in byte order of namespace and name (`COLLATE "C"`, the order of the i18nextJsonToCsv file), read with keyset
- * paging so memory does not grow with the project.
+ * paging so memory does not grow with the project. The status is filtered here, after the batch is read: as an SQL
+ * condition it would be evaluated for every remaining key of the project in every batch.
  */
 async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], status: ExportStatus): AsyncGenerator<ExportRow[]> {
 	let last: KeyRow | undefined
@@ -42,7 +38,7 @@ async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], sta
 		const keys = await tx.$queryRaw<KeyRow[]>`
 			SELECT k.id, k.namespace, k.name
 			FROM "TranslationKey" k
-			WHERE k."projectId" = ${projectId}::uuid ${statusCondition(status, languageIds)} ${after}
+			WHERE k."projectId" = ${projectId}::uuid ${after}
 			ORDER BY k.namespace COLLATE "C", k.name COLLATE "C"
 			LIMIT ${EXPORT_BATCH_SIZE}`
 		if (keys.length === 0) {
@@ -53,12 +49,14 @@ async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], sta
 			select: { keyId: true, languageId: true, value: true },
 		})
 		const values = new Map(translations.map((translation) => [`${translation.keyId}:${translation.languageId}`, translation.value]))
-		yield keys.map((key) => ({
-			keyId: key.id,
-			namespace: key.namespace,
-			key: key.name,
-			values: languageIds.map((languageId) => values.get(`${key.id}:${languageId}`) ?? null),
-		}))
+		yield keys
+			.map((key) => ({
+				keyId: key.id,
+				namespace: key.namespace,
+				key: key.name,
+				values: languageIds.map((languageId) => values.get(`${key.id}:${languageId}`) ?? null),
+			}))
+			.filter((row) => matchesStatus(row, status))
 		if (keys.length < EXPORT_BATCH_SIZE) {
 			return
 		}
@@ -87,12 +85,20 @@ export const exportCsv = async (prisma: PrismaClient, projectId: string, query: 
 		async (tx) => {
 			const issues: ExportIssue[] = []
 			let total = 0
+			let checkedNamespace = ''
 			for await (const rows of rowBatches(tx, projectId, languageIds, query.status)) {
 				if (sink.signal.aborted) {
 					return 0
 				}
 				for (const row of rows) {
 					const found = rowIssues(row, tags)
+					if (row.namespace !== checkedNamespace) {
+						checkedNamespace = row.namespace
+						const namespace = namespaceIssue(row)
+						if (namespace) {
+							found.unshift(namespace)
+						}
+					}
 					total += found.length
 					issues.push(...found.slice(0, EXPORT_ISSUES_MAX - issues.length))
 				}
@@ -122,6 +128,6 @@ export const exportCsv = async (prisma: PrismaClient, projectId: string, query: 
 			}
 			return written
 		},
-		{ isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: timeoutMs },
+		{ isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: timeoutMs + TRANSACTION_TIMEOUT_MARGIN_MS },
 	)
 }

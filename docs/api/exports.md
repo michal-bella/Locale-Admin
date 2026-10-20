@@ -40,8 +40,8 @@ Keys; sk ; en ; cs ⏎
 
 - UTF-8 bez BOM, riadky `\n`, aj posledný.
 - Hlavička `Keys` a pre každý jazyk `; <tag> `. Jazyky v poradí projektu: základný prvý, potom podľa `position` (ako na stránke Jazyky).
-- Kľúče bez namespace (`""`) idú na začiatok bez sekcie, potom sekcia `--<namespace>--` a jej kľúče. Namespace aj kľúče sú zoradené podľa bajtov UTF-8 (`COLLATE "C"`), rovnako ako súbor z `convert-json-to-csv`, takže diff v gite ostáva malý.
-- Nepreložené = `null`. Prázdny reťazec sa v DB neukladá, preto sa `""` zo zdrojového JSON vráti ako `null`.
+- Kľúče bez namespace (`""`) idú na začiatok bez sekcie, potom sekcia `--<namespace>--` a jej kľúče. Namespace aj kľúče sú zoradené podľa bajtov UTF-8 (`COLLATE "C"`), rovnako ako súbor z `convert-json-to-csv`, takže diff v gite ostáva malý. `convert-csv-to-json` zapíše kľúče bez namespace do `<tag>/.json`, preto majú mať kľúče cieľového projektu vždy namespace.
+- Nepreložené = `null`. Prázdny reťazec sa v DB neukladá, preto sa `""` zo zdrojového JSON vráti ako `null`. Preklad, ktorý je doslova text `null`, sa v súbore nedá odlíšiť od nepreloženého (náš import ho načíta ako nepreložený).
 - Plurálový kľúč má v bunke jednu ICU správu tak, ako je uložená (`{count, plural, one {…} other {…}}`).
 - Hodnoty sa neupravujú (žiadne úvodzovky ani escapovanie).
 
@@ -49,7 +49,7 @@ Export import toho istého súboru vráti bajt po bajte (integračný test), s v
 
 ### Ako sa odpoveď tvorí
 
-Všetko beží v jednej transakcii `REPEATABLE READ`, takže súbor je konzistentný snímok aj počas súbežného importu. Kľúče sa čítajú po 1 000 (`EXPORT_BATCH_SIZE`, keyset stránkovanie). Prvý prechod iba kontroluje hodnoty, druhý pošle hlavičky a zapisuje dávky so spätným tlakom (čaká na `drain`). V pamäti je vždy najviac jedna dávka. Keď klient zavrie spojenie, export po aktuálnej dávke skončí (v oboch prechodoch) a transakcia sa uzavrie. Platí to aj pre klienta, ktorý odíde ešte počas overenia session a prístupu, teda skôr, ako kontrolér začne počúvať na `close` (zistí sa z `res.destroyed`); bez toho by export čakal na `drain` navždy a slot by sa nikdy neuvoľnil (našiel záťažový test, regresný test v `backend/test/exports.test.ts`). Každý dokončený export zapíše do logu `Export finished` s `keys`, `aborted`, `durationMs` a `heapUsedMb`. Celý export (vrátane sťahovania klientom) má limit `EXPORT_TIMEOUT_MS` (60 s): potom sa transakcia zruší a spojenie zavrie, takže klient, ktorý prestane čítať, nedrží slot ani spojenie do DB.
+Všetko beží v jednej transakcii `REPEATABLE READ`, takže súbor je konzistentný snímok aj počas súbežného importu. Kľúče sa čítajú po 1 000 (`EXPORT_BATCH_SIZE`, keyset stránkovanie); filter stavu sa vyhodnotí až v JS nad načítanou dávkou, nie v SQL, aby jeho cena nerástla s počtom zostávajúcich kľúčov. Prvý prechod iba kontroluje hodnoty, druhý pošle hlavičky a zapisuje dávky so spätným tlakom (čaká na `drain`). V pamäti je vždy najviac jedna dávka. Keď klient zavrie spojenie, export po aktuálnej dávke skončí (v oboch prechodoch) a transakcia sa uzavrie. Platí to aj pre klienta, ktorý odíde ešte počas overenia session a prístupu, teda skôr, ako kontrolér začne počúvať na `close` (zistí sa z `res.destroyed`); bez toho by export čakal na `drain` navždy a slot by sa nikdy neuvoľnil (našiel záťažový test, regresný test v `backend/test/exports.test.ts`). Každý dokončený export zapíše do logu `Export finished` s `keys`, `aborted`, `durationMs` a `heapUsedMb`. Celý export (vrátane sťahovania klientom) má limit `EXPORT_TIMEOUT_MS` (60 s): potom backend zavrie spojenie a export skončí pri najbližšom kroku; slot a spojenie do DB sa uvoľnia, keď dobehne práve bežiaci dotaz. Transakcia má limit o 5 s dlhší, aby export po vypršaní stihol skončiť sám a nezalogoval chybu zavretej transakcie.
 
 ## Súbežné exporty
 
@@ -61,11 +61,12 @@ Limit je v pamäti procesu, pri 2 podoch teda naraz bežia najviac 4 exporty. Va
 
 `convert-csv-to-json` delí riadky podľa `;`, súbor podľa nového riadku a riadok s `--niečo--` kdekoľvek berie ako novú sekciu. Taký súbor by potichu pokazil preklady, preto ho export odmietne skôr, ako niečo pošle:
 
-| `code`           | Kedy                                                                                           | `languageTag`                   |
-| ---------------- | ---------------------------------------------------------------------------------------------- | ------------------------------- |
-| `SEMICOLON`      | `;` v kľúči alebo v hodnote (aj `&nbsp;`)                                                      | jazyk hodnoty, pri kľúči `null` |
-| `LINE_BREAK`     | `\n` alebo `\r` v kľúči alebo v hodnote                                                        | jazyk hodnoty, pri kľúči `null` |
-| `SECTION_MARKER` | riadok obsahuje `--x--` (aj cez hranicu polí); kontroluje sa len pri riadku bez ostatných chýb | `null`                          |
+| `code`           | Kedy                                                                                                                                                             | `languageTag`                   |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `SEMICOLON`      | `;` v kľúči alebo v hodnote (aj `&nbsp;`)                                                                                                                        | jazyk hodnoty, pri kľúči `null` |
+| `LINE_BREAK`     | `\n` alebo `\r` v kľúči alebo v hodnote                                                                                                                          | jazyk hodnoty, pri kľúči `null` |
+| `NAMESPACE`      | namespace, ktorý skript prečíta inak: obsahuje `--` (`a--b` → `a`) alebo končí pomlčkou (`x-` → `x`, `-` nie je sekcia); hlási sa raz, pri prvom kľúči namespace | `null`                          |
+| `SECTION_MARKER` | riadok obsahuje `--x--` (aj cez hranicu polí); kontroluje sa len pri riadku bez ostatných chýb                                                                   | `null`                          |
 
 Kontrolujú sa iba exportované kľúče a jazyky (po filtri stavu). Medzera na začiatku alebo konci hodnoty export neblokuje, skript ju len oreže (rovnako ako náš import).
 

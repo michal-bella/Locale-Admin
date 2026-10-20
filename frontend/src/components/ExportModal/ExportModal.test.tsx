@@ -104,7 +104,8 @@ describe('ExportModal', () => {
 		expect(within(dialog).getByRole('checkbox', { name: 'Angličtina' })).toBeChecked()
 		expect(within(dialog).getByRole('checkbox', { name: 'Nemčina (Rakúsko)' })).toBeChecked()
 		expect(within(dialog).getByRole('radio', { name: 'Všetky' })).toBeChecked()
-		expect(within(dialog).getByRole('textbox', { name: 'Názov súboru' })).toHaveValue('translations')
+		expect(within(dialog).getByRole('textbox', { name: 'Názov súboru, prípona .csv sa doplní' })).toHaveValue('translations')
+		expect(within(dialog).getByRole('radio', { name: /CSV/ })).toHaveFocus()
 		expect(within(dialog).queryByText('Zahrnúť popisy a metadáta kľúčov')).not.toBeInTheDocument()
 	})
 
@@ -130,7 +131,7 @@ describe('ExportModal', () => {
 		const dialog = await openModal()
 		fireEvent.click(await within(dialog).findByRole('checkbox', { name: 'Angličtina' }))
 		fireEvent.click(within(dialog).getByRole('radio', { name: 'Nepreložené' }))
-		fireEvent.change(within(dialog).getByRole('textbox', { name: 'Názov súboru' }), { target: { value: ' notino-b2b.csv ' } })
+		fireEvent.change(within(dialog).getByRole('textbox', { name: 'Názov súboru, prípona .csv sa doplní' }), { target: { value: ' notino-b2b.csv ' } })
 
 		submit(dialog)
 
@@ -145,15 +146,19 @@ describe('ExportModal', () => {
 		for (const name of ['Slovenčina', 'Angličtina', 'Nemčina (Rakúsko)']) {
 			fireEvent.click(await within(dialog).findByRole('checkbox', { name }))
 		}
-		const fileName = within(dialog).getByRole('textbox', { name: 'Názov súboru' })
+		const fileName = within(dialog).getByRole('textbox', { name: 'Názov súboru, prípona .csv sa doplní' })
 		fireEvent.change(fileName, { target: { value: 'preklady/sk' } })
 
 		submit(dialog)
 
 		expect(await within(dialog).findByText('Vyberte aspoň jeden jazyk.')).toBeInTheDocument()
+		expect(within(dialog).getByRole('checkbox', { name: 'Slovenčina' })).toHaveFocus()
 		expect(within(dialog).getByText('Názov súboru nesmie obsahovať znaky \\ / : * ? " < > |.')).toBeInTheDocument()
+		fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Slovenčina' }))
 		fireEvent.change(fileName, { target: { value: ' .csv' } })
+		submit(dialog)
 		expect(within(dialog).getByText('Zadajte názov súboru.')).toBeInTheDocument()
+		expect(fileName).toHaveFocus()
 		expect(exportRequests(requests)).toHaveLength(0)
 	})
 
@@ -169,8 +174,9 @@ describe('ExportModal', () => {
 						issues: [
 							{ ...issue, code: 'SEMICOLON', languageTag: 'en' },
 							{ ...issue, code: 'SECTION_MARKER', languageTag: null },
+							{ ...issue, namespace: 'a--b', code: 'NAMESPACE', languageTag: null },
 						],
-						total: 7,
+						total: 8,
 					},
 				},
 			}),
@@ -190,7 +196,9 @@ describe('ExportModal', () => {
 		).toEqual([
 			'„loc / Ahoj“: preklad angličtina obsahuje bodkočiarku (;).',
 			'„loc / Ahoj“: riadok obsahuje text v tvare --názov--, ktorý by sa načítal ako nová sekcia.',
+			'Namespace „a--b“ by sa v CSV načítal inak (obsahuje -- alebo končí pomlčkou). Premenujte ho.',
 		])
+		expect(alert).toHaveFocus()
 		expect(within(alert).getByText('… a ešte 5 ďalších.')).toBeInTheDocument()
 		expect(downloads).toEqual([])
 		expect(screen.getByRole('dialog', { name: 'Exportovať preklady' })).toBeInTheDocument()
@@ -204,7 +212,9 @@ describe('ExportModal', () => {
 
 		submit(dialog)
 
-		expect(await within(dialog).findByRole('alert')).toHaveTextContent('Export práve robí veľa ľudí naraz. Skúste to o chvíľu znova.')
+		const alert = await within(dialog).findByRole('alert')
+		expect(alert).toHaveTextContent('Export práve robí veľa ľudí naraz. Skúste to o chvíľu znova.')
+		expect(alert).toHaveFocus()
 		expect(downloads).toEqual([])
 	})
 })

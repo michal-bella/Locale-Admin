@@ -168,7 +168,9 @@
 		},
 		"card": {
 			"label": "Účet používateľa",
-			"createdAt": "Vytvorený {{date}}"
+			"createdAt": "Vytvorený {{date}}",
+			"role": "Rola",
+			"roleSaved": "Rola bola uložená."
 		},
 		"projects": {
 			"title": "Projekty",

@@ -13,6 +13,13 @@ export const createUserRequestSchema = z.object({
 
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>
 
+/** Body of `PATCH /api/admin/users/:id`: changes the global role. The last `ADMIN` cannot become an `EDITOR`. */
+export const updateUserRequestSchema = z.object({
+	role: z.enum(ROLE),
+})
+
+export type UpdateUserRequest = z.infer<typeof updateUserRequestSchema>
+
 /** One user in the admin list and the body of `201 POST /api/admin/users`. Never contains `passwordHash`. */
 export const adminUserSchema = z.object({
 	id: z.uuid(),

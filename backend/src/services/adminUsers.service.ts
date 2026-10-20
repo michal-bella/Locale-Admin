@@ -1,4 +1,4 @@
-import { ERROR_CODE, type AdminUser, type AdminUserDetail, type CreateUserRequest } from '@locale/shared'
+import { ERROR_CODE, ROLE, type AdminUser, type AdminUserDetail, type CreateUserRequest, type UpdateUserRequest } from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
 import { ROLE_FROM_PRISMA, ROLE_TO_PRISMA } from '../lib/authUser'
@@ -55,6 +55,19 @@ export const createUser = async (prisma: PrismaClient, { email, password, role }
 		}
 		throw err
 	}
+}
+
+/** Changes the global role of any user, the own account included; the last ADMIN keeps the role so that somebody can manage users. */
+export const updateUser = async (prisma: PrismaClient, id: string, { role }: UpdateUserRequest): Promise<AdminUserDetail> => {
+	const user = await prisma.user.findUnique({ where: { id }, select: { role: true } })
+	if (!user) {
+		throw new AppError(404, ERROR_CODE.NOT_FOUND, 'User not found')
+	}
+	if (ROLE_FROM_PRISMA[user.role] === ROLE.ADMIN && role !== ROLE.ADMIN && (await prisma.user.count({ where: { role: ROLE_TO_PRISMA[ROLE.ADMIN] } })) <= 1) {
+		throw new AppError(409, ERROR_CODE.LAST_ADMIN, 'The last admin cannot lose the admin role')
+	}
+	await prisma.user.update({ where: { id }, data: { role: ROLE_TO_PRISMA[role] }, select: { id: true } })
+	return getUser(prisma, id)
 }
 
 /** Deletes any user; sessions and project memberships cascade. Nobody deletes their own account, so at least one admin always stays. */

@@ -1,12 +1,12 @@
 import { type RequestHandler } from 'express'
 import { z } from 'zod'
 
-import { createUserRequestSchema, ERROR_CODE, type AdminUser, type AdminUserDetail, type AdminUserListResponse } from '@locale/shared'
+import { createUserRequestSchema, ERROR_CODE, updateUserRequestSchema, type AdminUser, type AdminUserDetail, type AdminUserListResponse } from '@locale/shared'
 
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 import { getAuth } from '../middleware/auth.middleware'
-import { createUser, deleteUser, getUser, listUsers } from '../services/adminUsers.service'
+import { createUser, deleteUser, getUser, listUsers, updateUser } from '../services/adminUsers.service'
 
 export const createListUsersController =
 	(prisma: PrismaClient): RequestHandler =>
@@ -31,6 +31,17 @@ export const createCreateUserController =
 		const input = createUserRequestSchema.parse(req.body)
 		const body: AdminUser = await createUser(prisma, input)
 		res.status(201).json(body)
+	}
+
+export const createUpdateUserController =
+	(prisma: PrismaClient): RequestHandler<{ id: string }> =>
+	async (req, res) => {
+		if (!z.uuid().safeParse(req.params.id).success) {
+			throw new AppError(404, ERROR_CODE.NOT_FOUND, 'User not found')
+		}
+		const input = updateUserRequestSchema.parse(req.body)
+		const body: AdminUserDetail = await updateUser(prisma, req.params.id, input)
+		res.status(200).json(body)
 	}
 
 export const createDeleteUserController =

@@ -73,7 +73,7 @@ Každá chyba má tvar `{ error: { code, message, details? } }`.
 | 409  | `LAST_MEMBER`               | posledný člen by opustil projekt alebo bol z neho odobraný                                                                     |
 | 409  | `ALREADY_MEMBER`            | používateľ už je členom projektu                                                                                               |
 | 409  | `SELF_DELETE`               | admin chce odstrániť vlastný účet                                                                                              |
-| 409  | `LAST_ADMIN`                | posledný admin sa chce vzdať roly `ADMIN` (viď [profil](./profile.md))                                                         |
+| 409  | `LAST_ADMIN`                | posledný admin by prišiel o rolu `ADMIN` (viď [profil](./profile.md), [správa používateľov](./admin-users.md))                 |
 | 409  | `TRANSLATION_KEY_TAKEN`     | kľúč s týmto názvom už v namespace existuje (premenovanie kľúča)                                                               |
 | 422  | `IMPORT_FILE_INVALID`       | importovaný súbor má chyby, `details: { issues, total }`                                                                       |
 | 429  | `RATE_LIMITED`              | prekročený rate limit, s hlavičkou `Retry-After`                                                                               |

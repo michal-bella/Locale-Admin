@@ -5,7 +5,7 @@ import { useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { TRANSLATIONS_PAGE_SIZE_DEFAULT, type TranslationsView } from '@locale/shared'
+import { type TranslationsLayout, type TranslationsView } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -21,7 +21,7 @@ import TranslationStats from '@/components/TranslationStats/TranslationStats'
 import TranslationsPagination from '@/components/TranslationsPagination/TranslationsPagination'
 import TranslationsTable from '@/components/TranslationsTable/TranslationsTable'
 import TranslationsToolbar from '@/components/TranslationsToolbar/TranslationsToolbar'
-import { type TranslationsSearch } from '@/routes/projectTranslationsRoute'
+import { TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsPage.module.css'
 
@@ -30,8 +30,9 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
 /**
  * Translations of the project (Figma 3:2): stats, filters in the URL, the table (cells open the edit modal) and pagination. The view is the
  * user's preference (`me.preferences.translationsView`): `EXTENDED` lists every language of the project and the API decides the row status
- * by all of them (no language ids in the query); `COMPACT` is the Figma source → target pair. Either view lays its languages side by side or stacked (`?layout=STACKED`). Without Exportovať, Posledný sync and the
- * Na kontrolu card. Importovať opens `ImportModal`.
+ * by all of them (no language ids in the query); `?languages=` narrows its columns to the base language plus the chosen ones without changing
+ * the row status. `COMPACT` is the Figma source → target pair. Either view lays its languages side by side or stacked, also a preference
+ * (`me.preferences.translationsLayout`). Without Exportovať, Posledný sync and the Na kontrolu card. Importovať opens `ImportModal`.
  */
 const TranslationsPage = () => {
 	const { t } = useTranslation()
@@ -41,6 +42,7 @@ const TranslationsPage = () => {
 	const { data: project } = useProjectSettingsQuery(projectId)
 	const { data: me } = useMeQuery()
 	const view: TranslationsView = me?.preferences.translationsView ?? 'EXTENDED'
+	const layout: TranslationsLayout = me?.preferences.translationsLayout ?? 'COLUMNS'
 	const updatePreferences = useUpdatePreferencesMutation()
 	const languagesQuery = useProjectLanguagesQuery(projectId)
 	const languages = languagesQuery.data ?? []
@@ -58,11 +60,22 @@ const TranslationsPage = () => {
 	const sourceLanguage = languages.find((language) => language.tag === search.source) ?? baseLanguage
 	const targetLanguage =
 		languages.find((language) => language.tag === search.target) ?? languages.find((language) => language.id !== sourceLanguage?.id) ?? sourceLanguage
-	const layout = search.layout ?? 'COLUMNS'
+	const shownLanguageTags = view === 'EXTENDED' ? search.languages : undefined
+	const tableLanguages = shownLanguageTags ? languages.filter((language) => language.isBase || shownLanguageTags.includes(language.tag)) : languages
 	const sort = search.sort ?? 'UNTRANSLATED_FIRST'
 	const page = search.page ?? 1
+	const pageSize = search.pageSize ?? TRANSLATIONS_PAGE_SIZES[0]
 
-	const filters = { search: search.search, status: search.status, namespace: search.namespace, sort, page, pageSize: TRANSLATIONS_PAGE_SIZE_DEFAULT }
+	const filters = {
+		search: search.search,
+		status: search.status,
+		namespace: search.namespace,
+		updatedById: search.updatedBy,
+		updatedWithin: search.updatedWithin,
+		sort,
+		page,
+		pageSize,
+	}
 	const listQuery =
 		sourceLanguage && targetLanguage
 			? view === 'COMPACT'
@@ -82,11 +95,10 @@ const TranslationsPage = () => {
 		return result
 	}
 
-	const changeView = (next: TranslationsView) =>
-		updatePreferences.mutate(
-			{ translationsView: next },
-			{ onError: (error) => notifications.show({ color: 'red', message: t(`errors.${getApiErrorCode(error)}`) }) },
-		)
+	const changePreferences = (preferences: { translationsView: TranslationsView } | { translationsLayout: TranslationsLayout }) =>
+		updatePreferences.mutate(preferences, {
+			onError: (error) => notifications.show({ color: 'red', message: t(`errors.${getApiErrorCode(error)}`) }),
+		})
 
 	const updateSearch = (patch: Partial<TranslationsSearch>, { resetPage = true } = {}) =>
 		void navigate({ search: (previous) => ({ ...previous, ...patch, ...(resetPage ? { page: undefined } : {}) }), replace: true })
@@ -100,7 +112,7 @@ const TranslationsPage = () => {
 		}
 	}, [isPastEnd, lastPage, navigate])
 
-	const clearFilters = () => updateSearch({ search: undefined, status: undefined, namespace: undefined })
+	const clearFilters = () => updateSearch({ search: undefined, status: undefined, namespace: undefined, updatedBy: undefined, updatedWithin: undefined })
 
 	const retry = async () => {
 		const languagesResult = languagesQuery.isError ? await languagesQuery.refetch() : languagesQuery
@@ -129,9 +141,9 @@ const TranslationsPage = () => {
 		return t('translationsPage.pagination.summary', { shown: data.items.length, count: data.total })
 	})()
 
-	// The extended table (16rem key + 16rem per language + 8.5rem status) outgrows the 1440 px frame from the fourth language on; the page then
+	// The extended table (14rem key + 14rem per language + 8.5rem status) outgrows the 1440 px frame from the fourth language on; the page then
 	// uses the full width and keeps only the padding.
-	const isWide = view === 'EXTENDED' && layout === 'COLUMNS' && languages.length > 3
+	const isWide = view === 'EXTENDED' && layout === 'COLUMNS' && tableLanguages.length > 3
 
 	return (
 		<div className={`mx-auto flex w-full flex-col gap-6 p-8 ${isWide ? '' : 'max-w-[1440px]'}`}>
@@ -162,15 +174,21 @@ const TranslationsPage = () => {
 						namespace={search.namespace}
 						sort={sort}
 						view={view}
-						onViewChange={changeView}
-						isViewSaving={updatePreferences.isPending}
+						onViewChange={(next) => changePreferences({ translationsView: next })}
+						isPreferenceSaving={updatePreferences.isPending}
 						layout={layout}
-						onLayoutChange={(next) => updateSearch({ layout: next === 'COLUMNS' ? undefined : next }, { resetPage: false })}
+						onLayoutChange={(next) => changePreferences({ translationsLayout: next })}
 						languages={languages}
 						sourceLanguage={sourceLanguage}
 						targetLanguage={targetLanguage}
+						shownLanguages={search.languages}
+						updatedBy={search.updatedBy}
+						updatedWithin={search.updatedWithin}
+						translationsOnly={search.translationsOnly}
+						editors={data?.editors ?? []}
 						namespaces={data?.namespaces ?? []}
-						onChange={updateSearch}
+						// The shown languages and Len preklady change only the columns, so the page stays.
+						onChange={(patch) => updateSearch(patch, { resetPage: !('languages' in patch || 'translationsOnly' in patch) })}
 					/>
 				</div>
 				<TranslationsTable
@@ -183,12 +201,13 @@ const TranslationsPage = () => {
 					isRetrying={languagesQuery.isRefetching || translationsQuery.isRefetching}
 					view={view}
 					layout={layout}
-					languages={languages}
+					languages={tableLanguages}
 					sourceLanguage={sourceLanguage}
 					targetLanguage={targetLanguage}
 					onClearFilters={clearFilters}
 					onImport={importModal.open}
 					showGroups={sort !== 'UPDATED'}
+					translationsOnly={search.translationsOnly}
 					onSave={saveTranslation}
 				/>
 			</div>
@@ -197,10 +216,11 @@ const TranslationsPage = () => {
 			{!isError && !isPastEnd && data && data.total > 0 && (
 				<TranslationsPagination
 					page={page}
-					pageSize={data.pageSize}
+					pageSize={pageSize}
 					total={data.total}
 					shown={data.items.length}
 					onChange={(next) => updateSearch({ page: next === 1 ? undefined : next }, { resetPage: false })}
+					onPageSizeChange={(next) => updateSearch({ pageSize: next === TRANSLATIONS_PAGE_SIZES[0] ? undefined : next })}
 				/>
 			)}
 			<ImportModal projectId={projectId} opened={importOpened} onClose={closeImport} />

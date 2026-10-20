@@ -38,7 +38,7 @@ describe('profileSchema', () => {
 			role: ROLE.EDITOR,
 			firstName: 'Martin',
 			lastName: 'Kováč',
-			preferences: { translationsView: 'EXTENDED' },
+			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
 			passwordChangedAt: '2026-07-17T08:00:00.000Z',
 			passwordHash: 'secret-hash',
 		}
@@ -51,5 +51,11 @@ describe('updatePreferencesRequestSchema', () => {
 		expect(updatePreferencesRequestSchema.parse({ translationsView: 'COMPACT' })).toEqual({ translationsView: 'COMPACT' })
 		const result = updatePreferencesRequestSchema.safeParse({ translationsView: 'WIDE' })
 		expect(result.success ? [] : toValidationIssues(result.error)).toEqual([{ path: 'translationsView', code: VALIDATION_CODE.INVALID }])
+	})
+
+	it('accepts the layout alone and rejects an empty body', () => {
+		expect(updatePreferencesRequestSchema.parse({ translationsLayout: 'STACKED' })).toEqual({ translationsLayout: 'STACKED' })
+		expect(updatePreferencesRequestSchema.safeParse({ translationsLayout: 'GRID' }).success).toBe(false)
+		expect(updatePreferencesRequestSchema.safeParse({}).success).toBe(false)
 	})
 })

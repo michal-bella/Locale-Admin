@@ -162,7 +162,7 @@ test.describe('/api/profile', () => {
 			role: 'EDITOR',
 			firstName: 'Jana',
 			lastName: 'Kováčová',
-			preferences: { translationsView: 'EXTENDED' },
+			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
 			passwordChangedAt: expect.any(String),
 		}
 		expect(await update.json()).toEqual(expected)
@@ -232,7 +232,7 @@ test.describe('/api/profile', () => {
 		const restored = await request.patch(PREFERENCES_API, { data: { translationsView: 'EXTENDED' }, headers: MUTATION_HEADERS })
 		expect(restored.status()).toBe(200)
 		expect(await restored.json()).toMatchObject({ preferences: { translationsView: 'EXTENDED' } })
-		expect((await me()).preferences).toEqual({ translationsView: 'EXTENDED' })
+		expect((await me()).preferences).toEqual({ translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' })
 	})
 })
 
@@ -439,6 +439,7 @@ test.describe('/api/projects/:projectId/translations', () => {
 			pageSize: 20,
 			stats: { totalKeys: 4, translated: 2, untranslated: 2 },
 			namespaces: ['loc', 'paths'],
+			editors: [],
 		})
 		const updatedAt = body.items[0]!.translations[en!.id]!.updatedAt!
 		expect(new Date(updatedAt).toISOString()).toBe(updatedAt)

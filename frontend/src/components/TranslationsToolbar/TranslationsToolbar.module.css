@@ -1,14 +1,21 @@
 .search {
-	flex: 1 1 15rem;
-	max-width: 20.625rem;
+	flex: 1 1 12rem;
 }
 
 .search svg {
 	color: var(--app-color-muted);
 }
 
+.filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
 .select {
-	width: 12rem;
+	flex: 1 1 11rem;
+	min-width: 0;
 }
 
 /* The chosen status shows as the badge in the left section; the input keeps the text for the accessible value but paints it invisible. */
@@ -28,8 +35,45 @@
 	width: 7rem;
 }
 
+.languages {
+	flex: 0 0 15rem;
+	min-width: 12rem;
+}
+
+/* Mantine keeps 100 px for the (unused) search field next to the pills, which pushes the second pill to a new line. */
+.languagesField {
+	flex: 1 1 1rem;
+	min-width: 1rem;
+}
+
+.pointer {
+	cursor: pointer;
+}
+
+.switch {
+	flex-shrink: 0;
+	padding-inline: 0.25rem;
+	white-space: nowrap;
+}
+
 .optionHint {
 	color: var(--app-color-muted);
+}
+
+.optionCheck {
+	margin-inline-start: auto;
+	color: var(--mantine-primary-color-filled);
+}
+
+.languagePill {
+	padding-inline-start: 0.25rem;
+	font-weight: 600;
+}
+
+.languagePillLabel {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
 }
 
 .arrow {
@@ -65,11 +109,12 @@
 
 /* Below Tailwind's sm breakpoint every control takes the full width, the language pair splits it in two. */
 @media (max-width: 39.99em) {
-	.search {
-		max-width: none;
+	.search,
+	.select,
+	.languages {
+		flex-basis: 100%;
 	}
 
-	.select,
 	.view {
 		width: 100%;
 	}

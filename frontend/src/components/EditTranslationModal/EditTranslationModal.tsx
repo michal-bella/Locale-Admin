@@ -100,7 +100,7 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	const [rejected, setRejected] = useState<Rejection | null>(null)
 	const editorRefs = useRef<Partial<Record<PluralForm, HTMLDivElement | null>>>({})
 	const pendingFocusRef = useRef(focusOnMount)
-	const label = t('translationsPage.editor.label', { key: item.name, language: language.nativeName })
+	const label = t('translationsPage.editor.label', { key: item.name, language: t(`languageNames.${language.tag}`) })
 	const lockedHintId = useId()
 	const errorId = useId()
 	const baseValue = baseLanguage && baseLanguage.id !== language.id ? (item.translations[baseLanguage.id]?.value ?? null) : undefined
@@ -240,6 +240,14 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 		/>
 	)
 
+	const labelWithLanguage = (label: string, labelled: Language) => (
+		<>
+			<LanguageFlag code={labelled.flagCode} size='xs' />
+			<span>{label} </span>
+			<span className={classes.languageHint}>({t(`languageNames.${labelled.tag}`)})</span>
+		</>
+	)
+
 	return (
 		<>
 			<div>
@@ -247,22 +255,17 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 				<span className={classes.key}>{item.name}</span>
 				{item.description && <span className={`${classes.description} block`}>{item.description}</span>}
 			</div>
-			<div>
-				<span className={classes.label}>{t('translationsPage.editModal.language')}</span>
-				<span className={classes.language}>
-					<LanguageFlag code={language.flagCode} size='sm' />
-					{language.nativeName}
-				</span>
-			</div>
 			{baseValue !== undefined && baseLanguage && (
 				<div>
 					<div className={classes.labelRow}>
-						<span className={classes.label}>{t('translationsPage.editModal.baseLanguage', { language: baseLanguage.nativeName })}</span>
+						<span className={`${classes.label} ${classes.labelWithLanguage}`}>
+							{labelWithLanguage(t('translationsPage.editModal.baseLanguage'), baseLanguage)}
+						</span>
 						{baseValue !== null && (
 							<RowAction
 								icon={Copy}
 								tooltip={t('translationsPage.editModal.copyBase')}
-								label={t('translationsPage.editModal.copyBaseLabel', { language: baseLanguage.nativeName })}
+								label={t('translationsPage.editModal.copyBaseLabel', { language: t(`languageNames.${baseLanguage.tag}`) })}
 								disabled={saving}
 								onClick={() => copyBase(baseValue)}
 							/>
@@ -274,7 +277,7 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 				</div>
 			)}
 			<div>
-				<span className={classes.label}>{t('translationsPage.editModal.value')}</span>
+				<span className={`${classes.label} ${classes.labelWithLanguage}`}>{labelWithLanguage(t('translationsPage.editModal.value'), language)}</span>
 				<div className={classes.forms}>
 					{plural
 						? forms.map((form, index) => (

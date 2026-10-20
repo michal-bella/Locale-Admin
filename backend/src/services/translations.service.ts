@@ -14,6 +14,7 @@ import {
 	type TranslationsResponse,
 	type TranslationsSort,
 	type TranslationStatus,
+	type TranslationsUpdatedWithin,
 	type UpdateTranslationKeyRequest,
 	type UpdateTranslationKeyResponse,
 	type UpdateTranslationResponse,
@@ -69,6 +70,8 @@ type ViewSql = {
 	untranslated: Prisma.Sql
 	updatedAt: Prisma.Sql
 	valueMatches: (pattern: string) => Prisma.Sql
+	/** A translation of the view (the target, or any language) matches `condition` on the alias `x`. */
+	translationMatches: (condition: Prisma.Sql) => Prisma.Sql
 }
 
 /** Compact view: the target language decides, the search also covers the source language. */
@@ -79,6 +82,8 @@ const compactView = (sourceLanguageId: string, targetLanguageId: string): ViewSq
 	untranslated: Prisma.sql`(t.value IS NULL)`,
 	updatedAt: Prisma.sql`t."updatedAt"`,
 	valueMatches: (pattern) => Prisma.sql`${matches(Prisma.sql`s.value`, pattern)} OR ${matches(Prisma.sql`t.value`, pattern)}`,
+	translationMatches: (condition) =>
+		Prisma.sql`EXISTS (SELECT 1 FROM "Translation" x WHERE x."keyId" = k.id AND x."languageId" = ${targetLanguageId}::uuid AND ${condition})`,
 })
 
 /** Extended view: a row is untranslated when any language of the project has no value (a missing row counts). */
@@ -90,7 +95,10 @@ const EXTENDED_VIEW: ViewSql = {
 		WHERE pl."projectId" = k."projectId" AND x.value IS NULL)`,
 	updatedAt: Prisma.sql`(SELECT max(x."updatedAt") FROM "Translation" x WHERE x."keyId" = k.id)`,
 	valueMatches: (pattern) => Prisma.sql`EXISTS (SELECT 1 FROM "Translation" x WHERE x."keyId" = k.id AND ${matches(Prisma.sql`x.value`, pattern)})`,
+	translationMatches: (condition) => Prisma.sql`EXISTS (SELECT 1 FROM "Translation" x WHERE x."keyId" = k.id AND ${condition})`,
 }
+
+const UPDATED_WITHIN_INTERVAL: Record<TranslationsUpdatedWithin, string> = { DAY: '1 day', WEEK: '7 days', MONTH: '30 days' }
 
 const orderBy = (sort: TranslationsSort, view: ViewSql): Prisma.Sql => {
 	switch (sort) {
@@ -146,10 +154,10 @@ const assertProjectLanguages = async (prisma: PrismaClient, projectId: string, l
 /**
  * Missing rows and `null` values are untranslated. With a source and target language the target decides the row status
  * (compact view), without them every language of the project does (extended view); see `translationsQuerySchema`. The
- * items carry a cell for every language either way. `stats` and `namespaces` ignore the filters.
+ * items carry a cell for every language either way. `stats`, `namespaces` and `editors` ignore the filters.
  */
 export const listTranslations = async (prisma: PrismaClient, projectId: string, query: TranslationsQuery): Promise<TranslationsResponse> => {
-	const { sourceLanguageId, targetLanguageId, search, status, namespace, sort, page, pageSize } = query
+	const { sourceLanguageId, targetLanguageId, search, status, namespace, updatedById, updatedWithin, sort, page, pageSize } = query
 	if (sourceLanguageId !== undefined && targetLanguageId !== undefined) {
 		await assertProjectLanguages(prisma, projectId, [sourceLanguageId, targetLanguageId])
 	}
@@ -166,9 +174,16 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	if (namespace !== undefined) {
 		conditions.push(Prisma.sql`k.namespace = ${namespace}`)
 	}
+	if (updatedById !== undefined || updatedWithin !== undefined) {
+		const updated = [
+			...(updatedById === undefined ? [] : [Prisma.sql`x."updatedById" = ${updatedById}::uuid`]),
+			...(updatedWithin === undefined ? [] : [Prisma.sql`x."updatedAt" >= now() - ${UPDATED_WITHIN_INTERVAL[updatedWithin]}::interval`]),
+		]
+		conditions.push(view.translationMatches(Prisma.join(updated, ' AND ')))
+	}
 	const from = Prisma.sql`"TranslationKey" k ${view.joins} WHERE ${Prisma.join(conditions, ' AND ')}`
 
-	const [rows, [count], [stats], namespaces, languages] = await Promise.all([
+	const [rows, [count], [stats], namespaces, languages, editors] = await Promise.all([
 		prisma.$queryRaw<ItemRow[]>`
 			SELECT k.id AS "keyId", k.namespace, k.name, ${GROUP_SQL} AS "group", k.description, k."pluralVariable", ${view.untranslated} AS untranslated
 			FROM ${from}
@@ -181,6 +196,10 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 			WHERE k."projectId" = ${projectId}::uuid`,
 		prisma.translationKey.findMany({ where: { projectId }, distinct: ['namespace'], select: { namespace: true }, orderBy: { namespace: 'asc' } }),
 		prisma.projectLanguage.findMany({ where: { projectId }, select: { id: true } }),
+		prisma.user.findMany({
+			where: { translations: { some: { key: { projectId } } } },
+			select: EDITOR_SELECT.select,
+		}),
 	])
 	const cellRows = await prisma.translation.findMany({
 		where: { keyId: { in: rows.map((row) => row.keyId) } },
@@ -196,6 +215,7 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 		pageSize,
 		stats: { totalKeys: stats.totalKeys, translated: stats.translated, untranslated: stats.totalKeys - stats.translated },
 		namespaces: namespaces.map((row) => row.namespace),
+		editors: editors.map(toEditor).sort((a, b) => a.name.localeCompare(b.name)),
 	}
 }
 

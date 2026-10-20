@@ -35,7 +35,17 @@
 			"move": "Move",
 			"moveLabel": "Move project {{name}}",
 			"moveHint": "Drag, or use the up and down arrows, to change the order. The order is only yours.",
-			"moved": "Project {{name}} is now at position {{position}} of {{count}}."
+			"moved": "Project {{name}} is now at position {{position}} of {{count}}.",
+			"keys_one": "{{count}} key",
+			"keys_few": "{{count}} keys",
+			"keys_many": "{{count}} keys",
+			"keys_other": "{{count}} keys",
+			"noKeys": "No keys yet",
+			"translated": "Translated: {{percent}}",
+			"untranslated": "Untranslated: {{percent}}",
+			"lessThan": "< {{percent}}",
+			"moreThan": "> {{percent}}",
+			"languages": "Languages of project {{name}}"
 		},
 		"createModal": {
 			"title": "New project",
@@ -118,6 +128,11 @@
 			"role": "Role",
 			"projects": "Projects",
 			"createdAt": "Created",
+			"projectCount_one": "{{count}} project",
+			"projectCount_few": "{{count}} projects",
+			"projectCount_many": "{{count}} projects",
+			"projectCount_other": "{{count}} projects",
+			"createdOn": "Created {{date}}",
 			"empty": "There are no users yet.",
 			"loadError": "The user list could not be loaded.",
 			"retry": "Try again",
@@ -172,11 +187,23 @@
 			"description": "The user does not exist or has been deleted.",
 			"back": "Back to users"
 		},
+		"deleteButton": "Delete user",
+		"emailModal": {
+			"title": "Edit email",
+			"description": "The user will sign in with the new email. The password and sessions stay the same.",
+			"label": "Email",
+			"close": "Close",
+			"cancel": "Cancel",
+			"submit": "Save",
+			"success": "The email was changed to {{email}}."
+		},
 		"card": {
 			"label": "User account",
 			"createdAt": "Created {{date}}",
 			"role": "Role",
-			"roleSaved": "The role was saved."
+			"roleSaved": "The role was saved.",
+			"editEmail": "Edit email",
+			"editEmailLabel": "Edit email of user {{email}}"
 		},
 		"projects": {
 			"title": "Projects",
@@ -186,6 +213,7 @@
 				"project": "Project",
 				"slug": "Slug",
 				"joinedAt": "Added",
+				"joinedOn": "Added {{date}}",
 				"empty": "The user is not in any project yet.",
 				"actionsColumn": "Actions",
 				"open": "Open members",
@@ -254,7 +282,24 @@
 				"UPDATED": "Recently updated"
 			},
 			"sourceLanguage": "Source language",
-			"targetLanguage": "Target language"
+			"targetLanguage": "Target language",
+			"languages": {
+				"label": "Shown languages",
+				"placeholder": "All languages",
+				"remove": "Remove {{language}}"
+			},
+			"updatedBy": {
+				"label": "Edited by",
+				"placeholder": "Edited by anyone"
+			},
+			"updatedWithin": {
+				"label": "Changed",
+				"placeholder": "Changed any time",
+				"DAY": "In the last 24 hours",
+				"WEEK": "In the last 7 days",
+				"MONTH": "In the last 30 days"
+			},
+			"translationsOnly": "Translations only"
 		},
 		"view": {
 			"label": "View",
@@ -279,7 +324,8 @@
 			"noResults": "No key matches the filters.",
 			"clearFilters": "Clear filters",
 			"edit": "Edit key",
-			"editLabel": "Edit key {{key}}"
+			"editLabel": "Edit key {{key}}",
+			"base": "Base"
 		},
 		"status": {
 			"TRANSLATED": "Translated",
@@ -300,8 +346,7 @@
 			"title": "Edit translation",
 			"close": "Close",
 			"key": "Key",
-			"language": "Language",
-			"baseLanguage": "Base language ({{language}})",
+			"baseLanguage": "Base language",
 			"value": "Translation",
 			"cancel": "Cancel",
 			"submit": "Save",
@@ -346,6 +391,7 @@
 			"success": "Key {{key}} has been saved."
 		},
 		"pagination": {
+			"pageSize": "Keys per page",
 			"label": "Pagination",
 			"previous": "Previous",
 			"next": "Next",
@@ -491,11 +537,18 @@
 			"label": "Project list",
 			"project": "Project",
 			"slug": "Slug",
-			"baseLanguage": "Base language",
 			"languages": "Languages",
 			"members": "Members",
 			"createdAt": "Created",
-			"noBaseLanguage": "No language",
+			"languageCount_one": "{{count}} language",
+			"languageCount_few": "{{count}} languages",
+			"languageCount_many": "{{count}} languages",
+			"languageCount_other": "{{count}} languages",
+			"memberCount_one": "{{count}} member",
+			"memberCount_few": "{{count}} members",
+			"memberCount_many": "{{count}} members",
+			"memberCount_other": "{{count}} members",
+			"createdOn": "Created {{date}}",
 			"empty": "There are no projects yet.",
 			"loadError": "The project list could not be loaded.",
 			"retry": "Try again",
@@ -767,5 +820,16 @@
 		"TOO_SHORT": "Enter at least {{min}} characters.",
 		"TOO_LONG": "Enter at most {{max}} characters.",
 		"INVALID": "Invalid value."
+	},
+	"languageNames": {
+		"bg": "Bulgarian",
+		"cs": "Czech",
+		"de-AT": "German (Austria)",
+		"en": "English",
+		"hr": "Croatian",
+		"hu": "Hungarian",
+		"ro": "Romanian",
+		"ru": "Russian",
+		"sk": "Slovak"
 	}
 }

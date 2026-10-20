@@ -1,7 +1,7 @@
 import { createRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 
-import { LANGUAGE_TAGS, TRANSLATIONS_SEARCH_MAX_LENGTH, translationsSortSchema, translationStatusSchema } from '@locale/shared'
+import { LANGUAGE_TAGS, TRANSLATIONS_SEARCH_MAX_LENGTH, translationsSortSchema, translationStatusSchema, translationsUpdatedWithinSchema } from '@locale/shared'
 
 import { projectRoute } from '@/routes/projectRoute'
 
@@ -9,10 +9,9 @@ import { projectRoute } from '@/routes/projectRoute'
  * Filters of the translations list in the URL, so a reload or a shared link shows the same page. Languages are tags (`?source=sk&target=en`),
  * the page maps them to ids. Every field is optional and an invalid value is dropped, a missing one means the default.
  */
-/** How the table lays out the languages of the view: side by side (default) or stacked in one column. */
-export const translationsLayoutSchema = z.enum(['COLUMNS', 'STACKED'])
+export const TRANSLATIONS_PAGE_SIZES = [25, 50, 100] as const
 
-export type TranslationsLayout = z.infer<typeof translationsLayoutSchema>
+export type TranslationsPageSize = (typeof TRANSLATIONS_PAGE_SIZES)[number]
 
 export const translationsSearchSchema = z.object({
 	// The router JSON-parses search values, so `?search=123` arrives as a number.
@@ -22,8 +21,14 @@ export const translationsSearchSchema = z.object({
 	sort: translationsSortSchema.optional().catch(undefined),
 	source: z.enum(LANGUAGE_TAGS).optional().catch(undefined),
 	target: z.enum(LANGUAGE_TAGS).optional().catch(undefined),
-	layout: translationsLayoutSchema.optional().catch(undefined),
+	/** Languages the extended view shows next to the base language; none means every language. */
+	languages: z.array(z.enum(LANGUAGE_TAGS)).min(1).optional().catch(undefined),
+	updatedBy: z.uuid().optional().catch(undefined),
+	updatedWithin: translationsUpdatedWithinSchema.optional().catch(undefined),
+	/** Hides the key and status columns. */
+	translationsOnly: z.literal(true).optional().catch(undefined),
 	page: z.number().int().min(1).optional().catch(undefined),
+	pageSize: z.literal(TRANSLATIONS_PAGE_SIZES).optional().catch(undefined),
 })
 
 export type TranslationsSearch = z.infer<typeof translationsSearchSchema>

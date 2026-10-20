@@ -34,6 +34,16 @@ export const translationsViewSchema = z.enum(['EXTENDED', 'COMPACT'])
 
 export type TranslationsView = z.infer<typeof translationsViewSchema>
 
+/** Whether the languages of the view sit side by side or stacked in one column; stored on the user (`User.translationsLayout`). */
+export const translationsLayoutSchema = z.enum(['COLUMNS', 'STACKED'])
+
+export type TranslationsLayout = z.infer<typeof translationsLayoutSchema>
+
+/** How far back `updatedWithin` reaches: the last 24 hours, 7 days or 30 days. */
+export const translationsUpdatedWithinSchema = z.enum(['DAY', 'WEEK', 'MONTH'])
+
+export type TranslationsUpdatedWithin = z.infer<typeof translationsUpdatedWithinSchema>
+
 const emptyToUndefined = (value: unknown) => (typeof value === 'string' && value.trim() === '' ? undefined : value)
 
 /**
@@ -42,6 +52,8 @@ const emptyToUndefined = (value: unknown) => (typeof value === 'string' && value
  * filter, the sort and `stats` follow the target language and `search` matches the key, the source and the target
  * value (compact view). Without them a row is translated only when every language of the project has a value, and
  * `search` matches the key and the value of any language (extended view). The items carry every language either way.
+ * `updatedById` and `updatedWithin` keep keys with a translation (the target, or any language) changed by that user and in
+ * that period, both on the same translation.
  */
 export const translationsQuerySchema = z
 	.object({
@@ -50,6 +62,8 @@ export const translationsQuerySchema = z
 		search: z.preprocess(emptyToUndefined, z.string().trim().max(TRANSLATIONS_SEARCH_MAX_LENGTH).optional()),
 		status: z.preprocess(emptyToUndefined, translationStatusSchema.optional()),
 		namespace: z.preprocess(emptyToUndefined, z.string().optional()),
+		updatedById: z.preprocess(emptyToUndefined, z.uuid().optional()),
+		updatedWithin: z.preprocess(emptyToUndefined, translationsUpdatedWithinSchema.optional()),
 		sort: z.preprocess(emptyToUndefined, translationsSortSchema.default('UNTRANSLATED_FIRST')),
 		page: z.coerce.number().int().min(1).default(1),
 		pageSize: z.coerce.number().int().min(1).max(TRANSLATIONS_PAGE_SIZE_MAX).default(TRANSLATIONS_PAGE_SIZE_DEFAULT),
@@ -160,7 +174,7 @@ export type TranslationListItem = z.infer<typeof translationListItemSchema>
 /**
  * Body of `GET /api/projects/:projectId/translations`. `total` counts keys matching the filters; `stats` count every key
  * of the project by the row status of the query (target language, or every language), ignoring filters. `namespaces`
- * lists every namespace of the project, sorted.
+ * lists every namespace of the project, sorted. `editors` lists every user who changed a translation of the project, by name.
  */
 export const translationsResponseSchema = z.object({
 	items: z.array(translationListItemSchema),
@@ -173,6 +187,7 @@ export const translationsResponseSchema = z.object({
 		untranslated: z.number().int().nonnegative(),
 	}),
 	namespaces: z.array(z.string()),
+	editors: z.array(translationEditorSchema),
 })
 
 export type TranslationsResponse = z.infer<typeof translationsResponseSchema>

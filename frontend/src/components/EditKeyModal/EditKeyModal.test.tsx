@@ -84,6 +84,7 @@ const mockPage = ({ user = ADMIN_USER, items = [WELCOME, COUNT], patch }: { user
 		pageSize: 20,
 		stats: { totalKeys: items.length, translated: items.length, untranslated: 0 },
 		namespaces: ['loc'],
+		editors: [],
 	}
 	const requests = signedInAs(user, {
 		...projectListRoute(PROJECT),

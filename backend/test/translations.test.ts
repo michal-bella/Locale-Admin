@@ -139,6 +139,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			pageSize: 20,
 			stats: { totalKeys: 4, translated: 2, untranslated: 2 },
 			namespaces: ['loc', 'paths'],
+			editors: [],
 		})
 		body.items.forEach((item) => translationListItemSchema.strict().parse(item))
 	})
@@ -173,6 +174,34 @@ describe('GET /api/projects/:projectId/translations', () => {
 		}
 		expect(body.items.find(({ namespace, name }) => namespace === '' && name === 'orders.empty.title')?.group).toBe('orders.empty')
 		expect(body.namespaces).toEqual(['', 'loc', 'paths'])
+	})
+
+	it('filters by editor and period and lists every editor of the project', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const { user: anna } = await createUser({ firstName: 'Anna', lastName: 'Nová' })
+		const { user: boris } = await createUser({ firstName: 'Boris', lastName: 'Starý' })
+		const prisma = getTestPrisma()
+		const a = await createKey(project.id, 'loc', 'a', { [sk.id]: 'A', [en.id]: 'A' })
+		const b = await createKey(project.id, 'loc', 'b', { [sk.id]: 'B', [en.id]: 'B' })
+		const c = await createKey(project.id, 'loc', 'c', { [sk.id]: 'C' })
+		await prisma.translation.update({ where: { keyId_languageId: { keyId: a.id, languageId: en.id } }, data: { updatedById: anna.id } })
+		await prisma.translation.update({ where: { keyId_languageId: { keyId: b.id, languageId: sk.id } }, data: { updatedById: anna.id } })
+		await prisma.translation.update({ where: { keyId_languageId: { keyId: c.id, languageId: sk.id } }, data: { updatedById: boris.id } })
+		// Raw SQL, because `@updatedAt` would overwrite a date set through Prisma.
+		await prisma.$executeRaw`UPDATE "Translation" SET "updatedAt" = now() - interval '10 days' WHERE "keyId" = ${b.id}::uuid`
+		const compact = { sourceLanguageId: sk.id, targetLanguageId: en.id }
+
+		const byAnna = await listOk(app, cookie, project.id, { updatedById: anna.id })
+		expect(names(byAnna)).toEqual(['a', 'b'])
+		expect(byAnna.editors).toEqual([
+			{ id: anna.id, name: 'Anna Nová' },
+			{ id: boris.id, name: 'Boris Starý' },
+		])
+		expect(names(await listOk(app, cookie, project.id, { ...compact, updatedById: anna.id }))).toEqual(['a'])
+		expect(names(await listOk(app, cookie, project.id, { updatedWithin: 'WEEK', sort: 'KEY' }))).toEqual(['a', 'c'])
+		expect(names(await listOk(app, cookie, project.id, { updatedWithin: 'MONTH', sort: 'KEY' }))).toEqual(['a', 'b', 'c'])
+		expect(names(await listOk(app, cookie, project.id, { updatedById: anna.id, updatedWithin: 'WEEK' }))).toEqual(['a'])
 	})
 
 	it('filters by status and namespace; total counts the filtered keys, stats ignore the filters', async () => {
@@ -314,6 +343,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			pageSize: 20,
 			stats: { totalKeys: 0, translated: 0, untranslated: 0 },
 			namespaces: [],
+			editors: [],
 		})
 	})
 
@@ -384,6 +414,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 				pageSize: 20,
 				stats: { totalKeys: 0, translated: 0, untranslated: 0 },
 				namespaces: [],
+				editors: [],
 			})
 		})
 	})

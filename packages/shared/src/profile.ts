@@ -22,7 +22,9 @@ export const profileSchema = authUserSchema.extend({
 
 export type Profile = z.infer<typeof profileSchema>
 
-/** Body of `PATCH /api/profile/preferences`; the response is the `Profile`. */
+/** Body of `PATCH /api/profile/preferences`: any of the preferences, at least one; the response is the `Profile`. */
 export const updatePreferencesRequestSchema = userPreferencesSchema
+	.partial()
+	.refine((body) => body.translationsView !== undefined || body.translationsLayout !== undefined)
 
 export type UpdatePreferencesRequest = z.infer<typeof updatePreferencesRequestSchema>

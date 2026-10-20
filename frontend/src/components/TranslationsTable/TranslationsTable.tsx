@@ -33,7 +33,8 @@ type Editing = { item: TranslationListItem; language: Language; viaNext?: boolea
  * (Excel-like, horizontal scroll, the key and status columns stick to the edges), `COMPACT` the source text and the target cell (Figma 3:147). With `layout`
  * `STACKED` either view puts its languages under each other in one column and the status badge into the key cell. With `showGroups`
  * a group header row starts every run of keys with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first
- * and are grouped inside. An untranslated cell has a soft red background. A global ADMIN gets an edit button next to every key that opens `EditKeyModal`.
+ * and are grouped inside. `translationsOnly` hides the key and status columns (more room for the languages on a phone); the key stays in the
+ * accessible name of every cell. An untranslated cell has a soft red background. A global ADMIN gets an edit button next to every key that opens `EditKeyModal`.
  */
 const TranslationsTable = ({
 	projectId,
@@ -51,6 +52,7 @@ const TranslationsTable = ({
 	onClearFilters,
 	onImport,
 	showGroups,
+	translationsOnly = false,
 	onSave,
 }: TranslationsTableProps) => {
 	const { t, i18n } = useTranslation()
@@ -65,7 +67,8 @@ const TranslationsTable = ({
 	const isExtended = view === 'EXTENDED'
 	const isStacked = layout === 'STACKED'
 	const isColumns = isExtended && !isStacked
-	const columnCount = isStacked ? 2 : isExtended ? languages.length + 2 : 4
+	const valueColumnCount = isStacked ? 1 : isExtended ? languages.length : 2
+	const columnCount = valueColumnCount + (translationsOnly ? 0 : isStacked ? 1 : 2)
 	const keyClass = `${classes.td} ${classes.keyCell} ${isColumns ? classes.stickyStart : ''}`
 	const statusClass = `${classes.td} ${classes.statusCell} ${isColumns ? classes.stickyEnd : ''}`
 	const tdClass = `${classes.td} ${isStacked ? classes.tdStacked : ''}`
@@ -115,7 +118,7 @@ const TranslationsTable = ({
 	const translationCell = (item: TranslationListItem, language: Language) => (
 		<TranslationCell
 			cell={item.translations[language.id] ?? EMPTY_CELL}
-			label={t('translationsPage.editor.label', { key: item.name, language: language.nativeName })}
+			label={t('translationsPage.editor.label', { key: item.name, language: t(`languageNames.${language.tag}`) })}
 			pluralTag={item.plural ? language.tag : undefined}
 			onClick={() => openTranslation(item, language)}
 		/>
@@ -124,7 +127,13 @@ const TranslationsTable = ({
 	const languageLabel = (language: Language) => (
 		<span className={classes.languageHeader}>
 			<LanguageFlag code={language.flagCode} size='sm' />
-			{language.nativeName}
+			{t(`languageNames.${language.tag}`)}
+			{language.isBase && (
+				<>
+					{' '}
+					<span className={classes.baseBadge}>{t('translationsPage.table.base')}</span>
+				</>
+			)}
 		</span>
 	)
 
@@ -147,44 +156,46 @@ const TranslationsTable = ({
 			: target.updatedAt
 		return (
 			<Table.Tr key={item.keyId} data-status={item.status} className={classes.row}>
-				<Table.Td className={`${keyClass} ${isStacked ? classes.tdStacked : ''}`}>
-					<div className={classes.keyRow}>
-						<Text component='span' className={classes.key}>
-							{item.name}
-						</Text>
-						{isAdmin && (
-							<span className={classes.editAction}>
-								<RowAction
-									icon={Edit}
-									tooltip={t('translationsPage.table.edit')}
-									label={t('translationsPage.table.editLabel', { key: item.name })}
-									onClick={() => openEdit(item)}
-								/>
+				{!translationsOnly && (
+					<Table.Td className={`${keyClass} ${isStacked ? classes.tdStacked : ''}`}>
+						<div className={classes.keyRow}>
+							<Text component='span' className={classes.key}>
+								{item.name}
+							</Text>
+							{isAdmin && (
+								<span className={classes.editAction}>
+									<RowAction
+										icon={Edit}
+										tooltip={t('translationsPage.table.edit')}
+										label={t('translationsPage.table.editLabel', { key: item.name })}
+										onClick={() => openEdit(item)}
+									/>
+								</span>
+							)}
+						</div>
+						{item.description && (
+							<span className={classes.description} title={item.description}>
+								{item.description}
 							</span>
 						)}
-					</div>
-					{item.description && (
-						<span className={classes.description} title={item.description}>
-							{item.description}
+						<span className={classes.meta}>
+							<span>{item.group || t('translationsPage.table.noGroup')}</span>
+							{updatedAt && (
+								<>
+									<span aria-hidden className={classes.metaDot} />
+									<time dateTime={updatedAt} title={formatDateTime(updatedAt, i18n.language)}>
+										{formatRelativeTime(updatedAt, i18n.language, now, 'short')}
+									</time>
+								</>
+							)}
 						</span>
-					)}
-					<span className={classes.meta}>
-						<span>{item.group || t('translationsPage.table.noGroup')}</span>
-						{updatedAt && (
-							<>
-								<span aria-hidden className={classes.metaDot} />
-								<time dateTime={updatedAt} title={formatDateTime(updatedAt, i18n.language)}>
-									{formatRelativeTime(updatedAt, i18n.language, now, 'short')}
-								</time>
-							</>
+						{isStacked && (
+							<span className={classes.stackedStatus}>
+								<TranslationStatusBadge status={item.status} />
+							</span>
 						)}
-					</span>
-					{isStacked && (
-						<span className={classes.stackedStatus}>
-							<TranslationStatusBadge status={item.status} />
-						</span>
-					)}
-				</Table.Td>
+					</Table.Td>
+				)}
 				{isStacked ? (
 					<Table.Td className={`${tdClass} ${classes.value}`}>
 						<div className={classes.stack}>
@@ -221,7 +232,7 @@ const TranslationsTable = ({
 						<Table.Td className={`${classes.td} ${classes.value}`}>{targetLanguage && translationCell(item, targetLanguage)}</Table.Td>
 					</>
 				)}
-				{!isStacked && (
+				{!isStacked && !translationsOnly && (
 					<Table.Td className={statusClass}>
 						<TranslationStatusBadge status={item.status} />
 					</Table.Td>
@@ -234,16 +245,18 @@ const TranslationsTable = ({
 		if (isPending) {
 			return Array.from({ length: SKELETON_ROWS }, (_, index) => (
 				<Table.Tr key={index}>
-					<Table.Td className={`${keyClass} ${isStacked ? classes.tdStacked : ''}`}>
-						<Skeleton height={12} width='60%' radius='sm' />
-						<Skeleton height={8} width='30%' radius='sm' mt='xs' />
-					</Table.Td>
-					{Array.from({ length: isStacked ? 1 : columnCount - 2 }, (_, column) => (
+					{!translationsOnly && (
+						<Table.Td className={`${keyClass} ${isStacked ? classes.tdStacked : ''}`}>
+							<Skeleton height={12} width='60%' radius='sm' />
+							<Skeleton height={8} width='30%' radius='sm' mt='xs' />
+						</Table.Td>
+					)}
+					{Array.from({ length: valueColumnCount }, (_, column) => (
 						<Table.Td key={column} className={tdClass}>
 							<Skeleton height={12} width='80%' radius='sm' />
 						</Table.Td>
 					))}
-					{!isStacked && (
+					{!isStacked && !translationsOnly && (
 						<Table.Td className={statusClass}>
 							<Skeleton height={20} width={80} radius='xl' />
 						</Table.Td>
@@ -301,7 +314,7 @@ const TranslationsTable = ({
 	}
 
 	return (
-		<div className={`${classes.scroll} ${isColumns ? classes.scrollExtended : ''}`}>
+		<div className={`${classes.scroll} ${isColumns && !translationsOnly ? classes.scrollExtended : ''}`}>
 			<Table
 				ref={tableRef}
 				tabIndex={-1}
@@ -314,32 +327,31 @@ const TranslationsTable = ({
 			>
 				<Table.Thead>
 					<Table.Tr>
-						<Table.Th
-							className={`${classes.th} ${isColumns ? `${classes.keyColumnExtended} ${classes.stickyStart}` : classes.keyColumn} ${isStacked ? classes.thStacked : ''}`}
-						>
-							{t('translationsPage.table.key')}
-						</Table.Th>
+						{!translationsOnly && (
+							<Table.Th
+								className={`${classes.th} ${isColumns ? `${classes.keyColumnExtended} ${classes.stickyStart}` : classes.keyColumn} ${isStacked ? classes.thStacked : ''}`}
+							>
+								{t('translationsPage.table.key')}
+							</Table.Th>
+						)}
 						{isStacked ? (
 							<Table.Th className={`${classes.th} ${classes.thStacked}`}>{t('translationsPage.table.translations')}</Table.Th>
 						) : isExtended ? (
 							languages.map((language) => (
-								<Table.Th key={language.id} className={`${classes.th} ${classes.languageColumn}`}>
-									<span className={classes.languageHeader}>
-										<LanguageFlag code={language.flagCode} size='sm' />
-										{language.nativeName}
-									</span>
+								<Table.Th key={language.id} className={`${classes.th} ${classes.languageColumn} ${classes.languageTh}`}>
+									{languageLabel(language)}
 								</Table.Th>
 							))
 						) : (
 							<>
 								{[sourceLanguage, targetLanguage].map((language, index) => (
-									<Table.Th key={language?.id ?? index} className={classes.th}>
+									<Table.Th key={language?.id ?? index} className={`${classes.th} ${classes.languageTh}`}>
 										{language && languageLabel(language)}
 									</Table.Th>
 								))}
 							</>
 						)}
-						{!isStacked && (
+						{!isStacked && !translationsOnly && (
 							<Table.Th className={`${classes.th} ${classes.statusColumn} ${classes.statusCell} ${isColumns ? classes.stickyEnd : ''}`}>
 								{t('translationsPage.table.status')}
 							</Table.Th>

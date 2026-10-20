@@ -17,19 +17,25 @@ enum TRANSLATIONS_VIEW {
   COMPACT
 }
 
+enum TRANSLATIONS_LAYOUT {
+  COLUMNS
+  STACKED
+}
+
 model User {
-  id                 String            @id @default(uuid()) @db.Uuid
-  email              String            @unique
+  id                 String              @id @default(uuid()) @db.Uuid
+  email              String              @unique
   passwordHash       String
-  role               ROLE              @default(EDITOR)
+  role               ROLE                @default(EDITOR)
   firstName          String?
   lastName           String?
-  isActive           Boolean           @default(true)
-  translationsView   TRANSLATIONS_VIEW @default(EXTENDED)
+  isActive           Boolean             @default(true)
+  translationsView   TRANSLATIONS_VIEW   @default(EXTENDED)
+  translationsLayout TRANSLATIONS_LAYOUT @default(COLUMNS)
   lastLoginAt        DateTime?
-  passwordChangedAt  DateTime          @default(now())
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  passwordChangedAt  DateTime            @default(now())
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
   sessions           Session[]
   projectMemberships ProjectMember[]
   projectOrders      ProjectOrder[]

@@ -39,6 +39,9 @@ type CellRow = Pick<Translation, 'keyId' | 'languageId' | 'value' | 'updatedAt'>
 /** `\` is the default ILIKE escape character, so it is escaped too. */
 const toContainsPattern = (search: string) => `%${search.replace(/[\\%_]/g, '\\$&')}%`
 
+/** Case- and diacritics-insensitive contains: both sides go through `unaccent`, so "vlastni" and "vlastní" find each other. */
+const matches = (column: Prisma.Sql, pattern: string) => Prisma.sql`unaccent(${column}) ILIKE unaccent(${pattern})`
+
 /** Same result as `translationGroup()` from `@locale/shared`; a path key matches the pattern, so it always has a dot. */
 const GROUP_SQL = Prisma.sql`CASE
 	WHEN k.name ~ ${TRANSLATION_KEY_PATH_PATTERN} THEN
@@ -64,7 +67,7 @@ const compactView = (sourceLanguageId: string, targetLanguageId: string): ViewSq
 		LEFT JOIN "Translation" t ON t."keyId" = k.id AND t."languageId" = ${targetLanguageId}::uuid`,
 	untranslated: Prisma.sql`(t.value IS NULL)`,
 	updatedAt: Prisma.sql`t."updatedAt"`,
-	valueMatches: (pattern) => Prisma.sql`s.value ILIKE ${pattern} OR t.value ILIKE ${pattern}`,
+	valueMatches: (pattern) => Prisma.sql`${matches(Prisma.sql`s.value`, pattern)} OR ${matches(Prisma.sql`t.value`, pattern)}`,
 })
 
 /** Extended view: a row is untranslated when any language of the project has no value (a missing row counts). */
@@ -75,7 +78,7 @@ const EXTENDED_VIEW: ViewSql = {
 		LEFT JOIN "Translation" x ON x."keyId" = k.id AND x."languageId" = pl.id
 		WHERE pl."projectId" = k."projectId" AND x.value IS NULL)`,
 	updatedAt: Prisma.sql`(SELECT max(x."updatedAt") FROM "Translation" x WHERE x."keyId" = k.id)`,
-	valueMatches: (pattern) => Prisma.sql`EXISTS (SELECT 1 FROM "Translation" x WHERE x."keyId" = k.id AND x.value ILIKE ${pattern})`,
+	valueMatches: (pattern) => Prisma.sql`EXISTS (SELECT 1 FROM "Translation" x WHERE x."keyId" = k.id AND ${matches(Prisma.sql`x.value`, pattern)})`,
 }
 
 const orderBy = (sort: TranslationsSort, view: ViewSql): Prisma.Sql => {
@@ -134,7 +137,7 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	const conditions = [Prisma.sql`k."projectId" = ${projectId}::uuid`]
 	if (search !== undefined) {
 		const pattern = toContainsPattern(search)
-		conditions.push(Prisma.sql`(k.name ILIKE ${pattern} OR ${view.valueMatches(pattern)})`)
+		conditions.push(Prisma.sql`(${matches(Prisma.sql`k.name`, pattern)} OR ${view.valueMatches(pattern)})`)
 	}
 	if (status !== undefined) {
 		conditions.push(status === 'UNTRANSLATED' ? view.untranslated : Prisma.sql`NOT ${view.untranslated}`)

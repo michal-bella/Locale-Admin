@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Preklady: vyhľadávanie bez diakritiky (2026-10-20)
+
+- API: `search` v `GET /api/projects/:projectId/translations` ignoruje diakritiku cez rozšírenie PostgreSQL `unaccent` (nová migrácia), „vlastni“ nájde „vlastní“ ([API](./api/translations.md), [Databáza](./database.md#migrácie))
+
 ### Preklady: jazyky pod sebou (2026-10-20)
 
 - frontend: prepínač rozloženia v toolbare oboch zobrazení (ikony, URL `?layout=STACKED`); **Jazyky pod sebou** ukáže tabuľku s dvomi stĺpcami Kľúč a Preklady, jazyky pod sebou (vo **Všetky jazyky** všetky, v **Zdroj → cieľ** zdroj a cieľ) a stav pri kľúči ([Frontend](./frontend.md#stránka-preklady))

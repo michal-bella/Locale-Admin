@@ -195,7 +195,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 		expect(unknown).toMatchObject({ items: [], total: 0, stats })
 	})
 
-	it('searches case-insensitively in the key, the source and the target and treats % and _ literally', async () => {
+	it('searches case- and diacritics-insensitively in the key, the source and the target and treats % and _ literally', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie } = await setup(app)
 		const ru = await createLanguage(project.id, 'ru')
@@ -207,6 +207,9 @@ describe('GET /api/projects/:projectId/translations', () => {
 
 		expect(names(await search('ORDERS.'))).toEqual(['orders.title'])
 		expect(names(await search('objednáv'))).toEqual(['orders.title'])
+		expect(names(await search('OBJEDNAVKY'))).toEqual(['orders.title'])
+		expect(names(await search('ulozit'))).toEqual(['Uložiť'])
+		expect(names(await search('zlava'))).toEqual(['discount'])
 		expect(names(await search('save'))).toEqual(['Uložiť'])
 		expect(names(await search('50%'))).toEqual(['discount'])
 		expect(names(await search('%'))).toEqual(['discount'])
@@ -331,7 +334,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			expect(names(await listOk(app, cookie, project.id, { status: 'TRANSLATED' }))).toEqual(['full'])
 		})
 
-		it('searches the key and the value of every language', async () => {
+		it('searches the key and the value of every language, ignoring diacritics', async () => {
 			const app = createTestApp()
 			const { project, sk, en, cookie } = await setup(app)
 			const ru = await createLanguage(project.id, 'ru')
@@ -341,6 +344,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			expect(names(await listOk(app, cookie, project.id, { search: 'заказы' }))).toEqual(['orders.title'])
 			expect(names(await listOk(app, cookie, project.id, { search: 'save' }))).toEqual(['Uložiť'])
 			expect(names(await listOk(app, cookie, project.id, { search: 'ORDERS.' }))).toEqual(['orders.title'])
+			expect(names(await listOk(app, cookie, project.id, { search: 'objednavky' }))).toEqual(['orders.title'])
 			expect(names(await listOk(app, cookie, project.id, { search: 'nič' }))).toEqual([])
 		})
 

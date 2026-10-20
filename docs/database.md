@@ -217,6 +217,8 @@ Migrácie sú v `backend/prisma/migrations/` a commitujú sa do gitu.
 
 Nová migrácia: zmeň `schema.prisma` a spusti `pnpm --filter backend exec prisma migrate dev --name <nazov>`.
 
+Rozšírenia PostgreSQL: `unaccent` (migrácia `search_unaccent`) pre vyhľadávanie prekladov bez ohľadu na diakritiku. Je „trusted“, takže ho vytvorí aj vlastník databázy bez superusera; v `schema.prisma` nie je, Prisma ho nesleduje.
+
 V produkčnom stacku backend pri štarte spustí `prisma migrate deploy`, potom seed a až potom server (`docker/backend-entrypoint.sh`, server spúšťa cez `exec`, aby dostal SIGTERM). Mimo Dockera robí to isté skript `start:prod`.
 
 ## Seed

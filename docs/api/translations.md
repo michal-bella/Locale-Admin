@@ -43,16 +43,16 @@ Položka nesie bunku pre každý jazyk projektu v oboch zobrazeniach. Ktoré zob
 
 Parametre v query (schéma `translationsQuerySchema`). Prázdny reťazec znamená „bez filtra“.
 
-| Parameter          | Typ    | Povinný | Popis                                                                                                  |
-| ------------------ | ------ | ------- | ------------------------------------------------------------------------------------------------------ |
-| `sourceLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk projektu, ktorého text je zdroj; vždy spolu s `targetLanguageId`           |
-| `targetLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk, pre ktorý sa počíta stav a `stats`; môže byť rovnaký ako zdroj            |
-| `search`           | string | nie     | max. 200 znakov, orezaný; podreťazec bez ohľadu na veľkosť písmen v kľúči a hodnotách (viď zobrazenie) |
-| `status`           | enum   | nie     | `TRANSLATED` alebo `UNTRANSLATED`                                                                      |
-| `namespace`        | string | nie     | presná zhoda namespace                                                                                 |
-| `sort`             | enum   | nie     | `UNTRANSLATED_FIRST` (predvolené), `KEY`, `UPDATED`                                                    |
-| `page`             | číslo  | nie     | od 1, predvolene 1                                                                                     |
-| `pageSize`         | číslo  | nie     | 1 až 100, predvolene 20                                                                                |
+| Parameter          | Typ    | Povinný | Popis                                                                                                                                                                 |
+| ------------------ | ------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sourceLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk projektu, ktorého text je zdroj; vždy spolu s `targetLanguageId`                                                                          |
+| `targetLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk, pre ktorý sa počíta stav a `stats`; môže byť rovnaký ako zdroj                                                                           |
+| `search`           | string | nie     | max. 200 znakov, orezaný; podreťazec bez ohľadu na veľkosť písmen a diakritiku (`unaccent`, „vlastni“ nájde „vlastní“ aj naopak) v kľúči a hodnotách (viď zobrazenie) |
+| `status`           | enum   | nie     | `TRANSLATED` alebo `UNTRANSLATED`                                                                                                                                     |
+| `namespace`        | string | nie     | presná zhoda namespace                                                                                                                                                |
+| `sort`             | enum   | nie     | `UNTRANSLATED_FIRST` (predvolené), `KEY`, `UPDATED`                                                                                                                   |
+| `page`             | číslo  | nie     | od 1, predvolene 1                                                                                                                                                    |
+| `pageSize`         | číslo  | nie     | 1 až 100, predvolene 20                                                                                                                                               |
 
 Znaky `%`, `_` a `\` vo vyhľadávaní sa berú doslovne. Hodnoty idú do SQL iba ako parametre.
 

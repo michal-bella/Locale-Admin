@@ -30,27 +30,43 @@ Cesty s `:projectId` sú za `requireProjectAccess` (`middleware/projectAccess.mi
 
 Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema`) vo vlastnom poradí používateľa ([PUT /api/projects/order](#put-apiprojectsorder)); projekty bez pozície (nové, alebo kým používateľ poradie nezmenil) nasledujú za nimi podľa názvu. `ADMIN` dostane všetky projekty, `EDITOR` iba tie, kde je členom.
 
-| Pole           | Typ     | Popis                                                          |
-| -------------- | ------- | -------------------------------------------------------------- |
-| `id`           | UUID    | ID projektu                                                    |
-| `name`         | string  | názov projektu                                                 |
-| `slug`         | string  | slug projektu                                                  |
-| `primaryColor` | string  | primárna farba `#RRGGBB`                                       |
-| `isMember`     | boolean | či je prihlásený používateľ členom (`false` iba pre `ADMIN`-a) |
+| Pole              | Typ      | Popis                                                                                                                       |
+| ----------------- | -------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | UUID     | ID projektu                                                                                                                 |
+| `name`            | string   | názov projektu                                                                                                              |
+| `slug`            | string   | slug projektu                                                                                                               |
+| `primaryColor`    | string   | primárna farba `#RRGGBB`                                                                                                    |
+| `isMember`        | boolean  | či je prihlásený používateľ členom (`false` iba pre `ADMIN`-a)                                                              |
+| `languageTags`    | string[] | tagy jazykov projektu, základný jazyk prvý, potom podľa pridania                                                            |
+| `keyCount`        | number   | počet kľúčov projektu                                                                                                       |
+| `translatedCount` | number   | počet vyplnených hodnôt cez všetky kľúče a jazyky; projekt je celý preložený, keď sa rovná `keyCount × languageTags.length` |
 
 ```json
-{ "projects": [{ "id": "0b7c2f4e-5a8d-4c1e-9f3a-2d6e8b1c4a77", "name": "B2B Admin", "slug": "b2b-admin", "primaryColor": "#E83E8C", "isMember": true }] }
+{
+	"projects": [
+		{
+			"id": "0b7c2f4e-5a8d-4c1e-9f3a-2d6e8b1c4a77",
+			"name": "B2B Admin",
+			"slug": "b2b-admin",
+			"primaryColor": "#E83E8C",
+			"isMember": true,
+			"languageTags": ["sk", "en"],
+			"keyCount": 224,
+			"translatedCount": 447
+		}
+	]
+}
 ```
 
 ## POST /api/projects
 
 Telo (schéma `createProjectRequestSchema`): `{ "name": "Booking Web", "slug": "booking-web", "languageTags": ["sk", "en"] }`. Validácia `name` a `slug` je rovnaká ako pri nastaveniach. `languageTags` sú tagy z katalógu, aspoň jeden a bez duplicít (`REQUIRED` / `INVALID`); prvý je základný jazyk. Farba a ochrana premenných dostanú defaulty. Projekt, jeho jazyky aj členstvo tvorcu vzniknú naraz.
 
-| HTTP | `code`             | Kedy                                      |
-| ---- | ------------------ | ----------------------------------------- |
-| 201  |                    | telo `ProjectListItem` s `isMember: true` |
-| 400  | `VALIDATION_ERROR` | nevalidné telo, `details` podľa polí      |
-| 409  | `SLUG_TAKEN`       | projekt s týmto slugom už existuje        |
+| HTTP | `code`             | Kedy                                                                            |
+| ---- | ------------------ | ------------------------------------------------------------------------------- |
+| 201  |                    | telo `ProjectListItem` s `isMember: true`, `keyCount: 0` a `translatedCount: 0` |
+| 400  | `VALIDATION_ERROR` | nevalidné telo, `details` podľa polí                                            |
+| 409  | `SLUG_TAKEN`       | projekt s týmto slugom už existuje                                              |
 
 ## PUT /api/projects/order
 

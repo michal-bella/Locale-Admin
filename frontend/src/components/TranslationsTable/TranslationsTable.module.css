@@ -4,7 +4,7 @@
 
 /* Focus scrolling treats the sticky columns as covered, so a cell focused with Tab never lands under them (WCAG 2.4.11). */
 .scrollExtended {
-	scroll-padding-inline: 16rem 8.5rem;
+	scroll-padding-inline: 14rem 8.5rem;
 }
 
 .table {
@@ -20,19 +20,38 @@
 }
 
 .keyColumnExtended {
-	width: 16rem;
-	min-width: 16rem;
+	width: 14rem;
+	min-width: 14rem;
 }
 
 .languageColumn {
-	width: 16rem;
-	min-width: 16rem;
+	width: 14rem;
+	min-width: 14rem;
 }
 
 .languageHeader {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.5rem;
+}
+
+/* Marks the base language (the source every other language is translated from) in its column header and stacked label. */
+.baseBadge {
+	padding: 0.125rem 0.375rem;
+	border-radius: var(--mantine-radius-xs);
+	background-color: var(--app-color-brand-tint);
+	font-size: var(--mantine-font-size-4xs);
+	font-weight: 700;
+	line-height: 1.2;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--app-color-eyebrow);
+}
+
+/* A dashed line between two language columns, so the translations of a row read apart; the key and status columns keep their solid edges. */
+.languageTh + .languageTh,
+.value + .value {
+	border-inline-start: 1px dashed var(--app-color-border);
 }
 
 .stickyStart,
@@ -183,7 +202,7 @@ th.stickyEnd {
 .sourceValue {
 	display: -webkit-box;
 	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 3;
+	-webkit-line-clamp: 2;
 	overflow: hidden;
 }
 
@@ -238,6 +257,32 @@ th.stickyEnd {
 	text-align: start;
 	color: var(--app-color-text-secondary);
 	overflow-wrap: anywhere;
+}
+
+/* Every language as a column: tighter cells and a smaller value font, so more languages and rows fit on screen. */
+.extended .th {
+	padding: 0.5rem 0.75rem;
+}
+
+.extended .td {
+	padding: 0.375rem 0.75rem;
+}
+
+.extended .value {
+	font-size: var(--mantine-font-size-sm);
+	line-height: 1.4;
+}
+
+.extended .value button {
+	padding: 0.25rem 0.5rem;
+}
+
+.extended .groupCell {
+	padding: 0.375rem 0.75rem;
+}
+
+.extended .groupLabel {
+	left: 0.75rem;
 }
 
 .state {

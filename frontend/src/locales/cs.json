@@ -35,7 +35,17 @@
 			"move": "Přesunout",
 			"moveLabel": "Přesunout projekt {{name}}",
 			"moveHint": "Pořadí změníte přetažením nebo šipkami nahoru a dolů. Pořadí je jen vaše.",
-			"moved": "Projekt {{name}} je na {{position}}. místě z {{count}}."
+			"moved": "Projekt {{name}} je na {{position}}. místě z {{count}}.",
+			"keys_one": "{{count}} klíč",
+			"keys_few": "{{count}} klíče",
+			"keys_many": "{{count}} klíčů",
+			"keys_other": "{{count}} klíčů",
+			"noKeys": "Zatím bez klíčů",
+			"translated": "Přeloženo: {{percent}}",
+			"untranslated": "Nepřeloženo: {{percent}}",
+			"lessThan": "< {{percent}}",
+			"moreThan": "> {{percent}}",
+			"languages": "Jazyky projektu {{name}}"
 		},
 		"createModal": {
 			"title": "Nový projekt",
@@ -118,6 +128,11 @@
 			"role": "Role",
 			"projects": "Projekty",
 			"createdAt": "Vytvořen",
+			"projectCount_one": "{{count}} projekt",
+			"projectCount_few": "{{count}} projekty",
+			"projectCount_many": "{{count}} projektů",
+			"projectCount_other": "{{count}} projektů",
+			"createdOn": "Vytvořen {{date}}",
 			"empty": "Zatím zde nejsou žádní uživatelé.",
 			"loadError": "Seznam uživatelů se nepodařilo načíst.",
 			"retry": "Zkusit znovu",
@@ -174,11 +189,23 @@
 			"description": "Uživatel neexistuje nebo byl odstraněn.",
 			"back": "Zpět na uživatele"
 		},
+		"deleteButton": "Odstranit uživatele",
+		"emailModal": {
+			"title": "Upravit e-mail",
+			"description": "Uživatel se bude přihlašovat novým e-mailem. Heslo ani přihlášení se nemění.",
+			"label": "E-mail",
+			"close": "Zavřít",
+			"cancel": "Zrušit",
+			"submit": "Uložit",
+			"success": "E-mail byl změněn na {{email}}."
+		},
 		"card": {
 			"label": "Účet uživatele",
 			"createdAt": "Vytvořen {{date}}",
 			"role": "Role",
-			"roleSaved": "Role byla uložena."
+			"roleSaved": "Role byla uložena.",
+			"editEmail": "Upravit e-mail",
+			"editEmailLabel": "Upravit e-mail uživatele {{email}}"
 		},
 		"projects": {
 			"title": "Projekty",
@@ -188,6 +215,7 @@
 				"project": "Projekt",
 				"slug": "Slug",
 				"joinedAt": "Přidán",
+				"joinedOn": "Přidán {{date}}",
 				"empty": "Uživatel zatím není v žádném projektu.",
 				"actionsColumn": "Akce",
 				"open": "Otevřít členy",
@@ -256,7 +284,24 @@
 				"UPDATED": "Naposledy upravené"
 			},
 			"sourceLanguage": "Zdrojový jazyk",
-			"targetLanguage": "Cílový jazyk"
+			"targetLanguage": "Cílový jazyk",
+			"languages": {
+				"label": "Zobrazené jazyky",
+				"placeholder": "Všechny jazyky",
+				"remove": "Odebrat {{language}}"
+			},
+			"updatedBy": {
+				"label": "Upravil",
+				"placeholder": "Upravil kdokoli"
+			},
+			"updatedWithin": {
+				"label": "Změněno",
+				"placeholder": "Změněno kdykoli",
+				"DAY": "Za posledních 24 hodin",
+				"WEEK": "Za posledních 7 dní",
+				"MONTH": "Za posledních 30 dní"
+			},
+			"translationsOnly": "Jen překlady"
 		},
 		"view": {
 			"label": "Zobrazení",
@@ -281,7 +326,8 @@
 			"noResults": "Filtrům neodpovídá žádný klíč.",
 			"clearFilters": "Zrušit filtry",
 			"edit": "Upravit klíč",
-			"editLabel": "Upravit klíč {{key}}"
+			"editLabel": "Upravit klíč {{key}}",
+			"base": "Základní"
 		},
 		"status": {
 			"TRANSLATED": "Přeložené",
@@ -302,8 +348,7 @@
 			"title": "Upravit překlad",
 			"close": "Zavřít",
 			"key": "Klíč",
-			"language": "Jazyk",
-			"baseLanguage": "Základní jazyk ({{language}})",
+			"baseLanguage": "Základní jazyk",
 			"value": "Překlad",
 			"cancel": "Zrušit",
 			"submit": "Uložit",
@@ -348,6 +393,7 @@
 			"success": "Klíč {{key}} byl uložen."
 		},
 		"pagination": {
+			"pageSize": "Klíčů na stránku",
 			"label": "Stránkování",
 			"previous": "Předchozí",
 			"next": "Další",
@@ -493,11 +539,18 @@
 			"label": "Seznam projektů",
 			"project": "Projekt",
 			"slug": "Slug",
-			"baseLanguage": "Základní jazyk",
 			"languages": "Jazyky",
 			"members": "Členové",
 			"createdAt": "Vytvořen",
-			"noBaseLanguage": "Bez jazyka",
+			"languageCount_one": "{{count}} jazyk",
+			"languageCount_few": "{{count}} jazyky",
+			"languageCount_many": "{{count}} jazyků",
+			"languageCount_other": "{{count}} jazyků",
+			"memberCount_one": "{{count}} člen",
+			"memberCount_few": "{{count}} členové",
+			"memberCount_many": "{{count}} členů",
+			"memberCount_other": "{{count}} členů",
+			"createdOn": "Vytvořen {{date}}",
 			"empty": "Zatím zde nejsou žádné projekty.",
 			"loadError": "Seznam projektů se nepodařilo načíst.",
 			"retry": "Zkusit znovu",
@@ -773,5 +826,16 @@
 		"TOO_SHORT": "Zadejte alespoň {{min}} znaků.",
 		"TOO_LONG": "Zadejte nejvýše {{max}} znaků.",
 		"INVALID": "Neplatná hodnota."
+	},
+	"languageNames": {
+		"bg": "bulharština",
+		"cs": "čeština",
+		"de-AT": "němčina (Rakousko)",
+		"en": "angličtina",
+		"hr": "chorvatština",
+		"hu": "maďarština",
+		"ro": "rumunština",
+		"ru": "ruština",
+		"sk": "slovenština"
 	}
 }

@@ -40,7 +40,17 @@ describe('createProjectRequestSchema', () => {
 
 describe('projectListItemSchema', () => {
 	it('strips fields that are not part of the list', () => {
-		const project = { id: ID, name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C', isMember: true, protectVariables: true }
+		const project = {
+			id: ID,
+			name: 'Booking Web',
+			slug: 'booking-web',
+			primaryColor: '#E83E8C',
+			isMember: true,
+			languageTags: ['sk'],
+			keyCount: 0,
+			translatedCount: 0,
+			protectVariables: true,
+		}
 		expect(projectListItemSchema.parse(project)).not.toHaveProperty('protectVariables')
 	})
 })

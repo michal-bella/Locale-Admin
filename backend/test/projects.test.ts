@@ -45,8 +45,72 @@ describe('GET /api/projects', () => {
 
 		expect(res.status).toBe(200)
 		expect(projectListResponseSchema.extend({ projects: projectListItemSchema.strict().array() }).strict().parse(res.body).projects).toEqual([
-			{ id: admin.id, name: 'B2B Admin', slug: 'b2b-admin', primaryColor: '#E83E8C', isMember: true },
-			{ id: web.id, name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C', isMember: true },
+			{ id: admin.id, name: 'B2B Admin', slug: 'b2b-admin', primaryColor: '#E83E8C', isMember: true, languageTags: [], keyCount: 0, translatedCount: 0 },
+			{
+				id: web.id,
+				name: 'Booking Web',
+				slug: 'booking-web',
+				primaryColor: '#E83E8C',
+				isMember: true,
+				languageTags: [],
+				keyCount: 0,
+				translatedCount: 0,
+			},
+		])
+	})
+
+	it('returns the languages base first, the key count and the filled values of the project only', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const prisma = getTestPrisma()
+		const project = await prisma.project.create({
+			data: {
+				name: 'Web',
+				slug: 'web',
+				members: { create: { userId: user.id } },
+				languages: { create: [{ tag: 'sk' }, { tag: 'en', isBase: true }] },
+			},
+			include: { languages: true },
+		})
+		const languageId = (tag: string) => project.languages.find((language) => language.tag === tag)!.id
+		const [sk, en] = [languageId('sk'), languageId('en')]
+		await prisma.translationKey.create({
+			data: {
+				projectId: project.id,
+				name: 'a',
+				translations: {
+					create: [
+						{ languageId: en, value: 'A' },
+						{ languageId: sk, value: 'A' },
+					],
+				},
+			},
+		})
+		await prisma.translationKey.create({
+			data: {
+				projectId: project.id,
+				name: 'b',
+				translations: {
+					create: [
+						{ languageId: en, value: 'B' },
+						{ languageId: sk, value: null },
+					],
+				},
+			},
+		})
+		await prisma.translationKey.create({ data: { projectId: project.id, name: 'c' } })
+		const other = await prisma.project.create({
+			data: { name: 'Other', slug: 'other', languages: { create: { tag: 'en', isBase: true } } },
+			include: { languages: true },
+		})
+		await prisma.translationKey.create({
+			data: { projectId: other.id, name: 'a', translations: { create: { languageId: other.languages[0]!.id, value: 'A' } } },
+		})
+
+		const res = await request(app).get('/api/projects').set('Cookie', cookie)
+
+		expect(projectListResponseSchema.parse(res.body).projects).toEqual([
+			expect.objectContaining({ id: project.id, languageTags: ['en', 'sk'], keyCount: 3, translatedCount: 3 }),
 		])
 	})
 
@@ -80,7 +144,15 @@ describe('POST /api/projects', () => {
 
 		expect(res.status).toBe(201)
 		const body = projectListItemSchema.strict().parse(res.body)
-		expect(body).toMatchObject({ name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C', isMember: true })
+		expect(body).toMatchObject({
+			name: 'Booking Web',
+			slug: 'booking-web',
+			primaryColor: '#E83E8C',
+			isMember: true,
+			languageTags: ['en', 'sk'],
+			keyCount: 0,
+			translatedCount: 0,
+		})
 		expect(await getTestPrisma().projectMember.findMany({ where: { projectId: body.id }, select: { userId: true } })).toEqual([{ userId: user.id }])
 		// The first chosen language is the base.
 		expect(

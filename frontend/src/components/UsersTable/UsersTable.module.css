@@ -48,6 +48,11 @@
 	overflow-wrap: anywhere;
 }
 
+.narrowDetails,
+.phoneOnly {
+	display: none;
+}
+
 .state {
 	padding: 2.5rem 1.25rem;
 	text-align: center;
@@ -60,4 +65,41 @@
 .actionsCell {
 	padding-inline: 0 1.25rem;
 	white-space: nowrap;
+}
+
+/*
+ * Below 62em the project count and the created date move under the email, below 40em the role too, so the email keeps its width and the
+ * row actions stay in view.
+ */
+@media (max-width: 61.99em) {
+	.wideOnly {
+		display: none;
+	}
+
+	.narrowDetails {
+		display: flex;
+	}
+}
+
+@media (max-width: 39.99em) {
+	.tabletUp {
+		display: none;
+	}
+
+	.phoneOnly {
+		display: block;
+	}
+
+	.th,
+	.td {
+		padding-inline: 0.75rem;
+	}
+
+	.actionsColumn {
+		width: auto;
+	}
+
+	.actionsCell {
+		padding-inline: 0 0.75rem;
+	}
 }

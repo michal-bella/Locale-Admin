@@ -50,6 +50,8 @@ Parametre v query (schéma `translationsQuerySchema`). Prázdny reťazec znamen�
 | `search`           | string | nie     | max. 200 znakov, orezaný; podreťazec bez ohľadu na veľkosť písmen a diakritiku (`unaccent`, „vlastni“ nájde „vlastní“ aj naopak) v kľúči a hodnotách (viď zobrazenie) |
 | `status`           | enum   | nie     | `TRANSLATED` alebo `UNTRANSLATED`                                                                                                                                     |
 | `namespace`        | string | nie     | presná zhoda namespace                                                                                                                                                |
+| `updatedById`      | UUID   | nie     | iba kľúče, ktorých preklad (kompaktné: cieľový, rozšírené: ktorýkoľvek jazyk) naposledy uložil tento používateľ                                                       |
+| `updatedWithin`    | enum   | nie     | `DAY`, `WEEK`, `MONTH`: preklad zmenený za posledných 24 hodín, 7 alebo 30 dní; spolu s `updatedById` musí obe podmienky splniť ten istý preklad                      |
 | `sort`             | enum   | nie     | `UNTRANSLATED_FIRST` (predvolené), `KEY`, `UPDATED`                                                                                                                   |
 | `page`             | číslo  | nie     | od 1, predvolene 1                                                                                                                                                    |
 | `pageSize`         | číslo  | nie     | 1 až 100, predvolene 20                                                                                                                                               |
@@ -68,14 +70,15 @@ Zoradenie (posledné kritérium je vždy ID kľúča, takže stránky sa neprekr
 
 Schéma `translationsResponseSchema`.
 
-| Pole         | Typ      | Popis                                                                                                   |
-| ------------ | -------- | ------------------------------------------------------------------------------------------------------- |
-| `items`      | pole     | kľúče aktuálnej stránky (viď nižšie)                                                                    |
-| `total`      | číslo    | počet kľúčov, ktoré spĺňajú filtre (stránka za koncom vráti `items: []` a správny `total`)              |
-| `page`       | číslo    | aktuálna stránka                                                                                        |
-| `pageSize`   | číslo    | veľkosť stránky                                                                                         |
-| `stats`      | objekt   | `{ totalKeys, translated, untranslated }` podľa stavu riadku cez všetky kľúče projektu, **bez filtrov** |
-| `namespaces` | string[] | všetky namespace projektu, zoradené (aj prázdny `""`, ak ho nejaký kľúč má)                             |
+| Pole         | Typ      | Popis                                                                                                     |
+| ------------ | -------- | --------------------------------------------------------------------------------------------------------- |
+| `items`      | pole     | kľúče aktuálnej stránky (viď nižšie)                                                                      |
+| `total`      | číslo    | počet kľúčov, ktoré spĺňajú filtre (stránka za koncom vráti `items: []` a správny `total`)                |
+| `page`       | číslo    | aktuálna stránka                                                                                          |
+| `pageSize`   | číslo    | veľkosť stránky                                                                                           |
+| `stats`      | objekt   | `{ totalKeys, translated, untranslated }` podľa stavu riadku cez všetky kľúče projektu, **bez filtrov**   |
+| `namespaces` | string[] | všetky namespace projektu, zoradené (aj prázdny `""`, ak ho nejaký kľúč má)                               |
+| `editors`    | objekt[] | `{ id, name }` každého používateľa, ktorý uložil niektorý preklad projektu, podľa mena; filtre ho nemenia |
 
 Položka `items[]`:
 
@@ -120,7 +123,8 @@ Položka `items[]`:
 	"page": 1,
 	"pageSize": 20,
 	"stats": { "totalKeys": 30, "translated": 18, "untranslated": 12 },
-	"namespaces": ["loc", "paths"]
+	"namespaces": ["loc", "paths"],
+	"editors": [{ "id": "6c1f…", "name": "Michal Bella" }]
 }
 ```
 

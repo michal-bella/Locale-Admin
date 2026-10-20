@@ -20,15 +20,15 @@ Router `/api/profile` je za `requireAuth`, rola sa nekontroluje. Bez session vr�
 
 Schéma `profileSchema` = `AuthUser` (viď [auth](./auth.md#odpoveď-authuser)) a navyše `passwordChangedAt`. Hash hesla sa nikdy nevracia.
 
-| Pole                | Typ                | Popis                                                           |
-| ------------------- | ------------------ | --------------------------------------------------------------- |
-| `id`                | UUID               | ID používateľa                                                  |
-| `email`             | string             | normalizovaný email (malé písmená)                              |
-| `role`              | `ADMIN` / `EDITOR` | globálna rola                                                   |
-| `firstName`         | string / `null`    | meno, `null` ak ešte nie je vyplnené                            |
-| `lastName`          | string / `null`    | priezvisko, `null` ak ešte nie je vyplnené                      |
-| `preferences`       | objekt             | `{ translationsView }` (viď [auth](./auth.md#odpoveď-authuser)) |
-| `passwordChangedAt` | string (ISO 8601)  | posledná zmena hesla, napr. `2026-10-12T08:30:00.000Z`          |
+| Pole                | Typ                | Popis                                                                               |
+| ------------------- | ------------------ | ----------------------------------------------------------------------------------- |
+| `id`                | UUID               | ID používateľa                                                                      |
+| `email`             | string             | normalizovaný email (malé písmená)                                                  |
+| `role`              | `ADMIN` / `EDITOR` | globálna rola                                                                       |
+| `firstName`         | string / `null`    | meno, `null` ak ešte nie je vyplnené                                                |
+| `lastName`          | string / `null`    | priezvisko, `null` ak ešte nie je vyplnené                                          |
+| `preferences`       | objekt             | `{ translationsView, translationsLayout }` (viď [auth](./auth.md#odpoveď-authuser)) |
+| `passwordChangedAt` | string (ISO 8601)  | posledná zmena hesla, napr. `2026-10-12T08:30:00.000Z`                              |
 
 ```json
 {
@@ -37,7 +37,7 @@ Schéma `profileSchema` = `AuthUser` (viď [auth](./auth.md#odpoveď-authuser)) 
 	"role": "EDITOR",
 	"firstName": "Jana",
 	"lastName": "Nováková",
-	"preferences": { "translationsView": "EXTENDED" },
+	"preferences": { "translationsView": "EXTENDED", "translationsLayout": "COLUMNS" },
 	"passwordChangedAt": "2026-10-12T08:30:00.000Z"
 }
 ```
@@ -90,15 +90,17 @@ Telo (schéma `updatePreferencesRequestSchema`):
 { "translationsView": "COMPACT" }
 ```
 
-- `translationsView` je povinné: `EXTENDED` (všetky jazyky projektu vedľa seba, predvolené pre nového používateľa) alebo `COMPACT` (zdrojový → cieľový jazyk). Stránka Preklady pošle zmenu hneď pri prepnutí a zobrazenie si používateľ ponesie na každom zariadení.
+- Aspoň jedno z polí `translationsView` a `translationsLayout`, chýbajúce sa nemení.
+- `translationsView`: `EXTENDED` (všetky jazyky projektu vedľa seba, predvolené pre nového používateľa) alebo `COMPACT` (zdrojový → cieľový jazyk). Stránka Preklady pošle zmenu hneď pri prepnutí a zobrazenie si používateľ ponesie na každom zariadení.
+- `translationsLayout`: `COLUMNS` (jazyky vedľa seba, predvolené) alebo `STACKED` (jazyky pod sebou).
 - Mení iba prihláseného používateľa. Pri úspechu vráti `200` s novým `Profile`; novú hodnotu vracia hneď aj `GET /api/auth/me`.
 
-| HTTP | `code`                 | Kedy                                                                                  |
-| ---- | ---------------------- | ------------------------------------------------------------------------------------- |
-| 200  |                        | preferencia uložená, telo `Profile`                                                   |
-| 400  | `VALIDATION_ERROR`     | neznáma hodnota alebo chýbajúce pole, `details` `[{ "path": "translationsView", … }]` |
-| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                                        |
-| 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo                                                   |
+| HTTP | `code`                 | Kedy                                                                                               |
+| ---- | ---------------------- | -------------------------------------------------------------------------------------------------- |
+| 200  |                        | preferencia uložená, telo `Profile`                                                                |
+| 400  | `VALIDATION_ERROR`     | neznáma hodnota (`details` `[{ "path": "translationsView", … }]`) alebo prázdne telo (`path` `""`) |
+| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                                                     |
+| 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo                                                                |
 
 ## Príklad (curl)
 

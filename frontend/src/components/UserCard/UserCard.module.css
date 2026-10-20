@@ -11,9 +11,20 @@
 	color: var(--app-color-text-secondary);
 }
 
+/* Next to the avatar even on a phone; when the role does not fit beside the email, it wraps under it. */
+.identity {
+	flex: 1 1 10rem;
+	min-width: 0;
+}
+
 .role {
-	width: 100%;
-	max-width: 14rem;
+	width: 14rem;
+}
+
+@media (max-width: 39.99em) {
+	.role {
+		width: 100%;
+	}
 }
 
 .email {

@@ -11,3 +11,15 @@
 	padding-inline: 0.25rem;
 	color: var(--app-color-muted);
 }
+
+.pageSize {
+	width: 4.5rem;
+}
+
+/* As tall as the page buttons next to it (30 px), not the 44 px of the theme inputs. */
+.pageSizeInput {
+	height: 1.875rem;
+	min-height: 1.875rem;
+	border-radius: var(--mantine-radius-sm);
+	font-size: var(--mantine-font-size-2xs);
+}

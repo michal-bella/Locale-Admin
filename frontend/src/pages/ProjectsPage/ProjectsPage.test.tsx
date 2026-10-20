@@ -16,6 +16,9 @@ const BOOKING: ProjectListItem = {
 	slug: 'booking-web',
 	primaryColor: '#FACC15',
 	isMember: true,
+	languageTags: ['en', 'sk'],
+	keyCount: 224,
+	translatedCount: 447,
 }
 
 const DEMO: ProjectListItem = {
@@ -24,6 +27,9 @@ const DEMO: ProjectListItem = {
 	slug: 'demo-project',
 	primaryColor: '#1D4ED8',
 	isMember: false,
+	languageTags: [],
+	keyCount: 0,
+	translatedCount: 0,
 }
 
 const projectsResponse = (projects: ProjectListItem[]) => ({ status: 200, data: { projects } })
@@ -38,6 +44,9 @@ const settingsOf = ({ id, name, slug, primaryColor }: ProjectListItem): ProjectS
 })
 
 const getList = () => screen.getByRole('list', { name: 'Zoznam projektov' })
+
+/** The project rows only; each row also has a list of its language flags. */
+const getRows = () => Array.from(getList().children) as HTMLElement[]
 
 const clickLeave = async (name: string) => {
 	fireEvent.click(await screen.findByRole('button', { name: `Opustiť projekt ${name}` }))
@@ -66,10 +75,7 @@ afterEach(() => {
 })
 
 describe('ProjectsPage list', () => {
-	const names = () =>
-		within(getList())
-			.getAllByRole('listitem')
-			.map((item) => within(item).getAllByRole('link')[0]?.textContent)
+	const names = () => getRows().map((item) => within(item).getAllByRole('link')[0]?.textContent)
 
 	/** GET answers with the order of the last PUT, as the API does. */
 	const orderRoutes = (initial: ProjectListItem[]) => {
@@ -112,19 +118,20 @@ describe('ProjectsPage list', () => {
 		const requests = signedInAs(ADMIN_USER, orderRoutes([BOOKING, DEMO, third]))
 		renderApp('/')
 		const list = await waitFor(getList)
-		const rows = within(list).getAllByRole('listitem')
+		const rows = getRows()
 		const sortable = Sortable.get(list)
 		expect(sortable?.option('handle')).toMatch(/grip/)
 
-		// jsdom cannot drag, so do what SortableJS does on a drop: move the row node, then call onEnd.
-		act(() => {
-			list.insertBefore(rows[2]!, rows[1]!)
-			sortable?.option('onEnd')?.({ item: rows[2]!, from: list, to: list, oldIndex: 2, newIndex: 1 } as unknown as Sortable.SortableEvent)
-		})
+		// jsdom cannot drag, so do what SortableJS does on a drop: move the row node, then call onEnd. Outside act, so nothing but the
+		// drop handler itself renders: the new order must be in the DOM right away, before the browser could paint the row at its old place.
+		list.insertBefore(rows[2]!, rows[1]!)
+		sortable?.option('onEnd')?.({ item: rows[2]!, from: list, to: list, oldIndex: 2, newIndex: 1 } as unknown as Sortable.SortableEvent)
+		expect(names()).toEqual(['Booking Web', 'Third', 'Demo project'])
 
-		await waitFor(() => expect(names()).toEqual(['Booking Web', 'Third', 'Demo project']))
+		await waitFor(() => expect(putOrder(requests)).toHaveLength(1))
+		expect(names()).toEqual(['Booking Web', 'Third', 'Demo project'])
 		expect(putOrder(requests)).toEqual([{ projectIds: [BOOKING.id, third.id, DEMO.id] }])
-		expect(within(getList()).getAllByRole('listitem')).toHaveLength(3)
+		expect(getRows()).toHaveLength(3)
 	})
 
 	it('puts the order back and notifies when saving it fails', async () => {
@@ -152,13 +159,31 @@ describe('ProjectsPage list', () => {
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Projekty' })).toBeInTheDocument()
 		const list = within(await waitFor(getList))
-		expect(list.getAllByRole('listitem')).toHaveLength(2)
+		expect(getRows()).toHaveLength(2)
 		expect(list.getByRole('link', { name: 'Booking Web' })).toHaveAttribute('href', `/projects/${BOOKING.slug}/translations`)
 		expect(list.getByText('booking-web')).toBeInTheDocument()
 		const initials = list.getByText('BW')
 		expect(initials).toHaveStyle({ backgroundColor: '#FACC15' })
 		expect(initials).toHaveAttribute('data-tone', 'dark')
 		expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+	})
+
+	it('shows the key count, the translated share over all languages and the language flags', async () => {
+		signedInAs(ADMIN_USER, { 'GET /projects': projectsResponse([BOOKING, DEMO]) })
+		renderApp('/')
+
+		await waitFor(getList)
+		const [booking, demo] = getRows().map((row) => within(row))
+		expect(booking?.getByText('224 kľúčov')).toBeInTheDocument()
+		expect(booking?.getByText('Preložené: > 99 %')).toBeInTheDocument()
+		expect(booking?.getByText('Nepreložené: < 1 %')).toBeInTheDocument()
+		expect(
+			within(booking!.getByRole('list', { name: 'Jazyky projektu Booking Web' }))
+				.getAllByRole('listitem')
+				.map((item) => item.textContent),
+		).toEqual(['English', 'Slovak'])
+		expect(demo?.getByText('0 kľúčov')).toBeInTheDocument()
+		expect(demo?.getByText('Zatiaľ bez kľúčov')).toBeInTheDocument()
 	})
 
 	it('shows Nastavenia for every project and Opustiť projekt only for projects the user is a member of', async () => {

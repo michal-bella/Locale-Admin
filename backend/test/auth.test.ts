@@ -36,7 +36,7 @@ describe('POST /api/auth/login', () => {
 			role: ROLE.ADMIN,
 			firstName: 'Meno',
 			lastName: 'Priezvisko',
-			preferences: { translationsView: 'EXTENDED' },
+			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
 		})
 		expect(authUserSchema.strict().safeParse(res.body).success).toBe(true)
 
@@ -209,7 +209,7 @@ describe('GET /api/auth/me', () => {
 			role: ROLE.EDITOR,
 			firstName: null,
 			lastName: null,
-			preferences: { translationsView: 'EXTENDED' },
+			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
 		})
 		expect(getSessionSetCookie(res)).toBeUndefined()
 	})

@@ -53,6 +53,7 @@ const TRANSLATIONS: TranslationsResponse = {
 	pageSize: 20,
 	stats: { totalKeys: 4, translated: 4, untranslated: 0 },
 	namespaces: ['common'],
+	editors: [],
 }
 
 const PREVIEW: ImportPreviewResponse = {

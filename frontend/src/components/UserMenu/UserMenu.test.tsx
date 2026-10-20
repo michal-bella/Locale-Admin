@@ -9,7 +9,7 @@ const PREVIOUS_USER_DATA_KEY = ['test', 'previous-user-data']
 
 const getTopBar = async () => within(await screen.findByRole('banner'))
 
-const openMenu = async () => fireEvent.click(await screen.findByRole('button', { name: 'Menu používateľa' }))
+const openMenu = async () => fireEvent.click(await screen.findByRole('button', { name: /^Menu používateľa/ }))
 
 describe('UserMenu', () => {
 	it('shows initials, full name and role of an ADMIN in the top bar', async () => {
@@ -20,7 +20,7 @@ describe('UserMenu', () => {
 		expect(await topBar.findByText('MK')).toBeInTheDocument()
 		expect(topBar.getByText('Martin Kováč')).toBeInTheDocument()
 		expect(topBar.getByText('Administrátor')).toBeInTheDocument()
-		expect(topBar.getByRole('button', { name: 'Menu používateľa' })).toBeInTheDocument()
+		expect(topBar.getByRole('button', { name: /^Menu používateľa/ })).toBeInTheDocument()
 	})
 
 	it('shows the email instead of a missing name and the EDITOR role', async () => {

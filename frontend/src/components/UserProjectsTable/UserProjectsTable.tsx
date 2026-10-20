@@ -56,17 +56,25 @@ const UserProjectsTable = ({ user }: UserProjectsTableProps) => {
 						>
 							{getProjectInitials(project.name)}
 						</span>
-						<Text size='sm' fw={500} c='var(--app-color-text-strong)' className={classes.name}>
-							{project.name}
-						</Text>
+						<div className='flex min-w-0 flex-col'>
+							<Text size='sm' fw={500} c='var(--app-color-text-strong)' className={classes.name}>
+								{project.name}
+							</Text>
+							<Text size='xs' className={`${classes.name} ${classes.narrowOnly}`}>
+								{project.slug}
+							</Text>
+							<Text size='xs' className={classes.narrowOnly}>
+								{t('userPage.projects.table.joinedOn', { date: formatDate(project.joinedAt, i18n.language) })}
+							</Text>
+						</div>
 					</div>
 				</Table.Td>
-				<Table.Td className={classes.td}>
+				<Table.Td className={`${classes.td} ${classes.slugColumn}`}>
 					<Text size='xs' className={classes.name}>
 						{project.slug}
 					</Text>
 				</Table.Td>
-				<Table.Td className={classes.td}>
+				<Table.Td className={`${classes.td} ${classes.joinedColumn}`}>
 					<Text size='xs'>{formatDate(project.joinedAt, i18n.language)}</Text>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
@@ -97,7 +105,7 @@ const UserProjectsTable = ({ user }: UserProjectsTableProps) => {
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('userPage.projects.table.project')}</Table.Th>
-						<Table.Th className={classes.th}>{t('userPage.projects.table.slug')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.slugColumn}`}>{t('userPage.projects.table.slug')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.joinedColumn}`}>{t('userPage.projects.table.joinedAt')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
 							<VisuallyHidden>{t('userPage.projects.table.actionsColumn')}</VisuallyHidden>

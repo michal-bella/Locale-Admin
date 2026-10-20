@@ -1,6 +1,4 @@
-import { type Language, type TranslationsResponse, type TranslationsView } from '@locale/shared'
-
-import { type TranslationsLayout } from '@/routes/projectTranslationsRoute'
+import { type Language, type TranslationsLayout, type TranslationsResponse, type TranslationsView } from '@locale/shared'
 
 export type TranslationsTableProps = {
 	projectId: string
@@ -14,7 +12,7 @@ export type TranslationsTableProps = {
 	view: TranslationsView
 	/** `STACKED` puts the languages of the view under each other in one column and the status into the key cell. */
 	layout: TranslationsLayout
-	/** Every language of the project in column order (base first); the base one is the reference in `EditTranslationModal`. */
+	/** Languages of the extended view in column order (base first, always shown); the base one is the reference in `EditTranslationModal`. */
 	languages: Language[]
 	/** `undefined` only for a project without languages, which shows the empty state. */
 	sourceLanguage?: Language
@@ -24,6 +22,8 @@ export type TranslationsTableProps = {
 	onImport: () => void
 	/** Group header rows only make sense when the sort keeps a group together (not for `UPDATED`). */
 	showGroups: boolean
+	/** Hides the key and status columns, so the translations get the whole width. */
+	translationsOnly?: boolean
 	/** Saves the value of a key in a language; rejects with the API error (see `EditTranslationModal`). */
 	onSave: (keyId: string, languageId: string, value: string | null) => Promise<unknown>
 }

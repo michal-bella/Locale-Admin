@@ -46,7 +46,7 @@ describe('GET /api/profile', () => {
 			role,
 			firstName: 'Jana',
 			lastName: 'Nováková',
-			preferences: { translationsView: 'EXTENDED' },
+			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
 			passwordChangedAt: '2026-05-04T10:20:30.000Z',
 		})
 	})
@@ -80,7 +80,7 @@ describe('PATCH /api/profile', () => {
 			role: ROLE.EDITOR,
 			firstName: 'Jana',
 			lastName: 'Nováková',
-			preferences: { translationsView: 'EXTENDED' },
+			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
 			passwordChangedAt: user.passwordChangedAt.toISOString(),
 		})
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
@@ -240,7 +240,18 @@ describe('PATCH /api/profile/preferences', () => {
 		expect(me.body).toMatchObject({ preferences: { translationsView: 'COMPACT' } })
 	})
 
-	it('returns 400 VALIDATION_ERROR for an unknown view or a missing field', async () => {
+	it('stores the layout alone and keeps the view', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await loginWithUser(app)
+
+		const res = await patchPreferences(app, cookie, { translationsLayout: 'STACKED' })
+
+		expect(res.status).toBe(200)
+		expect(res.body).toMatchObject({ preferences: { translationsView: 'EXTENDED', translationsLayout: 'STACKED' } })
+		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })).translationsLayout).toBe('STACKED')
+	})
+
+	it('returns 400 VALIDATION_ERROR for an unknown view or an empty body', async () => {
 		const app = createTestApp()
 		const { cookie } = await loginWithUser(app)
 
@@ -249,7 +260,7 @@ describe('PATCH /api/profile/preferences', () => {
 		expect(errorResponseSchema.parse(unknown.body).error.details).toEqual([{ path: 'translationsView', code: VALIDATION_CODE.INVALID }])
 		const missing = await patchPreferences(app, cookie, {})
 		expectErrorCode(missing, 400, ERROR_CODE.VALIDATION_ERROR)
-		expect(errorResponseSchema.parse(missing.body).error.details).toMatchObject([{ path: 'translationsView' }])
+		expect(errorResponseSchema.parse(missing.body).error.details).toMatchObject([{ path: '' }])
 	})
 
 	it('returns 401 AUTH_UNAUTHENTICATED without a session and 403 CSRF_REJECTED without the header', async () => {

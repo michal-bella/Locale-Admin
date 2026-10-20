@@ -17,7 +17,7 @@ export const ADMIN_USER: AuthUser = {
 	role: ROLE.ADMIN,
 	firstName: 'Martin',
 	lastName: 'Kováč',
-	preferences: { translationsView: 'EXTENDED' },
+	preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
 }
 
 export const EDITOR_USER: AuthUser = {
@@ -26,7 +26,7 @@ export const EDITOR_USER: AuthUser = {
 	role: ROLE.EDITOR,
 	firstName: null,
 	lastName: null,
-	preferences: { translationsView: 'EXTENDED' },
+	preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
 }
 
 export const apiError = (status: number, code: string, extra: { details?: unknown; headers?: Record<string, string> } = {}): MockResponse => ({
@@ -36,11 +36,20 @@ export const apiError = (status: number, code: string, extra: { details?: unknow
 })
 
 /** Replaces the HTTP layer of the shared axios instance. Unknown routes answer 404. Returns the list of sent requests. */
-type ListedProject = Pick<ProjectListItem, 'id' | 'name' | 'slug' | 'primaryColor'> & { isMember?: boolean }
+type ListedProject = Pick<ProjectListItem, 'id' | 'name' | 'slug' | 'primaryColor'> &
+	Partial<Pick<ProjectListItem, 'isMember' | 'languageTags' | 'keyCount' | 'translatedCount'>>
 
 export const projectListResponse = (...projects: ListedProject[]): MockResponse => ({
 	status: 200,
-	data: { projects: projects.map(({ id, name, slug, primaryColor, isMember = true }) => ({ id, name, slug, primaryColor, isMember })) },
+	data: {
+		projects: projects.map(({ isMember = true, languageTags = [], keyCount = 0, translatedCount = 0, ...project }): ProjectListItem => ({
+			...project,
+			isMember,
+			languageTags,
+			keyCount,
+			translatedCount,
+		})),
+	},
 })
 
 /** `GET /projects` with these projects; project routes resolve the slug in the URL through it. */

@@ -8,6 +8,37 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Preklady: filtre jazykov, autora, obdobia a plurálov (2026-10-20)
+
+- API: `GET …/translations` má filtre `updatedById`, `updatedWithin` (`DAY` / `WEEK` / `MONTH`), odpoveď má `editors` ([API](./api/translations.md#get-apiprojectsprojectidtranslations))
+- API: preferencia `translationsLayout` (`COLUMNS` / `STACKED`), `PATCH /api/profile/preferences` prijme ľubovoľnú z preferencií ([API](./api/profile.md#patch-apiprofilepreferences), [databáza](./database.md))
+- frontend: v zobrazení **Všetky jazyky** výber zobrazených jazykov (`?languages=`), základný jazyk ostáva vždy, stav a štatistiky sa nemenia ([Frontend](./frontend.md))
+- frontend: filtre **Upravil** a **Zmenené** v druhom riadku toolbaru a prepínač **Len preklady** (skryje stĺpce Kľúč a Stav, viac miesta na jazyky na mobile) ([Frontend](./frontend.md))
+- frontend: rozloženie (jazyky vedľa seba / pod sebou) je preferencia používateľa namiesto URL parametra `layout` ([Frontend](./frontend.md))
+- frontend: názvy jazykov v tabuľke, modáli a výbere jazykov sú v jazyku aplikácie (napr. „bulharčina“ namiesto „български“) ([Frontend](./frontend.md))
+- frontend: toolbar prekladov je prilepený iba od 62 em, na mobile sa odroluje ([Frontend](./frontend.md))
+- frontend: vyhľadávanie je vždy vľavo v prvom riadku toolbaru, na mobile prvé; výber Kľúčov na stranu má výšku tlačidiel stránkovania, stránkovanie sa na mobile zmestí
+- frontend: toolbar v dvoch plných riadkoch (vyhľadávanie, zobrazenie, jazyky a Len preklady; filtre), odznaky vybraných jazykov s vlajkou ([Frontend](./frontend.md))
+- frontend: v tabuľke prekladov prerušované čiary medzi jazykovými stĺpcami a odznak **Základný** pri základnom jazyku; prepínač Len preklady má kurzor pointer ([Frontend](./frontend.md))
+- frontend: modál Upraviť preklad nemá blok Jazyk; pri labeloch Základný jazyk a Preklad je pred labelom vlajka (16 px) a za ním tlmene v zátvorke názov jazyka, oba boxy majú 42 px ([Frontend](./frontend.md))
+
+### Preklady: hustejšia tabuľka a počet na stranu (2026-10-20)
+
+- frontend: zobrazenie **Všetky jazyky** má menšie paddingy, užšie stĺpce (14 rem) a text prekladu 14 px ([Frontend](./frontend.md))
+- frontend: preklad v bunke sa skráti na 2 riadky (predtým 3) ([Frontend](./frontend.md))
+- frontend: pri stránkovaní výber **Kľúčov na stranu** 25 / 50 / 100 (predvolené 25, v URL `pageSize`) ([Frontend](./frontend.md))
+
+### Zoznam projektov: kľúče, progress a vlajky (2026-10-20)
+
+- API: položka `GET /api/projects` (aj `201 POST`) má `languageTags` (základný jazyk prvý), `keyCount` a `translatedCount` ([API](./api/projects.md#get-apiprojects))
+- API: `PATCH /api/admin/users/:id` mení aj `email` (voliteľné spolu s `role`, 409 `EMAIL_TAKEN`) ([API](./api/admin-users.md#patch-apiadminusersid))
+- frontend: na detaile používateľa ADMIN upraví email (ikona pri emaile, modál **Upraviť e-mail**) a zmaže používateľa (**Odstrániť používateľa**, nie pri vlastnom účte) ([Frontend](./frontend.md#stránka-detail-používateľa))
+- frontend: Používatelia na úzkej obrazovke: počet projektov, dátum a na telefóne aj rola sú pod emailom, email sa láme pred `@` ([Frontend](./frontend.md))
+- frontend: Projekty (správa) bez stĺpca Základný jazyk; na úzkej obrazovke sú slug, počty a dátum pod názvom projektu ([Frontend](./frontend.md))
+- frontend: detail používateľa na úzkej obrazovke: rola sa zalomí pod email, v tabuľke projektov sú slug a dátum pod názvom ([Frontend](./frontend.md))
+- frontend: menu používateľa v hornej lište sa otvára kliknutím na celý blok s menom, tlačidlo `⋯` je preč ([Frontend](./frontend.md))
+- frontend: riadok projektu na indexe ukazuje počet kľúčov, progress Preložené / Nepreložené cez všetky jazyky a vlajky jazykov; stránka je širšia (1180 px) ([Frontend](./frontend.md#zoznam-projektov))
+
 ### Preklady: automatické rozpoznanie plurálov (2026-10-20)
 
 - API: `PUT /api/projects/order` uloží vlastné poradie projektov používateľa (tabuľka `ProjectOrder`, nová migrácia), `GET /api/projects` ho vracia v tomto poradí ([API](./api/projects.md#put-apiprojectsorder), [Databáza](./database.md#projectorder))

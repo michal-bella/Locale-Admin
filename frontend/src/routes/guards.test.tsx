@@ -21,7 +21,7 @@ describe('route guards', () => {
 		signedInAs(EDITOR_USER)
 		const router = renderApp('/login')
 
-		expect(await screen.findByRole('button', { name: 'Menu používateľa' })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: /^Menu používateľa/ })).toBeInTheDocument()
 		expect(router.state.location.pathname).toBe('/')
 	})
 
@@ -95,7 +95,7 @@ describe('route guards', () => {
 		backendUp = true
 		fireEvent.click(screen.getByRole('button', { name: 'Skúsiť znova' }))
 
-		expect(await screen.findByRole('button', { name: 'Menu používateľa' })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: /^Menu používateľa/ })).toBeInTheDocument()
 	})
 
 	it('shows errors.UNKNOWN on the error page when the backend is unreachable', async () => {
@@ -133,7 +133,7 @@ describe('401 interceptor', () => {
 		})
 		const router = renderApp('/')
 		interceptorId = installUnauthorizedInterceptor({ router, queryClient })
-		await screen.findByRole('button', { name: 'Menu používateľa' })
+		await screen.findByRole('button', { name: /^Menu používateľa/ })
 		queryClient.setQueryData(PREVIOUS_USER_DATA_KEY, ['data of the previous user'])
 
 		sessionValid = false

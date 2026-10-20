@@ -45,7 +45,7 @@ const PROJECT: ProjectSettings = {
 const PAGE_PATH = `/projects/${PROJECT.slug}/translations`
 
 /** The page tests below cover the Figma compact view; the extended view, the default for a new user, has its own describe at the end. */
-const compact = (user: AuthUser): AuthUser => ({ ...user, preferences: { translationsView: 'COMPACT' } })
+const compact = (user: AuthUser): AuthUser => ({ ...user, preferences: { ...user.preferences, translationsView: 'COMPACT' } })
 
 const ADMIN_USER = compact(EXTENDED_ADMIN)
 
@@ -93,6 +93,7 @@ const response = (overrides: Partial<TranslationsResponse> = {}): TranslationsRe
 	pageSize: 20,
 	stats: { totalKeys: 248, translated: 221, untranslated: 27 },
 	namespaces: ['loc', 'paths'],
+	editors: [],
 	...overrides,
 })
 
@@ -139,6 +140,10 @@ const getRow = (key: string) => {
 	return row
 }
 
+/** Matches the innermost element whose whole text is `text`, also when it is split across children (a label with a flag and the language). */
+const fullText = (text: string) => (_: string, element: Element | null) =>
+	element?.textContent === text && ![...element.children].some((child) => child.textContent === text)
+
 const pickOption = async (label: string, option: string) => {
 	fireEvent.click(screen.getByRole('combobox', { name: label }))
 	fireEvent.click(await screen.findByRole('option', { name: option }))
@@ -172,7 +177,7 @@ describe('TranslationsPage', () => {
 			.getAllByRole('columnheader')
 			.filter((header) => header.getAttribute('scope') !== 'rowgroup')
 			.map((header) => header.textContent)
-		expect(headers).toEqual(['Kľúč', 'slovenčina', 'English', 'Stav'])
+		expect(headers).toEqual(['Kľúč', 'slovenčina Základný', 'angličtina', 'Stav'])
 
 		const welcome = within(getRow('dashboard.welcome'))
 		expect(welcome.getByText('loc:dashboard')).toBeInTheDocument()
@@ -185,7 +190,7 @@ describe('TranslationsPage', () => {
 		expect(within(getRow('orders.empty.title')).getByText('Bez prekladu')).toBeInTheDocument()
 	})
 
-	it('asks for the base language → first other language, untranslated first, page 1 of 20 by default', async () => {
+	it('asks for the base language → first other language, untranslated first, page 1 of 25 by default', async () => {
 		const requests = mockPage({ languages: [SLOVAK, CZECH, ENGLISH] })
 		renderApp(PAGE_PATH)
 
@@ -195,7 +200,7 @@ describe('TranslationsPage', () => {
 			targetLanguageId: CZECH.id,
 			sort: 'UNTRANSLATED_FIRST',
 			page: 1,
-			pageSize: 20,
+			pageSize: 25,
 		})
 		expect(screen.getByRole('combobox', { name: 'Zdrojový jazyk' })).toHaveValue('SK')
 		expect(screen.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('CS')
@@ -211,7 +216,7 @@ describe('TranslationsPage', () => {
 
 	it('reads the filters from the URL', async () => {
 		const requests = mockPage({ languages: [SLOVAK, CZECH, ENGLISH] })
-		renderApp(`${PAGE_PATH}?search=welcome&status=TRANSLATED&namespace=loc&sort=KEY&source=en&target=sk&page=2`)
+		renderApp(`${PAGE_PATH}?search=welcome&status=TRANSLATED&namespace=loc&sort=KEY&source=en&target=sk&page=2&pageSize=50`)
 
 		await screen.findByText('orders.empty.title')
 		expect(lastParams(requests)).toEqual({
@@ -222,7 +227,7 @@ describe('TranslationsPage', () => {
 			namespace: 'loc',
 			sort: 'KEY',
 			page: 2,
-			pageSize: 20,
+			pageSize: 50,
 		})
 		expect(screen.getByRole('textbox', { name: 'Hľadať kľúč alebo preklad' })).toHaveValue('welcome')
 		expect(screen.getByRole('combobox', { name: 'Stav' })).toHaveValue('Preložené')
@@ -234,7 +239,7 @@ describe('TranslationsPage', () => {
 		renderApp(`${PAGE_PATH}?status=REVIEW&sort=RANDOM&source=pl&page=0`)
 
 		await screen.findByText('orders.empty.title')
-		expect(lastParams(requests)).toEqual({ sourceLanguageId: SLOVAK.id, targetLanguageId: ENGLISH.id, sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 20 })
+		expect(lastParams(requests)).toEqual({ sourceLanguageId: SLOVAK.id, targetLanguageId: ENGLISH.id, sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 25 })
 	})
 
 	it('writes the search to the URL after typing stops and resets the page', async () => {
@@ -277,7 +282,7 @@ describe('TranslationsPage', () => {
 				namespace: 'paths',
 				sort: 'UPDATED',
 				page: 1,
-				pageSize: 20,
+				pageSize: 25,
 			}),
 		)
 
@@ -285,14 +290,28 @@ describe('TranslationsPage', () => {
 		await waitFor(() => expect(router.state.location.search).not.toHaveProperty('status'))
 	})
 
-	it('stacks the source and target in one column with the status in the key cell and keeps the page', async () => {
-		mockPage()
+	it('stacks the source and target in one column with the status in the key cell, saves the preference and keeps the page', async () => {
+		const profile = (translationsLayout: 'COLUMNS' | 'STACKED') => ({
+			...ADMIN_USER,
+			preferences: { ...ADMIN_USER.preferences, translationsLayout },
+			passwordChangedAt: '2026-10-01T00:00:00.000Z',
+		})
+		mockPage({
+			routes: {
+				'PATCH /profile/preferences': (config: InternalAxiosRequestConfig) => {
+					const { translationsLayout } = JSON.parse(config.data as string) as { translationsLayout: 'COLUMNS' | 'STACKED' }
+					return { status: 200, data: profile(translationsLayout) }
+				},
+			},
+		})
 		const router = renderApp(`${PAGE_PATH}?page=2`)
 		await screen.findByText('orders.empty.title')
 
 		expect(screen.getByRole('radio', { name: 'Jazyky vedľa seba' })).toBeChecked()
 		fireEvent.click(screen.getByRole('radio', { name: 'Jazyky pod sebou' }))
-		await waitFor(() => expect(router.state.location.search).toEqual({ page: 2, layout: 'STACKED' }))
+		await waitFor(() => expect(getTable()).toHaveAttribute('data-layout', 'STACKED'))
+		expect(router.state.location.search).toEqual({ page: 2 })
+		await waitFor(() => expect(queryClient.getQueryData<AuthUser>(QUERY_KEYS.AUTH.ME())?.preferences.translationsLayout).toBe('STACKED'))
 
 		const table = getTable()
 		expect(table).toHaveAttribute('data-layout', 'STACKED')
@@ -307,13 +326,13 @@ describe('TranslationsPage', () => {
 		expect(title.getByText('Nepreložené')).toBeInTheDocument()
 		const translations = title.getAllByRole('cell')[1] as HTMLElement
 		expect(within(translations).getByText('slovenčina')).toBeInTheDocument()
-		expect(within(translations).getByText('English')).toBeInTheDocument()
+		expect(within(translations).getByText('angličtina')).toBeInTheDocument()
 		expect(within(translations).getByText('Zatiaľ tu nie sú žiadne objednávky')).toBeInTheDocument()
-		expect(within(translations).getByRole('button', { name: /Preklad kľúča orders\.empty\.title, English/ })).toBeInTheDocument()
+		expect(within(translations).getByRole('button', { name: /Preklad kľúča orders\.empty\.title, angličtina/ })).toBeInTheDocument()
 
 		fireEvent.click(screen.getByRole('radio', { name: 'Jazyky vedľa seba' }))
-		await waitFor(() => expect(router.state.location.search).toEqual({ page: 2 }))
-		expect(getTable()).not.toHaveAttribute('data-layout')
+		await waitFor(() => expect(getTable()).not.toHaveAttribute('data-layout'))
+		expect(router.state.location.search).toEqual({ page: 2 })
 	})
 
 	it('shows the namespace filter only when the project has more than one namespace', async () => {
@@ -516,7 +535,7 @@ describe('TranslationsPage', () => {
 		expect(await screen.findByText('orders.empty.title')).toBeInTheDocument()
 	})
 
-	it('paginates 20 per page and writes the page to the URL', async () => {
+	it('paginates and writes the page to the URL', async () => {
 		const requests = mockPage({
 			translations: (config) => ({ status: 200, data: response({ total: 120, page: (config.params as { page: number }).page }) }),
 		})
@@ -535,6 +554,23 @@ describe('TranslationsPage', () => {
 		await waitFor(() => expect(router.state.location.search).toEqual({ page: 2 }))
 		await waitFor(() => expect(lastParams(requests)).toMatchObject({ page: 2 }))
 		await waitFor(() => expect(pagination.getByRole('button', { name: 'Strana 2' })).toHaveAttribute('aria-current', 'page'))
+	})
+
+	it('changes the keys per page, writes it to the URL and goes back to the first page', async () => {
+		const requests = mockPage({
+			translations: (config) => ({ status: 200, data: response({ total: 120, page: (config.params as { page: number }).page }) }),
+		})
+		const router = renderApp(`${PAGE_PATH}?page=2`)
+
+		expect(await screen.findByRole('combobox', { name: 'Kľúčov na stranu' })).toHaveValue('25')
+
+		await pickOption('Kľúčov na stranu', '50')
+		await waitFor(() => expect(router.state.location.search).toEqual({ pageSize: 50 }))
+		await waitFor(() => expect(lastParams(requests)).toMatchObject({ page: 1, pageSize: 50 }))
+
+		await pickOption('Kľúčov na stranu', '25')
+		await waitFor(() => expect(router.state.location.search).toEqual({}))
+		await waitFor(() => expect(lastParams(requests)).toMatchObject({ page: 1, pageSize: 25 }))
 	})
 
 	it('keeps the focus on Ďalšia when it reaches the last page and ignores further clicks', async () => {
@@ -608,6 +644,7 @@ describe('TranslationsPage', () => {
 		expect(await screen.findByText('2 min ago')).toBeInTheDocument()
 		expect(screen.getByRole('heading', { level: 1, name: 'Translations' })).toBeInTheDocument()
 		expect(await findVisibleText('Showing 4 of 4 keys')).toBeInTheDocument()
+		expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual(['Key', 'Slovak Base', 'English', 'Status'])
 	})
 })
 
@@ -692,7 +729,7 @@ const save = (dialog: HTMLElement) => fireEvent.click(within(dialog).getByRole('
 
 const waitForClosed = () => waitFor(() => expect(screen.queryByRole('dialog', { name: DIALOG })).not.toBeInTheDocument())
 
-const WELCOME_BUTTON = 'Preklad kľúča dashboard.welcome, English: Welcome back, {{name}}'
+const WELCOME_BUTTON = 'Preklad kľúča dashboard.welcome, angličtina: Welcome back, {{name}}'
 
 /** Replaces the content of the contenteditable editor like typing would; the editor serializes the DOM on `input`. */
 const typeText = (field: HTMLElement, text: string) => {
@@ -710,10 +747,10 @@ describe('TranslationsPage edit modal', () => {
 
 		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
 		expect(within(dialog).getByText('dashboard.welcome')).toBeInTheDocument()
-		expect(within(dialog).getByText('English')).toBeInTheDocument()
-		expect(within(dialog).getByText('Základný jazyk (slovenčina)')).toBeInTheDocument()
+		expect(within(dialog).getByText(fullText('Základný jazyk (slovenčina)'))).toBeInTheDocument()
+		expect(within(dialog).getByText(fullText('Preklad (angličtina)'))).toBeInTheDocument()
 		expect(within(dialog).getByText('Vitajte späť,', { exact: false })).toBeInTheDocument()
-		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English')
+		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, angličtina')
 		expect(field).toHaveTextContent('Welcome back, {{name}}')
 		await waitFor(() => expect(field).toHaveFocus())
 		expect(field).toHaveAttribute('aria-multiline', 'true')
@@ -730,7 +767,7 @@ describe('TranslationsPage edit modal', () => {
 		renderApp(PAGE_PATH)
 
 		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
-		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English')
+		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, angličtina')
 		typeText(field, 'draft')
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Prevziať text zo základného jazyka (slovenčina) do prekladu' }))
 
@@ -747,7 +784,7 @@ describe('TranslationsPage edit modal', () => {
 		renderApp(PAGE_PATH)
 
 		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
-		typeText(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English'), 'Welcome back, {{name}}!')
+		typeText(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, angličtina'), 'Welcome back, {{name}}!')
 		save(dialog)
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
@@ -755,14 +792,14 @@ describe('TranslationsPage edit modal', () => {
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: 'Welcome back, {{name}}!' })
 		await waitForClosed()
 		const row = within(getRow('dashboard.welcome'))
-		const button = await row.findByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Welcome back, {{name}}!' })
+		const button = await row.findByRole('button', { name: 'Preklad kľúča dashboard.welcome, angličtina: Welcome back, {{name}}!' })
 		await waitFor(() => expect(button).toHaveFocus())
 		expect(row.getAllByText('{{name}}').map((chip) => chip.tagName)).toEqual(['CODE', 'CODE'])
 		expect(row.getByText('Preložené')).toBeInTheDocument()
 		expect(getAnnouncement('Uložené: dashboard.welcome')).toBeInTheDocument()
 
-		const description = await openModal('orders.empty.description', 'Preklad kľúča orders.empty.description, English: Bez prekladu')
-		typeText(fieldOf(description, 'Preklad kľúča orders.empty.description, English'), 'New orders will show up here.')
+		const description = await openModal('orders.empty.description', 'Preklad kľúča orders.empty.description, angličtina: Bez prekladu')
+		typeText(fieldOf(description, 'Preklad kľúča orders.empty.description, angličtina'), 'New orders will show up here.')
 		save(description)
 
 		await waitFor(() => expect(puts()).toHaveLength(2))
@@ -777,7 +814,7 @@ describe('TranslationsPage edit modal', () => {
 		renderApp(PAGE_PATH)
 
 		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
-		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English')
+		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, angličtina')
 		typeText(field, 'Changed')
 		fireEvent.keyDown(field, { key: 'Enter' })
 		expect(puts()).toHaveLength(0)
@@ -789,7 +826,7 @@ describe('TranslationsPage edit modal', () => {
 		expect(within(getRow('dashboard.welcome')).getByRole('button', { name: WELCOME_BUTTON })).toBeInTheDocument()
 
 		const again = await openModal('dashboard.welcome', WELCOME_BUTTON)
-		typeText(fieldOf(again, 'Preklad kľúča dashboard.welcome, English'), 'Changed again')
+		typeText(fieldOf(again, 'Preklad kľúča dashboard.welcome, angličtina'), 'Changed again')
 		fireEvent.keyDown(again, { key: 'Escape' })
 		await waitForClosed()
 		expect(puts()).toHaveLength(0)
@@ -801,12 +838,12 @@ describe('TranslationsPage edit modal', () => {
 		renderApp(PAGE_PATH)
 
 		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
-		typeText(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English'), 'Draft')
+		typeText(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, angličtina'), 'Draft')
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Zrušiť' }))
 		await waitForClosed()
 
 		const again = await openModal('dashboard.welcome', WELCOME_BUTTON)
-		expect(fieldOf(again, 'Preklad kľúča dashboard.welcome, English')).toHaveTextContent('Welcome back, {{name}}')
+		expect(fieldOf(again, 'Preklad kľúča dashboard.welcome, angličtina')).toHaveTextContent('Welcome back, {{name}}')
 	})
 
 	it('saves empty text as null and flips the status, the cell background and the stats optimistically', async () => {
@@ -815,7 +852,7 @@ describe('TranslationsPage edit modal', () => {
 		renderApp(PAGE_PATH)
 
 		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
-		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English')
+		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, angličtina')
 		typeText(field, '   ')
 		save(dialog)
 
@@ -832,7 +869,7 @@ describe('TranslationsPage edit modal', () => {
 		await waitFor(() => expect(puts()).toHaveLength(1))
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: null })
 		await waitForClosed()
-		const button = within(getRow('dashboard.welcome')).getByRole('button', { name: 'Preklad kľúča dashboard.welcome, English: Bez prekladu' })
+		const button = within(getRow('dashboard.welcome')).getByRole('button', { name: 'Preklad kľúča dashboard.welcome, angličtina: Bez prekladu' })
 		expect(button).toHaveAttribute('data-status', 'UNTRANSLATED')
 		expect(getRow('dashboard.welcome')).toHaveAttribute('data-status', 'UNTRANSLATED')
 		expect(screen.getByText('220')).toBeInTheDocument()
@@ -842,8 +879,8 @@ describe('TranslationsPage edit modal', () => {
 		mockEditing(apiError(400, 'PLACEHOLDER_MISMATCH', { details: { missing: ['{{name}}'], extra: ['{{user}}'] } }))
 		renderApp(PAGE_PATH)
 
-		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
-		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, English')
+		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, angličtina: Bez prekladu')
+		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, angličtina')
 		typeText(field, 'Hello {{user}}')
 		const submit = within(dialog).getByRole('button', { name: 'Uložiť' })
 		act(() => submit.focus())
@@ -872,8 +909,8 @@ describe('TranslationsPage edit modal', () => {
 		)
 		renderApp(PAGE_PATH)
 
-		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
-		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, English')
+		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, angličtina: Bez prekladu')
+		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, angličtina')
 		typeText(field, 'Hello {{user}}')
 		save(dialog)
 		await within(dialog).findByRole('alert')
@@ -895,13 +932,13 @@ describe('TranslationsPage edit modal', () => {
 		renderApp(PAGE_PATH)
 
 		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
-		typeText(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English'), 'Broken')
+		typeText(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, angličtina'), 'Broken')
 		save(dialog)
 
 		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: i18n.t('errors.INTERNAL_ERROR') })))
 		expect(puts()).toHaveLength(1)
 		expect(dialog).toBeInTheDocument()
-		expect(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, English')).toHaveTextContent('Broken')
+		expect(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, angličtina')).toHaveTextContent('Broken')
 		expect(within(getRow('dashboard.welcome')).getByRole('button', { name: WELCOME_BUTTON })).toBeInTheDocument()
 		expect(screen.getByText('221')).toBeInTheDocument()
 		expect(screen.queryByText(/Uložené/, { selector: STATUS })).not.toBeInTheDocument()
@@ -928,10 +965,10 @@ describe('TranslationsPage edit modal', () => {
 		const focusable = Array.from(body?.querySelectorAll('button, a, input, textarea, select, [tabindex]') ?? [])
 		expect(focusable.map((element) => element.tagName)).toEqual(['BUTTON', 'BUTTON', 'BUTTON', 'BUTTON'])
 		expect(focusable.map((element) => element.textContent)).toEqual([
-			'Preklad kľúča orders.empty.title, English: Bez prekladu',
-			'Preklad kľúča orders.empty.description, English: Bez prekladu',
-			'Preklad kľúča dashboard.welcome, English: Welcome back, {{name}}',
-			'Preklad kľúča Uložiť zmeny, English: Save changes',
+			'Preklad kľúča orders.empty.title, angličtina: Bez prekladu',
+			'Preklad kľúča orders.empty.description, angličtina: Bez prekladu',
+			'Preklad kľúča dashboard.welcome, angličtina: Welcome back, {{name}}',
+			'Preklad kľúča Uložiť zmeny, angličtina: Save changes',
 		])
 		expect(getRow('dashboard.welcome').querySelector('td:nth-child(2) button')).toBeNull()
 		// Only the untranslated cells are red, never the row.
@@ -947,13 +984,13 @@ describe('TranslationsPage edit modal', () => {
 		const focusable = Array.from(body?.querySelectorAll('button, a, input, textarea, select, [tabindex]') ?? [])
 		expect(focusable.map((element) => element.getAttribute('aria-label') ?? element.textContent)).toEqual([
 			'Upraviť kľúč orders.empty.title',
-			'Preklad kľúča orders.empty.title, English: Bez prekladu',
+			'Preklad kľúča orders.empty.title, angličtina: Bez prekladu',
 			'Upraviť kľúč orders.empty.description',
-			'Preklad kľúča orders.empty.description, English: Bez prekladu',
+			'Preklad kľúča orders.empty.description, angličtina: Bez prekladu',
 			'Upraviť kľúč dashboard.welcome',
-			'Preklad kľúča dashboard.welcome, English: Welcome back, {{name}}',
+			'Preklad kľúča dashboard.welcome, angličtina: Welcome back, {{name}}',
 			'Upraviť kľúč Uložiť zmeny',
-			'Preklad kľúča Uložiť zmeny, English: Save changes',
+			'Preklad kľúča Uložiť zmeny, angličtina: Save changes',
 		])
 	})
 
@@ -972,13 +1009,13 @@ describe('TranslationsPage edit modal', () => {
 		await waitForClosed()
 
 		// The key equals its Slovak text, so the row cannot be found by its text.
-		fireEvent.click(screen.getByRole('button', { name: /Preklad kľúča Uložiť zmeny, English/ }))
+		fireEvent.click(screen.getByRole('button', { name: /Preklad kľúča Uložiť zmeny, angličtina/ }))
 		const saveChanges = await screen.findByRole('dialog', { name: DIALOG })
 		expect(within(saveChanges).getByText('Posledná úprava: pred 3 hodinami')).toBeInTheDocument()
 		fireEvent.click(within(saveChanges).getByRole('button', { name: 'Zrušiť' }))
 		await waitForClosed()
 
-		const title = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
+		const title = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, angličtina: Bez prekladu')
 		expect(within(title).queryByText(/Posledná úprava/)).not.toBeInTheDocument()
 	})
 
@@ -986,13 +1023,13 @@ describe('TranslationsPage edit modal', () => {
 		const puts = mockEditing()
 		renderApp(PAGE_PATH)
 
-		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
-		typeText(fieldOf(dialog, 'Preklad kľúča orders.empty.title, English'), 'No orders yet')
+		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, angličtina: Bez prekladu')
+		typeText(fieldOf(dialog, 'Preklad kľúča orders.empty.title, angličtina'), 'No orders yet')
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť a ďalší' }))
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
 		expect(puts()[0]?.url).toBe(putUrl(ITEMS[0]!.keyId))
-		const next = await within(dialog).findByRole('textbox', { name: 'Preklad kľúča orders.empty.description, English' })
+		const next = await within(dialog).findByRole('textbox', { name: 'Preklad kľúča orders.empty.description, angličtina' })
 		await waitFor(() => expect(next).toHaveFocus())
 		expect(screen.getByRole('dialog', { name: DIALOG })).toBe(dialog)
 		expect(within(dialog).queryByRole('button', { name: 'Uložiť a ďalší' })).not.toBeInTheDocument()
@@ -1003,14 +1040,14 @@ describe('TranslationsPage edit modal', () => {
 		const puts = mockEditing()
 		renderApp(PAGE_PATH)
 
-		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
-		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, English')
+		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, angličtina: Bez prekladu')
+		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, angličtina')
 		typeText(field, 'No orders yet')
 		fireEvent.keyDown(field, { key: 'Enter', ctrlKey: true })
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
 		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: 'No orders yet' })
-		const next = await within(dialog).findByRole('textbox', { name: 'Preklad kľúča orders.empty.description, English' })
+		const next = await within(dialog).findByRole('textbox', { name: 'Preklad kľúča orders.empty.description, angličtina' })
 
 		typeText(next, 'New orders will show up here.')
 		fireEvent.keyDown(next, { key: 'Enter', metaKey: true })
@@ -1069,7 +1106,7 @@ describe('TranslationsPage plural forms', () => {
 		expect(formsOf(cart)).toEqual(['One: Bez prekladu', 'Other: Items'])
 	})
 
-	const openPlural = async (name: string | RegExp = /Preklad kľúča items.count, English/) => {
+	const openPlural = async (name: string | RegExp = /Preklad kľúča items.count, angličtina/) => {
 		await screen.findByText('items.count')
 		clickCell('items.count', name)
 		return screen.findByRole('dialog', { name: DIALOG })
@@ -1080,8 +1117,8 @@ describe('TranslationsPage plural forms', () => {
 		renderApp(PAGE_PATH)
 		const dialog = await openPlural()
 
-		const one = fieldOf(dialog, 'Preklad kľúča items.count, English, Jeden')
-		const other = fieldOf(dialog, 'Preklad kľúča items.count, English, Iné')
+		const one = fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Jeden')
+		const other = fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Iné')
 		await waitFor(() => expect(one).toHaveFocus())
 		expect(one).toHaveTextContent('# item')
 		expect(one.querySelectorAll('[data-token]')).toHaveLength(1)
@@ -1089,7 +1126,7 @@ describe('TranslationsPage plural forms', () => {
 		expect(one).toHaveAccessibleDescription('Premenné a HTML značky sú zamknuté, mažú sa celé. Znak # je miesto čísla.')
 		expect(one.querySelector('[data-token="#"]')).toHaveAttribute('title', 'Číslo')
 		// The base language forms are the reference.
-		expect(formsOf(within(dialog).getByText('Základný jazyk (slovenčina)').parentElement?.parentElement as HTMLElement)).toEqual([
+		expect(formsOf(within(dialog).getByText(fullText('Základný jazyk (slovenčina)')).parentElement?.parentElement as HTMLElement)).toEqual([
 			'One: # položka',
 			'Few: # položky',
 			'Many: # položiek',
@@ -1134,11 +1171,11 @@ describe('TranslationsPage plural forms', () => {
 	it('copies the base forms into the target forms, a form the base lacks taking its Other form', async () => {
 		const puts = mockEditing(undefined, ADMIN_USER, [{ ...PLURAL_ITEM(), translations: { ...PLURAL_ITEM().translations, [ENGLISH.id]: cell(null) } }])
 		renderApp(PAGE_PATH)
-		const dialog = await openPlural('Preklad kľúča items.count, English: Bez prekladu')
+		const dialog = await openPlural('Preklad kľúča items.count, angličtina: Bez prekladu')
 
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Prevziať text zo základného jazyka (slovenčina) do prekladu' }))
-		expect(fieldOf(dialog, 'Preklad kľúča items.count, English, Jeden')).toHaveTextContent('# položka')
-		expect(fieldOf(dialog, 'Preklad kľúča items.count, English, Iné')).toHaveTextContent('# položiek')
+		expect(fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Jeden')).toHaveTextContent('# položka')
+		expect(fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Iné')).toHaveTextContent('# položiek')
 		save(dialog)
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
@@ -1150,8 +1187,8 @@ describe('TranslationsPage plural forms', () => {
 		renderApp(PAGE_PATH)
 		const dialog = await openPlural()
 
-		typeText(fieldOf(dialog, 'Preklad kľúča items.count, English, Jeden'), '')
-		typeText(fieldOf(dialog, 'Preklad kľúča items.count, English, Iné'), '  ')
+		typeText(fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Jeden'), '')
+		typeText(fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Iné'), '  ')
 		save(dialog)
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
@@ -1175,8 +1212,8 @@ describe('TranslationsPage plural forms', () => {
 		renderApp(PAGE_PATH)
 		const dialog = await openPlural()
 
-		const one = fieldOf(dialog, 'Preklad kľúča items.count, English, Jeden')
-		const other = fieldOf(dialog, 'Preklad kľúča items.count, English, Iné')
+		const one = fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Jeden')
+		const other = fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Iné')
 		typeText(other, '# items}')
 		save(dialog)
 
@@ -1200,8 +1237,8 @@ describe('TranslationsPage plural forms', () => {
 		renderApp(PAGE_PATH)
 		const dialog = await openPlural()
 
-		const one = fieldOf(dialog, 'Preklad kľúča items.count, English, Jeden')
-		const other = fieldOf(dialog, 'Preklad kľúča items.count, English, Iné')
+		const one = fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Jeden')
+		const other = fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Iné')
 		typeText(one, 'a'.repeat(6000))
 		typeText(other, 'b'.repeat(6000))
 		save(dialog)
@@ -1218,7 +1255,7 @@ describe('TranslationsPage plural forms', () => {
 		renderApp(PAGE_PATH)
 		const dialog = await openPlural()
 
-		const other = fieldOf(dialog, 'Preklad kľúča items.count, English, Iné')
+		const other = fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Iné')
 		typeText(other, '# items!')
 		save(dialog)
 
@@ -1242,7 +1279,7 @@ describe('TranslationsPage extended view', () => {
 		await screen.findByText('orders.empty.title')
 
 		const params = lastParams(requests)
-		expect(params).toMatchObject({ sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 20 })
+		expect(params).toMatchObject({ sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 25 })
 		expect(params).not.toHaveProperty('sourceLanguageId')
 		expect(params).not.toHaveProperty('targetLanguageId')
 		expect(viewRadio('Všetky jazyky')).toBeChecked()
@@ -1255,7 +1292,7 @@ describe('TranslationsPage extended view', () => {
 		const headers = within(table)
 			.getAllByRole('columnheader')
 			.filter((header) => header.getAttribute('scope') !== 'rowgroup')
-		expect(headers.map((header) => header.textContent)).toEqual(['Kľúč', 'slovenčina', 'English', 'Stav'])
+		expect(headers.map((header) => header.textContent)).toEqual(['Kľúč', 'slovenčina Základný', 'angličtina', 'Stav'])
 		expect(headers[0]?.className).toMatch(/stickyStart/)
 		expect(headers[3]?.className).toMatch(/stickyEnd/)
 		expect(
@@ -1268,7 +1305,7 @@ describe('TranslationsPage extended view', () => {
 		const title = cellButtons('orders.empty.title')
 		expect(title.map((button) => button.textContent)).toEqual([
 			'Preklad kľúča orders.empty.title, slovenčina: Zatiaľ tu nie sú žiadne objednávky',
-			'Preklad kľúča orders.empty.title, English: Bez prekladu',
+			'Preklad kľúča orders.empty.title, angličtina: Bez prekladu',
 		])
 		expect(title.map((button) => button.getAttribute('data-status'))).toEqual(['TRANSLATED', 'UNTRANSLATED'])
 		expect(getRow('orders.empty.title')).toHaveAttribute('data-status', 'UNTRANSLATED')
@@ -1278,9 +1315,10 @@ describe('TranslationsPage extended view', () => {
 		expect(within(table).getAllByText('loc:orders.empty')[0]?.className).toMatch(/groupLabel/)
 	})
 
-	it('stacks every language in one editable column with ?layout=STACKED', async () => {
-		mockPage({ user: EXTENDED_ADMIN, languages: [SLOVAK, ENGLISH, CZECH] })
-		renderApp(`${PAGE_PATH}?layout=STACKED`)
+	it('stacks every language in one editable column with the STACKED layout preference', async () => {
+		const user: AuthUser = { ...EXTENDED_ADMIN, preferences: { ...EXTENDED_ADMIN.preferences, translationsLayout: 'STACKED' } }
+		mockPage({ user, languages: [SLOVAK, ENGLISH, CZECH] })
+		renderApp(PAGE_PATH)
 		await screen.findByText('orders.empty.title')
 
 		expect(screen.getByRole('radio', { name: 'Jazyky pod sebou' })).toBeChecked()
@@ -1297,13 +1335,17 @@ describe('TranslationsPage extended view', () => {
 		expect(row.getByText('Nepreložené')).toBeInTheDocument()
 		expect(cellButtons('orders.empty.title').map((button) => button.textContent)).toEqual([
 			'Preklad kľúča orders.empty.title, slovenčina: Zatiaľ tu nie sú žiadne objednávky',
-			'Preklad kľúča orders.empty.title, English: Bez prekladu',
+			'Preklad kľúča orders.empty.title, angličtina: Bez prekladu',
 			'Preklad kľúča orders.empty.title, čeština: Bez prekladu',
 		])
 	})
 
 	it('switches to the compact view, saves the preference and asks for the language pair', async () => {
-		const compactProfile = { ...EXTENDED_ADMIN, preferences: { translationsView: 'COMPACT' }, passwordChangedAt: '2026-10-01T00:00:00.000Z' }
+		const compactProfile = {
+			...EXTENDED_ADMIN,
+			preferences: { ...EXTENDED_ADMIN.preferences, translationsView: 'COMPACT' },
+			passwordChangedAt: '2026-10-01T00:00:00.000Z',
+		}
 		const requests = mockPage({ user: EXTENDED_ADMIN, routes: { 'PATCH /profile/preferences': { status: 200, data: compactProfile } } })
 		renderApp(PAGE_PATH)
 		await screen.findByText('orders.empty.title')
@@ -1342,10 +1384,9 @@ describe('TranslationsPage extended view', () => {
 		act(() => english.focus())
 		fireEvent.click(english)
 		const dialog = await screen.findByRole('dialog', { name: DIALOG })
-		expect(within(dialog).getByText('English')).toBeInTheDocument()
-		expect(within(dialog).getByText('Základný jazyk (slovenčina)')).toBeInTheDocument()
+		expect(within(dialog).getByText(fullText('Základný jazyk (slovenčina)'))).toBeInTheDocument()
 
-		typeText(fieldOf(dialog, 'Preklad kľúča orders.empty.title, English'), 'No orders yet')
+		typeText(fieldOf(dialog, 'Preklad kľúča orders.empty.title, angličtina'), 'No orders yet')
 		save(dialog)
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
@@ -1354,5 +1395,57 @@ describe('TranslationsPage extended view', () => {
 		expect(cellButtons('orders.empty.title').map((button) => button.getAttribute('data-status'))).toEqual(['TRANSLATED', 'TRANSLATED'])
 		expect(screen.getByText('222')).toBeInTheDocument()
 		expect(screen.getByText('26')).toBeInTheDocument()
+	})
+
+	it('shows the base language and the languages picked in the filter, without changing the request', async () => {
+		const requests = mockPage({ user: EXTENDED_ADMIN, languages: [SLOVAK, ENGLISH, CZECH] })
+		const router = renderApp(`${PAGE_PATH}?languages=${encodeURIComponent(JSON.stringify(['cs']))}`)
+		await screen.findByText('orders.empty.title')
+
+		const headers = () =>
+			within(getTable())
+				.getAllByRole('columnheader')
+				.filter((header) => header.getAttribute('scope') !== 'rowgroup')
+				.map((header) => header.textContent)
+		expect(headers()).toEqual(['Kľúč', 'slovenčina Základný', 'čeština', 'Stav'])
+		expect(lastParams(requests)).not.toHaveProperty('languages')
+
+		await pickOption('Zobrazené jazyky', 'angličtina')
+		await waitFor(() => expect(router.state.location.search).toEqual({ languages: ['cs', 'en'] }))
+		expect(headers()).toEqual(['Kľúč', 'slovenčina Základný', 'angličtina', 'čeština', 'Stav'])
+	})
+
+	it('writes the editor and period filters to the URL and the request', async () => {
+		const anna = { id: '00000000-0000-4000-8000-000000000777', name: 'Anna Nová' }
+		const requests = mockPage({ user: EXTENDED_ADMIN, translations: response({ editors: [anna] }) })
+		const router = renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		await pickOption('Upravil', 'Anna Nová')
+		await waitFor(() => expect(router.state.location.search).toEqual({ updatedBy: anna.id }))
+		await pickOption('Zmenené', 'Za posledných 7 dní')
+
+		await waitFor(() => expect(router.state.location.search).toEqual({ updatedBy: anna.id, updatedWithin: 'WEEK' }))
+		await waitFor(() => expect(lastParams(requests)).toMatchObject({ updatedById: anna.id, updatedWithin: 'WEEK' }))
+	})
+
+	it('hides the key and status columns with Len preklady and keeps the page', async () => {
+		const requests = mockPage({ user: EXTENDED_ADMIN, languages: [SLOVAK, ENGLISH, CZECH] })
+		const router = renderApp(`${PAGE_PATH}?page=2`)
+		await screen.findByText('orders.empty.title')
+		const headers = () =>
+			within(getTable())
+				.getAllByRole('columnheader')
+				.filter((header) => header.getAttribute('scope') !== 'rowgroup')
+				.map((header) => header.textContent)
+
+		fireEvent.click(screen.getByRole('switch', { name: 'Len preklady' }))
+
+		await waitFor(() => expect(router.state.location.search).toEqual({ page: 2, translationsOnly: true }))
+		expect(headers()).toEqual(['slovenčina Základný', 'angličtina', 'čeština'])
+		expect(within(getTable()).queryByText('orders.empty.title')).not.toBeInTheDocument()
+		expect(within(getTable()).queryByText('Nepreložené')).not.toBeInTheDocument()
+		expect(within(getTable()).getAllByRole('button', { name: /^Preklad kľúča orders\.empty\.title,/ })).toHaveLength(3)
+		expect(lastParams(requests)).not.toHaveProperty('translationsOnly')
 	})
 })

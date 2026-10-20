@@ -27,10 +27,10 @@
 	outline-offset: 2px;
 }
 
-/* Long values stop at three lines with an ellipsis; the full text is edited in the modal. Clamping the button itself would let a fourth line peek through its padding. */
+/* Long values stop at two lines with an ellipsis; the full text is edited in the modal. Clamping the button itself would let a third line peek through its padding. */
 .content {
 	display: -webkit-box;
 	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 3;
+	-webkit-line-clamp: 2;
 	overflow: hidden;
 }

@@ -10,17 +10,15 @@ import getApiErrorCode from '@/api/getApiErrorCode'
 import DeleteProjectModal from '@/components/DeleteProjectModal/DeleteProjectModal'
 import EditProjectModal from '@/components/EditProjectModal/EditProjectModal'
 import { ArrowRight, Settings, Trash } from '@/components/Icons'
-import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import RowAction from '@/components/RowAction/RowAction'
 import { formatDate } from '@/lib/formatDate'
-import { findSupportedLanguage } from '@/lib/languageOptions'
 import { getProjectInitials, isLightColor } from '@/lib/utils'
 
 import classes from './AdminProjectsTable.module.css'
 
 const SKELETON_ROWS = 3
 
-const COLUMN_COUNT = 7
+const COLUMN_COUNT = 6
 
 /** Every project in a card, same look and states as the users table. Each row can be edited in a modal, opened or deleted. */
 const AdminProjectsTable = () => {
@@ -69,23 +67,6 @@ const AdminProjectsTable = () => {
 		</Table.Tr>
 	)
 
-	const renderBaseLanguage = (tag: AdminProjectListItem['baseLanguageTag']) => {
-		const language = findSupportedLanguage(tag)
-		if (!language) {
-			return (
-				<Text size='xs' c='var(--app-color-muted)'>
-					{t('adminProjectsPage.table.noBaseLanguage')}
-				</Text>
-			)
-		}
-		return (
-			<div className='flex items-center gap-2'>
-				<LanguageFlag code={language.flagCode} size='sm' />
-				<Text size='sm'>{language.englishName}</Text>
-			</div>
-		)
-	}
-
 	const renderBody = () => {
 		if (isPending) {
 			return Array.from({ length: SKELETON_ROWS }, (_, index) => (
@@ -96,8 +77,9 @@ const AdminProjectsTable = () => {
 							<Skeleton height={12} width='60%' radius='sm' />
 						</div>
 					</Table.Td>
+					{/* Slug, languages, members and created hide at the same width as their headers. */}
 					{Array.from({ length: COLUMN_COUNT - 2 }, (_, cell) => (
-						<Table.Td key={cell} className={classes.td}>
+						<Table.Td key={cell} className={`${classes.td} ${classes.wideOnly}`}>
 							<Skeleton height={12} width='60%' radius='sm' />
 						</Table.Td>
 					))}
@@ -133,24 +115,36 @@ const AdminProjectsTable = () => {
 						>
 							{getProjectInitials(project.name)}
 						</span>
-						<Text size='sm' fw={500} c='var(--app-color-text-strong)' className={classes.name}>
-							{project.name}
-						</Text>
+						<div className='flex min-w-0 flex-col gap-0.5'>
+							<Text size='sm' fw={500} c='var(--app-color-text-strong)' className={classes.name}>
+								{project.name}
+							</Text>
+							{/* The hidden columns, for screens too narrow for them (see the CSS). */}
+							<div className={`${classes.narrowDetails} flex-col gap-0.5`}>
+								<Text size='xs' className={classes.name}>
+									{project.slug}
+								</Text>
+								<Text size='xs'>
+									{t('adminProjectsPage.table.languageCount', { count: project.languageCount })} ·{' '}
+									{t('adminProjectsPage.table.memberCount', { count: project.memberCount })}
+								</Text>
+								<Text size='xs'>{t('adminProjectsPage.table.createdOn', { date: formatDate(project.createdAt, i18n.language) })}</Text>
+							</div>
+						</div>
 					</div>
 				</Table.Td>
-				<Table.Td className={classes.td}>
+				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 					<Text size='xs' className={classes.name}>
 						{project.slug}
 					</Text>
 				</Table.Td>
-				<Table.Td className={classes.td}>{renderBaseLanguage(project.baseLanguageTag)}</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.numberColumn}`}>
+				<Table.Td className={`${classes.td} ${classes.numberColumn} ${classes.wideOnly}`}>
 					<Text size='sm'>{project.languageCount}</Text>
 				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.numberColumn}`}>
+				<Table.Td className={`${classes.td} ${classes.numberColumn} ${classes.wideOnly}`}>
 					<Text size='sm'>{project.memberCount}</Text>
 				</Table.Td>
-				<Table.Td className={classes.td}>
+				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 					<Text size='xs'>{formatDate(project.createdAt, i18n.language)}</Text>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
@@ -187,11 +181,10 @@ const AdminProjectsTable = () => {
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('adminProjectsPage.table.project')}</Table.Th>
-						<Table.Th className={classes.th}>{t('adminProjectsPage.table.slug')}</Table.Th>
-						<Table.Th className={classes.th}>{t('adminProjectsPage.table.baseLanguage')}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.numberColumn}`}>{t('adminProjectsPage.table.languages')}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.numberColumn}`}>{t('adminProjectsPage.table.members')}</Table.Th>
-						<Table.Th className={classes.th}>{t('adminProjectsPage.table.createdAt')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.wideOnly}`}>{t('adminProjectsPage.table.slug')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.numberColumn} ${classes.wideOnly}`}>{t('adminProjectsPage.table.languages')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.numberColumn} ${classes.wideOnly}`}>{t('adminProjectsPage.table.members')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.wideOnly}`}>{t('adminProjectsPage.table.createdAt')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
 							<VisuallyHidden>{t('adminProjectsPage.table.actionsColumn')}</VisuallyHidden>
 						</Table.Th>

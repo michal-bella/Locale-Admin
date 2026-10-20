@@ -15,10 +15,10 @@ describe('LanguageSwitcher', () => {
 		signedInAs(EDITOR_USER)
 		renderApp('/')
 
-		expect(await screen.findByRole('button', { name: 'Menu používateľa' })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: /^Menu používateľa/ })).toBeInTheDocument()
 		fireEvent.click((await openSwitcher('Jazyk')).getByRole('option', { name: 'English' }))
 
-		expect(await screen.findByRole('button', { name: 'User menu' })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: /^User menu/ })).toBeInTheDocument()
 		expect(screen.getByRole('combobox', { name: 'Language' })).toHaveValue('English')
 		expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('en')
 		expect(document.documentElement.lang).toBe('en')
@@ -42,7 +42,7 @@ describe('LanguageSwitcher', () => {
 
 		fireEvent.click((await openSwitcher('Jazyk')).getByRole('option', { name: 'Čeština' }))
 
-		expect(await screen.findByRole('button', { name: 'Menu uživatele' })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: /^Menu uživatele/ })).toBeInTheDocument()
 		expect(screen.getByRole('combobox', { name: 'Jazyk' })).toHaveValue('Čeština')
 		expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('cs')
 		expect(document.documentElement.lang).toBe('cs')

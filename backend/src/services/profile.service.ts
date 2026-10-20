@@ -12,6 +12,7 @@ const PROFILE_SELECT = {
 	firstName: true,
 	lastName: true,
 	translationsView: true,
+	translationsLayout: true,
 	passwordChangedAt: true,
 } satisfies Prisma.UserSelect
 
@@ -46,7 +47,11 @@ export const updateProfile = async (
 	return toProfile(user)
 }
 
-export const updatePreferences = async (prisma: PrismaClient, userId: string, { translationsView }: UpdatePreferencesRequest): Promise<Profile> => {
-	const user = await prisma.user.update({ where: { id: userId }, data: { translationsView }, select: PROFILE_SELECT })
+export const updatePreferences = async (
+	prisma: PrismaClient,
+	userId: string,
+	{ translationsView, translationsLayout }: UpdatePreferencesRequest,
+): Promise<Profile> => {
+	const user = await prisma.user.update({ where: { id: userId }, data: { translationsView, translationsLayout }, select: PROFILE_SELECT })
 	return toProfile(user)
 }

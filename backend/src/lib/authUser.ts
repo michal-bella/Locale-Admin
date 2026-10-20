@@ -1,7 +1,7 @@
-import { ROLE, type AuthUser, type TranslationsView } from '@locale/shared'
+import { ROLE, type AuthUser, type TranslationsLayout, type TranslationsView } from '@locale/shared'
 
 import { type User } from '../generated/prisma/client'
-import { ROLE as PRISMA_ROLE, type TRANSLATIONS_VIEW } from '../generated/prisma/enums'
+import { ROLE as PRISMA_ROLE, type TRANSLATIONS_LAYOUT, type TRANSLATIONS_VIEW } from '../generated/prisma/enums'
 
 export const ROLE_FROM_PRISMA: Record<PRISMA_ROLE, ROLE> = {
 	ADMIN: ROLE.ADMIN,
@@ -18,7 +18,12 @@ export const TRANSLATIONS_VIEW_FROM_PRISMA: Record<TRANSLATIONS_VIEW, Translatio
 	COMPACT: 'COMPACT',
 }
 
-export type AuthUserRow = Pick<User, 'id' | 'email' | 'role' | 'firstName' | 'lastName' | 'translationsView'>
+export const TRANSLATIONS_LAYOUT_FROM_PRISMA: Record<TRANSLATIONS_LAYOUT, TranslationsLayout> = {
+	COLUMNS: 'COLUMNS',
+	STACKED: 'STACKED',
+}
+
+export type AuthUserRow = Pick<User, 'id' | 'email' | 'role' | 'firstName' | 'lastName' | 'translationsView' | 'translationsLayout'>
 
 export const toAuthUser = (user: AuthUserRow): AuthUser => ({
 	id: user.id,
@@ -26,5 +31,8 @@ export const toAuthUser = (user: AuthUserRow): AuthUser => ({
 	role: ROLE_FROM_PRISMA[user.role],
 	firstName: user.firstName,
 	lastName: user.lastName,
-	preferences: { translationsView: TRANSLATIONS_VIEW_FROM_PRISMA[user.translationsView] },
+	preferences: {
+		translationsView: TRANSLATIONS_VIEW_FROM_PRISMA[user.translationsView],
+		translationsLayout: TRANSLATIONS_LAYOUT_FROM_PRISMA[user.translationsLayout],
+	},
 })

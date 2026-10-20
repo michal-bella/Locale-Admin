@@ -4,7 +4,16 @@ import { type APIRequestContext, expect } from '@playwright/test'
 
 import { MUTATION_HEADERS } from './api'
 
-export type ProjectListItem = { id: string; name: string; slug: string; primaryColor: string; isMember: boolean }
+export type ProjectListItem = {
+	id: string
+	name: string
+	slug: string
+	primaryColor: string
+	isMember: boolean
+	languageTags: string[]
+	keyCount: number
+	translatedCount: number
+}
 
 export type ProjectSettings = {
 	id: string

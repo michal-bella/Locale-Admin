@@ -31,6 +31,21 @@ describe('translationsQuerySchema', () => {
 		expect(translationsQuerySchema.safeParse({ ...base, status: 'REVIEW' }).success).toBe(false)
 	})
 
+	it('parses the editor and period filters', () => {
+		const base = { sourceLanguageId: '', targetLanguageId: '' }
+		expect(translationsQuerySchema.parse({ ...base, updatedById: SOURCE_ID, updatedWithin: 'WEEK' })).toMatchObject({
+			updatedById: SOURCE_ID,
+			updatedWithin: 'WEEK',
+		})
+		expect(translationsQuerySchema.parse({ ...base, updatedById: '', updatedWithin: '' })).toEqual({
+			sort: 'UNTRANSLATED_FIRST',
+			page: 1,
+			pageSize: 20,
+		})
+		expect(translationsQuerySchema.safeParse({ ...base, updatedWithin: 'YEAR' }).success).toBe(false)
+		expect(translationsQuerySchema.safeParse({ ...base, updatedById: 'me' }).success).toBe(false)
+	})
+
 	it('accepts no languages (extended view) but not one of the two', () => {
 		expect(translationsQuerySchema.parse({ sourceLanguageId: '', targetLanguageId: '' })).toEqual({ sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 20 })
 		const result = translationsQuerySchema.safeParse({ sourceLanguageId: SOURCE_ID })

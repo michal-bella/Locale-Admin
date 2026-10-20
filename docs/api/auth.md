@@ -18,14 +18,14 @@ Prihlásenie emailom a heslom, server-side session v Postgrese (tabuľka `Sessio
 
 Schéma `authUserSchema`. Rovnaké telo vracia `POST /api/auth/login` aj `GET /api/auth/me`. Hash hesla, token ani jeho hash sa nikdy nevracajú.
 
-| Pole          | Typ                 | Popis                                                                                                                                                           |
-| ------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`          | UUID                | ID používateľa                                                                                                                                                  |
-| `email`       | string              | normalizovaný email (malé písmená)                                                                                                                              |
-| `role`        | `ADMIN` / `EDITOR`  | globálna rola                                                                                                                                                   |
-| `firstName`   | string alebo `null` | meno, upravuje sa na obrazovke Môj profil ([`PATCH /api/profile`](./profile.md))                                                                                |
-| `lastName`    | string alebo `null` | priezvisko                                                                                                                                                      |
-| `preferences` | objekt              | `{ translationsView: "EXTENDED" \| "COMPACT" }`, zobrazenie stránky Preklady, mení [`PATCH /api/profile/preferences`](./profile.md#patch-apiprofilepreferences) |
+| Pole          | Typ                 | Popis                                                                                                                                                                                                                    |
+| ------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`          | UUID                | ID používateľa                                                                                                                                                                                                           |
+| `email`       | string              | normalizovaný email (malé písmená)                                                                                                                                                                                       |
+| `role`        | `ADMIN` / `EDITOR`  | globálna rola                                                                                                                                                                                                            |
+| `firstName`   | string alebo `null` | meno, upravuje sa na obrazovke Môj profil ([`PATCH /api/profile`](./profile.md))                                                                                                                                         |
+| `lastName`    | string alebo `null` | priezvisko                                                                                                                                                                                                               |
+| `preferences` | objekt              | `{ translationsView: "EXTENDED" \| "COMPACT", translationsLayout: "COLUMNS" \| "STACKED" }`, zobrazenie a rozloženie stránky Preklady, mení [`PATCH /api/profile/preferences`](./profile.md#patch-apiprofilepreferences) |
 
 ```json
 {
@@ -34,7 +34,7 @@ Schéma `authUserSchema`. Rovnaké telo vracia `POST /api/auth/login` aj `GET /a
 	"role": "EDITOR",
 	"firstName": null,
 	"lastName": null,
-	"preferences": { "translationsView": "EXTENDED" }
+	"preferences": { "translationsView": "EXTENDED", "translationsLayout": "COLUMNS" }
 }
 ```
 

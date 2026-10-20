@@ -1,6 +1,6 @@
 ---
 title: 'Testovanie'
-updated: 2026-10-19
+updated: 2026-10-20
 notion_page_id:
 ---
 
@@ -33,8 +33,23 @@ Potrebujú bežiaci Postgres (`pnpm db:up`) a `TEST_DATABASE_URL` v `.env`.
 
 - `globalSetup` overí, že názov DB končí na `_test` (inak testy okamžite skončia), nastaví `DATABASE_URL` na test DB (testy tak nikdy nepoužijú dev DB), DB vytvorí, ak neexistuje, a aplikuje migrácie (`prisma migrate deploy`).
 - Pred každým testom sa vyprázdnia všetky tabuľky okrem `_prisma_migrations` (`TRUNCATE ... RESTART IDENTITY CASCADE`, zoznam z `pg_tables`).
-- Súbory bežia sériovo (`fileParallelism: false`), lebo zdieľajú jednu DB.
+- Súbory bežia sériovo (`fileParallelism: false`), lebo zdieľajú jednu DB. Každý git worktree má vlastnú test DB (nižšie).
 - Testy nepoužívajú seed. Dáta si vytvárajú cez helpery v `backend/test/helpers/` (`createUser({ role })`, `createTestApp({ config, prisma })`).
+
+### Test DB pre každý checkout
+
+Všetky checkouty (hlavný aj git worktree) používajú ten istý Postgres a pred každým testom sa mažú všetky tabuľky. Keď integračné testy bežali v dvoch checkoutoch naraz v jednej DB `locale_test`, mazali si dáta navzájom (`loginAs failed with status 500/401`, 20 s timeouty, stovky chýb). Preto `globalSetup` v git worktree (`.git` je súbor) zmení názov DB z `TEST_DATABASE_URL` na `<názov>_<worktree>_<hash cesty>_test`, napr. `locale_confident_swirles_040c26_ce3c68e8_test`; hlavný checkout a CI ostávajú na `locale_test`. DB vznikne pri prvom behu a ostane aj po odstránení worktree. Staré DB vypíše a zmaže:
+
+```bash
+docker compose exec -T db psql -U locale -d postgres -Atc "SELECT datname FROM pg_database WHERE datname LIKE 'locale\_%\_test'"
+docker compose exec -T db psql -U locale -d postgres -c 'DROP DATABASE "<názov>"'
+```
+
+Dva behy v tom istom checkoute naraz sa stále bijú; nespúšťaj ich.
+
+### Čas zápisu pri importe
+
+`imports.test.ts` („prepis / doplnenie“) občas padal na `expected 1792479504646 to be greater than 1792479504650`: `updatedAt` po importe bol o pár ms _starší_ ako pred ním. Príčina: test vytvára preklady cez Prisma, ktorej `@updatedAt` berie čas z Node, kým import zapisoval `now()` z Postgresu. Hodiny Docker VM sa od hodín hostiteľa líšia o milisekundy a `now()` je navyše začiatok transakcie, teda pred čakaním na zámok importu. Import preto zapisuje `updatedAt` (a `createdAt` nových kľúčov) časom z Node (`new Date()` po získaní zámku), rovnako ako zvyšok aplikácie. Pravidlo: časy, ktoré sa porovnávajú alebo zoraďujú (`UPDATED`), nemiešať z dvoch hodín; v raw SQL nepoužívať `now()` pre stĺpce s `@updatedAt`.
 
 ## Unit testy frontendu
 

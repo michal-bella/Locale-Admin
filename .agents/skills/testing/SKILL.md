@@ -23,6 +23,8 @@ Human docs: `docs/testing.md`.
 - `test/globalSetup.ts`: aborts unless the DB name ends with `_test`, creates the DB if missing, runs `prisma migrate deploy`, passes the URL to tests.
 - `test/setup.ts`: before each test truncates every table except `_prisma_migrations` (`RESTART IDENTITY CASCADE`). Tests never depend on seed data.
 - Files run serially (`fileParallelism: false`).
+- A git worktree gets its own test DB `<name>_<worktree>_<hash>_test` (derived in `globalSetup`), so checkouts can run integration tests at once. Two runs in the same checkout still collide.
+- Raw SQL never writes `now()` into an `@updatedAt` column: Prisma fills those from the Node clock, Postgres in Docker can lag it by ms. Pass a `new Date()` instead.
 - Build the app with `createTestApp({ config, prisma })` from `test/helpers/app.ts` (override config per test, e.g. a low rate limit). Create data with helpers in `test/helpers/` (`createUser({ role })`).
 
 ```ts

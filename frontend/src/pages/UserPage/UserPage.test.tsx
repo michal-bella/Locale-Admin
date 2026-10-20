@@ -102,8 +102,10 @@ describe('UserPage', () => {
 		expect(rows).toHaveLength(2)
 		const [bookingRow, iosRow] = rows as [HTMLElement, HTMLElement]
 		expect(within(bookingRow).getByText('Booking Web')).toBeInTheDocument()
-		expect(within(bookingRow).getByText('booking-web')).toBeInTheDocument()
+		// In the Slug and Pridaný columns and, for narrow screens (hidden by CSS otherwise), under the name.
+		expect(within(bookingRow).getAllByText('booking-web')).toHaveLength(2)
 		expect(within(bookingRow).getByText('13. 10. 2026')).toBeInTheDocument()
+		expect(within(bookingRow).getByText('Pridaný 13. 10. 2026')).toBeInTheDocument()
 		expect(within(bookingRow).getByRole('link', { name: 'Otvoriť členov projektu Booking Web' })).toHaveAttribute('href', '/projects/booking-web/members')
 		expect(within(bookingRow).getByRole('button', { name: 'Odobrať z projektu Booking Web' })).toBeInTheDocument()
 		expect(within(iosRow).getByText('15. 10. 2026')).toBeInTheDocument()
@@ -358,5 +360,96 @@ describe('RemoveUserProjectModal', () => {
 
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		expect(requests.some((request) => request.method === 'delete')).toBe(false)
+	})
+})
+
+describe('EditUserEmailModal', () => {
+	const openEmailModal = async () => {
+		fireEvent.click(await screen.findByRole('button', { name: `Upraviť e-mail používateľa ${JANA.email}` }))
+		return screen.findByRole('dialog', { name: 'Upraviť e-mail' })
+	}
+
+	const typeEmail = (dialog: HTMLElement, value: string) => fireEvent.change(within(dialog).getByLabelText('E-mail'), { target: { value } })
+
+	it('saves the new email, updates the card and notifies', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		const requests = signedInAs(ADMIN_USER, {
+			...routes(() => JANA),
+			[`PATCH ${USER_URL}`]: () => ({ status: 200, data: { ...JANA, email: 'jana@firma.sk' } }),
+		})
+		renderApp(USER_URL)
+		const dialog = await openEmailModal()
+		expect(within(dialog).getByLabelText('E-mail')).toHaveValue(JANA.email)
+
+		typeEmail(dialog, ' Jana@Firma.sk ')
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť' }))
+
+		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
+		expect(await within(card).findByRole('heading', { name: 'jana@firma.sk' })).toBeInTheDocument()
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		const patch = requests.find((request) => request.method === 'patch')
+		expect(JSON.parse(patch?.data as string)).toEqual({ email: 'jana@firma.sk' })
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'E-mail bol zmenený na jana@firma.sk.' }))
+	})
+
+	it('shows 409 EMAIL_TAKEN and client validation at the field and keeps the modal open', async () => {
+		const requests = signedInAs(ADMIN_USER, { ...routes(() => JANA), [`PATCH ${USER_URL}`]: apiError(409, 'EMAIL_TAKEN') })
+		renderApp(USER_URL)
+		const dialog = await openEmailModal()
+
+		typeEmail(dialog, 'no-at-sign')
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť' }))
+		expect(await within(dialog).findByText('Zadajte platný e-mail.')).toBeInTheDocument()
+		expect(requests.filter((request) => request.method === 'patch')).toHaveLength(0)
+
+		typeEmail(dialog, 'taken@firma.sk')
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť' }))
+		expect(await within(dialog).findByText('Používateľ s týmto e-mailom už existuje.')).toBeInTheDocument()
+		expect(screen.getByRole('dialog', { name: 'Upraviť e-mail' })).toBeInTheDocument()
+	})
+
+	it('closes without a request when the email is unchanged', async () => {
+		const requests = signedInAs(
+			ADMIN_USER,
+			routes(() => JANA),
+		)
+		renderApp(USER_URL)
+		const dialog = await openEmailModal()
+
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(requests.filter((request) => request.method === 'patch')).toHaveLength(0)
+	})
+})
+
+describe('Delete user from the detail', () => {
+	it('deletes the user after confirmation and goes to the user list without loading the detail again', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		const requests = signedInAs(ADMIN_USER, {
+			...routes(() => JANA),
+			[`DELETE ${USER_URL}`]: { status: 204 },
+			'GET /admin/users': () => ({ status: 200, data: { users: [] } }),
+		})
+		const router = renderApp(USER_URL)
+
+		fireEvent.click(await screen.findByRole('button', { name: 'Odstrániť používateľa' }))
+		const dialog = await screen.findByRole('dialog', { name: 'Odstrániť používateľa' })
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Odstrániť' }))
+
+		await waitFor(() => expect(router.state.location.pathname).toBe('/admin/users'))
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: `Používateľ ${JANA.email} bol odstránený.` }))
+		expect(requests.filter((request) => request.method === 'get' && request.url === USER_URL)).toHaveLength(1)
+		expect(screen.queryByText('Používateľ sa nenašiel')).not.toBeInTheDocument()
+	})
+
+	it('has no delete button on the own account', async () => {
+		const me: AdminUserDetail = { ...JANA, id: ADMIN_USER.id, email: ADMIN_USER.email, role: ROLE.ADMIN }
+		signedInAs(ADMIN_USER, { [`GET /admin/users/${me.id}`]: () => ({ status: 200, data: me }) })
+		renderApp(`/admin/users/${me.id}`)
+
+		expect(await screen.findByRole('region', { name: 'Účet používateľa' })).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Odstrániť používateľa' })).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: `Upraviť e-mail používateľa ${ADMIN_USER.email}` })).toBeInTheDocument()
 	})
 })

@@ -124,25 +124,27 @@ Príklady `details` pri 400:
 
 ## PATCH /api/admin/users/:id
 
-Telo (schéma `updateUserRequestSchema`):
+Telo (schéma `updateUserRequestSchema`), aspoň jedno z polí:
 
 ```json
-{ "role": "ADMIN" }
+{ "role": "ADMIN", "email": "jana@firma.sk" }
 ```
 
-- `role` je povinné, `ADMIN` alebo `EDITOR`. Mení ktoréhokoľvek používateľa vrátane vlastného účtu; nová rola platí hneď (ďalšia požiadavka aj `GET /api/auth/me` ju už vrátia).
+- `role` (voliteľné) je `ADMIN` alebo `EDITOR`. Mení ktoréhokoľvek používateľa vrátane vlastného účtu; nová rola platí hneď (ďalšia požiadavka aj `GET /api/auth/me` ju už vrátia).
 - Posledný `ADMIN` sa nemôže stať `EDITOR`-om (409 `LAST_ADMIN`), aby mal kto spravovať používateľov. Rovnakú rolu, akú používateľ má, vráti 200 bez zmeny.
+- `email` (voliteľné) sa uloží normalizovaný (orezaný, malými písmenami) ako pri vytvorení. Používateľ sa odteraz prihlasuje novým emailom; heslo a session ostávajú. Email iného používateľa vráti 409 `EMAIL_TAKEN` a nezmení sa nič (ani rola z toho istého tela).
 - Pri úspechu vráti `200` s `AdminUserDetail` (ako `GET /api/admin/users/:id`).
 
-| HTTP | `code`                 | Kedy                                                                              |
-| ---- | ---------------------- | --------------------------------------------------------------------------------- |
-| 200  |                        | rola uložená, telo `AdminUserDetail`                                              |
-| 400  | `VALIDATION_ERROR`     | neznáma alebo chýbajúca rola, `details` `[{ "path": "role", "code": "INVALID" }]` |
-| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                                    |
-| 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN`                                              |
-| 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo                                               |
-| 404  | `NOT_FOUND`            | používateľ s týmto `id` neexistuje alebo `id` nie je UUID                         |
-| 409  | `LAST_ADMIN`           | posledný `ADMIN` by prišiel o rolu                                                |
+| HTTP | `code`                 | Kedy                                                                                                                      |
+| ---- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 200  |                        | uložené, telo `AdminUserDetail`                                                                                           |
+| 400  | `VALIDATION_ERROR`     | neznáma rola (`[{ "path": "role", "code": "INVALID" }]`), neplatný email (`INVALID_EMAIL` pri `email`) alebo prázdne telo |
+| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                                                                            |
+| 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN`                                                                                      |
+| 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo                                                                                       |
+| 404  | `NOT_FOUND`            | používateľ s týmto `id` neexistuje alebo `id` nie je UUID                                                                 |
+| 409  | `LAST_ADMIN`           | posledný `ADMIN` by prišiel o rolu                                                                                        |
+| 409  | `EMAIL_TAKEN`          | email už má iný používateľ                                                                                                |
 
 ## DELETE /api/admin/users/:id
 

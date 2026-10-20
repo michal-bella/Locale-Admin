@@ -13,10 +13,13 @@ export const createUserRequestSchema = z.object({
 
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>
 
-/** Body of `PATCH /api/admin/users/:id`: changes the global role. The last `ADMIN` cannot become an `EDITOR`. */
-export const updateUserRequestSchema = z.object({
-	role: z.enum(ROLE),
-})
+/** Body of `PATCH /api/admin/users/:id`: changes the global role, the email or both. The last `ADMIN` cannot become an `EDITOR`. */
+export const updateUserRequestSchema = z
+	.object({
+		role: z.enum(ROLE).optional(),
+		email: emailSchema.optional(),
+	})
+	.refine(({ role, email }) => role !== undefined || email !== undefined)
 
 export type UpdateUserRequest = z.infer<typeof updateUserRequestSchema>
 

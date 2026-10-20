@@ -24,7 +24,7 @@ const ProjectsPage = () => {
 	}
 
 	return (
-		<div className='mx-auto flex w-full max-w-[980px] flex-col gap-6 p-8'>
+		<div className='mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-8'>
 			<div className='flex flex-wrap items-end justify-between gap-4'>
 				<PageIntro eyebrow={t('projectsPage.eyebrow')} title={t('projectsPage.title')} description={t('projectsPage.description')} titleSize='h2' />
 				<Button leftSection={<Plus aria-hidden />} onClick={createModal.open}>

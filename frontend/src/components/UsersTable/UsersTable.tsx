@@ -66,13 +66,13 @@ const UsersTable = () => {
 							<Skeleton height={12} width='40%' radius='sm' />
 						</div>
 					</Table.Td>
-					<Table.Td className={classes.td}>
+					<Table.Td className={`${classes.td} ${classes.tabletUp}`}>
 						<Skeleton height={22} width='4rem' radius='xl' />
 					</Table.Td>
-					<Table.Td className={classes.td}>
+					<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 						<Skeleton height={12} width='1.5rem' radius='sm' />
 					</Table.Td>
-					<Table.Td className={classes.td}>
+					<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 						<Skeleton height={12} width='60%' radius='sm' />
 					</Table.Td>
 					<Table.Td className={classes.td} />
@@ -109,18 +109,31 @@ const UsersTable = () => {
 						>
 							{getInitials({ email: user.email, firstName: null, lastName: null })}
 						</Avatar>
-						<Text size='sm' fw={500} c='var(--app-color-text-strong)' className={classes.email}>
-							{user.email}
-						</Text>
+						<div className='flex min-w-0 flex-col gap-1'>
+							<Text size='sm' fw={500} c='var(--app-color-text-strong)' className={classes.email}>
+								{/* A long email breaks after the @ first, not inside the domain. */}
+								{user.email.split('@').map((part, index) => (index === 0 ? part : [<wbr key={index} />, `@${part}`]))}
+							</Text>
+							{/* The hidden columns, for screens too narrow for them (see the CSS). */}
+							<div className={`${classes.narrowDetails} flex-col items-start gap-1`}>
+								<span className={classes.phoneOnly}>
+									<RoleBadge role={user.role} />
+								</span>
+								<Text size='xs'>
+									{t('usersPage.table.projectCount', { count: user.projectCount })} ·{' '}
+									{t('usersPage.table.createdOn', { date: formatDate(user.createdAt, i18n.language) })}
+								</Text>
+							</div>
+						</div>
 					</div>
 				</Table.Td>
-				<Table.Td className={classes.td}>
+				<Table.Td className={`${classes.td} ${classes.tabletUp}`}>
 					<RoleBadge role={user.role} />
 				</Table.Td>
-				<Table.Td className={classes.td}>
+				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 					<Text size='sm'>{user.projectCount}</Text>
 				</Table.Td>
-				<Table.Td className={classes.td}>
+				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 					<Text size='xs'>{formatDate(user.createdAt, i18n.language)}</Text>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
@@ -153,9 +166,9 @@ const UsersTable = () => {
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('usersPage.table.email')}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.roleColumn}`}>{t('usersPage.table.role')}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.projectsColumn}`}>{t('usersPage.table.projects')}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.createdColumn}`}>{t('usersPage.table.createdAt')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.roleColumn} ${classes.tabletUp}`}>{t('usersPage.table.role')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.projectsColumn} ${classes.wideOnly}`}>{t('usersPage.table.projects')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.createdColumn} ${classes.wideOnly}`}>{t('usersPage.table.createdAt')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
 							<VisuallyHidden>{t('usersPage.table.actionsColumn')}</VisuallyHidden>
 						</Table.Th>

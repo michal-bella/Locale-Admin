@@ -1,4 +1,5 @@
 .root {
+	min-width: 0;
 	max-width: 15rem;
 	padding: 0.5rem;
 	border-radius: var(--mantine-radius-lg);
@@ -9,12 +10,8 @@
 	font-weight: 700;
 }
 
-.trigger {
-	flex-shrink: 0;
-	color: var(--app-color-muted);
-}
-
-.trigger:hover {
+.root:hover,
+.root[aria-expanded='true'] {
 	background-color: var(--app-color-surface-muted);
 }
 

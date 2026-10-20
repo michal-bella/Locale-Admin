@@ -61,6 +61,6 @@ describe('LoginPage', () => {
 		await fillAndSubmit('admin@firma.sk', 'secret')
 
 		await waitFor(() => expect(router.state.location.pathname).toBe('/'))
-		expect(await screen.findByRole('button', { name: 'Menu používateľa' })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: /^Menu používateľa/ })).toBeInTheDocument()
 	})
 })

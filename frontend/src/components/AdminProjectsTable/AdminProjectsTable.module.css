@@ -49,7 +49,16 @@
 }
 
 .name {
-	overflow-wrap: anywhere;
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+
+/*
+ * Below 62em the slug, the counts and the created date move under the project name, so the names keep whole words and the row actions
+ * stay in view without scrolling.
+ */
+.narrowDetails {
+	display: none;
 }
 
 .state {
@@ -64,4 +73,29 @@
 .actionsCell {
 	padding-inline: 0 1.25rem;
 	white-space: nowrap;
+}
+
+@media (max-width: 61.99em) {
+	.wideOnly {
+		display: none;
+	}
+
+	.narrowDetails {
+		display: flex;
+	}
+
+	.actionsColumn {
+		width: auto;
+	}
+}
+
+@media (max-width: 39.99em) {
+	.th,
+	.td {
+		padding-inline: 0.75rem;
+	}
+
+	.actionsCell {
+		padding-inline: 0 0.75rem;
+	}
 }

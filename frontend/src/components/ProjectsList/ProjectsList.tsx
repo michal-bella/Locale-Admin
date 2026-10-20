@@ -1,14 +1,20 @@
-import { ActionIcon, Button, Skeleton, Text, Tooltip, VisuallyHidden } from '@mantine/core'
+import { ActionIcon, Button, Progress, Skeleton, Text, Tooltip, VisuallyHidden } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { Link } from '@tanstack/react-router'
 import { type KeyboardEvent, type ReactNode, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import Sortable from 'sortablejs'
+
+import { type ProjectListItem } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectsQuery } from '@/api/projects/projectsQuery'
 import { useReorderProjectsMutation } from '@/api/projects/useReorderProjectsMutation'
 import { GripVertical, LogOut, Settings } from '@/components/Icons'
+import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
+import { formatShare } from '@/lib/formatShare'
+import { findSupportedLanguage } from '@/lib/languageOptions'
 import { getProjectInitials, isLightColor } from '@/lib/utils'
 
 import classes from './ProjectsList.module.css'
@@ -18,8 +24,46 @@ const SKELETON_ROWS = 2
 
 const SORT_ANIMATION_MS = 150
 
+/** Share of filled values over all keys × languages, as in the old system; the bar is decorative, the texts under it say the same. */
+const ProjectProgress = ({ project }: { project: ProjectListItem }) => {
+	const { t, i18n } = useTranslation()
+	const total = project.keyCount * project.languageTags.length
+
+	if (total === 0) {
+		return (
+			<Text size='xs' c='var(--app-color-muted)'>
+				{t('projectsPage.list.noKeys')}
+			</Text>
+		)
+	}
+
+	const untranslatedCount = total - project.translatedCount
+	const label = (key: 'translated' | 'untranslated', part: number) => {
+		const { percent, bound } = formatShare(part, total, i18n.language)
+		return t(`projectsPage.list.${key}`, { percent: bound ? t(`projectsPage.list.${bound}`, { percent }) : percent })
+	}
+
+	return (
+		<div className='flex flex-col gap-1.5'>
+			<Progress.Root size={6} radius='xl' aria-hidden classNames={{ root: classes.track }}>
+				<Progress.Section value={(project.translatedCount / total) * 100} color='teal' />
+			</Progress.Root>
+			<div className='flex flex-wrap justify-between gap-x-3 text-xs'>
+				<span className={classes.legend} data-tone='translated'>
+					{label('translated', project.translatedCount)}
+				</span>
+				{untranslatedCount > 0 && (
+					<span className={classes.legend} data-tone='untranslated'>
+						{label('untranslated', untranslatedCount)}
+					</span>
+				)}
+			</div>
+		</div>
+	)
+}
+
 /**
- * Projects of the user in a card (rows as in the old system without keys, progress and flags, which come with translations). The grip
+ * Projects of the user in a card: key count, translation progress and the language flags as in the old system. The grip
  * reorders them for this user only: SortableJS drag and drop (the other rows slide aside while dragging), or ArrowUp / ArrowDown while the
  * grip has the focus; a live region says the new place.
  */
@@ -33,6 +77,12 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	const moveHintId = useId()
 	const gripRefs = useRef(new Map<string, HTMLButtonElement>())
 	const [keyboardMovedId, setKeyboardMovedId] = useState<string | null>(null)
+	// The optimistic cache update of the mutation reaches the list only later; until then the dropped order is rendered from here.
+	// It is tied to the list it was made from, so any newer data (the cache update, an error rollback, a refetch) replaces it.
+	const [dropped, setDropped] = useState<{ from: typeof data; ids: string[] } | null>(null)
+	const droppedIds = dropped && dropped.from === data ? dropped.ids : null
+	const position = new Map(droppedIds?.map((id, index) => [id, index]))
+	const projects = droppedIds ? [...(data?.projects ?? [])].sort((a, b) => (position.get(a.id) ?? 0) - (position.get(b.id) ?? 0)) : data?.projects
 
 	// React may move the focused row in the DOM, which drops the focus to the body; the moved project's grip takes it back.
 	useLayoutEffect(() => {
@@ -56,13 +106,13 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	const state = (content: ReactNode) => <div className={classes.state}>{content}</div>
 
 	const saveOrder = (projectIds: string[], movedId: string) => {
-		const name = data?.projects.find((project) => project.id === movedId)?.name ?? ''
+		const name = projects?.find((project) => project.id === movedId)?.name ?? ''
 		setAnnouncement(t('projectsPage.list.moved', { name, position: projectIds.indexOf(movedId) + 1, count: projectIds.length }))
 		reorder.mutate(projectIds, { onError: (err) => notifications.show({ color: 'red', message: t(`errors.${getApiErrorCode(err)}`) }) })
 	}
 
 	const moveBy = (projectId: string, offset: number) => {
-		const ids = data?.projects.map((project) => project.id) ?? []
+		const ids = projects?.map((project) => project.id) ?? []
 		const from = ids.indexOf(projectId)
 		const to = from + offset
 		if (from === -1 || to < 0 || to >= ids.length) {
@@ -74,10 +124,12 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	}
 
 	const onSorted = useEffectEvent((oldIndex: number, newIndex: number) => {
-		const ids = data?.projects.map((project) => project.id) ?? []
+		const ids = projects?.map((project) => project.id) ?? []
 		const [moved] = ids.splice(oldIndex, 1)
 		if (moved) {
 			ids.splice(newIndex, 0, moved)
+			// Renders the new order before the browser paints the row SortableJS was just put back at; otherwise it flashes at its old place.
+			flushSync(() => setDropped({ from: data, ids }))
 			saveOrder(ids, moved)
 		}
 	})
@@ -152,8 +204,8 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	return (
 		<>
 			<ul ref={listRef} tabIndex={-1} aria-label={t('projectsPage.list.label')} className={classes.card}>
-				{data.projects.map((project) => (
-					<li key={project.id} className={`${classes.row} flex items-center gap-4`}>
+				{(projects ?? []).map((project) => (
+					<li key={project.id} className={`${classes.row} flex flex-wrap items-center gap-4 lg:flex-nowrap`}>
 						{canReorder && (
 							<Tooltip label={t('projectsPage.list.move')}>
 								<ActionIcon
@@ -190,13 +242,36 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 						>
 							{getProjectInitials(project.name)}
 						</span>
-						<div className='flex min-w-0 flex-1 flex-col'>
+						<div className='flex min-w-0 flex-1 flex-col lg:max-w-56'>
 							<Link to='/projects/$projectSlug/translations' params={{ projectSlug: project.slug }} className={classes.name}>
 								{project.name}
 							</Link>
 							<Text component='span' size='xs' c='var(--app-color-muted)' className={classes.slug}>
 								{project.slug}
 							</Text>
+						</div>
+						<div className={classes.stats}>
+							<Text size='sm' c='var(--app-color-text-strong)' className='shrink-0 lg:w-24 lg:text-right'>
+								{t('projectsPage.list.keys', { count: project.keyCount })}
+							</Text>
+							<div className='order-last min-w-0 basis-full lg:order-none lg:flex-1 lg:basis-auto'>
+								<ProjectProgress project={project} />
+							</div>
+							<ul aria-label={t('projectsPage.list.languages', { name: project.name })} className={classes.flags}>
+								{project.languageTags.map((tag) => {
+									const language = findSupportedLanguage(tag)
+									return (
+										language && (
+											<Tooltip key={tag} label={language.englishName}>
+												<li>
+													<LanguageFlag code={language.flagCode} size='sm' />
+													<VisuallyHidden>{language.englishName}</VisuallyHidden>
+												</li>
+											</Tooltip>
+										)
+									)
+								})}
+							</ul>
 						</div>
 						<div className='flex shrink-0 items-center gap-1'>
 							<Tooltip label={t('projectsPage.list.settings')}>

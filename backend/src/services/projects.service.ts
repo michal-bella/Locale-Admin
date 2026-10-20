@@ -1,10 +1,28 @@
-import { ERROR_CODE, ROLE, type AuthUser, type CreateProjectRequest, type ProjectListItem, type ReorderProjectsRequest } from '@locale/shared'
+import { ERROR_CODE, ROLE, type AuthUser, type CreateProjectRequest, type LanguageTag, type ProjectListItem, type ReorderProjectsRequest } from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 
-const PROJECT_LIST_SELECT = { id: true, name: true, slug: true, primaryColor: true } satisfies Prisma.ProjectSelect
+const PROJECT_LIST_SELECT = {
+	id: true,
+	name: true,
+	slug: true,
+	primaryColor: true,
+	languages: { select: { id: true, tag: true }, orderBy: [{ isBase: 'desc' }, { createdAt: 'asc' }, { tag: 'asc' }] },
+	_count: { select: { translationKeys: true } },
+} satisfies Prisma.ProjectSelect
+
+type ProjectListRow = Prisma.ProjectGetPayload<{ select: typeof PROJECT_LIST_SELECT }>
+
+// `tag` is always a catalog value (written only from the validated API and the seed).
+const toListItem = ({ languages, _count, ...project }: ProjectListRow, isMember: boolean, translatedCount: number): ProjectListItem => ({
+	...project,
+	isMember,
+	languageTags: languages.map((language) => language.tag as LanguageTag),
+	keyCount: _count.translationKeys,
+	translatedCount,
+})
 
 export const isPrismaError = (err: unknown, code: string): boolean => err instanceof Prisma.PrismaClientKnownRequestError && err.code === code
 
@@ -29,10 +47,24 @@ export const listProjects = async (prisma: PrismaClient, user: AuthUser): Promis
 		}),
 		prisma.projectOrder.findMany({ where: { userId: user.id }, select: { projectId: true, position: true } }),
 	])
+	const filled = await prisma.translation.groupBy({
+		by: ['languageId'],
+		where: { value: { not: null }, languageId: { in: projects.flatMap((project) => project.languages.map((language) => language.id)) } },
+		_count: { _all: true },
+	})
+	const filledByLanguage = new Map(filled.map(({ languageId, _count }) => [languageId, _count._all]))
 	const positions = new Map(orders.map(({ projectId, position }) => [projectId, position]))
 	const position = (projectId: string) => positions.get(projectId) ?? Number.MAX_SAFE_INTEGER
 	// Stable sort, so projects with the same (missing) position keep the name order of the query.
-	return projects.map(({ members, ...project }) => ({ ...project, isMember: members.length > 0 })).sort((a, b) => position(a.id) - position(b.id))
+	return projects
+		.map(({ members, ...project }) =>
+			toListItem(
+				project,
+				members.length > 0,
+				project.languages.reduce((sum, language) => sum + (filledByLanguage.get(language.id) ?? 0), 0),
+			),
+		)
+		.sort((a, b) => position(a.id) - position(b.id))
 }
 
 /** Replaces the user's order with `projectIds`; every id must be a project the user sees (404 otherwise, nothing is written). */
@@ -53,7 +85,7 @@ export const createProject = async (prisma: PrismaClient, userId: string, { name
 			data: { name, slug, members: { create: { userId } }, languages: { create: languageTags.map((tag, index) => ({ tag, isBase: index === 0 })) } },
 			select: PROJECT_LIST_SELECT,
 		})
-		return { ...project, isMember: true }
+		return toListItem(project, true, 0)
 	} catch (err) {
 		if (isPrismaError(err, 'P2002')) {
 			throw slugTaken()

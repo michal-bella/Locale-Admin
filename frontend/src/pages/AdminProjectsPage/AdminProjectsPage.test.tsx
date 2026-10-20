@@ -93,7 +93,7 @@ afterEach(() => {
 })
 
 describe('AdminProjectsPage table', () => {
-	it('renders a row per project with color, slug, base language, counts and date', async () => {
+	it('renders a row per project with color, slug, counts and date, without the base language', async () => {
 		signedInAs(ADMIN_USER, { 'GET /admin/projects': listResponse([B2B, EMPTY_PROJECT]) })
 		renderApp(PAGE_PATH)
 
@@ -104,15 +104,16 @@ describe('AdminProjectsPage table', () => {
 			within(table)
 				.getAllByRole('columnheader')
 				.map((header) => header.textContent),
-		).toEqual(['Projekt', 'Slug', 'Základný jazyk', 'Jazyky', 'Členovia', 'Vytvorený', 'Akcie'])
+		).toEqual(['Projekt', 'Slug', 'Jazyky', 'Členovia', 'Vytvorený', 'Akcie'])
 		const [b2bRow, emptyRow] = within(table).getAllByRole('row').slice(1) as [HTMLElement, HTMLElement]
-		expect(
-			within(b2bRow)
-				.getAllByRole('cell')
-				.map((cell) => cell.textContent),
-		).toEqual(['BAB2B Admin', 'b2b-admin', 'Slovak', '3', '5', '12. 10. 2026', ''])
-		expect(b2bRow.querySelector('[data-flag="sk"]')).toBeInTheDocument()
-		expect(within(emptyRow).getByText('Bez jazyka')).toBeInTheDocument()
+		const [projectCell, ...cells] = within(b2bRow).getAllByRole('cell')
+		expect(cells.map((cell) => cell.textContent)).toEqual(['b2b-admin', '3', '5', '12. 10. 2026', ''])
+		// The project cell also repeats the other columns for narrow screens, where CSS hides those columns.
+		expect(within(projectCell!).getByText('B2B Admin')).toBeInTheDocument()
+		expect(within(projectCell!).getByText('b2b-admin')).toBeInTheDocument()
+		expect(within(projectCell!).getByText('3 jazyky · 5 členov')).toBeInTheDocument()
+		expect(within(projectCell!).getByText('Vytvorený 12. 10. 2026')).toBeInTheDocument()
+		expect(b2bRow.querySelector('[data-flag]')).not.toBeInTheDocument()
 		expect(within(emptyRow).getByText('3. 10. 2026')).toBeInTheDocument()
 		expect(within(b2bRow).getByRole('button', { name: 'Upraviť projekt B2B Admin' })).toBeInTheDocument()
 		expect(within(b2bRow).getByRole('link', { name: 'Otvoriť projekt B2B Admin' })).toHaveAttribute('href', `/projects/${B2B.slug}/translations`)

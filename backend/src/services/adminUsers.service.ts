@@ -8,6 +8,8 @@ import { type PrismaClient } from '../lib/prisma'
 
 const ADMIN_USER_SELECT = { id: true, email: true, role: true, createdAt: true, _count: { select: { projectMemberships: true } } } satisfies Prisma.UserSelect
 
+const emailTaken = () => new AppError(409, ERROR_CODE.EMAIL_TAKEN, 'Email is already taken')
+
 const toAdminUser = (user: Prisma.UserGetPayload<{ select: typeof ADMIN_USER_SELECT }>): AdminUser => ({
 	id: user.id,
 	email: user.email,
@@ -51,22 +53,37 @@ export const createUser = async (prisma: PrismaClient, { email, password, role }
 		return toAdminUser(user)
 	} catch (err) {
 		if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-			throw new AppError(409, ERROR_CODE.EMAIL_TAKEN, 'Email is already taken')
+			throw emailTaken()
 		}
 		throw err
 	}
 }
 
-/** Changes the global role of any user, the own account included; the last ADMIN keeps the role so that somebody can manage users. */
-export const updateUser = async (prisma: PrismaClient, id: string, { role }: UpdateUserRequest): Promise<AdminUserDetail> => {
+/**
+ * Changes the global role and/or the email of any user, the own account included; the last ADMIN keeps the role so that somebody can
+ * manage users. No pre-check for the email: the unique constraint (P2002) also covers concurrent requests.
+ */
+export const updateUser = async (prisma: PrismaClient, id: string, { role, email }: UpdateUserRequest): Promise<AdminUserDetail> => {
 	const user = await prisma.user.findUnique({ where: { id }, select: { role: true } })
 	if (!user) {
 		throw new AppError(404, ERROR_CODE.NOT_FOUND, 'User not found')
 	}
-	if (ROLE_FROM_PRISMA[user.role] === ROLE.ADMIN && role !== ROLE.ADMIN && (await prisma.user.count({ where: { role: ROLE_TO_PRISMA[ROLE.ADMIN] } })) <= 1) {
+	if (
+		role !== undefined &&
+		ROLE_FROM_PRISMA[user.role] === ROLE.ADMIN &&
+		role !== ROLE.ADMIN &&
+		(await prisma.user.count({ where: { role: ROLE_TO_PRISMA[ROLE.ADMIN] } })) <= 1
+	) {
 		throw new AppError(409, ERROR_CODE.LAST_ADMIN, 'The last admin cannot lose the admin role')
 	}
-	await prisma.user.update({ where: { id }, data: { role: ROLE_TO_PRISMA[role] }, select: { id: true } })
+	try {
+		await prisma.user.update({ where: { id }, data: { role: role && ROLE_TO_PRISMA[role], email }, select: { id: true } })
+	} catch (err) {
+		if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+			throw emailTaken()
+		}
+		throw err
+	}
 	return getUser(prisma, id)
 }
 

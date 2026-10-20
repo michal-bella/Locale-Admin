@@ -340,6 +340,46 @@ describe('PATCH /api/admin/users/:id', () => {
 		expectErrorCode(await patchUser(app, cookie, editor.id, {}), 400, ERROR_CODE.VALIDATION_ERROR)
 	})
 
+	it('changes the email normalized, keeps the role and lets the user sign in with the new email only', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user: editor } = await createUser()
+
+		const res = await patchUser(app, cookie, editor.id, { email: '  New.Mail@Example.com ' })
+
+		expect(res.status).toBe(200)
+		expect(adminUserDetailSchema.parse(res.body)).toMatchObject({ id: editor.id, email: 'new.mail@example.com', role: ROLE.EDITOR })
+		const login = (email: string) => request(app).post('/api/auth/login').set(CSRF_HEADERS).send({ email, password: TEST_PASSWORD })
+		expect((await login('new.mail@example.com')).status).toBe(200)
+		expect((await login(editor.email)).status).toBe(401)
+	})
+
+	it('changes the role and the email together', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user: editor } = await createUser()
+
+		const res = await patchUser(app, cookie, editor.id, { role: ROLE.ADMIN, email: 'both@example.com' })
+
+		expect(res.body).toMatchObject({ email: 'both@example.com', role: ROLE.ADMIN })
+	})
+
+	it('returns 409 EMAIL_TAKEN for the email of another user and 400 for an invalid email, changing nothing', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user: editor } = await createUser()
+		const { user: other } = await createUser()
+
+		expectErrorCode(await patchUser(app, cookie, editor.id, { email: other.email.toUpperCase(), role: ROLE.ADMIN }), 409, ERROR_CODE.EMAIL_TAKEN)
+		const invalid = await patchUser(app, cookie, editor.id, { email: 'no-at-sign' })
+		expectErrorCode(invalid, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(errorResponseSchema.parse(invalid.body).error.details).toEqual([{ path: 'email', code: VALIDATION_CODE.INVALID_EMAIL }])
+		expect(await getTestPrisma().user.findUniqueOrThrow({ where: { id: editor.id }, select: { email: true, role: true } })).toEqual({
+			email: editor.email,
+			role: ROLE.EDITOR,
+		})
+	})
+
 	it('returns 404 NOT_FOUND for an unknown id and a non-UUID', async () => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)

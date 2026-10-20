@@ -71,7 +71,7 @@ test.describe('ADMIN', () => {
 		await expect(page.getByRole('heading', { level: 1, name: 'Projekty' })).toBeVisible()
 		await expect(projectsLink).toHaveAttribute('aria-current', 'page')
 		await expect(getTable(page)).toHaveAttribute('aria-busy', 'false')
-		await expect(getTable(page).getByRole('columnheader')).toHaveText(['Projekt', 'Slug', 'Základný jazyk', 'Jazyky', 'Členovia', 'Vytvorený', 'Akcie'])
+		await expect(getTable(page).getByRole('columnheader')).toHaveText(['Projekt', 'Slug', 'Jazyky', 'Členovia', 'Vytvorený', 'Akcie'])
 
 		const cells = getRow(page, project.slug).getByRole('cell')
 		await expect(cells.nth(0)).toHaveText(new RegExp(`${project.name}$`))

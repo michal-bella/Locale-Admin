@@ -297,7 +297,7 @@ describe('ProfilePage', () => {
 		signedInAs(EDITOR_USER, { 'GET /profile': { status: 200, data: profileOf(EDITOR_USER) } })
 		const router = renderApp('/')
 
-		fireEvent.click(await screen.findByRole('button', { name: 'Menu používateľa' }))
+		fireEvent.click(await screen.findByRole('button', { name: /^Menu používateľa/ }))
 		fireEvent.click(await screen.findByRole('menuitem', { name: 'Môj profil' }))
 
 		await waitFor(() => expect(router.state.location.pathname).toBe('/profile'))

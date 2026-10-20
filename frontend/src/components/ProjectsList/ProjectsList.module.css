@@ -72,6 +72,65 @@
 	overflow-wrap: anywhere;
 }
 
+/* Below lg (Tailwind `lg:`) the stats take their own line under the name; on wider screens they sit between the name and the actions. */
+.stats {
+	display: flex;
+	flex-wrap: wrap;
+	order: 1;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem 1.5rem;
+	width: 100%;
+}
+
+@media (min-width: 64em) {
+	.stats {
+		flex: 2;
+		flex-wrap: nowrap;
+		order: 0;
+		justify-content: flex-start;
+		width: auto;
+		min-width: 0;
+	}
+}
+
+.track {
+	background-color: var(--app-color-border);
+}
+
+.legend {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	color: var(--app-color-muted);
+}
+
+.legend::before {
+	content: '';
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 50%;
+	background-color: var(--mantine-color-teal-filled);
+}
+
+.legend[data-tone='untranslated']::before {
+	background-color: var(--app-color-muted);
+}
+
+/* Above the stretched name link, so the flag tooltips open on hover. Five flags per line as in the old system. */
+.flags {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-wrap: wrap;
+	flex-shrink: 0;
+	gap: 0.25rem;
+	width: 7.25rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
 .action {
 	position: relative;
 	z-index: 1;

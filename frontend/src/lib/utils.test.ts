@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 
-import { getProjectInitials, isLightColor, toSlug } from '@/lib/utils'
+import { getNameInitials, getProjectInitials, isLightColor, toSlug } from '@/lib/utils'
 
 describe('isLightColor', () => {
 	it.each([
@@ -34,5 +34,16 @@ describe('getProjectInitials', () => {
 		['  ', ''],
 	])('%j → %j', (name, initials) => {
 		expect(getProjectInitials(name)).toBe(initials)
+	})
+})
+
+describe('getNameInitials', () => {
+	it.each([
+		['Jana Nováková', 'JN'],
+		['Ján Peter Kováč', 'JK'],
+		['jana@firma.sk', 'JA'],
+		['Martin', 'MA'],
+	])('%s → %s', (name, initials) => {
+		expect(getNameInitials(name)).toBe(initials)
 	})
 })

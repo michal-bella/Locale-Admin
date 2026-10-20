@@ -409,6 +409,109 @@
 		},
 		"exportButton": "Export"
 	},
+	"dashboardPage": {
+		"eyebrow": "Project overview",
+		"description": "Current state of translations, languages and recent changes.",
+		"openTranslations": "Open translations",
+		"lessThan": "< {{percent}}",
+		"moreThan": "> {{percent}}",
+		"stats": {
+			"label": "Project statistics",
+			"keys": "Keys",
+			"keysCreated": "+{{count}} in 30 days",
+			"translated": "Translated",
+			"translatedOf_one": "{{translated}} of {{count}} key",
+			"translatedOf_other": "{{translated}} of {{count}} keys",
+			"showUntranslated": "Show untranslated",
+			"languages": "Languages",
+			"baseLanguage": "1 source",
+			"members": "Members",
+			"admins_one": "{{count}} administrator",
+			"admins_other": "{{count}} administrators",
+			"showMembers": "Show members",
+			"loadError": "Project statistics could not be loaded.",
+			"retry": "Try again"
+		},
+		"empty": {
+			"title": "No keys yet",
+			"description": "Keys are added to the project by a CSV import on the Translations page.",
+			"link": "Go to translations"
+		},
+		"languages": {
+			"title": "Language status",
+			"description": "Translation coverage in the project",
+			"manage": "Manage languages",
+			"label": "Language status",
+			"base": "Source language",
+			"translatedOf": "{{translated}} of {{total}} translated",
+			"openLabel": "{{name}}: show untranslated keys",
+			"empty": "The project has no languages yet.",
+			"loadError": "Languages could not be loaded.",
+			"retry": "Try again"
+		},
+		"activity": {
+			"title": "Recent activity",
+			"description": "Changes in the project, newest first",
+			"today": "Today",
+			"yesterday": "Yesterday",
+			"loadMore": "Load more",
+			"empty": "No activity yet. Changes in the project will show up here.",
+			"loadError": "Activity could not be loaded.",
+			"retry": "Try again",
+			"deletedUser": "Deleted user",
+			"open": "Show in translations",
+			"openLabel": "Show changes by {{name}} in translations",
+			"events": {
+				"projectCreated": "created the project {{name}}",
+				"projectUpdated": "changed project settings: {{fields}}",
+				"languageAdded": "added the language {{language}}",
+				"languageRemoved": "removed the language {{language}}",
+				"baseLanguageSet": "set the base language to {{to}}",
+				"baseLanguageChanged": "changed the base language from {{from}} to {{to}}",
+				"memberAdded": "added the member {{member}}",
+				"memberRemoved": "removed the member {{member}}",
+				"memberLeft": "left the project",
+				"keysImported": "imported a CSV: {{changes}}",
+				"translationCount_one": "{{count}} translation",
+				"translationCount_other": "{{count}} translations",
+				"newKeyCount_one": "{{count}} new key",
+				"newKeyCount_other": "{{count}} new keys",
+				"keyUpdated": "edited the key {{key}}: {{fields}}",
+				"translationUpdated": "edited the translation {{key}} ({{language}})"
+			},
+			"projectFields": {
+				"name": "name",
+				"slug": "slug",
+				"primaryColor": "color",
+				"protectVariables": "variable protection"
+			},
+			"keyFields": {
+				"name": "name",
+				"description": "description",
+				"pluralVariable": "plural"
+			}
+		},
+		"daily": {
+			"title": "Daily activity",
+			"description": "Changed translations per day",
+			"rangeLabel": "Period",
+			"range": {
+				"7d": "7 days",
+				"30d": "30 days",
+				"90d": "90 days"
+			},
+			"changes_one": "{{count}} change",
+			"changes_other": "{{count}} changes",
+			"tooltip": "{{date}}: {{changes}}",
+			"summary": "Last {{days}} days: {{changes}}",
+			"day": "Day",
+			"changesColumn": "Changes",
+			"contributors": "Most active members",
+			"noContributors": "Nobody changed anything in this period.",
+			"loadError": "Daily activity could not be loaded.",
+			"retry": "Try again"
+		}
+	},
 	"importModal": {
 		"title": "Import translations",
 		"description": "Upload a file and review the changes before importing.",
@@ -853,6 +956,7 @@
 		"adminProjects": "Projects",
 		"users": "Users",
 		"translations": "Translations",
+		"dashboard": "Overview",
 		"projectSettings": "Settings",
 		"members": "Members",
 		"projectSwitcher": {

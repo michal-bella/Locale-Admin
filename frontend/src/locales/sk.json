@@ -411,6 +411,119 @@
 		},
 		"exportButton": "Exportovať"
 	},
+	"dashboardPage": {
+		"eyebrow": "Prehľad projektu",
+		"description": "Aktuálny stav prekladov, jazykov a posledných zmien.",
+		"openTranslations": "Otvoriť preklady",
+		"lessThan": "< {{percent}}",
+		"moreThan": "> {{percent}}",
+		"stats": {
+			"label": "Štatistiky projektu",
+			"keys": "Kľúče",
+			"keysCreated": "+{{count}} za 30 dní",
+			"translated": "Preložené",
+			"translatedOf_one": "{{translated}} z {{count}} kľúča",
+			"translatedOf_few": "{{translated}} z {{count}} kľúčov",
+			"translatedOf_many": "{{translated}} z {{count}} kľúčov",
+			"translatedOf_other": "{{translated}} z {{count}} kľúčov",
+			"showUntranslated": "Zobraziť nepreložené",
+			"languages": "Jazyky",
+			"baseLanguage": "1 zdrojový",
+			"members": "Členovia",
+			"admins_one": "{{count}} administrátor",
+			"admins_few": "{{count}} administrátori",
+			"admins_many": "{{count}} administrátorov",
+			"admins_other": "{{count}} administrátorov",
+			"showMembers": "Zobraziť členov",
+			"loadError": "Štatistiky projektu sa nepodarilo načítať.",
+			"retry": "Skúsiť znova"
+		},
+		"empty": {
+			"title": "Zatiaľ žiadne kľúče",
+			"description": "Kľúče do projektu pribudnú importom CSV na stránke Preklady.",
+			"link": "Prejsť na preklady"
+		},
+		"languages": {
+			"title": "Stav jazykov",
+			"description": "Pokrytie prekladov v projekte",
+			"manage": "Spravovať jazyky",
+			"label": "Stav jazykov",
+			"base": "Zdrojový jazyk",
+			"translatedOf": "{{translated}} z {{total}} preložených",
+			"openLabel": "{{name}}: zobraziť nepreložené kľúče",
+			"empty": "Projekt zatiaľ nemá žiadne jazyky.",
+			"loadError": "Jazyky sa nepodarilo načítať.",
+			"retry": "Skúsiť znova"
+		},
+		"activity": {
+			"title": "Posledná aktivita",
+			"description": "Zmeny v projekte od najnovšej",
+			"today": "Dnes",
+			"yesterday": "Včera",
+			"loadMore": "Načítať ďalšie",
+			"empty": "Zatiaľ žiadna aktivita. Zmeny v projekte sa zobrazia tu.",
+			"loadError": "Aktivitu sa nepodarilo načítať.",
+			"retry": "Skúsiť znova",
+			"deletedUser": "Odstránený používateľ",
+			"open": "Zobraziť v prekladoch",
+			"openLabel": "Zobraziť zmeny používateľa {{name}} v prekladoch",
+			"events": {
+				"projectCreated": "vytvorenie projektu {{name}}",
+				"projectUpdated": "zmena nastavení projektu: {{fields}}",
+				"languageAdded": "pridanie jazyka {{language}}",
+				"languageRemoved": "odobratie jazyka {{language}}",
+				"baseLanguageSet": "nastavenie základného jazyka {{to}}",
+				"baseLanguageChanged": "zmena základného jazyka z {{from}} na {{to}}",
+				"memberAdded": "pridanie člena {{member}}",
+				"memberRemoved": "odobratie člena {{member}}",
+				"memberLeft": "odchod z projektu",
+				"keysImported": "import CSV: {{changes}}",
+				"translationCount_one": "{{count}} preklad",
+				"translationCount_few": "{{count}} preklady",
+				"translationCount_many": "{{count}} prekladov",
+				"translationCount_other": "{{count}} prekladov",
+				"newKeyCount_one": "{{count}} nový kľúč",
+				"newKeyCount_few": "{{count}} nové kľúče",
+				"newKeyCount_many": "{{count}} nových kľúčov",
+				"newKeyCount_other": "{{count}} nových kľúčov",
+				"keyUpdated": "úprava kľúča {{key}}: {{fields}}",
+				"translationUpdated": "úprava prekladu {{key}} ({{language}})"
+			},
+			"projectFields": {
+				"name": "názov",
+				"slug": "slug",
+				"primaryColor": "farba",
+				"protectVariables": "ochrana premenných"
+			},
+			"keyFields": {
+				"name": "názov",
+				"description": "popis",
+				"pluralVariable": "plurál"
+			}
+		},
+		"daily": {
+			"title": "Denná aktivita",
+			"description": "Zmenené preklady po dňoch",
+			"rangeLabel": "Obdobie",
+			"range": {
+				"7d": "7 dní",
+				"30d": "30 dní",
+				"90d": "90 dní"
+			},
+			"changes_one": "{{count}} zmena",
+			"changes_few": "{{count}} zmeny",
+			"changes_many": "{{count}} zmien",
+			"changes_other": "{{count}} zmien",
+			"tooltip": "{{date}}: {{changes}}",
+			"summary": "Za posledných {{days}} dní: {{changes}}",
+			"day": "Deň",
+			"changesColumn": "Zmeny",
+			"contributors": "Najaktívnejší členovia",
+			"noContributors": "V tomto období nikto nič nezmenil.",
+			"loadError": "Dennú aktivitu sa nepodarilo načítať.",
+			"retry": "Skúsiť znova"
+		}
+	},
 	"importModal": {
 		"title": "Importovať preklady",
 		"description": "Nahrajte súbor a skontrolujte zmeny pred importom.",
@@ -861,6 +974,7 @@
 		"adminProjects": "Projekty",
 		"users": "Používatelia",
 		"translations": "Preklady",
+		"dashboard": "Prehľad",
 		"projectSettings": "Nastavenia",
 		"members": "Členovia",
 		"projectSwitcher": {

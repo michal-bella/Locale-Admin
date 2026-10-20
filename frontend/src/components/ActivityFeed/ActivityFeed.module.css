@@ -1,0 +1,58 @@
+.day {
+	padding-bottom: 0.25rem;
+	font-size: var(--mantine-font-size-3xs);
+	font-weight: 700;
+	line-height: 1.5;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--app-color-muted);
+}
+
+.list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Figma 3:666: 10 px padding, 12 px gap, 32 px round avatar. */
+.row {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin-inline: -0.625rem;
+	padding: 0.625rem;
+	border-radius: var(--mantine-radius-lg);
+}
+
+.initials {
+	font-size: var(--mantine-font-size-4xs);
+	font-weight: 700;
+	color: var(--app-color-text-secondary);
+}
+
+.sentence {
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 500;
+	line-height: 1.3333;
+	overflow-wrap: anywhere;
+	color: var(--app-color-label);
+}
+
+.name {
+	font-weight: 600;
+	color: var(--app-color-text-strong);
+}
+
+.time {
+	font-size: var(--mantine-font-size-3xs);
+	line-height: 1.5;
+	color: var(--app-color-muted);
+}
+
+.state {
+	padding: 1.5rem 0;
+	text-align: center;
+}

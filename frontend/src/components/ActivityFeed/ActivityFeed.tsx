@@ -71,7 +71,8 @@ const ActivityFeed = ({ projectId, projectSlug }: ActivityFeedProps) => {
 					: t('dashboardPage.activity.events.memberRemoved', { member: memberName(event.payload.member) })
 			case ACTIVITY_TYPE.KEYS_IMPORTED: {
 				const { keysCreated, translationsCreated, translationsUpdated } = event.payload
-				const parts = [t('dashboardPage.activity.events.translationCount', { count: translationsCreated + translationsUpdated })]
+				const translationCount = translationsCreated + translationsUpdated
+				const parts = translationCount > 0 ? [t('dashboardPage.activity.events.translationCount', { count: translationCount })] : []
 				if (keysCreated > 0) {
 					parts.push(t('dashboardPage.activity.events.newKeyCount', { count: keysCreated }))
 				}

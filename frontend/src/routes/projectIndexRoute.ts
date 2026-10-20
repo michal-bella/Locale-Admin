@@ -2,7 +2,7 @@ import { createRoute, redirect } from '@tanstack/react-router'
 
 import { projectRoute } from '@/routes/projectRoute'
 
-/** A project has no overview page yet, it opens on its translations. */
+/** A project opens on its translations, the core of the app; Prehľad is a separate page in the sidebar. */
 export const projectIndexRoute = createRoute({
 	getParentRoute: () => projectRoute,
 	path: '/',

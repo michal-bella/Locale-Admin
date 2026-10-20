@@ -503,7 +503,7 @@
 		},
 		"daily": {
 			"title": "Denná aktivita",
-			"description": "Zmenené preklady po dňoch",
+			"description": "Zmeny v projekte po dňoch (preklady, kľúče, jazyky, členovia)",
 			"rangeLabel": "Obdobie",
 			"range": {
 				"7d": "7 dní",

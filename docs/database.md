@@ -178,7 +178,7 @@ Udalosť zapisuje helper `recordActivity(tx, …)` (`backend/src/lib/activity.ts
 | `KEY_UPDATED`           | `PATCH …/keys/:keyId`, iba ak sa zmenil názov, popis alebo plurál                                                      | `{ keyId, namespace, name, fields }` – `name` je nový názov                      |
 | `TRANSLATION_UPDATED`   | `PUT …/translations/:languageId`, iba ak sa uložená hodnota zmenila                                                    | `{ keyId, namespace, name, languageTag, oldValue, newValue }` (`null` = prázdne) |
 
-Pri `KEYS_IMPORTED` je `count` počet zapísaných buniek (`translationsCreated + translationsUpdated`), `languageTags` sú jazyky, do ktorých sa niečo zapísalo, v poradí projektu. Nezaznamenáva sa zmena poradia jazykov (ak nemení základný jazyk) ani projektov, zmazanie projektu ADMIN-om (kaskáda zmaže aj udalosti) a zmeny používateľov.
+Pri `KEYS_IMPORTED` je `count` počet zapísaných buniek (`translationsCreated + translationsUpdated`), `languageTags` sú jazyky, do ktorých sa niečo zapísalo, v poradí projektu. Import, ktorý iba zmení existujúce kľúče na plurálové (bez novej hodnoty a nového kľúča), sa nezaznamenáva. Nezaznamenáva sa ani zmena poradia jazykov (ak nemení základný jazyk) ani projektov, zmazanie projektu ADMIN-om (kaskáda zmaže aj udalosti) a zmeny používateľov.
 
 Migrácia `activity_event` doplnila každému existujúcemu projektu jednu udalosť `PROJECT_CREATED` s časom `Project.createdAt` a autorom podľa najstaršieho člena (alebo `null`). Iné spätné doplnenie nie je: `Translation.updatedAt` drží iba poslednú zmenu bunky a graf by klamal.
 

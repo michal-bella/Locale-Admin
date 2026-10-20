@@ -227,6 +227,10 @@ describe('DashboardPage', () => {
 			{ type: ACTIVITY_TYPE.KEYS_IMPORTED, payload: { keysCreated: 0, translationsCreated: 0, translationsUpdated: 1, languageTags: ['en'] } },
 		],
 		[
+			'import CSV: 2 nové kľúče',
+			{ type: ACTIVITY_TYPE.KEYS_IMPORTED, payload: { keysCreated: 2, translationsCreated: 0, translationsUpdated: 0, languageTags: [] } },
+		],
+		[
 			'úprava kľúča orders.title: popis a plurál',
 			{
 				type: ACTIVITY_TYPE.KEY_UPDATED,

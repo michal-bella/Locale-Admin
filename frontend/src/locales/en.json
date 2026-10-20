@@ -493,7 +493,7 @@
 		},
 		"daily": {
 			"title": "Daily activity",
-			"description": "Changed translations per day",
+			"description": "Project changes per day (translations, keys, languages, members)",
 			"rangeLabel": "Period",
 			"range": {
 				"7d": "7 days",

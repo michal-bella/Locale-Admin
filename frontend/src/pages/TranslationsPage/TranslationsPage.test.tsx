@@ -57,10 +57,11 @@ const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60 * 100
 
 let keyIndex = 0
 
-const cell = (value: string | null, updatedAt: string | null = null): TranslationCell => ({
+const cell = (value: string | null, updatedAt: string | null = null, updatedBy: TranslationCell['updatedBy'] = null): TranslationCell => ({
 	value,
 	status: value === null ? 'UNTRANSLATED' : 'TRANSLATED',
 	updatedAt,
+	updatedBy,
 })
 
 /** `source` is the Slovak text, `target` the English one; the row status follows English (the default target). */
@@ -284,6 +285,37 @@ describe('TranslationsPage', () => {
 		await waitFor(() => expect(router.state.location.search).not.toHaveProperty('status'))
 	})
 
+	it('stacks the source and target in one column with the status in the key cell and keeps the page', async () => {
+		mockPage()
+		const router = renderApp(`${PAGE_PATH}?page=2`)
+		await screen.findByText('orders.empty.title')
+
+		expect(screen.getByRole('radio', { name: 'Jazyky vedľa seba' })).toBeChecked()
+		fireEvent.click(screen.getByRole('radio', { name: 'Jazyky pod sebou' }))
+		await waitFor(() => expect(router.state.location.search).toEqual({ page: 2, layout: 'STACKED' }))
+
+		const table = getTable()
+		expect(table).toHaveAttribute('data-layout', 'STACKED')
+		const headers = within(table)
+			.getAllByRole('columnheader')
+			.filter((header) => header.getAttribute('scope') !== 'rowgroup')
+			.map((header) => header.textContent)
+		expect(headers).toEqual(['Kľúč', 'Preklady'])
+
+		const title = within(getRow('orders.empty.title'))
+		expect(title.getAllByRole('cell')).toHaveLength(2)
+		expect(title.getByText('Nepreložené')).toBeInTheDocument()
+		const translations = title.getAllByRole('cell')[1] as HTMLElement
+		expect(within(translations).getByText('slovenčina')).toBeInTheDocument()
+		expect(within(translations).getByText('English')).toBeInTheDocument()
+		expect(within(translations).getByText('Zatiaľ tu nie sú žiadne objednávky')).toBeInTheDocument()
+		expect(within(translations).getByRole('button', { name: /Preklad kľúča orders\.empty\.title, English/ })).toBeInTheDocument()
+
+		fireEvent.click(screen.getByRole('radio', { name: 'Jazyky vedľa seba' }))
+		await waitFor(() => expect(router.state.location.search).toEqual({ page: 2 }))
+		expect(getTable()).not.toHaveAttribute('data-layout')
+	})
+
 	it('shows the namespace filter only when the project has more than one namespace', async () => {
 		mockPage({ translations: response({ namespaces: ['loc'] }) })
 		renderApp(PAGE_PATH)
@@ -356,6 +388,25 @@ describe('TranslationsPage', () => {
 		await screen.findByText('orders.empty.title')
 
 		expect(screen.getByRole('combobox', { name: 'Namespace' })).toBeInTheDocument()
+	})
+
+	it('clears the search right away with the X or Esc and keeps the focus in the field', async () => {
+		mockPage()
+		const router = renderApp(`${PAGE_PATH}?search=objedn&page=2`)
+		await screen.findByText('orders.empty.title')
+
+		const input = screen.getByRole('textbox', { name: 'Hľadať kľúč alebo preklad' })
+		fireEvent.click(screen.getByRole('button', { name: 'Vymazať vyhľadávanie' }))
+		expect(input).toHaveValue('')
+		expect(input).toHaveFocus()
+		await waitFor(() => expect(router.state.location.search).toEqual({}))
+		expect(screen.queryByRole('button', { name: 'Vymazať vyhľadávanie' })).not.toBeInTheDocument()
+
+		fireEvent.change(input, { target: { value: 'save' } })
+		await waitFor(() => expect(router.state.location.search).toEqual({ search: 'save' }))
+		fireEvent.keyDown(input, { key: 'Escape' })
+		expect(input).toHaveValue('')
+		await waitFor(() => expect(router.state.location.search).toEqual({}))
 	})
 
 	it('limits the search to 200 characters', async () => {
@@ -888,6 +939,68 @@ describe('TranslationsPage edit modal', () => {
 			'Preklad kľúča Uložiť zmeny, English: Save changes',
 		])
 	})
+
+	it('shows who saved the value last and when, without a name for a deleted user and nothing for a missing row', async () => {
+		const edited = {
+			...WELCOME,
+			translations: { ...WELCOME.translations, [ENGLISH.id]: cell('Welcome back, {{name}}', minutesAgo(5), { id: ADMIN_USER.id, name: 'Martin Kováč' }) },
+		}
+		mockEditing(undefined, ADMIN_USER, [ITEMS[0]!, ITEMS[1]!, edited, ITEMS[3]!])
+		renderApp(PAGE_PATH)
+
+		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		const lastEdit = within(dialog).getByText('Posledná úprava: Martin Kováč, pred 5 minútami')
+		expect(lastEdit).toHaveAttribute('title', expect.stringMatching(/^\d{1,2}\. \d{1,2}\. \d{4},? \d{2}:\d{2}$/))
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Zrušiť' }))
+		await waitForClosed()
+
+		// The key equals its Slovak text, so the row cannot be found by its text.
+		fireEvent.click(screen.getByRole('button', { name: /Preklad kľúča Uložiť zmeny, English/ }))
+		const saveChanges = await screen.findByRole('dialog', { name: DIALOG })
+		expect(within(saveChanges).getByText('Posledná úprava: pred 3 hodinami')).toBeInTheDocument()
+		fireEvent.click(within(saveChanges).getByRole('button', { name: 'Zrušiť' }))
+		await waitForClosed()
+
+		const title = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
+		expect(within(title).queryByText(/Posledná úprava/)).not.toBeInTheDocument()
+	})
+
+	it('saves and opens the next untranslated cell of the page with Uložiť a ďalší, then hides it on the last one', async () => {
+		const puts = mockEditing()
+		renderApp(PAGE_PATH)
+
+		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
+		typeText(fieldOf(dialog, 'Preklad kľúča orders.empty.title, English'), 'No orders yet')
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť a ďalší' }))
+
+		await waitFor(() => expect(puts()).toHaveLength(1))
+		expect(puts()[0]?.url).toBe(putUrl(ITEMS[0]!.keyId))
+		const next = await within(dialog).findByRole('textbox', { name: 'Preklad kľúča orders.empty.description, English' })
+		await waitFor(() => expect(next).toHaveFocus())
+		expect(screen.getByRole('dialog', { name: DIALOG })).toBe(dialog)
+		expect(within(dialog).queryByRole('button', { name: 'Uložiť a ďalší' })).not.toBeInTheDocument()
+		expect(within(dialog).getByRole('button', { name: 'Uložiť' })).toHaveAttribute('aria-keyshortcuts', 'Meta+Enter Control+Enter')
+	})
+
+	it('saves and moves on with Ctrl+Enter or Cmd+Enter in the field without inserting a newline', async () => {
+		const puts = mockEditing()
+		renderApp(PAGE_PATH)
+
+		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, English: Bez prekladu')
+		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, English')
+		typeText(field, 'No orders yet')
+		fireEvent.keyDown(field, { key: 'Enter', ctrlKey: true })
+
+		await waitFor(() => expect(puts()).toHaveLength(1))
+		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: 'No orders yet' })
+		const next = await within(dialog).findByRole('textbox', { name: 'Preklad kľúča orders.empty.description, English' })
+
+		typeText(next, 'New orders will show up here.')
+		fireEvent.keyDown(next, { key: 'Enter', metaKey: true })
+		await waitFor(() => expect(puts()).toHaveLength(2))
+		expect(JSON.parse(puts()[1]?.data as string)).toEqual({ value: 'New orders will show up here.' })
+		await waitForClosed()
+	})
 })
 
 const PLURAL_ITEM = (): TranslationListItem => ({
@@ -1105,6 +1218,7 @@ describe('TranslationsPage extended view', () => {
 		expect(viewRadio('Všetky jazyky')).toBeChecked()
 		expect(screen.queryByRole('combobox', { name: 'Zdrojový jazyk' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('combobox', { name: 'Cieľový jazyk' })).not.toBeInTheDocument()
+		expect(screen.getByRole('radio', { name: 'Jazyky vedľa seba' })).toBeChecked()
 
 		const table = getTable()
 		expect(table).toHaveAttribute('data-view', 'EXTENDED')
@@ -1132,6 +1246,30 @@ describe('TranslationsPage extended view', () => {
 		expect(cellButtons('dashboard.welcome').map((button) => button.getAttribute('data-status'))).toEqual(['TRANSLATED', 'TRANSLATED'])
 		// The group label scrolls with the sticky key column.
 		expect(within(table).getAllByText('loc:orders.empty')[0]?.className).toMatch(/groupLabel/)
+	})
+
+	it('stacks every language in one editable column with ?layout=STACKED', async () => {
+		mockPage({ user: EXTENDED_ADMIN, languages: [SLOVAK, ENGLISH, CZECH] })
+		renderApp(`${PAGE_PATH}?layout=STACKED`)
+		await screen.findByText('orders.empty.title')
+
+		expect(screen.getByRole('radio', { name: 'Jazyky pod sebou' })).toBeChecked()
+		const table = getTable()
+		expect(table).toHaveAttribute('data-layout', 'STACKED')
+		const headers = within(table)
+			.getAllByRole('columnheader')
+			.filter((header) => header.getAttribute('scope') !== 'rowgroup')
+		expect(headers.map((header) => header.textContent)).toEqual(['Kľúč', 'Preklady'])
+		expect(headers[0]?.className).not.toMatch(/stickyStart/)
+
+		const row = within(getRow('orders.empty.title'))
+		expect(row.getAllByRole('cell')).toHaveLength(2)
+		expect(row.getByText('Nepreložené')).toBeInTheDocument()
+		expect(cellButtons('orders.empty.title').map((button) => button.textContent)).toEqual([
+			'Preklad kľúča orders.empty.title, slovenčina: Zatiaľ tu nie sú žiadne objednávky',
+			'Preklad kľúča orders.empty.title, English: Bez prekladu',
+			'Preklad kľúča orders.empty.title, čeština: Bez prekladu',
+		])
 	})
 
 	it('switches to the compact view, saves the preference and asks for the language pair', async () => {

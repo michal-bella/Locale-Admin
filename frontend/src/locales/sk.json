@@ -228,7 +228,8 @@
 		"toolbar": {
 			"search": {
 				"label": "Hľadať kľúč alebo preklad",
-				"placeholder": "Hľadať kľúč alebo preklad…"
+				"placeholder": "Hľadať kľúč alebo preklad…",
+				"clear": "Vymazať vyhľadávanie"
 			},
 			"status": {
 				"label": "Stav",
@@ -254,8 +255,14 @@
 			"EXTENDED": "Všetky jazyky",
 			"COMPACT": "Zdroj → cieľ"
 		},
+		"layout": {
+			"label": "Rozloženie",
+			"COLUMNS": "Jazyky vedľa seba",
+			"STACKED": "Jazyky pod sebou"
+		},
 		"table": {
 			"label": "Zoznam prekladov",
+			"translations": "Preklady",
 			"key": "Kľúč",
 			"status": "Stav",
 			"noGroup": "Bez skupiny",
@@ -291,7 +298,11 @@
 			"baseLanguage": "Základný jazyk ({{language}})",
 			"value": "Preklad",
 			"cancel": "Zrušiť",
-			"submit": "Uložiť"
+			"submit": "Uložiť",
+			"lastEdit": "Posledná úprava: {{name}}, {{time}}",
+			"lastEditTime": "Posledná úprava: {{time}}",
+			"submitNext": "Uložiť a ďalší",
+			"submitNextHint": "Uloží a otvorí ďalšiu nepreloženú bunku na tejto strane ({{shortcut}})"
 		},
 		"plural": {
 			"hash": "Číslo",

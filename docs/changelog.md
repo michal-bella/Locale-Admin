@@ -1,12 +1,26 @@
 ---
 title: 'Changelog'
-updated: 2026-10-19
+updated: 2026-10-20
 notion_page_id:
 ---
 
 # Changelog
 
 ## Po fáze 1
+
+### Preklady: posledná úprava, Uložiť a ďalší, vymazanie vyhľadávania (2026-10-20)
+
+- API: bunka prekladu v zozname aj odpoveď `PUT …/translations/:languageId` nesú `updatedBy` (`{ id, name }` alebo `null`) ([API](./api/translations.md))
+- frontend: modál Upraviť preklad ukazuje, kto a kedy preklad naposledy uložil, a má **Uložiť a ďalší** (aj `Cmd/Ctrl+Enter`), ktoré otvorí ďalšiu nepreloženú bunku na strane ([Frontend](./frontend.md#modál-upraviť-preklad))
+- frontend: vyhľadávanie má X na vymazanie, `Esc` ho tiež vymaže ([Frontend](./frontend.md#stránka-preklady))
+
+### Preklady: vyhľadávanie bez diakritiky (2026-10-20)
+
+- API: `search` v `GET /api/projects/:projectId/translations` ignoruje diakritiku cez rozšírenie PostgreSQL `unaccent` (nová migrácia), „vlastni“ nájde „vlastní“ ([API](./api/translations.md), [Databáza](./database.md#migrácie))
+
+### Preklady: jazyky pod sebou (2026-10-20)
+
+- frontend: prepínač rozloženia v toolbare oboch zobrazení (ikony, URL `?layout=STACKED`); **Jazyky pod sebou** ukáže tabuľku s dvomi stĺpcami Kľúč a Preklady, jazyky pod sebou (vo **Všetky jazyky** všetky, v **Zdroj → cieľ** zdroj a cieľ) a stav pri kľúči ([Frontend](./frontend.md#stránka-preklady))
 
 ### Zmena roly používateľa v detaile (2026-10-20)
 

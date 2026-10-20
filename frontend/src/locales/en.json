@@ -226,7 +226,8 @@
 		"toolbar": {
 			"search": {
 				"label": "Search key or translation",
-				"placeholder": "Search key or translation…"
+				"placeholder": "Search key or translation…",
+				"clear": "Clear search"
 			},
 			"status": {
 				"label": "Status",
@@ -252,8 +253,14 @@
 			"EXTENDED": "All languages",
 			"COMPACT": "Source → target"
 		},
+		"layout": {
+			"label": "Layout",
+			"COLUMNS": "Languages side by side",
+			"STACKED": "Languages stacked"
+		},
 		"table": {
 			"label": "Translation list",
+			"translations": "Translations",
 			"key": "Key",
 			"status": "Status",
 			"noGroup": "No group",
@@ -289,7 +296,11 @@
 			"baseLanguage": "Base language ({{language}})",
 			"value": "Translation",
 			"cancel": "Cancel",
-			"submit": "Save"
+			"submit": "Save",
+			"lastEdit": "Last edited by {{name}}, {{time}}",
+			"lastEditTime": "Last edited {{time}}",
+			"submitNext": "Save and next",
+			"submitNextHint": "Saves and opens the next untranslated cell on this page ({{shortcut}})"
 		},
 		"plural": {
 			"hash": "Number",

@@ -228,7 +228,8 @@
 		"toolbar": {
 			"search": {
 				"label": "Hledat klíč nebo překlad",
-				"placeholder": "Hledat klíč nebo překlad…"
+				"placeholder": "Hledat klíč nebo překlad…",
+				"clear": "Vymazat vyhledávání"
 			},
 			"status": {
 				"label": "Stav",
@@ -254,8 +255,14 @@
 			"EXTENDED": "Všechny jazyky",
 			"COMPACT": "Zdroj → cíl"
 		},
+		"layout": {
+			"label": "Rozložení",
+			"COLUMNS": "Jazyky vedle sebe",
+			"STACKED": "Jazyky pod sebou"
+		},
 		"table": {
 			"label": "Seznam překladů",
+			"translations": "Překlady",
 			"key": "Klíč",
 			"status": "Stav",
 			"noGroup": "Bez skupiny",
@@ -291,7 +298,11 @@
 			"baseLanguage": "Základní jazyk ({{language}})",
 			"value": "Překlad",
 			"cancel": "Zrušit",
-			"submit": "Uložit"
+			"submit": "Uložit",
+			"lastEdit": "Poslední úprava: {{name}}, {{time}}",
+			"lastEditTime": "Poslední úprava: {{time}}",
+			"submitNext": "Uložit a další",
+			"submitNextHint": "Uloží a otevře další nepřeloženou buňku na této stránce ({{shortcut}})"
 		},
 		"plural": {
 			"hash": "Číslo",

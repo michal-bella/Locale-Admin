@@ -1,5 +1,7 @@
 import { type Language, type TranslationsResponse, type TranslationsView } from '@locale/shared'
 
+import { type TranslationsLayout } from '@/routes/projectTranslationsRoute'
+
 export type TranslationsTableProps = {
 	projectId: string
 	data?: TranslationsResponse
@@ -10,6 +12,8 @@ export type TranslationsTableProps = {
 	isRetrying: boolean
 	/** `EXTENDED`: a column per language with the key and status columns sticky; `COMPACT`: source and target columns. */
 	view: TranslationsView
+	/** `STACKED` puts the languages of the view under each other in one column and the status into the key cell. */
+	layout: TranslationsLayout
 	/** Every language of the project in column order (base first); the base one is the reference in `EditTranslationModal`. */
 	languages: Language[]
 	/** `undefined` only for a project without languages, which shows the empty state. */

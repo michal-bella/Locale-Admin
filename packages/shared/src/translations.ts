@@ -121,11 +121,20 @@ export const updateTranslationKeyResponseSchema = z.object({
 
 export type UpdateTranslationKeyResponse = z.infer<typeof updateTranslationKeyResponseSchema>
 
-/** One key in one language; `updatedAt` is `null` when the row does not exist. */
+/** Who saved a cell last (edit or import); `name` is the full name, or the e-mail when the user has none. */
+export const translationEditorSchema = z.object({
+	id: z.uuid(),
+	name: z.string(),
+})
+
+export type TranslationEditor = z.infer<typeof translationEditorSchema>
+
+/** One key in one language; `updatedAt` is `null` when the row does not exist, `updatedBy` also when the user was deleted. */
 export const translationCellSchema = z.object({
 	value: z.string().nullable(),
 	status: translationStatusSchema,
 	updatedAt: z.iso.datetime().nullable(),
+	updatedBy: translationEditorSchema.nullable(),
 })
 
 export type TranslationCell = z.infer<typeof translationCellSchema>
@@ -200,6 +209,7 @@ export const updateTranslationResponseSchema = z.object({
 	value: z.string().nullable(),
 	status: translationStatusSchema,
 	updatedAt: z.iso.datetime(),
+	updatedBy: translationEditorSchema.nullable(),
 })
 
 export type UpdateTranslationResponse = z.infer<typeof updateTranslationResponseSchema>

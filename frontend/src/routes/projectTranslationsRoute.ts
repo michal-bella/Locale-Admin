@@ -9,6 +9,11 @@ import { projectRoute } from '@/routes/projectRoute'
  * Filters of the translations list in the URL, so a reload or a shared link shows the same page. Languages are tags (`?source=sk&target=en`),
  * the page maps them to ids. Every field is optional and an invalid value is dropped, a missing one means the default.
  */
+/** How the table lays out the languages of the view: side by side (default) or stacked in one column. */
+export const translationsLayoutSchema = z.enum(['COLUMNS', 'STACKED'])
+
+export type TranslationsLayout = z.infer<typeof translationsLayoutSchema>
+
 export const translationsSearchSchema = z.object({
 	// The router JSON-parses search values, so `?search=123` arrives as a number.
 	search: z.coerce.string().trim().max(TRANSLATIONS_SEARCH_MAX_LENGTH).optional().catch(undefined),
@@ -17,6 +22,7 @@ export const translationsSearchSchema = z.object({
 	sort: translationsSortSchema.optional().catch(undefined),
 	source: z.enum(LANGUAGE_TAGS).optional().catch(undefined),
 	target: z.enum(LANGUAGE_TAGS).optional().catch(undefined),
+	layout: translationsLayoutSchema.optional().catch(undefined),
 	page: z.number().int().min(1).optional().catch(undefined),
 })
 

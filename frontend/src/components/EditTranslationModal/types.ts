@@ -11,4 +11,8 @@ export type EditTranslationModalProps = {
 	onClose: () => void
 	/** Saves the value; rejects with the API error (`PLACEHOLDER_MISMATCH` and a `VALIDATION_ERROR` on `value` show under the field). */
 	onSave: (keyId: string, languageId: string, value: string | null) => Promise<unknown>
+	/** Opens the next untranslated cell after a save; without it Uložiť a ďalší is hidden and Cmd/Ctrl+Enter saves and closes. */
+	onNext?: () => void
+	/** Focus the first field when the content switches while the modal stays open (Uložiť a ďalší); on open Mantine focuses it. */
+	focusOnSwitch?: boolean
 }

@@ -51,8 +51,8 @@ const item = (name: string, overrides: Partial<TranslationListItem> = {}): Trans
 	plural: null,
 	status: 'TRANSLATED',
 	translations: {
-		[SLOVAK.id]: { value: 'Vitajte', status: 'TRANSLATED', updatedAt: null },
-		[ENGLISH.id]: { value: 'Welcome', status: 'TRANSLATED', updatedAt: null },
+		[SLOVAK.id]: { value: 'Vitajte', status: 'TRANSLATED', updatedAt: null, updatedBy: null },
+		[ENGLISH.id]: { value: 'Welcome', status: 'TRANSLATED', updatedAt: null, updatedBy: null },
 	},
 	...overrides,
 })
@@ -62,8 +62,13 @@ const WELCOME = item('dashboard.welcome', { description: 'Greeting on the dashbo
 const COUNT = item('items.count', {
 	plural: { variable: 'n' },
 	translations: {
-		[SLOVAK.id]: { value: '{n, plural, one {# položka} few {# položky} many {# položiek} other {# položiek}}', status: 'TRANSLATED', updatedAt: null },
-		[ENGLISH.id]: { value: '{n, plural, one {# item} other {# items}}', status: 'TRANSLATED', updatedAt: null },
+		[SLOVAK.id]: {
+			value: '{n, plural, one {# položka} few {# položky} many {# položiek} other {# položiek}}',
+			status: 'TRANSLATED',
+			updatedAt: null,
+			updatedBy: null,
+		},
+		[ENGLISH.id]: { value: '{n, plural, one {# item} other {# items}}', status: 'TRANSLATED', updatedAt: null, updatedBy: null },
 	},
 })
 

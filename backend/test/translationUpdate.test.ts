@@ -59,6 +59,25 @@ const findRow = (keyId: string, languageId: string) => getTestPrisma().translati
 const placeholderDetails = (res: request.Response) => errorResponseSchema.parse(res.body).error.details
 
 describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', () => {
+	it('returns the editor as the full name, the e-mail without a name, and lists null once the user is deleted', async () => {
+		const app = createTestApp()
+		const { user, project, sk, en, cookie } = await setup(app)
+		const prisma = getTestPrisma()
+		const key = await createKey(project.id, 'Uložiť', { [sk.id]: 'Uložiť' })
+
+		await prisma.user.update({ where: { id: user.id }, data: { firstName: 'Martin', lastName: 'Kováč' } })
+		expect((await putOk(app, cookie, project.id, key.id, en.id, 'Save')).updatedBy).toEqual({ id: user.id, name: 'Martin Kováč' })
+
+		await prisma.user.update({ where: { id: user.id }, data: { firstName: null, lastName: null } })
+		expect((await putOk(app, cookie, project.id, key.id, en.id, 'Store')).updatedBy).toEqual({ id: user.id, name: user.email })
+
+		const { user: admin } = await createUser({ role: ROLE.ADMIN })
+		const adminCookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
+		await prisma.user.delete({ where: { id: user.id } })
+		const res = await request(app).get(`/api/projects/${project.id}/translations`).set('Cookie', adminCookie)
+		expect(translationsResponseSchema.parse(res.body).items[0]?.translations[en.id]).toMatchObject({ value: 'Store', updatedBy: null })
+	})
+
 	it('creates, updates and clears the target row with updatedById and updatedAt', async () => {
 		const app = createTestApp()
 		const { user, project, sk, en, cookie } = await setup(app)
@@ -148,7 +167,7 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 
 		expect(res.status).toBe(200)
 		const body = translationsResponseSchema.parse(res.body)
-		expect(body.items[0]?.translations[en.id]).toEqual({ value: 'Save', status: 'TRANSLATED', updatedAt: saved.updatedAt })
+		expect(body.items[0]?.translations[en.id]).toEqual({ value: 'Save', status: 'TRANSLATED', updatedAt: saved.updatedAt, updatedBy: saved.updatedBy })
 		expect(body.stats).toEqual({ totalKeys: 1, translated: 1, untranslated: 0 })
 	})
 

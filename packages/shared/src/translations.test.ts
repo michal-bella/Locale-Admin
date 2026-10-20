@@ -49,8 +49,13 @@ describe('translationListItemSchema', () => {
 			plural: null,
 			status: 'UNTRANSLATED',
 			translations: {
-				[SOURCE_ID]: { value: 'Uložiť', status: 'TRANSLATED', updatedAt: '2026-10-18T12:00:00.000Z' },
-				[TARGET_ID]: { value: null, status: 'UNTRANSLATED', updatedAt: null },
+				[SOURCE_ID]: {
+					value: 'Uložiť',
+					status: 'TRANSLATED',
+					updatedAt: '2026-10-18T12:00:00.000Z',
+					updatedBy: { id: TARGET_ID, name: 'Martin Kováč' },
+				},
+				[TARGET_ID]: { value: null, status: 'UNTRANSLATED', updatedAt: null, updatedBy: null },
 			},
 		}
 		expect(translationListItemSchema.parse(item)).toEqual(item)

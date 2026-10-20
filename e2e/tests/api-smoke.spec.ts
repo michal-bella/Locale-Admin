@@ -402,10 +402,12 @@ test.describe('/api/projects/:projectId/translations', () => {
 			description: null,
 			plural: null,
 		})
+		// Rows seeded with SQL have no editor.
 		const cell = (value: string | null, updatedAt: unknown = expect.any(String)) => ({
 			value,
 			status: value === null ? 'UNTRANSLATED' : 'TRANSLATED',
 			updatedAt,
+			updatedBy: null,
 		})
 		const EMPTY_CELL = cell(null, null)
 
@@ -534,7 +536,12 @@ test.describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId
 		const saved = await request.put(url, { data: { value: 'Welcome back, {{ name }}' }, headers: MUTATION_HEADERS })
 		expect(saved.status()).toBe(200)
 		const body = (await saved.json()) as { updatedAt: string }
-		expect(body).toEqual({ value: 'Welcome back, {{ name }}', status: 'TRANSLATED', updatedAt: expect.any(String) })
+		expect(body).toEqual({
+			value: 'Welcome back, {{ name }}',
+			status: 'TRANSLATED',
+			updatedAt: expect.any(String),
+			updatedBy: { id: expect.any(String), name: expect.any(String) },
+		})
 		expect(new Date(body.updatedAt).toISOString()).toBe(body.updatedAt)
 		expect(await targetOf(welcome.keyId)).toEqual(body)
 		expect(await list()).toMatchObject({ stats: { totalKeys: 2, translated: 1, untranslated: 1 } })
@@ -544,7 +551,12 @@ test.describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId
 		expect(await created.json()).toMatchObject({ value: 'Home', status: 'TRANSLATED' })
 		const emptied = await request.put(translationApi(project.id, home.keyId, en!.id), { data: { value: '' }, headers: MUTATION_HEADERS })
 		expect(emptied.status()).toBe(200)
-		expect(await emptied.json()).toEqual({ value: null, status: 'UNTRANSLATED', updatedAt: expect.any(String) })
+		expect(await emptied.json()).toEqual({
+			value: null,
+			status: 'UNTRANSLATED',
+			updatedAt: expect.any(String),
+			updatedBy: { id: expect.any(String), name: expect.any(String) },
+		})
 		expect(await list()).toMatchObject({ stats: { totalKeys: 2, translated: 1, untranslated: 1 } })
 
 		const mismatch = await request.put(url, { data: { value: 'Welcome back, {{user}}' }, headers: MUTATION_HEADERS })

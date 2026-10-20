@@ -1,6 +1,6 @@
 import { type Language, type TranslationsSort, type TranslationStatus, type TranslationsView } from '@locale/shared'
 
-import { type TranslationsSearch } from '@/routes/projectTranslationsRoute'
+import { type TranslationsLayout, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
 export type TranslationsToolbarProps = {
 	search?: string
@@ -12,6 +12,9 @@ export type TranslationsToolbarProps = {
 	onViewChange: (view: TranslationsView) => void
 	/** While the preference saves, so two quick switches cannot race. */
 	isViewSaving?: boolean
+	/** Languages of the view side by side or stacked in one column. */
+	layout: TranslationsLayout
+	onLayoutChange: (layout: TranslationsLayout) => void
 	languages: Language[]
 	sourceLanguage?: Language
 	targetLanguage?: Language

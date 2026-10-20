@@ -122,7 +122,7 @@ test.describe('EDITOR', () => {
 		const email = page.getByLabel('E-mailová adresa', { exact: true })
 		await expect(email).toHaveValue(profile.email)
 		await expect(email).toBeDisabled()
-		const role = page.getByLabel('Rola', { exact: true })
+		const role = page.getByRole('combobox', { name: 'Rola', exact: true })
 		await expect(role).toHaveValue('Editor')
 		await expect(role).toBeDisabled()
 

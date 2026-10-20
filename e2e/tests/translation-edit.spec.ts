@@ -55,7 +55,7 @@ const trackPuts = (page: Page) => {
 }
 
 /** Opens the modal from the keyboard: WebKit does not focus a button on click, so only this way has a trigger for the focus to return to. */
-const openWithKeyboard = async (page: Page, cell: Locator, key: string, language = 'English') => {
+const openWithKeyboard = async (page: Page, cell: Locator, key: string, language = 'angličtina') => {
 	await cell.focus()
 	await page.keyboard.press('Enter')
 	await expect(getEditTranslationDialog(page)).toBeVisible()
@@ -79,7 +79,7 @@ test('a click on a cell opens the modal with the key, the language and the base 
 	const skCell = getCellButton(row, key, SK)
 	await expect(row).toHaveAttribute('data-status', 'UNTRANSLATED')
 	expect(await backgroundOf(row)).toBe(TRANSPARENT)
-	await expect(enCell).toHaveAccessibleName(`Preklad kľúča ${key}, English: Bez prekladu`)
+	await expect(enCell).toHaveAccessibleName(`Preklad kľúča ${key}, angličtina: Bez prekladu`)
 	await expect(enCell).toHaveAttribute('data-status', 'UNTRANSLATED')
 	await expect(skCell).toHaveAttribute('data-status', 'TRANSLATED')
 	const untranslatedBackground = await backgroundOf(enCell)
@@ -89,8 +89,7 @@ test('a click on a cell opens the modal with the key, the language and the base 
 	const dialog = await openEditTranslationModal(page, key)
 	await expect(dialog.getByText('Kľúč', { exact: true })).toBeVisible()
 	await expect(dialog.getByText(key, { exact: true })).toBeVisible()
-	await expect(dialog.getByText('Jazyk', { exact: true })).toBeVisible()
-	await expect(dialog.getByText('English', { exact: true })).toBeVisible()
+	await expect(dialog.getByText('Preklad (angličtina)', { exact: true })).toBeVisible()
 	await expect(dialog.getByText('Základný jazyk (slovenčina)', { exact: true })).toBeVisible()
 	await expect(dialog.getByText('Nové objednávky sa zobrazia tu.', { exact: true })).toBeVisible()
 	const field = getTranslationField(page, key)
@@ -102,10 +101,15 @@ test('a click on a cell opens the modal with the key, the language and the base 
 	const response = await saveTranslation(page)
 	expect(response.status()).toBe(200)
 	expect(response.request().postDataJSON()).toEqual({ value: 'New orders will appear here.' })
-	expect(await response.json()).toEqual({ value: 'New orders will appear here.', status: 'TRANSLATED', updatedAt: expect.any(String) })
+	expect(await response.json()).toEqual({
+		value: 'New orders will appear here.',
+		status: 'TRANSLATED',
+		updatedAt: expect.any(String),
+		updatedBy: { id: expect.any(String), name: expect.any(String) },
+	})
 
 	await expect(dialog).toHaveCount(0)
-	await expect(enCell).toHaveAccessibleName(`Preklad kľúča ${key}, English: New orders will appear here.`)
+	await expect(enCell).toHaveAccessibleName(`Preklad kľúča ${key}, angličtina: New orders will appear here.`)
 	await expect(enCell).toHaveAttribute('data-status', 'TRANSLATED')
 	expect(await backgroundOf(enCell)).not.toBe(untranslatedBackground)
 	if (browserName !== 'webkit') {
@@ -123,7 +127,7 @@ test('a click on a cell opens the modal with the key, the language and the base 
 	await expect(getCellButton(baseRow, baseKey)).toHaveAttribute('data-status', 'TRANSLATED')
 	await expect(getCellButton(baseRow, baseKey, SK)).toHaveAttribute('data-status', 'UNTRANSLATED')
 	const baseDialog = await openEditTranslationModal(page, baseKey, SK)
-	await expect(baseDialog.getByText(SK, { exact: true })).toBeVisible()
+	await expect(baseDialog.getByText(`Preklad (${SK})`, { exact: true })).toBeVisible()
 	await expect(baseDialog.getByText(/^Základný jazyk/)).toHaveCount(0)
 	await getTranslationField(page, baseKey, SK).fill('Obchodné podmienky')
 	const baseResponse = await saveTranslation(page)
@@ -167,7 +171,7 @@ test('Zrušiť and Esc close without a request and drop the draft, the focus ret
 	await page.keyboard.press('Escape')
 	await expect(getEditTranslationDialog(page)).toHaveCount(0)
 	await expect(cell).toBeFocused()
-	await expect(cell).toHaveAccessibleName(`Preklad kľúča ${key}, English: Bez prekladu`)
+	await expect(cell).toHaveAccessibleName(`Preklad kľúča ${key}, angličtina: Bez prekladu`)
 	expect(puts).toEqual([])
 
 	const row = getTranslationRow(page, 'nav.home')
@@ -178,9 +182,14 @@ test('Zrušiť and Esc close without a request and drop the draft, the focus ret
 	await cleared.fill('   ')
 	const response = await saveTranslation(page)
 	expect(response.request().postDataJSON()).toEqual({ value: null })
-	expect(await response.json()).toEqual({ value: null, status: 'UNTRANSLATED', updatedAt: expect.any(String) })
+	expect(await response.json()).toEqual({
+		value: null,
+		status: 'UNTRANSLATED',
+		updatedAt: expect.any(String),
+		updatedBy: { id: expect.any(String), name: expect.any(String) },
+	})
 	await expect(getEditTranslationDialog(page)).toHaveCount(0)
-	await expect(getCellButton(row, 'nav.home')).toHaveAccessibleName('Preklad kľúča nav.home, English: Bez prekladu')
+	await expect(getCellButton(row, 'nav.home')).toHaveAccessibleName('Preklad kľúča nav.home, angličtina: Bez prekladu')
 	await expect(getCellButton(row, 'nav.home')).toHaveAttribute('data-status', 'UNTRANSLATED')
 	await expect(getCellButton(row, 'nav.home', SK)).toHaveAttribute('data-status', 'TRANSLATED')
 	await expect(row.getByText('Nepreložené', { exact: true })).toBeVisible()
@@ -318,7 +327,7 @@ test.describe('compact view', () => {
 		expect(response.request().postDataJSON()).toEqual({ value: 'New orders will appear here.' })
 		await expect(dialog).toHaveCount(0)
 		await expect(row).toHaveAttribute('data-status', 'TRANSLATED')
-		await expect(getCellButton(row, key)).toHaveAccessibleName(`Preklad kľúča ${key}, English: New orders will appear here.`)
+		await expect(getCellButton(row, key)).toHaveAccessibleName(`Preklad kľúča ${key}, angličtina: New orders will appear here.`)
 		await expectStats(page, COMPACT_EN.translated + 1, COMPACT_EN.untranslated - 1)
 
 		await page.reload()

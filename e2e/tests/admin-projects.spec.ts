@@ -11,6 +11,7 @@ const ADMIN_PROJECTS_PATH = '/admin/projects'
 const ADMIN_PROJECTS_API = '/api/admin/projects'
 
 const settingsPath = (projectSlug: string) => `/projects/${projectSlug}/settings`
+const translationsPath = (projectSlug: string) => `/projects/${projectSlug}/translations`
 
 const getTable = (page: Page) => page.getByRole('table', { name: 'Zoznam projektov' })
 
@@ -52,7 +53,7 @@ const waitForSettingsPatch = (page: Page, projectId: string) =>
 	page.waitForResponse((response) => response.url().endsWith(projectSettingsApi(projectId)) && response.request().method() === 'PATCH')
 
 test.describe('ADMIN', () => {
-	test('opens Projekty from the sidebar and sees the project with slug, base language and counts', async ({ page, playwright, baseURL }) => {
+	test('opens Projekty from the sidebar and sees the project with slug, counts and the creation date', async ({ page, playwright, baseURL }) => {
 		const api = await newAdminApi(playwright.request)
 		const project = await createProject(api, 'admin-list', ['en', 'sk', 'de-AT'])
 		await addMember(api, project.id, (await createMember(playwright.request, baseURL)).id)
@@ -74,19 +75,22 @@ test.describe('ADMIN', () => {
 		await expect(getTable(page).getByRole('columnheader')).toHaveText(['Projekt', 'Slug', 'Jazyky', 'Členovia', 'Vytvorený', 'Akcie'])
 
 		const cells = getRow(page, project.slug).getByRole('cell')
-		await expect(cells.nth(0)).toHaveText(new RegExp(`${project.name}$`))
+		await expect(cells).toHaveCount(6)
+		await expect(cells.nth(0).getByText(project.name, { exact: true })).toBeVisible()
+		// The details under the name stand in for the columns below 62em only.
+		await expect(cells.nth(0)).toContainText(`${project.slug}3 jazyky · 2 členoviaVytvorený ${formatCreatedAt(createdAt)}`)
+		await expect(cells.nth(0).getByText('3 jazyky · 2 členovia')).toBeHidden()
 		await expect(cells.nth(1)).toHaveText(project.slug)
-		await expect(cells.nth(2)).toHaveText('English')
-		await expect(cells.nth(3)).toHaveText('3')
-		await expect(cells.nth(4)).toHaveText('2')
-		await expect(cells.nth(5)).toHaveText(formatCreatedAt(createdAt))
-		await expect(cells.nth(6).getByRole('button')).toHaveCount(2)
-		await expect(cells.nth(6).getByRole('button', { name: `Upraviť projekt ${project.name}`, exact: true })).toBeVisible()
-		await expect(cells.nth(6).getByRole('button', { name: `Zmazať projekt ${project.name}`, exact: true })).toBeVisible()
-		await expect(cells.nth(6).getByRole('link')).toHaveCount(1)
-		await expect(cells.nth(6).getByRole('link', { name: `Otvoriť projekt ${project.name}`, exact: true })).toHaveAttribute(
+		await expect(cells.nth(2)).toHaveText('3')
+		await expect(cells.nth(3)).toHaveText('2')
+		await expect(cells.nth(4)).toHaveText(formatCreatedAt(createdAt))
+		await expect(cells.nth(5).getByRole('button')).toHaveCount(2)
+		await expect(cells.nth(5).getByRole('button', { name: `Upraviť projekt ${project.name}`, exact: true })).toBeVisible()
+		await expect(cells.nth(5).getByRole('button', { name: `Zmazať projekt ${project.name}`, exact: true })).toBeVisible()
+		await expect(cells.nth(5).getByRole('link')).toHaveCount(1)
+		await expect(cells.nth(5).getByRole('link', { name: `Otvoriť projekt ${project.name}`, exact: true })).toHaveAttribute(
 			'href',
-			settingsPath(project.slug),
+			translationsPath(project.slug),
 		)
 	})
 
@@ -123,7 +127,7 @@ test.describe('ADMIN', () => {
 		expect((await patched).status()).toBe(200)
 
 		await expect(dialog).toBeHidden()
-		await expect(getRow(page, edited.slug).getByRole('cell').nth(0)).toHaveText(new RegExp(`${edited.name}$`))
+		await expect(getRow(page, edited.slug).getByRole('cell').nth(0).getByText(edited.name, { exact: true })).toBeVisible()
 		await expect(getRow(page, project.slug)).toHaveCount(0)
 		await expect(page).toHaveURL(ADMIN_PROJECTS_PATH)
 		await expectNoReload(page)
@@ -225,16 +229,15 @@ test.describe('ADMIN', () => {
 		await api.dispose()
 	})
 
-	test('Otvoriť projekt navigates to the project settings', async ({ page, playwright }) => {
+	test('Otvoriť projekt navigates to the project translations', async ({ page, playwright }) => {
 		const api = await newAdminApi(playwright.request)
 		const project = await createProject(api, 'admin-open')
 		await api.dispose()
 
 		await openAdminProjectsPage(page)
 		await page.getByRole('link', { name: `Otvoriť projekt ${project.name}`, exact: true }).click()
-		await expect(page).toHaveURL(settingsPath(project.slug))
-		await expect(page.getByRole('heading', { level: 1, name: 'Nastavenia projektu' })).toBeVisible()
-		await expect(page.getByLabel('Názov projektu', { exact: true })).toHaveValue(project.name)
+		await expect(page).toHaveURL(translationsPath(project.slug))
+		await expect(page.getByRole('heading', { level: 1, name: 'Preklady' })).toBeVisible()
 	})
 })
 

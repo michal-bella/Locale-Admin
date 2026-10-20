@@ -174,7 +174,7 @@ export type TranslationListItem = z.infer<typeof translationListItemSchema>
 /**
  * Body of `GET /api/projects/:projectId/translations`. `total` counts keys matching the filters; `stats` count every key
  * of the project by the row status of the query (target language, or every language), ignoring filters. `namespaces`
- * lists every namespace of the project, sorted. `editors` lists every user who changed a translation of the project, by name.
+ * lists every namespace of the project, sorted. `editors` lists every member of the project and every other user who changed one of its translations, most translations last edited by them first, then by name.
  */
 export const translationsResponseSchema = z.object({
 	items: z.array(translationListItemSchema),

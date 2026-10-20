@@ -36,7 +36,7 @@ const setup = async (app: App, role: ROLE = ROLE.EDITOR, { member = true }: { me
 	const project = await createProject(member ? [user.id] : [])
 	const sk = await createLanguage(project.id, 'sk', true)
 	const en = await createLanguage(project.id, 'en')
-	return { project, sk, en, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
+	return { user, project, sk, en, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
 }
 
 const createLanguage = (projectId: string, tag: string, isBase = false) => getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase } })
@@ -66,7 +66,7 @@ const detailPaths = (res: request.Response) => {
 describe('GET /api/projects/:projectId/translations', () => {
 	it('returns keys with a cell per language, untranslated first, then by group and key, with stats and namespaces', async () => {
 		const app = createTestApp()
-		const { project, sk, en, cookie } = await setup(app)
+		const { user, project, sk, en, cookie } = await setup(app)
 		const other = await createProject()
 		await createKey(other.id, 'foreign', 'Cudzí', { [(await createLanguage(other.id, 'sk', true)).id]: 'Cudzí' })
 		const save = await createKey(project.id, 'loc', 'Uložiť', { [sk.id]: 'Uložiť', [en.id]: 'Save' })
@@ -139,7 +139,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			pageSize: 20,
 			stats: { totalKeys: 4, translated: 2, untranslated: 2 },
 			namespaces: ['loc', 'paths'],
-			editors: [],
+			editors: [{ id: user.id, name: user.email }],
 		})
 		body.items.forEach((item) => translationListItemSchema.strict().parse(item))
 	})
@@ -176,18 +176,21 @@ describe('GET /api/projects/:projectId/translations', () => {
 		expect(body.namespaces).toEqual(['', 'loc', 'paths'])
 	})
 
-	it('filters by editor and period and lists every editor of the project', async () => {
+	it('filters by editor and period and lists every member and editor of the project, most edits first', async () => {
 		const app = createTestApp()
-		const { project, sk, en, cookie } = await setup(app)
+		const { user, project, sk, en, cookie } = await setup(app)
 		const { user: anna } = await createUser({ firstName: 'Anna', lastName: 'Nová' })
 		const { user: boris } = await createUser({ firstName: 'Boris', lastName: 'Starý' })
 		const prisma = getTestPrisma()
 		const a = await createKey(project.id, 'loc', 'a', { [sk.id]: 'A', [en.id]: 'A' })
 		const b = await createKey(project.id, 'loc', 'b', { [sk.id]: 'B', [en.id]: 'B' })
 		const c = await createKey(project.id, 'loc', 'c', { [sk.id]: 'C' })
+		await createKey(project.id, 'loc', 'd', { [sk.id]: 'D', [en.id]: 'D' })
 		await prisma.translation.update({ where: { keyId_languageId: { keyId: a.id, languageId: en.id } }, data: { updatedById: anna.id } })
 		await prisma.translation.update({ where: { keyId_languageId: { keyId: b.id, languageId: sk.id } }, data: { updatedById: anna.id } })
 		await prisma.translation.update({ where: { keyId_languageId: { keyId: c.id, languageId: sk.id } }, data: { updatedById: boris.id } })
+		await prisma.$executeRaw`UPDATE "Translation" t SET "updatedById" = ${boris.id}::uuid FROM "TranslationKey" k WHERE k.id = t."keyId" AND k.name = 'd' AND k."projectId" = ${project.id}::uuid`
+		const { user: outsider } = await createUser({ firstName: 'Cyril' })
 		// Raw SQL, because `@updatedAt` would overwrite a date set through Prisma.
 		await prisma.$executeRaw`UPDATE "Translation" SET "updatedAt" = now() - interval '10 days' WHERE "keyId" = ${b.id}::uuid`
 		const compact = { sourceLanguageId: sk.id, targetLanguageId: en.id }
@@ -195,12 +198,14 @@ describe('GET /api/projects/:projectId/translations', () => {
 		const byAnna = await listOk(app, cookie, project.id, { updatedById: anna.id })
 		expect(names(byAnna)).toEqual(['a', 'b'])
 		expect(byAnna.editors).toEqual([
-			{ id: anna.id, name: 'Anna Nová' },
 			{ id: boris.id, name: 'Boris Starý' },
+			{ id: anna.id, name: 'Anna Nová' },
+			{ id: user.id, name: user.email },
 		])
+		expect(byAnna.editors.map(({ id }) => id)).not.toContain(outsider.id)
 		expect(names(await listOk(app, cookie, project.id, { ...compact, updatedById: anna.id }))).toEqual(['a'])
-		expect(names(await listOk(app, cookie, project.id, { updatedWithin: 'WEEK', sort: 'KEY' }))).toEqual(['a', 'c'])
-		expect(names(await listOk(app, cookie, project.id, { updatedWithin: 'MONTH', sort: 'KEY' }))).toEqual(['a', 'b', 'c'])
+		expect(names(await listOk(app, cookie, project.id, { updatedWithin: 'WEEK', sort: 'KEY' }))).toEqual(['a', 'c', 'd'])
+		expect(names(await listOk(app, cookie, project.id, { updatedWithin: 'MONTH', sort: 'KEY' }))).toEqual(['a', 'b', 'c', 'd'])
 		expect(names(await listOk(app, cookie, project.id, { updatedById: anna.id, updatedWithin: 'WEEK' }))).toEqual(['a'])
 	})
 
@@ -334,7 +339,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 
 	it('allows the same language as source and target and counts stats for a project without keys', async () => {
 		const app = createTestApp()
-		const { project, sk, cookie } = await setup(app)
+		const { user, project, sk, cookie } = await setup(app)
 
 		expect(await listOk(app, cookie, project.id, { sourceLanguageId: sk.id, targetLanguageId: sk.id })).toEqual({
 			items: [],
@@ -343,7 +348,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			pageSize: 20,
 			stats: { totalKeys: 0, translated: 0, untranslated: 0 },
 			namespaces: [],
-			editors: [],
+			editors: [{ id: user.id, name: user.email }],
 		})
 	})
 

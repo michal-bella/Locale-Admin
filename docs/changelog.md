@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Filter Editor na stránke Preklady (2026-10-20)
+
+- API: `editors` v `GET …/translations` obsahuje každého člena projektu (aj bez úprav) a ďalších, kto uložil preklad, zoradených podľa počtu prekladov, ktoré naposledy upravili ([API](./api/translations.md))
+- frontend: filter **Upravil** sa volá **Editor**, placeholder **Všetci editori** ([Frontend](./frontend.md))
+
 ### Zdieľaný Postgres medzi checkoutmi (2026-10-20)
 
 - skripty: `pnpm db:up`, `pnpm stack:up` a `pnpm test:e2e` spúšťajú `db` s `--no-recreate`, takže beh z git worktree už znova nevytvorí kontajner `locale-admin-db-1`, ktorý používa iný checkout (padali integračné testy na `57P03`); `stack:up` potom spustí `backend` a `frontend` s `--no-deps` ([Lokálny vývoj](./local-development.md#dva-režimy))

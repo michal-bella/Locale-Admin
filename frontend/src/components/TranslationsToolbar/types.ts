@@ -33,7 +33,7 @@ export type TranslationsToolbarProps = {
 	updatedWithin?: TranslationsUpdatedWithin
 	/** Hides the key and status columns of the table. */
 	translationsOnly?: true
-	/** Every user who changed a translation of the project, for the Upravil filter. */
+	/** Members of the project and other users who changed one of its translations, most edits first, for the Editor filter. */
 	editors: TranslationEditor[]
 	/** Every namespace of the project; the namespace filter shows only when there is more than one. */
 	namespaces: string[]

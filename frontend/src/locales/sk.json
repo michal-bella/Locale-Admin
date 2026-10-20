@@ -296,8 +296,8 @@
 				"remove": "Odobrať {{language}}"
 			},
 			"updatedBy": {
-				"label": "Upravil",
-				"placeholder": "Upravil ktokoľvek"
+				"label": "Editor",
+				"placeholder": "Všetci editori"
 			},
 			"updatedWithin": {
 				"label": "Zmenené",

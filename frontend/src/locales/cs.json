@@ -296,8 +296,8 @@
 				"remove": "Odebrat {{language}}"
 			},
 			"updatedBy": {
-				"label": "Upravil",
-				"placeholder": "Upravil kdokoli"
+				"label": "Editor",
+				"placeholder": "Všichni editoři"
 			},
 			"updatedWithin": {
 				"label": "Změněno",

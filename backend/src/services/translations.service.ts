@@ -199,10 +199,16 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 			WHERE k."projectId" = ${projectId}::uuid`,
 		prisma.translationKey.findMany({ where: { projectId }, distinct: ['namespace'], select: { namespace: true }, orderBy: { namespace: 'asc' } }),
 		prisma.projectLanguage.findMany({ where: { projectId }, select: { id: true } }),
-		prisma.user.findMany({
-			where: { translations: { some: { key: { projectId } } } },
-			select: EDITOR_SELECT.select,
-		}),
+		prisma.$queryRaw<(EditorRow & { edits: number })[]>`
+			WITH edits AS (
+				SELECT t."updatedById" AS id, count(*)::int AS edits
+				FROM "Translation" t JOIN "TranslationKey" k ON k.id = t."keyId"
+				WHERE k."projectId" = ${projectId}::uuid AND t."updatedById" IS NOT NULL
+				GROUP BY t."updatedById"
+			)
+			SELECT u.id, u.email, u."firstName", u."lastName", COALESCE(e.edits, 0) AS edits
+			FROM "User" u LEFT JOIN edits e ON e.id = u.id
+			WHERE e.id IS NOT NULL OR u.id IN (SELECT "userId" FROM "ProjectMember" WHERE "projectId" = ${projectId}::uuid)`,
 	])
 	const cellRows = await prisma.translation.findMany({
 		where: { keyId: { in: rows.map((row) => row.keyId) } },
@@ -218,7 +224,10 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 		pageSize,
 		stats: { totalKeys: stats.totalKeys, translated: stats.translated, untranslated: stats.totalKeys - stats.translated },
 		namespaces: namespaces.map((row) => row.namespace),
-		editors: editors.map(toEditor).sort((a, b) => a.name.localeCompare(b.name)),
+		editors: editors
+			.map((row) => ({ ...toEditor(row), edits: row.edits }))
+			.sort((a, b) => b.edits - a.edits || a.name.localeCompare(b.name))
+			.map(({ id, name }) => ({ id, name })),
 	}
 }
 

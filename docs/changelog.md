@@ -8,6 +8,12 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Preklady: automatické rozpoznanie plurálov (2026-10-20)
+
+- API: import nastaví kľúču `pluralVariable`, keď sú jeho hodnoty ICU plurálové správy s jednou premennou (nový kľúč aj existujúci bez plurálu, z uložených aj súborových hodnôt); správu obalenú textom (Tolgee) zapíše ako čistú plurálovú správu s textom v každej forme ([API](./api/imports.md))
+- API aj frontend: ICU argument `{name}` je premenná ako `{{name}}` (chip v tabuľke a editore, kontrola premenných pri ukladaní a v preview importu) ([API](./api/translations.md))
+- frontend: Upraviť kľúč pri takom kľúči otvorí plurál zapnutý s predvyplnenou premennou ([Frontend](./frontend.md#modál-upraviť-kľúč))
+
 ### Preklady: posledná úprava, Uložiť a ďalší, vymazanie vyhľadávania (2026-10-20)
 
 - API: bunka prekladu v zozname aj odpoveď `PUT …/translations/:languageId` nesú `updatedBy` (`{ id, name }` alebo `null`) ([API](./api/translations.md))

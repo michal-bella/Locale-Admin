@@ -325,7 +325,8 @@
 			},
 			"plural": {
 				"label": "Use plural forms",
-				"description": "Turning it on moves the current text into the Other form; turning it off keeps the Other form."
+				"description": "Turning it on moves the current text into the Other form; turning it off keeps the Other form.",
+				"detected": "The translations already are plural messages with the variable {{variable}}, so plural is prefilled. It turns on when you save."
 			},
 			"variable": {
 				"label": "Variable name"

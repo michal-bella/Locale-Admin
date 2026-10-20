@@ -3,6 +3,9 @@ import {
 	IMPORT_FILE_MAX_BYTES,
 	IMPORT_WARNINGS_MAX,
 	SUPPORTED_LANGUAGES,
+	detectPluralVariable,
+	normalizePluralValue,
+	serializePluralValue,
 	type ImportIssue,
 	type ImportPreviewChanges,
 	type ImportPreviewColumn,
@@ -18,9 +21,9 @@ import { type ParsedFile } from '../lib/import/parsedFile'
 import { comparePlaceholders, placeholders } from '../lib/placeholders'
 import { type PrismaClient } from '../lib/prisma'
 
-type KeyRow = { id: string; namespace: string; name: string; languageId: string | null; value: string | null }
+type KeyRow = { id: string; namespace: string; name: string; pluralVariable: string | null; languageId: string | null; value: string | null }
 
-type ProjectKey = { id: string; values: Map<string, string | null> }
+type ProjectKey = { id: string; pluralVariable: string | null; values: Map<string, string | null> }
 
 /** What importing one value does. Shared by preview and import so their counts cannot diverge. */
 type ValueChange = 'new' | 'changed' | 'unchanged' | 'keptBecauseNull'
@@ -53,20 +56,48 @@ export const parseImportFile = (content: string): ParsedFile => {
  */
 const loadProjectKeys = async (db: Prisma.TransactionClient, projectId: string, file: ParsedFile) => {
 	const rows = await db.$queryRaw<KeyRow[]>`
-		SELECT k.id, k.namespace, k.name, t."languageId", t.value
+		SELECT k.id, k.namespace, k.name, k."pluralVariable", t."languageId", t.value
 		FROM unnest(${file.rows.map((row) => row.namespace)}::text[], ${file.rows.map((row) => row.key)}::text[]) AS f(namespace, name)
 		JOIN "TranslationKey" k ON k."projectId" = ${projectId}::uuid AND k.namespace = f.namespace AND k.name = f.name
 		LEFT JOIN "Translation" t ON t."keyId" = k.id`
 	const keys = new Map<string, ProjectKey>()
 	for (const row of rows) {
 		const identity = keyIdentity(row.namespace, row.name)
-		const key = keys.get(identity) ?? { id: row.id, values: new Map<string, string | null>() }
+		const key = keys.get(identity) ?? { id: row.id, pluralVariable: row.pluralVariable, values: new Map<string, string | null>() }
 		if (row.languageId !== null) {
 			key.values.set(row.languageId, row.value)
 		}
 		keys.set(identity, key)
 	}
 	return keys
+}
+
+type FileRow = ParsedFile['rows'][number]
+
+type MappedColumn = { index: number; languageId: string }
+
+/** The key's plural variable after the import: its own, else the one detected from its values with the filled file values on top. */
+const pluralAfterImport = (projectKey: ProjectKey | undefined, row: FileRow, columns: MappedColumn[]): string | null => {
+	if (projectKey?.pluralVariable != null) {
+		return projectKey.pluralVariable
+	}
+	const values = new Map(projectKey?.values)
+	for (const { index, languageId } of columns) {
+		const value = row.values[index] ?? null
+		if (value !== null) {
+			values.set(languageId, value)
+		}
+	}
+	return detectPluralVariable(values.values())
+}
+
+/** What the import stores for a plural key: a plural message wrapped in text becomes a plain one, the text going into every form. */
+const valueToWrite = (value: string | null, pluralVariable: string | null): string | null => {
+	if (value === null || pluralVariable === null) {
+		return value
+	}
+	const normalized = normalizePluralValue(value)
+	return normalized?.variable === pluralVariable ? serializePluralValue(normalized) : value
 }
 
 const classifyValue = (fileValue: string | null, dbValue: string | null): ValueChange => {
@@ -120,8 +151,9 @@ export const previewImport = async (prisma: PrismaClient, projectId: string, fil
 			existingKeys += 1
 		}
 
+		const pluralVariable = pluralAfterImport(projectKey, row, projectColumns)
 		for (const { index, languageId, change } of projectColumns) {
-			change[classifyValue(row.values[index] ?? null, projectKey?.values.get(languageId) ?? null)] += 1
+			change[classifyValue(valueToWrite(row.values[index] ?? null, pluralVariable), projectKey?.values.get(languageId) ?? null)] += 1
 		}
 
 		const baseValue = baseIndex === -1 ? null : (row.values[baseIndex] ?? null)
@@ -161,8 +193,6 @@ export const previewImport = async (prisma: PrismaClient, projectId: string, fil
 		warningsTotal: warnings.length,
 	}
 }
-
-type MappedColumn = { index: number; languageId: string }
 
 /**
  * Every language column of the file must be listed exactly once, mapped languages must belong to the project and be
@@ -211,6 +241,9 @@ const batches = <T>(items: T[]): T[][] =>
  * Writes the file into the project in one transaction. An advisory lock per project serializes concurrent imports, so the
  * pre-read of current values decides exactly what is written and the counts equal the preview's `new` and `changed`.
  * A `null` in the file never writes; an equal value is not touched, so `updatedAt` and `updatedById` keep their values.
+ * A key whose values (the stored ones with the filled file values on top) are ICU plural messages with one variable becomes plural
+ * (`detectPluralVariable`): a new key, or an existing one without a plural setting; an existing plural variable is never changed. For a
+ * plural key a message with text around the plural is written as a plain plural message (`valueToWrite`), and the preview counts the same.
  */
 export const importFile = (prisma: PrismaClient, projectId: string, userId: string, file: ParsedFile, request: ImportRequest): Promise<ImportResult> =>
 	prisma.$transaction(
@@ -231,14 +264,27 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 			const createdKeyIds = new Map<string, string>()
 			for (const batch of batches(missingKeys)) {
 				const created = await tx.$queryRaw<{ id: string; namespace: string; name: string }[]>`
-					INSERT INTO "TranslationKey" (id, "projectId", namespace, name, "createdAt", "updatedAt")
-					SELECT gen_random_uuid(), ${projectId}::uuid, f.namespace, f.name, ${writtenAt}, ${writtenAt}
-					FROM unnest(${batch.map((row) => row.namespace)}::text[], ${batch.map((row) => row.key)}::text[]) AS f(namespace, name)
+					INSERT INTO "TranslationKey" (id, "projectId", namespace, name, "pluralVariable", "createdAt", "updatedAt")
+					SELECT gen_random_uuid(), ${projectId}::uuid, f.namespace, f.name, f.plural, ${writtenAt}, ${writtenAt}
+					FROM unnest(${batch.map((row) => row.namespace)}::text[], ${batch.map((row) => row.key)}::text[], ${batch.map((row) => pluralAfterImport(undefined, row, columns))}::text[])
+						AS f(namespace, name, plural)
 					ON CONFLICT ("projectId", namespace, name) DO NOTHING
 					RETURNING id, namespace, name`
 				for (const key of created) {
 					createdKeyIds.set(keyIdentity(key.namespace, key.name), key.id)
 				}
+			}
+
+			const madePlural = file.rows.flatMap((row) => {
+				const projectKey = projectKeys.get(keyIdentity(row.namespace, row.key))
+				const variable = projectKey && projectKey.pluralVariable === null ? pluralAfterImport(projectKey, row, columns) : null
+				return projectKey && variable !== null ? [{ keyId: projectKey.id, variable }] : []
+			})
+			for (const batch of batches(madePlural)) {
+				await tx.$executeRaw`
+					UPDATE "TranslationKey" k SET "pluralVariable" = f.variable, "updatedAt" = ${writtenAt}
+					FROM unnest(${batch.map((key) => key.keyId)}::uuid[], ${batch.map((key) => key.variable)}::text[]) AS f(id, variable)
+					WHERE k.id = f.id AND k."pluralVariable" IS NULL`
 			}
 
 			const writes: { keyId: string; languageId: string; value: string }[] = []
@@ -251,8 +297,9 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 				if (keyId === undefined) {
 					continue
 				}
+				const pluralVariable = pluralAfterImport(projectKey, row, columns)
 				for (const { index, languageId } of columns) {
-					const value = row.values[index] ?? null
+					const value = valueToWrite(row.values[index] ?? null, pluralVariable)
 					const change = classifyValue(value, projectKey?.values.get(languageId) ?? null)
 					if (value === null || (change !== 'new' && change !== 'changed')) {
 						continue

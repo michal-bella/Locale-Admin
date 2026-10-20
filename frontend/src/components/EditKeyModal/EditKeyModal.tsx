@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 
 import {
+	detectPluralVariable,
 	ERROR_CODE,
 	PLURAL_VARIABLE_DEFAULT,
 	toValidationCode,
@@ -50,12 +51,19 @@ const FIELD_BY_PATH: Record<string, keyof FormValues> = {
 	plural: 'pluralVariable',
 }
 
-const toFormValues = (item: TranslationListItem | null): FormValues => ({
-	name: item?.name ?? '',
-	description: item?.description ?? '',
-	pluralEnabled: item?.plural !== null && item?.plural !== undefined,
-	pluralVariable: item?.plural?.variable ?? PLURAL_VARIABLE_DEFAULT,
-})
+/** Variable of a key without a plural setting whose translations already are plural messages; the form starts with plural on. */
+const detectedPlural = (item: TranslationListItem | null): string | null =>
+	item && item.plural === null ? detectPluralVariable(Object.values(item.translations).map((cell) => cell.value)) : null
+
+const toFormValues = (item: TranslationListItem | null): FormValues => {
+	const variable = item?.plural?.variable ?? detectedPlural(item)
+	return {
+		name: item?.name ?? '',
+		description: item?.description ?? '',
+		pluralEnabled: variable !== null,
+		pluralVariable: variable ?? PLURAL_VARIABLE_DEFAULT,
+	}
+}
 
 const toBody = (item: TranslationListItem, values: FormValues): UpdateTranslationKeyRequestInput => {
 	const body: UpdateTranslationKeyRequestInput = {}
@@ -73,7 +81,10 @@ const toBody = (item: TranslationListItem, values: FormValues): UpdateTranslatio
 	return body
 }
 
-/** "Upraviť kľúč" (ADMIN only): name, description and plural forms of a key; sends only the changed fields. */
+/**
+ * "Upraviť kľúč" (ADMIN only): name, description and plural forms of a key; sends only the changed fields. A key without a plural setting
+ * whose translations are plural messages opens with plural on and the detected variable, so Uložiť turns it on.
+ */
 const EditKeyModal = ({ projectId, item, opened, onClose }: EditKeyModalProps) => {
 	const { t } = useTranslation()
 	const updateKey = useUpdateTranslationKeyMutation(projectId)
@@ -96,6 +107,7 @@ const EditKeyModal = ({ projectId, item, opened, onClose }: EditKeyModalProps) =
 		values: toFormValues(item),
 	})
 	const pluralEnabled = useWatch({ control, name: 'pluralEnabled' })
+	const detectedVariable = detectedPlural(item)
 
 	const resetAndClose = () => {
 		reset()
@@ -176,7 +188,11 @@ const EditKeyModal = ({ projectId, item, opened, onClose }: EditKeyModalProps) =
 			/>
 			<Checkbox
 				label={t('translationsPage.editKeyModal.plural.label')}
-				description={t('translationsPage.editKeyModal.plural.description')}
+				description={
+					detectedVariable === null
+						? t('translationsPage.editKeyModal.plural.description')
+						: t('translationsPage.editKeyModal.plural.detected', { variable: detectedVariable })
+				}
 				{...register('pluralEnabled')}
 			/>
 			{pluralEnabled && (

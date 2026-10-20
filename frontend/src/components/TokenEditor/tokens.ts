@@ -9,8 +9,11 @@ export type TokenizeOptions = {
 	hash?: boolean
 }
 
-/** `{{var}}` and `{{ var }}`; the same shape `TranslationText` and the backend placeholder check use. */
-const PLACEHOLDER = '\\{\\{[^{}]+\\}\\}'
+/**
+ * i18next `{{var}}` / `{{ var }}` and an ICU argument `{var}` / `{var, number}` (Tolgee); the same shapes as the backend placeholder
+ * check. An ICU argument starts with a name, so a plural form body like `{# item}` or `{}` is not one.
+ */
+const PLACEHOLDER = '\\{\\{[^{}]+\\}\\}|\\{\\s*[A-Za-z_][A-Za-z0-9_]*\\s*(?:,\\s*(?:number|date|time)\\s*(?:,[^{}]*)?)?\\}'
 
 const TAG = '<\\/?[A-Za-z][^<>]*>'
 

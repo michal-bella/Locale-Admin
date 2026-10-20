@@ -71,7 +71,7 @@ test('the project index redirects to Preklady, the first sidebar item, in the ex
 	await expect(section.getByRole('link', { name: 'Preklady' })).toHaveAttribute('aria-current', 'page')
 
 	await expect(page.getByRole('button', { name: 'Importovať' })).toBeEnabled()
-	await expect(page.getByRole('button', { name: 'Exportovať' })).toHaveCount(0)
+	await expect(page.getByRole('button', { name: 'Exportovať' })).toBeEnabled()
 
 	await expectView(page, 'EXTENDED')
 	await expectNoLanguageSelects(page)

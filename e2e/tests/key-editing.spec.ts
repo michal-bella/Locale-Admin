@@ -3,7 +3,7 @@ import { type APIRequestContext, expect, type Locator, type Page, type Request, 
 import { MUTATION_HEADERS, readApiError } from '../support/api'
 import { STORAGE_STATE } from '../support/auth'
 import { importSample } from '../support/imports'
-import { listLanguages } from '../support/languages'
+import { listLanguages, newAdminApi } from '../support/languages'
 import { createProject, getProjectSettings, projectSettingsApi } from '../support/projects'
 import {
 	cellOf,
@@ -32,10 +32,13 @@ import {
 
 const SK = 'slovenčina'
 
-/** `import-sample.csv` with sk (base) and en, `cs` skipped; see `SAMPLE` in `support/imports.ts`. */
-const seedProject = async (api: APIRequestContext, label: string) => {
+/**
+ * `import-sample.csv` with sk (base) and en, `cs` skipped; see `SAMPLE` in `support/imports.ts`. `api` creates the project and
+ * becomes its member; only an ADMIN imports, so an EDITOR passes the ADMIN context as `importer`.
+ */
+const seedProject = async (api: APIRequestContext, label: string, importer: APIRequestContext = api) => {
 	const project = await createProject(api, label, ['sk', 'en'])
-	await importSample(api, project.id, { sk: 'sk', en: 'en', cs: null })
+	await importSample(importer, project.id, { sk: 'sk', en: 'en', cs: null })
 	return project
 }
 
@@ -243,8 +246,9 @@ test.describe('Edit key modal', () => {
 	test.describe('as an EDITOR', () => {
 		test.use({ storageState: STORAGE_STATE.EDITOR })
 
-		test('a member sees no Upraviť kľúč button and PATCH returns 403 FORBIDDEN', async ({ page, request }) => {
-			const project = await seedProject(request, 'edit-key-member')
+		test('a member sees no Upraviť kľúč button and PATCH returns 403 FORBIDDEN', async ({ page, request, playwright }) => {
+			const admin = await newAdminApi(playwright.request)
+			const project = await seedProject(request, 'edit-key-member', admin).finally(() => admin.dispose())
 			await openTranslations(page, project)
 			await expect(getTranslationRows(page)).toHaveCount(10)
 			await expect(page.getByRole('button', { name: /^Upraviť kľúč / })).toHaveCount(0)

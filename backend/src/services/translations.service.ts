@@ -227,8 +227,7 @@ const keyNotFound = () => new AppError(404, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND
 /**
  * Upserts the target cell. On a plural key a non-null value must be a plural message with the key's variable. With
  * `protectVariables` a non-base value must keep the `{{…}}` placeholders of the base language value; when that is missing
- * or `null`, of the key name (a sentence key such as `Cena ({{symbol}})` names its variables), skipped when the name has none. No advisory lock: a concurrent import stays consistent, only its counts may be off by
- * this row (plan, "Odložené z míľnika A"). Writes `TRANSLATION_UPDATED` only when the stored value changes.
+ * or `null`, of the key name (a sentence key such as `Cena ({{symbol}})` names its variables), skipped when the name has none. Writes `TRANSLATION_UPDATED` only when the stored value changes.
  */
 export const updateTranslation = async (
 	prisma: PrismaClient,
@@ -265,6 +264,10 @@ export const updateTranslation = async (
 	}
 
 	const row = await prisma.$transaction(async (tx) => {
+		// Without these locks a concurrent import or edit could replace the cell between the read and the upsert, and the
+		// event would record the wrong old value or none. The shared lock only waits for a running import.
+		await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(hashtextextended(${`import:${projectId}`}, 0))`
+		await tx.$queryRaw`SELECT id FROM "TranslationKey" WHERE id = ${keyId}::uuid FOR NO KEY UPDATE`
 		const oldValue = (await tx.translation.findUnique({ where: { keyId_languageId: { keyId, languageId } }, select: { value: true } }))?.value ?? null
 		const updated = await tx.translation.upsert({
 			where: { keyId_languageId: { keyId, languageId } },

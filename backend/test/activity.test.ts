@@ -155,6 +155,35 @@ describe('activity events', () => {
 		])
 	})
 
+	it('records the value a running import wrote as the old value of an edit that waited for it', async () => {
+		const app = createTestApp()
+		const { user, cookie, project, sk, en } = await setup(app, ROLE.EDITOR)
+		const key = await createKey(project.id, 'title', { [sk.id]: 'Nadpis', [en.id]: 'Title' })
+		let edit: Promise<request.Response> | undefined
+
+		await getTestPrisma().$transaction(async (tx) => {
+			await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`import:${project.id}`}, 0))`
+			await tx.translation.update({ where: { keyId_languageId: { keyId: key.id, languageId: en.id } }, data: { value: 'Heading' } })
+			edit = request(app)
+				.put(`/api/projects/${project.id}/keys/${key.id}/translations/${en.id}`)
+				.set('Cookie', cookie)
+				.set(CSRF_HEADERS)
+				.send({ value: 'Title' })
+				.then((res) => res)
+			await new Promise((resolve) => setTimeout(resolve, 300))
+		})
+
+		expect((await edit)?.status).toBe(200)
+		expect(await events(project.id)).toEqual([
+			{
+				type: ACTIVITY_TYPE.TRANSLATION_UPDATED,
+				payload: { keyId: key.id, namespace: 'loc', name: 'title', languageTag: 'en', oldValue: 'Heading', newValue: 'Title' },
+				userId: user.id,
+				count: 1,
+			},
+		])
+	})
+
 	it('records only the key attributes that changed and nothing for a taken name', async () => {
 		const app = createTestApp()
 		const { user, cookie, project } = await setup(app)

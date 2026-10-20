@@ -47,6 +47,10 @@ docker compose exec -T db psql -U locale -d postgres -c 'DROP DATABASE "<názov>
 
 Dva behy v tom istom checkoute naraz sa stále bijú; nespúšťaj ich.
 
+### Cudzie odpovede 404/400 s telom `{}`
+
+Približne každý tretí beh na macOS padal na jednom náhodnom teste s odpoveďou, ktorú aplikácia nikdy nevracia, napr. `loginAs failed with status 404 {}` alebo `expected 201, got 400` s telom `{}`. Príčina: `supertest(app)` spustí server na `::` s náhodným portom (49152–65535) a pripája sa na `127.0.0.1`. Ak na tom istom porte počúva iný proces priamo na `127.0.0.1` (Postman, VS Code, …), macOS pošle spojenie jemu (konkrétnejšia adresa vyhráva), a ten vráti svoju 404/400 bez JSON. `test/setup.ts` preto cez `vi.mock('supertest')` posiela všetky požiadavky cez jeden server naviazaný priamo na `127.0.0.1`, ktorý si iný proces nemôže zabrať; testy píšu ďalej `request(app)`. Kto v teste volá `app.listen(0)` sám, má rovnaké riziko.
+
 ### Čas zápisu pri importe
 
 `imports.test.ts` („prepis / doplnenie“) občas padal na `expected 1792479504646 to be greater than 1792479504650`: `updatedAt` po importe bol o pár ms _starší_ ako pred ním. Príčina: test vytvára preklady cez Prisma, ktorej `@updatedAt` berie čas z Node, kým import zapisoval `now()` z Postgresu. Hodiny Docker VM sa od hodín hostiteľa líšia o milisekundy a `now()` je navyše začiatok transakcie, teda pred čakaním na zámok importu. Import preto zapisuje `updatedAt` (a `createdAt` nových kľúčov) časom z Node (`new Date()` po získaní zámku), rovnako ako zvyšok aplikácie. Pravidlo: časy, ktoré sa porovnávajú alebo zoraďujú (`UPDATED`), nemiešať z dvoch hodín; v raw SQL nepoužívať `now()` pre stĺpce s `@updatedAt`.

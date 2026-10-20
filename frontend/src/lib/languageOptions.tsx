@@ -1,4 +1,4 @@
-import { type ComboboxItem, type ComboboxLikeRenderOptionInput } from '@mantine/core'
+import { type ComboboxItem, type ComboboxLikeRenderOptionInput, type ComboboxRenderPillInput, Pill } from '@mantine/core'
 
 import { type LanguageTag, SUPPORTED_LANGUAGES } from '@locale/shared'
 
@@ -21,5 +21,18 @@ export const renderLanguageOption = ({ option }: ComboboxLikeRenderOptionInput<C
 			{language && <LanguageFlag code={language.flagCode} size='sm' />}
 			{option.label}
 		</span>
+	)
+}
+
+/** A selected language in a MultiSelect: the flag before the label, like the options. */
+export const renderLanguagePill = ({ option, onRemove, disabled }: ComboboxRenderPillInput) => {
+	const language = findSupportedLanguage(String(option.value))
+	return (
+		<Pill withRemoveButton onRemove={onRemove} disabled={disabled}>
+			<span className='flex items-center gap-1.5'>
+				{language && <LanguageFlag code={language.flagCode} size='sm' />}
+				{option.label}
+			</span>
+		</Pill>
 	)
 }

@@ -10,6 +10,9 @@ notion_page_id:
 
 ### Preklady: automatické rozpoznanie plurálov (2026-10-20)
 
+- API: `PUT /api/projects/order` uloží vlastné poradie projektov používateľa (tabuľka `ProjectOrder`, nová migrácia), `GET /api/projects` ho vracia v tomto poradí ([API](./api/projects.md#put-apiprojectsorder), [Databáza](./database.md#projectorder))
+- frontend: projekty na indexe sa dajú preradiť potiahnutím úchytu alebo šípkami ([Frontend](./frontend.md#zoznam-projektov))
+- frontend: Nový projekt má pri Jazykoch **Vybrať všetky** / **Zrušiť výber**, vlajky vo vybraných jazykoch a krížik na zmazanie výberu; text vo výbere jazykov je zvislo vycentrovaný ([Frontend](./frontend.md#zoznam-projektov))
 - frontend: modál Upraviť preklad má pri základnom jazyku tlačidlo **Prevziať zo základného jazyka**, ktoré vloží jeho text (aj plurálové formy) do poľa ako východisko pre formát ([Frontend](./frontend.md#modál-upraviť-preklad))
 - API: import nastaví kľúču `pluralVariable`, keď sú jeho hodnoty ICU plurálové správy s jednou premennou (nový kľúč aj existujúci bez plurálu, z uložených aj súborových hodnôt); správu obalenú textom (Tolgee) zapíše ako čistú plurálovú správu s textom v každej forme ([API](./api/imports.md))
 - frontend: plurálový editor ponúka iba formy, ktoré používajú celé čísla (v sk a cs bez `many`, tá je iba pre desatinné čísla); uložená forma sa zobrazí vždy

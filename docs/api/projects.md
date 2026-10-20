@@ -12,6 +12,7 @@ Zoznam projektov pre index stránku, vytvorenie a opustenie projektu, nastavenia
 | -------- | ------------------------------------------ | ------------------ | --------------------------------------------- |
 | `GET`    | `/api/projects`                            | prihlásený         | projekty používateľa (ADMIN všetky)           |
 | `POST`   | `/api/projects`                            | prihlásený         | vytvorí projekt, tvorca sa stane členom       |
+| `PUT`    | `/api/projects/order`                      | prihlásený         | uloží vlastné poradie projektov používateľa   |
 | `DELETE` | `/api/projects/:projectId/membership`      | člen               | opustí projekt                                |
 | `GET`    | `/api/projects/:projectId/settings`        | člen alebo `ADMIN` | nastavenia projektu                           |
 | `PATCH`  | `/api/projects/:projectId/settings`        | člen alebo `ADMIN` | uloží nastavenia (základný jazyk iba `ADMIN`) |
@@ -27,7 +28,7 @@ Cesty s `:projectId` sú za `requireProjectAccess` (`middleware/projectAccess.mi
 
 ## GET /api/projects
 
-Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema`) zoradené podľa názvu. `ADMIN` dostane všetky projekty, `EDITOR` iba tie, kde je členom.
+Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema`) vo vlastnom poradí používateľa ([PUT /api/projects/order](#put-apiprojectsorder)); projekty bez pozície (nové, alebo kým používateľ poradie nezmenil) nasledujú za nimi podľa názvu. `ADMIN` dostane všetky projekty, `EDITOR` iba tie, kde je členom.
 
 | Pole           | Typ     | Popis                                                          |
 | -------------- | ------- | -------------------------------------------------------------- |
@@ -50,6 +51,24 @@ Telo (schéma `createProjectRequestSchema`): `{ "name": "Booking Web", "slug": "
 | 201  |                    | telo `ProjectListItem` s `isMember: true` |
 | 400  | `VALIDATION_ERROR` | nevalidné telo, `details` podľa polí      |
 | 409  | `SLUG_TAKEN`       | projekt s týmto slugom už existuje        |
+
+## PUT /api/projects/order
+
+Uloží poradie projektov na indexe `/` (drag and drop) iba pre prihláseného používateľa, ostatných sa netýka. Telo (schéma `reorderProjectsRequestSchema`):
+
+```json
+{ "projectIds": ["<id projektu>", "<id projektu>"] }
+```
+
+`projectIds` sú všetky projekty, ktoré používateľ vidí, v novom poradí: aspoň jedno, najviac `PROJECT_ORDER_MAX` = 1000, bez duplicít. Poradie sa celé nahradí (`ProjectOrder`); projekt, ktorý v zozname chýba, stratí pozíciu a zaradí sa za ostatné podľa názvu. `ADMIN` môže zoradiť aj projekty, kde nie je členom.
+
+| Status | Kód                    | Kedy                                                                       |
+| ------ | ---------------------- | -------------------------------------------------------------------------- |
+| 204    | –                      | uložené                                                                    |
+| 400    | `VALIDATION_ERROR`     | prázdny zoznam, duplicita alebo nie UUID (`details` s cestou `projectIds`) |
+| 404    | `NOT_FOUND`            | niektorý projekt neexistuje alebo ho `EDITOR` nevidí; nič sa nezapíše      |
+| 401    | `AUTH_UNAUTHENTICATED` | bez session                                                                |
+| 403    | `CSRF_REJECTED`        | bez `X-Requested-With`                                                     |
 
 ## DELETE /api/projects/:projectId/membership
 
@@ -164,6 +183,9 @@ curl -i -b cookies.txt http://localhost:8080/api/projects
 curl -i -b cookies.txt -X POST http://localhost:8080/api/projects \
   -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
   -d '{"name":"Booking Web","slug":"booking-web","languageTags":["sk","en"]}'
+curl -i -b cookies.txt -X PUT http://localhost:8080/api/projects/order \
+  -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
+  -d '{"projectIds":["<id projektu>","<id projektu>"]}'
 curl -i -b cookies.txt -X POST http://localhost:8080/api/projects/<id projektu>/members \
   -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
   -d '{"email":"meno@firma.sk","password":"••••••••"}'

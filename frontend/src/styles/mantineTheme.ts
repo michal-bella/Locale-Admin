@@ -7,6 +7,7 @@ import {
 	localStorageColorSchemeManager,
 	type MantineColorsTuple,
 	Modal,
+	MultiSelect,
 	rem,
 } from '@mantine/core'
 
@@ -15,6 +16,7 @@ import buttonClasses from '@/styles/components/Button.module.css'
 import inputClasses from '@/styles/components/Input.module.css'
 import inputWrapperClasses from '@/styles/components/InputWrapper.module.css'
 import modalClasses from '@/styles/components/Modal.module.css'
+import multiSelectClasses from '@/styles/components/MultiSelect.module.css'
 
 const FONT_FAMILY = "'DM Sans Variable', ui-sans-serif, system-ui, sans-serif"
 
@@ -70,6 +72,9 @@ export const mantineTheme = createTheme({
 			vars: () => ({
 				wrapper: { '--input-height': rem(44), '--input-radius': 'var(--mantine-radius-lg)', '--input-fz': 'var(--mantine-font-size-xs)' },
 			}),
+		}),
+		MultiSelect: MultiSelect.extend({
+			classNames: { input: multiSelectClasses.input, pillsList: multiSelectClasses.pillsList },
 		}),
 		InputWrapper: InputWrapper.extend({
 			classNames: { label: inputWrapperClasses.label, error: inputWrapperClasses.error },

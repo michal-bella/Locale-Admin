@@ -6,14 +6,14 @@ import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
-import { type CreateProjectRequest, createProjectRequestSchema, ERROR_CODE, toValidationCode } from '@locale/shared'
+import { type CreateProjectRequest, createProjectRequestSchema, ERROR_CODE, SUPPORTED_LANGUAGES, toValidationCode } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import getApiErrorDetails from '@/api/getApiErrorDetails'
 import { useCreateProjectMutation } from '@/api/projects/useCreateProjectMutation'
 import AppModal from '@/components/AppModal/AppModal'
 import { ChevronDown } from '@/components/Icons'
-import { getLanguageOptions, renderLanguageOption } from '@/lib/languageOptions'
+import { getLanguageOptions, renderLanguageOption, renderLanguagePill } from '@/lib/languageOptions'
 import { toSlug } from '@/lib/utils'
 
 import { type CreateProjectModalProps } from './types'
@@ -134,28 +134,50 @@ const CreateProjectModal = ({ opened, onClose }: CreateProjectModalProps) => {
 			<Controller
 				control={control}
 				name='languageTags'
-				render={({ field }) => (
-					<MultiSelect
-						ref={field.ref}
-						searchable
-						hidePickedOptions
-						// Enter after typing picks the first match instead of submitting the form.
-						selectFirstOptionOnChange
-						label={t('projectsPage.createModal.languages.label')}
-						description={t('projectsPage.createModal.languages.hint')}
-						placeholder={field.value.length === 0 ? t('projectsPage.createModal.languages.placeholder') : undefined}
-						nothingFoundMessage={t('languagesPage.addModal.language.nothingFound')}
-						inputWrapperOrder={['label', 'input', 'description', 'error']}
-						data={getLanguageOptions()}
-						renderOption={renderLanguageOption}
-						value={field.value}
-						onChange={field.onChange}
-						onBlur={field.onBlur}
-						error={errors.languageTags?.message}
-						rightSection={<ChevronDown aria-hidden />}
-						rightSectionPointerEvents='none'
-					/>
-				)}
+				render={({ field }) => {
+					const allSelected = field.value.length === SUPPORTED_LANGUAGES.length
+					// Already picked tags keep their order, so the base language (the first one) does not change.
+					const selectAll = () =>
+						field.onChange([...field.value, ...SUPPORTED_LANGUAGES.map(({ tag }) => tag).filter((tag) => !field.value.includes(tag))])
+					return (
+						<div className='relative'>
+							<MultiSelect
+								ref={field.ref}
+								searchable
+								hidePickedOptions
+								// Enter after typing picks the first match instead of submitting the form.
+								selectFirstOptionOnChange
+								label={t('projectsPage.createModal.languages.label')}
+								description={t('projectsPage.createModal.languages.hint')}
+								placeholder={field.value.length === 0 ? t('projectsPage.createModal.languages.placeholder') : undefined}
+								nothingFoundMessage={t('languagesPage.addModal.language.nothingFound')}
+								inputWrapperOrder={['label', 'input', 'description', 'error']}
+								data={getLanguageOptions()}
+								renderOption={renderLanguageOption}
+								renderPill={renderLanguagePill}
+								// Mantine's clear button is mouse-only (aria-hidden); keyboard users have Zrušiť výber below.
+								clearable
+								value={field.value}
+								onChange={field.onChange}
+								onBlur={field.onBlur}
+								error={errors.languageTags?.message}
+								rightSection={<ChevronDown aria-hidden />}
+							/>
+							{/* After the select in the DOM, so Tab reaches the field first; placed on the label line. */}
+							<Button
+								variant='subtle'
+								size='compact-xs'
+								className='absolute top-0 right-0'
+								aria-label={t(
+									allSelected ? 'projectsPage.createModal.languages.clearAllLabel' : 'projectsPage.createModal.languages.selectAllLabel',
+								)}
+								onClick={allSelected ? () => field.onChange([]) : selectAll}
+							>
+								{t(allSelected ? 'projectsPage.createModal.languages.clearAll' : 'projectsPage.createModal.languages.selectAll')}
+							</Button>
+						</div>
+					)
+				}}
 			/>
 		</AppModal>
 	)

@@ -1,8 +1,8 @@
 import { notifications } from '@mantine/notifications'
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test'
 
-import { type ProjectListItem, type ProjectSettings } from '@locale/shared'
+import { type ProjectListItem, type ProjectSettings, SUPPORTED_LANGUAGES } from '@locale/shared'
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
@@ -65,6 +65,85 @@ afterEach(() => {
 })
 
 describe('ProjectsPage list', () => {
+	const names = () =>
+		within(getList())
+			.getAllByRole('listitem')
+			.map((item) => within(item).getAllByRole('link')[0]?.textContent)
+
+	/** GET answers with the order of the last PUT, as the API does. */
+	const orderRoutes = (initial: ProjectListItem[]) => {
+		let projects = initial
+		return {
+			'GET /projects': () => projectsResponse(projects),
+			'PUT /projects/order': (config: { data?: unknown }) => {
+				const { projectIds } = JSON.parse(config.data as string) as { projectIds: string[] }
+				projects = projectIds.map((id) => initial.find((project) => project.id === id)!)
+				return { status: 204 }
+			},
+		}
+	}
+
+	const putOrder = (requests: { method?: string; url?: string; data?: unknown }[]) =>
+		requests
+			.filter((request) => request.method === 'put' && request.url === '/projects/order')
+			.map((request) => JSON.parse(request.data as string) as unknown)
+
+	it('moves a project with the arrow keys on its grip, saves the order, keeps the focus and announces the place', async () => {
+		const requests = signedInAs(ADMIN_USER, orderRoutes([BOOKING, DEMO]))
+		renderApp('/')
+		await waitFor(getList)
+
+		const grip = screen.getByRole('button', { name: 'Presunúť projekt Booking Web' })
+		expect(grip).toHaveAccessibleDescription('Poradie zmeníte potiahnutím alebo šípkami hore a dole. Poradie je iba vaše.')
+		act(() => grip.focus())
+		fireEvent.keyDown(grip, { key: 'ArrowUp' })
+		expect(putOrder(requests)).toEqual([])
+		fireEvent.keyDown(grip, { key: 'ArrowDown' })
+
+		await waitFor(() => expect(names()).toEqual(['Demo project', 'Booking Web']))
+		expect(putOrder(requests)).toEqual([{ projectIds: [DEMO.id, BOOKING.id] }])
+		expect(screen.getByRole('button', { name: 'Presunúť projekt Booking Web' })).toHaveFocus()
+		expect(screen.getByText('Projekt Booking Web je na 2. mieste z 2.', { selector: '[role="status"]' })).toBeInTheDocument()
+	})
+
+	it('drops a dragged project above or below the row under the pointer', async () => {
+		const third: ProjectListItem = { ...BOOKING, id: '00000000-0000-4000-8000-000000000403', name: 'Third', slug: 'third' }
+		const requests = signedInAs(ADMIN_USER, orderRoutes([BOOKING, DEMO, third]))
+		renderApp('/')
+		await waitFor(getList)
+		const rows = within(getList()).getAllByRole('listitem')
+		const dataTransfer = { effectAllowed: '', setData: vi.fn(), setDragImage: vi.fn() }
+
+		fireEvent.dragStart(screen.getByRole('button', { name: 'Presunúť projekt Third' }), { dataTransfer })
+		// jsdom has no layout: every rect is 0 high, so clientY 1 is past the middle and lands after the row.
+		fireEvent.dragOver(rows[0]!, { dataTransfer, clientY: 1 })
+		expect(rows[0]).toHaveAttribute('data-drop', 'after')
+		fireEvent.drop(rows[0]!, { dataTransfer, clientY: 1 })
+
+		await waitFor(() => expect(names()).toEqual(['Booking Web', 'Third', 'Demo project']))
+		expect(putOrder(requests)).toEqual([{ projectIds: [BOOKING.id, third.id, DEMO.id] }])
+		expect(rows[0]).not.toHaveAttribute('data-drop')
+	})
+
+	it('puts the order back and notifies when saving it fails', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		signedInAs(ADMIN_USER, { 'GET /projects': projectsResponse([BOOKING, DEMO]), 'PUT /projects/order': apiError(404, 'NOT_FOUND') })
+		renderApp('/')
+		await waitFor(getList)
+
+		fireEvent.keyDown(screen.getByRole('button', { name: 'Presunúť projekt Booking Web' }), { key: 'ArrowDown' })
+
+		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red' })))
+		await waitFor(() => expect(names()).toEqual(['Booking Web', 'Demo project']))
+	})
+
+	it('has no grip with a single project', async () => {
+		signedInAs(ADMIN_USER, { 'GET /projects': projectsResponse([BOOKING]) })
+		renderApp('/')
+		await waitFor(getList)
+		expect(screen.queryByRole('button', { name: /Presunúť projekt/ })).not.toBeInTheDocument()
+	})
+
 	it('renders the projects without the sidebar, with initials in the project color and links to the translations', async () => {
 		signedInAs(ADMIN_USER, { 'GET /projects': projectsResponse([BOOKING, DEMO]) })
 		renderApp('/')
@@ -220,6 +299,64 @@ describe('CreateProjectModal', () => {
 		expect(await dialog.findByText('Projekt s týmto slugom už existuje.')).toBeInTheDocument()
 		expect(dialog.getByLabelText('Slug projektu')).toHaveAttribute('aria-invalid', 'true')
 		expect(screen.getByRole('dialog', { name: 'Nový projekt' })).toBeInTheDocument()
+	})
+
+	it('selects every language after the picked ones, so the first pick stays the base, and clears them again', async () => {
+		const requests = signedInAs(EDITOR_USER, {
+			'GET /projects': () => projectsResponse([]),
+			'POST /projects': { status: 201, data: BOOKING },
+			[`GET /projects/${BOOKING.id}/settings`]: { status: 200, data: settingsOf(BOOKING) },
+			[`GET /projects/${BOOKING.id}/languages`]: { status: 200, data: [] },
+		})
+		renderApp('/')
+		const dialog = within(await openCreate())
+		fireEvent.change(dialog.getByLabelText('Názov projektu'), { target: { value: 'Booking Web' } })
+		await pickLanguages('Slovak – slovenčina – sk')
+
+		fireEvent.click(dialog.getByRole('button', { name: 'Vybrať všetky jazyky' }))
+		fireEvent.click(dialog.getByRole('button', { name: 'Zrušiť výber jazykov' }))
+		expect(dialog.queryByRole('button', { name: 'Zrušiť výber jazykov' })).not.toBeInTheDocument()
+		fireEvent.click(dialog.getByRole('button', { name: 'Vybrať všetky jazyky' }))
+		fireEvent.click(dialog.getByRole('button', { name: 'Vytvoriť projekt' }))
+
+		await waitFor(() => expect(requests.some((request) => request.method === 'post')).toBe(true))
+		const post = requests.find((request) => request.method === 'post')
+		expect((JSON.parse(post?.data as string) as { languageTags: string[] }).languageTags).toEqual(SUPPORTED_LANGUAGES.map(({ tag }) => tag))
+	})
+
+	it('keeps the picked language first when selecting every language', async () => {
+		const requests = signedInAs(EDITOR_USER, {
+			'GET /projects': () => projectsResponse([]),
+			'POST /projects': { status: 201, data: BOOKING },
+			[`GET /projects/${BOOKING.id}/settings`]: { status: 200, data: settingsOf(BOOKING) },
+			[`GET /projects/${BOOKING.id}/languages`]: { status: 200, data: [] },
+		})
+		renderApp('/')
+		const dialog = within(await openCreate())
+		fireEvent.change(dialog.getByLabelText('Názov projektu'), { target: { value: 'Booking Web' } })
+		await pickLanguages('Slovak – slovenčina – sk')
+		fireEvent.click(dialog.getByRole('button', { name: 'Vybrať všetky jazyky' }))
+		fireEvent.click(dialog.getByRole('button', { name: 'Vytvoriť projekt' }))
+
+		await waitFor(() => expect(requests.some((request) => request.method === 'post')).toBe(true))
+		const { languageTags } = JSON.parse(requests.find((request) => request.method === 'post')?.data as string) as { languageTags: string[] }
+		expect(languageTags[0]).toBe('sk')
+		expect([...languageTags].sort()).toEqual(SUPPORTED_LANGUAGES.map(({ tag }) => tag).sort())
+	})
+
+	it('shows the flag in a picked language pill and clears the picks with the clear button', async () => {
+		signedInAs(EDITOR_USER, { 'GET /projects': () => projectsResponse([]) })
+		renderApp('/')
+		const dialog = within(await openCreate())
+		await pickLanguages('Slovak – slovenčina – sk')
+
+		const pill = document.querySelector('.mantine-Pill-root')
+		expect(pill).toHaveTextContent('Slovak – slovenčina – sk')
+		expect(pill?.querySelector('[data-flag="sk"]')).toBeInTheDocument()
+		// Mantine renders the clear button aria-hidden (mouse only), so it has no accessible role to query.
+		fireEvent.click(document.querySelector('.mantine-InputClearButton-root')!)
+		expect(dialog.getByRole('button', { name: 'Vybrať všetky jazyky' })).toBeInTheDocument()
+		expect(document.querySelector('.mantine-Pill-root')).not.toBeInTheDocument()
 	})
 
 	it('creates the project, notifies and opens its settings', async () => {

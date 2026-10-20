@@ -31,3 +31,11 @@ export const getProjectInitials = (name: string) =>
 		.slice(0, 2)
 		.map((word) => word[0]?.toUpperCase() ?? '')
 		.join('')
+
+/** Initials of a display name that is a full name or, without one, an e-mail (`TranslationEditor.name`): `Jana Nováková` → `JN`, `jana@firma.sk` → `JA`. */
+export const getNameInitials = (name: string) => {
+	const words = name.trim().split(/\s+/).filter(Boolean)
+	const first = words[0] ?? ''
+	const last = words.length > 1 ? (words.at(-1) ?? '') : ''
+	return (last ? `${first.charAt(0)}${last.charAt(0)}` : first.slice(0, 2)).toUpperCase()
+}

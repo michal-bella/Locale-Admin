@@ -8,6 +8,14 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Prehľad projektu – frontend (2026-10-20)
+
+- frontend: stránka **Prehľad** `/projects/$projectSlug/dashboard` podľa Figmy `3:475` bez Importovať a Exportovať, s tlačidlom **Otvoriť preklady**: karty Kľúče, Preložené, Jazyky a Členovia, Stav jazykov, Posledná aktivita (po dňoch, Načítať ďalšie) a Denná aktivita (graf 7 / 30 / 90 dní, najaktívnejší členovia). Odkazy otvárajú Preklady s filtrom (nepreložené, jazyk, zmeny používateľa) ([Frontend](./frontend.md#stránka-prehľad-projektu))
+- frontend: **Prehľad** je druhá položka sidebaru v projekte (ikona `LayoutGrid` z Figmy); `/projects/$projectSlug` ďalej otvára Preklady
+- frontend: karta `StatCard` vytiahnutá z `TranslationStats` do `components/StatCard`, Preklady vyzerajú rovnako
+- frontend: mutácie prekladov, kľúčov, jazykov, členov a nastavení obnovia aj prehľad a aktivitu projektu ([Frontend](./frontend.md#prehľad-a-aktivita))
+- závislosti: `@mantine/charts` 9.6.3 a `recharts` 3.10.1, iba v lazy chunku stránky Prehľad ([Frontend](./frontend.md#lazy-routy-code-splitting))
+
 ### Prehľad projektu – čítacie endpointy (2026-10-20)
 
 - API: `GET /api/projects/:projectId/dashboard` (kľúče, nové kľúče za 30 dní, preložené kľúče, vyplnené bunky, slová základného jazyka), `GET …/activity` (feed udalostí s kurzorom) a `GET …/activity/daily` (denné súčty `count` za 7 / 30 / 90 dní v zóne používateľa, top 5 členov), pre každého člena a `ADMIN` ([API](./api/dashboard.md))

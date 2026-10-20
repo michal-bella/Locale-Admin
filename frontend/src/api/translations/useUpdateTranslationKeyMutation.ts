@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { type UpdateTranslationKeyRequestInput, type UpdateTranslationKeyResponse } from '@locale/shared'
 
+import { invalidateDashboard } from '@/api/dashboard/invalidateDashboard'
 import http from '@/api/http'
 import { QUERY_KEYS } from '@/api/queryKeys'
 
@@ -14,6 +15,10 @@ export const useUpdateTranslationKeyMutation = (projectId: string) => {
 	return useMutation({
 		mutationFn: async ({ keyId, body }: UpdateTranslationKeyVariables) =>
 			(await http.patch<UpdateTranslationKeyResponse>(`/projects/${projectId}/keys/${keyId}`, body)).data,
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.TRANSLATIONS_ALL(projectId) }),
+		onSuccess: () =>
+			Promise.all([
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.TRANSLATIONS_ALL(projectId) }),
+				invalidateDashboard(queryClient, projectId),
+			]),
 	})
 }

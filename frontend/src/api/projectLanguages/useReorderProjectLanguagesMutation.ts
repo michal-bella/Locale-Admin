@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { type LanguagesResponse } from '@locale/shared'
 
+import { invalidateDashboard } from '@/api/dashboard/invalidateDashboard'
 import http from '@/api/http'
 import { QUERY_KEYS } from '@/api/queryKeys'
 
@@ -40,6 +41,7 @@ export const useReorderProjectLanguagesMutation = (projectId: string) => {
 				queryClient.invalidateQueries({ queryKey: listKey }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.SETTINGS(projectId) }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.LIST() }),
+				invalidateDashboard(queryClient, projectId),
 			]),
 	})
 }

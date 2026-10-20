@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { type ProjectSettings, type UpdateProjectSettingsRequest } from '@locale/shared'
 
+import { invalidateDashboard } from '@/api/dashboard/invalidateDashboard'
 import http from '@/api/http'
 import { QUERY_KEYS } from '@/api/queryKeys'
 
@@ -19,6 +20,7 @@ export const useUpdateProjectSettingsMutation = (projectId: string) => {
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.LIST() }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.LANGUAGES(projectId) }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.PROJECTS() }),
+				invalidateDashboard(queryClient, projectId),
 			]),
 	})
 }

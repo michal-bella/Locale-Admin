@@ -16,12 +16,14 @@ type RowActionButtonProps = RowActionBaseProps & {
 	onClick: (event: MouseEvent<HTMLButtonElement>) => void
 	to?: never
 	params?: never
+	search?: never
 }
 
 /** Navigation renders a link, so it can be opened in a new tab and is announced as a link. */
 type RowActionLinkProps = RowActionBaseProps & {
 	to: LinkProps['to']
 	params?: LinkProps['params']
+	search?: LinkProps['search']
 	disabled?: never
 	onClick?: never
 }

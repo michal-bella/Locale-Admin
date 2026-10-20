@@ -1,5 +1,6 @@
 /* The ring keeps the light parts of the flags visible on light surfaces (same as LanguageSwitcher). */
 .lg,
+.md,
 .sm,
 .xs {
 	display: block;
@@ -11,6 +12,11 @@
 .lg {
 	width: 2.5rem;
 	height: 2.5rem;
+}
+
+.md {
+	width: 2rem;
+	height: 2rem;
 }
 
 .sm {

@@ -1,0 +1,76 @@
+.list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.row {
+	display: block;
+	margin-inline: -0.5rem;
+	padding: 0.5rem;
+	border-radius: var(--mantine-radius-lg);
+	color: inherit;
+	text-decoration: none;
+}
+
+a.row:hover {
+	background-color: var(--app-color-surface-muted);
+}
+
+a.row:focus-visible {
+	outline: 2px solid var(--mantine-primary-color-filled);
+	outline-offset: -2px;
+}
+
+.name,
+.percent {
+	font-size: var(--mantine-font-size-xs);
+	line-height: 1.3333;
+	color: var(--app-color-label);
+}
+
+.name {
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.percent {
+	flex-shrink: 0;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.meta {
+	font-size: var(--mantine-font-size-3xs);
+	line-height: 1.5;
+	color: var(--app-color-muted);
+}
+
+/* Figma 3:626: the bar starts under the name, past the 32 px flag and the 12 px gap. */
+.progress {
+	padding-top: 0.5rem;
+	padding-inline-start: 2.75rem;
+}
+
+.track {
+	background-color: var(--app-color-border-subtle);
+}
+
+.link {
+	font-size: var(--mantine-font-size-md);
+	line-height: 1.5;
+	color: var(--app-color-eyebrow);
+	text-decoration: none;
+}
+
+.link:hover {
+	text-decoration: underline;
+}
+
+.state {
+	padding: 1.5rem 0;
+	text-align: center;
+}

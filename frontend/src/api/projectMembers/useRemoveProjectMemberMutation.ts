@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { ERROR_CODE } from '@locale/shared'
 
+import { invalidateDashboard } from '@/api/dashboard/invalidateDashboard'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import http from '@/api/http'
 import { QUERY_KEYS } from '@/api/queryKeys'
@@ -18,6 +19,7 @@ export const useRemoveProjectMemberMutation = (projectId: string) => {
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.MEMBERS(projectId) }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.USERS() }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.PROJECTS() }),
+				invalidateDashboard(queryClient, projectId),
 			]),
 		onError: (error) => {
 			// Already removed by someone else: the list must drop the row.

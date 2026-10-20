@@ -1,0 +1,18 @@
+import { type LinkProps } from '@tanstack/react-router'
+import { type ComponentType, type SVGProps } from 'react'
+
+export type StatCardProps = {
+	label: string
+	/** `undefined` while loading shows a skeleton. */
+	value?: number | string
+	/** Small line under the value, e.g. "+12 za 30 dní". */
+	hint?: string
+	icon: ComponentType<SVGProps<SVGSVGElement>>
+	tone: 'brand' | 'success' | 'danger'
+	/** Share of all keys in percent; the card without it has no progress bar. */
+	percent?: number
+	/** Sets the table's status filter to this card's keys; `active` while that filter is on. */
+	filter?: { label: string; active: boolean; onClick: () => void }
+	/** Opens another page with these keys, e.g. Preklady filtered to the untranslated ones. */
+	link?: { label: string; to: LinkProps['to']; params?: LinkProps['params']; search?: LinkProps['search'] }
+}

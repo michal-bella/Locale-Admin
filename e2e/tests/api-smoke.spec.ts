@@ -146,13 +146,17 @@ test.describe('EDITOR /api/admin/users', () => {
 test.describe('/api/profile', () => {
 	test.use({ storageState: ANONYMOUS })
 
-	test('PATCH saves trimmed names and ignores email and role in the body', async ({ request, playwright, baseURL }) => {
+	test('PATCH saves trimmed names, ignores email and the own role, and rejects another role of an EDITOR', async ({ request, playwright, baseURL }) => {
 		const editor = await createEditor(playwright.request, baseURL)
 		const login = await request.post('/api/auth/login', { data: { email: editor.email, password: editor.password }, headers: MUTATION_HEADERS })
 		expect(login.status()).toBe(200)
 
+		const promote = await request.patch('/api/profile', { data: { firstName: 'Jana', lastName: 'Kováčová', role: 'ADMIN' }, headers: MUTATION_HEADERS })
+		expect(promote.status()).toBe(403)
+		expect((await readApiError(promote)).code).toBe('FORBIDDEN')
+
 		const update = await request.patch('/api/profile', {
-			data: { firstName: '  Jana ', lastName: 'Kováčová', email: 'changed@example.com', role: 'ADMIN' },
+			data: { firstName: '  Jana ', lastName: 'Kováčová', email: 'changed@example.com', role: 'EDITOR' },
 			headers: MUTATION_HEADERS,
 		})
 		expect(update.status()).toBe(200)
@@ -204,24 +208,28 @@ test.describe('/api/profile', () => {
 			role: 'EDITOR',
 			firstName: null,
 			lastName: null,
-			preferences: { translationsView: 'COMPACT' },
+			preferences: { translationsView: 'COMPACT', translationsLayout: 'COLUMNS' },
 			passwordChangedAt: expect.any(String),
 		}
 		expect(await compact.json()).toEqual(expected)
 		expect(await (await request.get('/api/profile')).json()).toEqual(expected)
-		expect((await me()).preferences).toEqual({ translationsView: 'COMPACT' })
+		expect((await me()).preferences).toEqual({ translationsView: 'COMPACT', translationsLayout: 'COLUMNS' })
 
-		for (const data of [{ translationsView: 'WIDE' }, { translationsView: 'compact' }, {}]) {
+		for (const [data, path] of [
+			[{ translationsView: 'WIDE' }, 'translationsView'],
+			[{ translationsView: 'compact' }, 'translationsView'],
+			[{}, ''],
+		] as const) {
 			const invalid = await request.patch(PREFERENCES_API, { data, headers: MUTATION_HEADERS })
 			expect(invalid.status(), JSON.stringify(data)).toBe(400)
 			const error = await readApiError(invalid)
 			expect(error.code).toBe('VALIDATION_ERROR')
-			expect(error.details).toEqual([expect.objectContaining({ path: 'translationsView', code: expect.any(String) })])
+			expect(error.details).toEqual([expect.objectContaining({ path, code: expect.any(String) })])
 		}
 		const withoutCsrfHeader = await request.patch(PREFERENCES_API, { data: { translationsView: 'EXTENDED' } })
 		expect(withoutCsrfHeader.status()).toBe(403)
 		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
-		expect((await me()).preferences).toEqual({ translationsView: 'COMPACT' })
+		expect((await me()).preferences).toEqual({ translationsView: 'COMPACT', translationsLayout: 'COLUMNS' })
 
 		const anonymous = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
 		const unauthenticated = await anonymous.patch(PREFERENCES_API, { data: { translationsView: 'EXTENDED' }, headers: MUTATION_HEADERS })

@@ -343,7 +343,7 @@ describe('AddLanguageModal', () => {
 		const posts = requests.filter((request) => request.method === 'post' && request.url === LIST_URL)
 		expect(posts).toHaveLength(1)
 		expect(bodyOf(posts[0])).toEqual({ tag: 'ru' })
-		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Jazyk Russian bol pridaný.' }))
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Jazyk ruština bol pridaný.' }))
 	})
 
 	it('searches by tag', async () => {
@@ -432,7 +432,7 @@ describe('Deleting a language', () => {
 
 		await clickRemove('Angličtina')
 		let confirm = await screen.findByRole('dialog', { name: 'Odobrať jazyk' })
-		expect(within(confirm).getByText('Naozaj chcete odobrať jazyk English (en) z projektu?')).toBeInTheDocument()
+		expect(within(confirm).getByText('Naozaj chcete odobrať jazyk angličtina (en) z projektu?')).toBeInTheDocument()
 		fireEvent.click(within(confirm).getByRole('button', { name: 'Zrušiť' }))
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		expect(requests.some((request) => request.method === 'delete')).toBe(false)
@@ -445,7 +445,7 @@ describe('Deleting a language', () => {
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		await waitFor(() => expect(within(getTable()).queryByText('Angličtina')).not.toBeInTheDocument())
 		expect(requests.filter((request) => request.method === 'delete').map((request) => request.url)).toEqual([`${LIST_URL}/${ENGLISH.id}`])
-		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Jazyk English bol odobraný z projektu.' }))
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Jazyk angličtina bol odobraný z projektu.' }))
 	})
 
 	it('shows 409 LANGUAGE_IS_BASE as a notification and refetches the list', async () => {

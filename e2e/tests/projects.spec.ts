@@ -17,6 +17,9 @@ const pickLanguages = async (page: Page, dialog: Locator, ...options: string[]) 
 
 const getList = (page: Page) => page.getByRole('list', { name: 'Zoznam projektov' })
 
+/** Each row also holds a list of its language flags, so only the direct items are projects. */
+const getProjectItems = (page: Page) => getList(page).locator(':scope > li')
+
 const leaveFromList = async (page: Page, name: string) => {
 	await page.getByRole('button', { name: `Opustiť projekt ${name}`, exact: true }).click()
 	const dialog = page.getByRole('dialog', { name: 'Opustiť projekt' })
@@ -35,7 +38,7 @@ test.describe('member', () => {
 		await expect(page.getByRole('heading', { level: 1, name: 'Projekty' })).toBeVisible()
 		await expect(page.getByRole('complementary')).toHaveCount(0)
 		const [own] = await listProjects(page.request)
-		await expect(getList(page).getByRole('listitem')).toHaveCount(1)
+		await expect(getProjectItems(page)).toHaveCount(1)
 		await expect(getList(page).getByRole('link', { name: own!.name, exact: true })).toHaveAttribute('href', `/projects/${editor.projectSlug}/translations`)
 		await expect(getList(page).getByRole('link', { name: `Nastavenia projektu ${own!.name}`, exact: true })).toHaveAttribute(
 			'href',
@@ -67,7 +70,7 @@ test.describe('member', () => {
 			.getByRole('button', { name: `Prepnúť projekt, aktuálny ${name}` })
 			.click()
 		await page.getByRole('menu').getByRole('menuitem', { name: 'Všetky projekty' }).click()
-		await expect(getList(page).getByRole('listitem')).toHaveCount(2)
+		await expect(getProjectItems(page)).toHaveCount(2)
 	})
 
 	test('a taken slug shows 409 at the slug field', async ({ page, playwright, baseURL }) => {
@@ -119,7 +122,7 @@ test.describe('member', () => {
 		await leaveFromList(page, project.name)
 		await expect(page.getByText(`Opustili ste projekt ${project.name}.`)).toBeVisible()
 		await expect(getList(page).getByRole('link', { name: project.name, exact: true })).toHaveCount(0)
-		await expect(getList(page).getByRole('listitem')).toHaveCount(1)
+		await expect(getProjectItems(page)).toHaveCount(1)
 	})
 })
 

@@ -61,7 +61,7 @@ test.describe('ADMIN', () => {
 		await expect(getSidebar(page)).toHaveCount(0)
 	})
 
-	test('inside a project sees the switcher with Preklady, Nastavenia projektu and Členovia; switching keeps the page, from settings opens translations', async ({
+	test('inside a project sees the switcher with Preklady, Nastavenia, Jazyky and Členovia; switching keeps the page, from settings opens translations', async ({
 		page,
 		playwright,
 	}) => {
@@ -72,9 +72,9 @@ test.describe('ADMIN', () => {
 
 		await page.goto(`/projects/${project.slug}/settings`)
 		const section = getMainNavigation(page).getByRole('list', { name: project.name })
-		const settings = section.getByRole('link', { name: 'Nastavenia projektu' })
+		const settings = section.getByRole('link', { name: 'Nastavenia', exact: true })
 		const members = section.getByRole('link', { name: 'Členovia' })
-		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Nastavenia projektu', 'Jazyky', 'Členovia'])
+		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Nastavenia', 'Jazyky', 'Členovia'])
 		await expect(settings).toHaveAttribute('aria-current', 'page')
 
 		await members.click()
@@ -91,7 +91,7 @@ test.describe('ADMIN', () => {
 		await expect(page).toHaveURL(`/projects/${other.slug}/members`)
 		await expect(getSidebar(page).getByRole('button', { name: `Prepnúť projekt, aktuálny ${other.name}` })).toBeVisible()
 
-		await getMainNavigation(page).getByRole('list', { name: other.name }).getByRole('link', { name: 'Nastavenia projektu' }).click()
+		await getMainNavigation(page).getByRole('list', { name: other.name }).getByRole('link', { name: 'Nastavenia', exact: true }).click()
 		await expect(page).toHaveURL(`/projects/${other.slug}/settings`)
 		await getSidebar(page)
 			.getByRole('button', { name: `Prepnúť projekt, aktuálny ${other.name}` })

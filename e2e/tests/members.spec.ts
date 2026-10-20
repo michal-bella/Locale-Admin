@@ -23,7 +23,8 @@ const waitForAddResponse = (page: Page, projectId: string) =>
 
 const expectSeesOnlyProject = async (page: Page, projectSlug: string) => {
 	const list = page.getByRole('list', { name: 'Zoznam projektov' })
-	await expect(list.getByRole('listitem')).toHaveCount(1)
+	// Each row also holds a list of its language flags, so only the direct items are projects.
+	await expect(list.locator(':scope > li')).toHaveCount(1)
 	await list.getByRole('link', { name: /^Nastavenia projektu / }).click()
 	await expect(page).toHaveURL(`/projects/${projectSlug}/settings`)
 }

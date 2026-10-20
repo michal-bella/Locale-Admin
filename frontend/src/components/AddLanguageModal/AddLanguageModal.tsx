@@ -48,7 +48,7 @@ const AddLanguageModal = ({ projectId, opened, onClose, languages }: AddLanguage
 			{ tag: selected.tag },
 			{
 				onSuccess: (language) => {
-					notifications.show({ color: 'green', message: t('languagesPage.addModal.success', { name: language.englishName }) })
+					notifications.show({ color: 'green', message: t('languagesPage.addModal.success', { name: t(`languageNames.${language.tag}`) }) })
 					resetAndClose()
 				},
 				onError: (error) => {

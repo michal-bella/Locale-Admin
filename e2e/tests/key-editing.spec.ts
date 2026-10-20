@@ -93,7 +93,7 @@ test.describe('locked tokens', () => {
 		expect(response.status()).toBe(200)
 		expect(response.request().postDataJSON()).toEqual({ value: 'Welcome back, {{ name }}!' })
 		await expect(getEditTranslationDialog(page)).toHaveCount(0)
-		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, English: Welcome back, {{ name }}!`)
+		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, angličtina: Welcome back, {{ name }}!`)
 		await expect(row.locator('code')).toHaveText(['{{name}}', '{{ name }}'])
 
 		await openEditTranslationModal(page, key)
@@ -118,7 +118,7 @@ test.describe('locked tokens', () => {
 
 		await page.keyboard.press('Escape')
 		await expect(getEditTranslationDialog(page)).toHaveCount(0)
-		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, English: Welcome back, {{ name }}!`)
+		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, angličtina: Welcome back, {{ name }}!`)
 		await expect(row.locator('code')).toHaveText(['{{name}}', '{{ name }}'])
 		expect(puts).toHaveLength(1)
 		expect((await valuesOf(request, project.id, key)).en).toBe('Welcome back, {{ name }}!')
@@ -144,7 +144,7 @@ test.describe('locked tokens', () => {
 		expect(response.request().postDataJSON()).toEqual({ value: '<strong>Hi</strong> {{x}}' })
 		expect(await response.json()).toMatchObject({ value: '<strong>Hi</strong> {{x}}', status: 'TRANSLATED' })
 		await expect(getEditTranslationDialog(page)).toHaveCount(0)
-		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, English: <strong>Hi</strong> {{x}}`)
+		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, angličtina: <strong>Hi</strong> {{x}}`)
 		await expect(row.locator('code')).toHaveText(['{{x}}'])
 
 		await openEditTranslationModal(page, key)
@@ -281,9 +281,10 @@ test.describe('plural forms', () => {
 		expect(await enabled.json()).toMatchObject({ name: key, plural: { variable: 'count' } })
 		await expect(enable).toHaveCount(0)
 
-		await expect(formChips(cells.nth(1))).toHaveText(['One', 'Few', 'Many', 'Other'])
+		// Slovak whole numbers use no `many` (fractions only), so the editor offers One, Few and Other.
+		await expect(formChips(cells.nth(1))).toHaveText(['One', 'Few', 'Other'])
 		await expect(formChips(cells.nth(1)).first()).toHaveAttribute('title', 'Jeden')
-		await expect(cells.nth(1).getByText('Bez prekladu', { exact: true })).toHaveCount(3)
+		await expect(cells.nth(1).getByText('Bez prekladu', { exact: true })).toHaveCount(2)
 		await expect(cells.nth(1)).toContainText('Máte {{count}} položiek')
 		await expect(formChips(cells.nth(2))).toHaveText(['One', 'Other'])
 		await expect(cells.nth(2).getByText('Bez prekladu', { exact: true })).toHaveCount(1)
@@ -294,9 +295,9 @@ test.describe('plural forms', () => {
 			en: '{count, plural, other {You have {{count}} items}}',
 		})
 
-		await openEditTranslationModal(page, key, 'English', 'Jeden')
-		const one = getTranslationField(page, key, 'English', 'Jeden')
-		const other = getTranslationField(page, key, 'English', 'Iné')
+		await openEditTranslationModal(page, key, 'angličtina', 'Jeden')
+		const one = getTranslationField(page, key, 'angličtina', 'Jeden')
+		const other = getTranslationField(page, key, 'angličtina', 'Iné')
 		await expect(one).toHaveText('')
 		await expect(other).toHaveText('You have {{count}} items')
 		await expectChips(other, ['{{count}}'])
@@ -323,7 +324,7 @@ test.describe('plural forms', () => {
 		expect(disabled.request().postDataJSON()).toEqual({ plural: null })
 		await expect(disable).toHaveCount(0)
 		await expect(formChips(cells.nth(2))).toHaveCount(0)
-		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, English: You have # items`)
+		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, angličtina: You have # items`)
 		await expect(getCellButton(row, key, SK)).toHaveText(`Preklad kľúča ${key}, ${SK}: Máte {{count}} položiek`)
 		expect((await itemOf(request, project.id, key)).plural).toBeNull()
 		expect(await valuesOf(request, project.id, key)).toEqual({ sk: 'Máte {{count}} položiek', en: 'You have # items' })

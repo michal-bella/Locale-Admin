@@ -137,14 +137,14 @@ const openExportWithUnsafeValues = async (page: Page) => {
 
 /** Edit translation modal of the untranslated `orders.empty.title` (en): key, language, the base language reference, the empty field and the buttons. */
 const openTranslationModal = async (page: Page) => {
-	await page.getByRole('button', { name: 'Preklad kľúča orders.empty.title, English:' }).click()
+	await page.getByRole('button', { name: 'Preklad kľúča orders.empty.title, angličtina:' }).click()
 	await expect(getEditTranslationDialog(page).getByText('Základný jazyk (slovenčina)', { exact: true })).toBeVisible()
 	await expect(getTranslationField(page, 'orders.empty.title')).toBeFocused()
 }
 
 /** Edit translation modal of `dashboard.welcome` with a rejected draft (missing `{{name}}`) and the mismatch alert under the field. */
 const openTranslationMismatch = async (page: Page) => {
-	await page.getByRole('button', { name: 'Preklad kľúča dashboard.welcome, English:' }).click()
+	await page.getByRole('button', { name: 'Preklad kľúča dashboard.welcome, angličtina:' }).click()
 	const field = getTranslationField(page, 'dashboard.welcome')
 	await field.fill('Welcome back, friend')
 	expect((await saveTranslation(page)).status()).toBe(400)
@@ -163,9 +163,9 @@ const openEditKeyModal = async (page: Page) => {
 
 /** Edit translation modal of the plural row (en): a field per form (One empty, Other with text), the stacked sk forms in the reference block. */
 const openPluralModal = async (page: Page) => {
-	await page.getByRole('button', { name: 'Preklad kľúča cart.items, English:' }).click()
-	await expect(getTranslationField(page, 'cart.items', 'English', 'Jeden')).toBeFocused()
-	await expect(getTranslationField(page, 'cart.items', 'English', 'Iné')).toHaveText('You have {{count}} items')
+	await page.getByRole('button', { name: 'Preklad kľúča cart.items, angličtina:' }).click()
+	await expect(getTranslationField(page, 'cart.items', 'angličtina', 'Jeden')).toBeFocused()
+	await expect(getTranslationField(page, 'cart.items', 'angličtina', 'Iné')).toHaveText('You have {{count}} items')
 }
 
 const translationsRowsReady = (count: number) => (page: Page) =>

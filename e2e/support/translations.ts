@@ -198,7 +198,7 @@ export const openTranslations = async (page: Page, project: ProjectListItem, que
 }
 
 /** A translation cell of a row: a button named `Preklad kľúča <key>, <language>: <value|Bez prekladu>` with `data-status` of the cell. */
-export const getCellButton = (row: Locator, key: string, language = 'English') => row.getByRole('button', { name: `Preklad kľúča ${key}, ${language}:` })
+export const getCellButton = (row: Locator, key: string, language = 'angličtina') => row.getByRole('button', { name: `Preklad kľúča ${key}, ${language}:` })
 
 export const getEditTranslationDialog = (page: Page) => page.getByRole('dialog', { name: 'Upraviť preklad' })
 
@@ -206,11 +206,11 @@ export const getEditTranslationDialog = (page: Page) => page.getByRole('dialog',
  * The contenteditable field of the modal (`role="textbox"`); for a plural key one per form, named with the translated form name
  * (`form`: Jeden, Málo, Veľa, Iné). Its text is the value: Playwright's text normalization drops the zero-width spaces next to chips.
  */
-export const getTranslationField = (page: Page, key: string, language = 'English', form?: string) =>
+export const getTranslationField = (page: Page, key: string, language = 'angličtina', form?: string) =>
 	getEditTranslationDialog(page).getByRole('textbox', { name: `Preklad kľúča ${key}, ${language}${form ? `, ${form}` : ''}`, exact: true })
 
 /** Clicks the cell of `key` in `language` and waits for the modal with its (first) field focused. */
-export const openEditTranslationModal = async (page: Page, key: string, language = 'English', form?: string) => {
+export const openEditTranslationModal = async (page: Page, key: string, language = 'angličtina', form?: string) => {
 	await getCellButton(getTranslationRow(page, key), key, language).click()
 	const dialog = getEditTranslationDialog(page)
 	await expect(dialog).toBeVisible()
@@ -225,7 +225,7 @@ export const waitForTranslationPut = (page: Page) => page.waitForResponse((respo
 /** Clicks Uložiť in the Edit translation modal and resolves with the PUT response. */
 export const saveTranslation = async (page: Page) => {
 	const saved = waitForTranslationPut(page)
-	await getEditTranslationDialog(page).getByRole('button', { name: 'Uložiť' }).click()
+	await getEditTranslationDialog(page).getByRole('button', { name: 'Uložiť', exact: true }).click()
 	return saved
 }
 

@@ -8,7 +8,8 @@ import { createProject, type ProjectListItem } from '../support/projects'
 import { createEditor } from '../support/users'
 
 const PAGE_HEADING = { level: 1, name: 'Jazyky' } as const
-const RUSSIAN = { tag: 'ru', englishName: 'Russian', nativeName: 'русский', flagCode: 'ru' } as const
+// `name` is the capitalized name in the app language (languageNames in sk.json) the table shows; the toasts and the confirmation use it lowercase.
+const RUSSIAN = { tag: 'ru', englishName: 'Russian', name: 'Ruština', nativeName: 'русский', flagCode: 'ru' } as const
 const RUSSIAN_OPTION = `${RUSSIAN.englishName} – ${RUSSIAN.nativeName} – ${RUSSIAN.tag}`
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -31,7 +32,7 @@ const openLanguagesPage = async (page: Page, projectSlug: string) => {
 	await expect(getTable(page)).toHaveAttribute('aria-busy', 'false')
 }
 
-const getRemoveButton = (page: Page, englishName: string) => page.getByRole('button', { name: `Odobrať jazyk ${englishName}`, exact: true })
+const getRemoveButton = (page: Page, name: string) => page.getByRole('button', { name: `Odobrať jazyk ${name}`, exact: true })
 
 // Mantine marks a disabled option only with `data-combobox-disabled` (no `aria-disabled`), so toBeDisabled() cannot see it.
 const expectOptionDisabled = async (page: Page, name: string) => {
@@ -67,8 +68,8 @@ test.describe('ADMIN in a project', () => {
 		await expect(item).toHaveAttribute('aria-current', 'page')
 
 		await expect(getTable(page).getByRole('row')).toHaveCount(3)
-		await expect(getRow(page, 'sk')).toContainText('Slovak')
-		await expect(getRow(page, 'en')).toContainText('English')
+		await expect(getRow(page, 'sk')).toContainText('Slovenčina')
+		await expect(getRow(page, 'en')).toContainText('Angličtina')
 		await expect(getBaseBadge(page, 'sk')).toBeVisible()
 		await expect(getTable(page).getByText('Základný', { exact: true })).toHaveCount(1)
 	})
@@ -87,7 +88,7 @@ test.describe('ADMIN in a project', () => {
 		await dialog.getByRole('button', { name: 'Pridať', exact: true }).click()
 		expect((await created).status()).toBe(201)
 
-		await expect(page.getByText(`Jazyk ${RUSSIAN.englishName} bol pridaný.`)).toBeVisible()
+		await expect(page.getByText(`Jazyk ${RUSSIAN.name.toLowerCase()} bol pridaný.`)).toBeVisible()
 		await expect(dialog).toBeHidden()
 		const row = getRow(page, RUSSIAN.tag)
 		await expect(row).toContainText(`${RUSSIAN.nativeName} · ${RUSSIAN.tag}`)
@@ -99,21 +100,21 @@ test.describe('ADMIN in a project', () => {
 	test('Odobrať is disabled for the base language; another one is removed after confirmation', async ({ page }) => {
 		await openLanguagesPage(page, project.slug)
 
-		await expect(getRemoveButton(page, 'Slovak')).toBeDisabled()
+		await expect(getRemoveButton(page, 'Slovenčina')).toBeDisabled()
 
-		await getRemoveButton(page, RUSSIAN.englishName).click()
+		await getRemoveButton(page, RUSSIAN.name).click()
 		const confirm = page.getByRole('dialog', { name: 'Odobrať jazyk' })
-		await expect(confirm).toContainText(`Naozaj chcete odobrať jazyk ${RUSSIAN.englishName} (${RUSSIAN.tag}) z projektu?`)
+		await expect(confirm).toContainText(`Naozaj chcete odobrať jazyk ${RUSSIAN.name.toLowerCase()} (${RUSSIAN.tag}) z projektu?`)
 		await confirm.getByRole('button', { name: 'Zrušiť' }).click()
 		await expect(confirm).toBeHidden()
 		await expect(getRow(page, RUSSIAN.tag)).toHaveCount(1)
 
-		await getRemoveButton(page, RUSSIAN.englishName).click()
+		await getRemoveButton(page, RUSSIAN.name).click()
 		const deleted = waitForLanguagesResponse(page, project.id, 'DELETE')
 		await confirm.getByRole('button', { name: 'Odobrať' }).click()
 		expect((await deleted).status()).toBe(204)
 
-		await expect(page.getByText(`Jazyk ${RUSSIAN.englishName} bol odobraný z projektu.`)).toBeVisible()
+		await expect(page.getByText(`Jazyk ${RUSSIAN.name.toLowerCase()} bol odobraný z projektu.`)).toBeVisible()
 		await expect(getRow(page, RUSSIAN.tag)).toHaveCount(0)
 	})
 

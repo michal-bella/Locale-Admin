@@ -212,3 +212,74 @@ describe('DELETE /api/projects/:projectId/membership', () => {
 		expect(await getTestPrisma().projectMember.count()).toBe(2)
 	})
 })
+
+const putOrder = (app: App, cookie: string, body: unknown) =>
+	request(app)
+		.put('/api/projects/order')
+		.set('Cookie', cookie)
+		.set(CSRF_HEADERS)
+		.send(body as object)
+
+const listedIds = async (app: App, cookie: string) =>
+	projectListResponseSchema.parse((await request(app).get('/api/projects').set('Cookie', cookie)).body).projects.map(({ id }) => id)
+
+describe('PUT /api/projects/order', () => {
+	it("stores the user's own order, lists unordered projects after it by name and leaves other users alone", async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const other = await login(app)
+		const a = await createProjectRow('Alpha', 'alpha', [user.id, other.user.id])
+		const b = await createProjectRow('Beta', 'beta', [user.id, other.user.id])
+		const c = await createProjectRow('Gamma', 'gamma', [user.id, other.user.id])
+
+		const res = await putOrder(app, other.cookie, { projectIds: [c.id, a.id, b.id] })
+		expect(res.status).toBe(204)
+		expect(await listedIds(app, other.cookie)).toEqual([c.id, a.id, b.id])
+		expect(await listedIds(app, cookie)).toEqual([a.id, b.id, c.id])
+
+		expect((await putOrder(app, cookie, { projectIds: [b.id] })).status).toBe(204)
+		const d = await createProjectRow('Delta', 'delta', [user.id])
+		expect(await listedIds(app, cookie)).toEqual([b.id, a.id, d.id, c.id])
+	})
+
+	it('lets an ADMIN order projects they are not a member of', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const a = await createProjectRow('Alpha', 'alpha')
+		const b = await createProjectRow('Beta', 'beta')
+
+		expect((await putOrder(app, cookie, { projectIds: [b.id, a.id] })).status).toBe(204)
+		expect(await listedIds(app, cookie)).toEqual([b.id, a.id])
+	})
+
+	it('returns 404 NOT_FOUND for a project the EDITOR does not see and keeps the order', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const a = await createProjectRow('Alpha', 'alpha', [user.id])
+		const b = await createProjectRow('Beta', 'beta', [user.id])
+		const foreign = await createProjectRow('Foreign', 'foreign')
+		await putOrder(app, cookie, { projectIds: [b.id, a.id] })
+
+		expectErrorCode(await putOrder(app, cookie, { projectIds: [a.id, foreign.id] }), 404, ERROR_CODE.NOT_FOUND)
+		expect(await listedIds(app, cookie)).toEqual([b.id, a.id])
+	})
+
+	it('returns 400 VALIDATION_ERROR for an empty list, duplicates or a non-uuid', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const a = await createProjectRow('Alpha', 'alpha', [user.id])
+
+		for (const projectIds of [[], [a.id, a.id], ['x']]) {
+			const res = await putOrder(app, cookie, { projectIds })
+			expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
+			expect(res.body).toMatchObject({ error: { details: [expect.objectContaining({ path: expect.stringMatching(/^projectIds/) as unknown })] } })
+		}
+	})
+
+	it('returns 401 without a session and 403 CSRF_REJECTED without X-Requested-With', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app)
+		expectErrorCode(await request(app).put('/api/projects/order').set(CSRF_HEADERS).send({ projectIds: [] }), 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
+		expectErrorCode(await request(app).put('/api/projects/order').set('Cookie', cookie).send({ projectIds: [] }), 403, ERROR_CODE.CSRF_REJECTED)
+	})
+})

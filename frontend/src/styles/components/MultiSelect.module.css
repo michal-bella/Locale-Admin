@@ -1,0 +1,9 @@
+/* Mantine pads the pills for its own input height; the theme's 44 px left the text at the top. Flex centres it and still grows with more rows. */
+.input {
+	display: flex;
+	align-items: center;
+}
+
+.pillsList {
+	flex: 1;
+}

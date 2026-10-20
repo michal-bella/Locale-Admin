@@ -1,4 +1,4 @@
-import { ERROR_CODE, ROLE, type AuthUser, type CreateProjectRequest, type ProjectListItem } from '@locale/shared'
+import { ERROR_CODE, ROLE, type AuthUser, type CreateProjectRequest, type ProjectListItem, type ReorderProjectsRequest } from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
 import { AppError } from '../lib/errors'
@@ -17,14 +17,34 @@ export const hasProjectAccess = async (prisma: PrismaClient, projectId: string, 
 	return (await prisma.projectMember.count({ where: { projectId, userId: user.id } })) > 0
 }
 
+const visibleProjects = (user: AuthUser) => (user.role === ROLE.ADMIN ? {} : { members: { some: { userId: user.id } } })
+
+/** The user's own order first (`ProjectOrder.position`), then by name; the sort is in JS because the position is per user. */
 export const listProjects = async (prisma: PrismaClient, user: AuthUser): Promise<ProjectListItem[]> => {
-	const projects = await prisma.project.findMany({
-		where: user.role === ROLE.ADMIN ? {} : { members: { some: { userId: user.id } } },
-		select: { ...PROJECT_LIST_SELECT, members: { where: { userId: user.id }, select: { userId: true } } },
-		orderBy: [{ name: 'asc' }, { id: 'asc' }],
-	})
-	return projects.map(({ members, ...project }) => ({ ...project, isMember: members.length > 0 }))
+	const [projects, orders] = await Promise.all([
+		prisma.project.findMany({
+			where: visibleProjects(user),
+			select: { ...PROJECT_LIST_SELECT, members: { where: { userId: user.id }, select: { userId: true } } },
+			orderBy: [{ name: 'asc' }, { id: 'asc' }],
+		}),
+		prisma.projectOrder.findMany({ where: { userId: user.id }, select: { projectId: true, position: true } }),
+	])
+	const positions = new Map(orders.map(({ projectId, position }) => [projectId, position]))
+	const position = (projectId: string) => positions.get(projectId) ?? Number.MAX_SAFE_INTEGER
+	// Stable sort, so projects with the same (missing) position keep the name order of the query.
+	return projects.map(({ members, ...project }) => ({ ...project, isMember: members.length > 0 })).sort((a, b) => position(a.id) - position(b.id))
 }
+
+/** Replaces the user's order with `projectIds`; every id must be a project the user sees (404 otherwise, nothing is written). */
+export const reorderProjects = async (prisma: PrismaClient, user: AuthUser, { projectIds }: ReorderProjectsRequest): Promise<void> =>
+	prisma.$transaction(async (tx) => {
+		const visible = await tx.project.count({ where: { id: { in: projectIds }, ...visibleProjects(user) } })
+		if (visible !== projectIds.length) {
+			throw new AppError(404, ERROR_CODE.NOT_FOUND, 'Project not found')
+		}
+		await tx.projectOrder.deleteMany({ where: { userId: user.id } })
+		await tx.projectOrder.createMany({ data: projectIds.map((projectId, position) => ({ userId: user.id, projectId, position })) })
+	})
 
 /** The creator becomes the first member, the first language the base. No pre-check for the slug: the unique constraint (P2002) also covers concurrent requests. */
 export const createProject = async (prisma: PrismaClient, userId: string, { name, slug, languageTags }: CreateProjectRequest): Promise<ProjectListItem> => {

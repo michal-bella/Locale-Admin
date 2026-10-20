@@ -27,7 +27,10 @@ export const projectListItemSchema = z.object({
 
 export type ProjectListItem = z.infer<typeof projectListItemSchema>
 
-/** Body of `GET /api/projects`, sorted by name. An ADMIN gets every project, an EDITOR only projects they are a member of. */
+/**
+ * Body of `GET /api/projects` in the user's own order (`PUT /api/projects/order`), projects without a position after them by name. An ADMIN
+ * gets every project, an EDITOR only projects they are a member of.
+ */
 export const projectListResponseSchema = z.object({
 	projects: z.array(projectListItemSchema),
 })
@@ -64,3 +67,16 @@ export const projectMemberListResponseSchema = z.object({
 })
 
 export type ProjectMemberListResponse = z.infer<typeof projectMemberListResponseSchema>
+
+export const PROJECT_ORDER_MAX = 1000
+
+/** Body of `PUT /api/projects/order`: every project the user sees, in the new order. The order is the user's own. */
+export const reorderProjectsRequestSchema = z.object({
+	projectIds: z
+		.array(z.uuid())
+		.min(1)
+		.max(PROJECT_ORDER_MAX)
+		.refine((ids) => new Set(ids).size === ids.length),
+})
+
+export type ReorderProjectsRequest = z.infer<typeof reorderProjectsRequestSchema>

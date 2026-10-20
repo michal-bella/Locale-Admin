@@ -31,7 +31,11 @@
 			"settings": "Nastavení",
 			"leave": "Opustit projekt",
 			"settingsLabel": "Nastavení projektu {{name}}",
-			"leaveLabel": "Opustit projekt {{name}}"
+			"leaveLabel": "Opustit projekt {{name}}",
+			"move": "Přesunout",
+			"moveLabel": "Přesunout projekt {{name}}",
+			"moveHint": "Pořadí změníte přetažením nebo šipkami nahoru a dolů. Pořadí je jen vaše.",
+			"moved": "Projekt {{name}} je na {{position}}. místě z {{count}}."
 		},
 		"createModal": {
 			"title": "Nový projekt",
@@ -49,7 +53,11 @@
 			"languages": {
 				"label": "Jazyky",
 				"placeholder": "Vyhledejte jazyky",
-				"hint": "První vybraný jazyk bude základní, změnit ho můžete v nastavení projektu."
+				"hint": "První vybraný jazyk bude základní, změnit ho můžete v nastavení projektu.",
+				"selectAll": "Vybrat všechny",
+				"selectAllLabel": "Vybrat všechny jazyky",
+				"clearAll": "Zrušit výběr",
+				"clearAllLabel": "Zrušit výběr jazyků"
 			},
 			"cancel": "Zrušit",
 			"submit": "Vytvořit projekt",

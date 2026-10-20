@@ -31,7 +31,11 @@
 			"settings": "Settings",
 			"leave": "Leave project",
 			"settingsLabel": "Settings of project {{name}}",
-			"leaveLabel": "Leave project {{name}}"
+			"leaveLabel": "Leave project {{name}}",
+			"move": "Move",
+			"moveLabel": "Move project {{name}}",
+			"moveHint": "Drag, or use the up and down arrows, to change the order. The order is only yours.",
+			"moved": "Project {{name}} is now at position {{position}} of {{count}}."
 		},
 		"createModal": {
 			"title": "New project",
@@ -49,7 +53,11 @@
 			"languages": {
 				"label": "Languages",
 				"placeholder": "Search languages",
-				"hint": "The first chosen language is the base one; you can change it in the project settings."
+				"hint": "The first chosen language is the base one; you can change it in the project settings.",
+				"selectAll": "Select all",
+				"selectAllLabel": "Select all languages",
+				"clearAll": "Clear",
+				"clearAllLabel": "Clear the selected languages"
 			},
 			"cancel": "Cancel",
 			"submit": "Create project",

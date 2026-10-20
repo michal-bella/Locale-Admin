@@ -87,6 +87,28 @@
 	color: var(--mantine-color-error);
 }
 
+.grip {
+	cursor: grab;
+	margin-inline-start: -0.5rem;
+}
+
+.grip:active {
+	cursor: grabbing;
+}
+
+.row[data-dragging] {
+	opacity: 0.5;
+}
+
+/* A 2 px line on the edge where the dragged project lands. */
+.row[data-drop='before'] {
+	box-shadow: inset 0 2px 0 var(--mantine-primary-color-filled);
+}
+
+.row[data-drop='after'] {
+	box-shadow: inset 0 -2px 0 var(--mantine-primary-color-filled);
+}
+
 .state {
 	padding: 2.5rem 1.25rem;
 	text-align: center;

@@ -32,6 +32,7 @@ model User {
   updatedAt          DateTime          @updatedAt
   sessions           Session[]
   projectMemberships ProjectMember[]
+  projectOrders      ProjectOrder[]
   translations       Translation[]
 }
 
@@ -71,8 +72,21 @@ model Project {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   members          ProjectMember[]
+  orders           ProjectOrder[]
   languages        ProjectLanguage[]
   translationKeys  TranslationKey[]
+}
+
+/// Position of a project in one user's project list (drag and drop on `/`); a project without a row comes after, by name.
+model ProjectOrder {
+  userId    String  @db.Uuid
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String  @db.Uuid
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  position  Int
+
+  @@id([userId, projectId])
+  @@index([projectId])
 }
 
 model ProjectMember {

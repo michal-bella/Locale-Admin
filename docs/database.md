@@ -92,6 +92,18 @@ Každý projekt má vlastné jazyky a vlastný základný jazyk (`ProjectLanguag
 
 PK je dvojica (`projectId`, `userId`), index na `userId`. Používateľ má spätnú reláciu `projectMemberships`.
 
+### ProjectOrder
+
+Vlastné poradie projektov jedného používateľa na indexe `/` (drag and drop, `PUT /api/projects/order`). Projekt bez riadku je za ostatnými podľa názvu. `PUT` nahradí všetky riadky používateľa naraz.
+
+| Pole        | Typ  | Poznámka                                       |
+| ----------- | ---- | ---------------------------------------------- |
+| `userId`    | UUID | FK na `User`, pri zmazaní usera sa zmaže       |
+| `projectId` | UUID | FK na `Project`, pri zmazaní projektu sa zmaže |
+| `position`  | int  | poradie od 0                                   |
+
+PK je dvojica (`userId`, `projectId`), index na `projectId`. Riadok ostane aj po odchode z projektu (projekt sa používateľovi aj tak nezobrazí). Migrácia `project_order`.
+
 ### TranslationKey
 
 Kľúč prekladu v projekte. Správanie API je v [API: preklady](./api/translations.md).
@@ -138,6 +150,8 @@ erDiagram
     User ||--o{ Session : "má"
     User ||--o{ ProjectMember : "je členom"
     Project ||--o{ ProjectMember : "má"
+    User ||--o{ ProjectOrder : "radí si"
+    Project ||--o{ ProjectOrder : "má pozíciu"
     Project ||--o{ ProjectLanguage : "prekladá sa do"
     Project ||--o{ TranslationKey : "má"
     TranslationKey ||--o{ Translation : "má"
@@ -185,6 +199,11 @@ erDiagram
         uuid projectId PK, FK
         uuid userId PK, FK
         datetime createdAt
+    }
+    ProjectOrder {
+        uuid userId PK, FK
+        uuid projectId PK, FK
+        int position
     }
     TranslationKey {
         uuid id PK

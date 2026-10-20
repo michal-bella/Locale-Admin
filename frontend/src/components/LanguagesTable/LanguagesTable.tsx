@@ -1,4 +1,4 @@
-import { ActionIcon, Badge, Button, Skeleton, Table, Text, Tooltip, VisuallyHidden } from '@mantine/core'
+import { ActionIcon, Badge, Button, Progress, Skeleton, Table, Text, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useMergedRef } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { type KeyboardEvent, type ReactNode, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from 'react'
@@ -6,7 +6,7 @@ import { flushSync } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import Sortable from 'sortablejs'
 
-import { type Language } from '@locale/shared'
+import { type Language, type LanguageListItem } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
@@ -23,8 +23,14 @@ const SKELETON_ROWS = 3
 
 const SORT_ANIMATION_MS = 150
 
+const COLUMN_COUNT = 4
+
+// Rounded down, so 100 % means every key is translated.
+const toPercent = (part: number, total: number) => (total === 0 ? 0 : Math.floor((part / total) * 100))
+
 /**
- * Languages of a project in a card (Figma 3:812) without the Preložené, Na kontrolu and Pokrytie columns. The base language cannot be removed.
+ * Languages of a project in a card (Figma 3:812, 3:860) without the Na kontrolu column (that status does not exist). The base language cannot be removed.
+ * Below 1200 px the Preložené column moves under the progress bar, below 640 px the progress moves under the language name, as in the members table.
  * The grip reorders them for the whole project (the column order of the translations): SortableJS drag and drop, or ArrowUp / ArrowDown
  * while the grip has the focus, as in the project list. The first language is the base, so a move that changes it waits for a confirmation;
  * "Nie" puts the rows back.
@@ -167,9 +173,28 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 		}
 	}
 
+	const renderCoverage = (language: LanguageListItem, percent: number) => (
+		<div className={classes.coverage}>
+			<Progress
+				value={percent}
+				size={6}
+				radius='xl'
+				className='flex-1'
+				classNames={{ root: classes.track }}
+				aria-label={t('languagesPage.table.coverageLabel', { name: languageName(language), percent })}
+			/>
+			<Text component='span' className={classes.percent}>
+				{t('languagesPage.table.percent', { percent })}
+			</Text>
+		</div>
+	)
+
+	const translatedOf = (language: LanguageListItem) =>
+		t('languagesPage.table.translatedOfLong', { translated: language.translatedCount, total: language.keyCount })
+
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr className={classes.tr}>
-			<Table.Td colSpan={2} className={`${classes.td} ${classes.state}`}>
+			<Table.Td colSpan={COLUMN_COUNT} className={`${classes.td} ${classes.state}`}>
 				{content}
 			</Table.Td>
 		</Table.Tr>
@@ -179,7 +204,7 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 		if (isPending) {
 			return Array.from({ length: SKELETON_ROWS }, (_, index) => (
 				<Table.Tr key={index} className={classes.tr}>
-					<Table.Td colSpan={2} className={classes.td}>
+					<Table.Td colSpan={COLUMN_COUNT} className={classes.td}>
 						<div className='flex items-center gap-3'>
 							<Skeleton circle height={40} />
 							<Skeleton height={12} width='30%' radius='sm' />
@@ -211,66 +236,88 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 				</div>,
 			)
 		}
-		return (languages ?? []).map((language) => (
-			<Table.Tr key={language.id} className={classes.tr}>
-				<Table.Td className={classes.td}>
-					<div className='flex items-center gap-3'>
-						{canReorder && (
-							<Tooltip label={t('languagesPage.table.move')}>
-								<ActionIcon
-									variant='transparent'
-									size={32}
-									radius='md'
-									aria-label={t('languagesPage.table.moveLabel', { name: languageName(language) })}
-									aria-describedby={moveHintId}
-									ref={(element) => {
-										if (element) {
-											gripRefs.current.set(language.id, element)
-										} else {
-											gripRefs.current.delete(language.id)
-										}
-									}}
-									onBlur={(event) => {
-										// A blur from the DOM move has no relatedTarget; only a real focus change ends the keyboard move.
-										if (event.relatedTarget) {
-											setKeyboardMovedId(null)
-										}
-									}}
-									className={classes.grip}
-									onKeyDown={(event) => gripKeyDown(event, language.id)}
-								>
-									<GripVertical aria-hidden />
-								</ActionIcon>
-							</Tooltip>
-						)}
-						<LanguageFlag code={language.flagCode} size='lg' />
-						<div className='flex flex-col'>
-							<Text size='sm' fw={600} c='var(--app-color-text-strong)' className={classes.name}>
-								{languageName(language)}
-							</Text>
-							<Text component='span' className={classes.meta}>
-								{language.nativeName} · {language.tag}
-							</Text>
+		return (languages ?? []).map((language) => {
+			const percent = toPercent(language.translatedCount, language.keyCount)
+			return (
+				<Table.Tr key={language.id} className={classes.tr}>
+					<Table.Td className={classes.td}>
+						<div className={`${classes.languageRow} flex items-center gap-3`}>
+							{canReorder && (
+								<Tooltip label={t('languagesPage.table.move')}>
+									<ActionIcon
+										variant='transparent'
+										size={32}
+										radius='md'
+										aria-label={t('languagesPage.table.moveLabel', { name: languageName(language) })}
+										aria-describedby={moveHintId}
+										ref={(element) => {
+											if (element) {
+												gripRefs.current.set(language.id, element)
+											} else {
+												gripRefs.current.delete(language.id)
+											}
+										}}
+										onBlur={(event) => {
+											// A blur from the DOM move has no relatedTarget; only a real focus change ends the keyboard move.
+											if (event.relatedTarget) {
+												setKeyboardMovedId(null)
+											}
+										}}
+										className={classes.grip}
+										onKeyDown={(event) => gripKeyDown(event, language.id)}
+									>
+										<GripVertical aria-hidden />
+									</ActionIcon>
+								</Tooltip>
+							)}
+							<LanguageFlag code={language.flagCode} size='lg' />
+							<div className='flex min-w-0 flex-1 flex-col'>
+								<div className='flex flex-wrap items-center gap-x-5 gap-y-1'>
+									<Text size='sm' fw={600} c='var(--app-color-text-strong)' className={classes.name}>
+										{languageName(language)}
+									</Text>
+									{language.isBase && (
+										<Badge radius='xl' className={classes.badge}>
+											{t('languagesPage.table.base')}
+										</Badge>
+									)}
+								</div>
+								<Text component='span' className={classes.meta}>
+									{language.nativeName} · {language.tag}
+								</Text>
+								<div className={`${classes.phoneOnly} mt-2 flex-col gap-1`}>
+									{renderCoverage(language, percent)}
+									<Text component='span' className={classes.meta}>
+										{translatedOf(language)}
+									</Text>
+								</div>
+							</div>
 						</div>
-						{language.isBase && (
-							<Badge radius='xl' className={`${classes.badge} ml-2`}>
-								{t('languagesPage.table.base')}
-							</Badge>
-						)}
-					</div>
-				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-					<RowAction
-						icon={Trash}
-						tooltip={t('languagesPage.table.delete')}
-						label={t('languagesPage.table.deleteLabel', { name: languageName(language) })}
-						danger
-						disabled={language.isBase}
-						onClick={(event) => onDelete(language, event.currentTarget)}
-					/>
-				</Table.Td>
-			</Table.Tr>
-		))
+					</Table.Td>
+					<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
+						<Text component='span' className={classes.count}>
+							{t('languagesPage.table.translatedOf', { translated: language.translatedCount, total: language.keyCount })}
+						</Text>
+					</Table.Td>
+					<Table.Td className={`${classes.td} ${classes.tabletUp}`}>
+						{renderCoverage(language, percent)}
+						<Text component='span' className={`${classes.meta} ${classes.narrowOnly}`}>
+							{translatedOf(language)}
+						</Text>
+					</Table.Td>
+					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
+						<RowAction
+							icon={Trash}
+							tooltip={t('languagesPage.table.delete')}
+							label={t('languagesPage.table.deleteLabel', { name: languageName(language) })}
+							danger
+							disabled={language.isBase}
+							onClick={(event) => onDelete(language, event.currentTarget)}
+						/>
+					</Table.Td>
+				</Table.Tr>
+			)
+		})
 	}
 
 	return (
@@ -279,6 +326,8 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('languagesPage.table.language')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.translatedColumn} ${classes.wideOnly}`}>{t('languagesPage.table.translated')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.coverageColumn} ${classes.tabletUp}`}>{t('languagesPage.table.coverage')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
 							<VisuallyHidden>{t('languagesPage.table.actionsColumn')}</VisuallyHidden>
 						</Table.Th>

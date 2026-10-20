@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Stav prekladu na stránke Jazyky (2026-10-20)
+
+- API: `GET` a `PUT …/languages/order` vracajú pri každom jazyku `translatedCount` a `keyCount` ([API](./api/project-languages.md#položka-zoznamu-languagelistitem))
+- frontend: tabuľka jazykov má stĺpce **Preložené** (`221 / 248`) a **Pokrytie** (progres a percento) podľa Figmy `3:860`, bez stĺpca Na kontrolu; pod 1200 px a 640 px sa stĺpce presúvajú pod progres a pod názov jazyka, stránka sa už neposúva vodorovne ([Frontend](./frontend.md#stránka-jazyky-projektu))
+
 ### Export do XLSX a import iba pre adminov (2026-10-20)
 
 - API: `GET /api/projects/:projectId/export?format=XLSX` vráti `translations.xlsx` s jedným hárkom `Namespace | Key | <jazyky>`, nepreložené ako prázdna bunka, streamované cez `exceljs` ([API](./api/exports.md#odpoveď-200-xlsx)); záťažové testy aj pre XLSX ([Testovanie](./testing.md#záťažové-testy-exportu))

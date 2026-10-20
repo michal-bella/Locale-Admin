@@ -4,6 +4,7 @@ import {
 	VALIDATION_CODE,
 	type CreateLanguageRequest,
 	type Language,
+	type LanguageListItem,
 	type LanguageTag,
 	type ReorderLanguagesRequest,
 	type SupportedLanguage,
@@ -67,10 +68,17 @@ export const setBaseLanguage = async (tx: Prisma.TransactionClient, projectId: s
 export const findBaseLanguageId = async (prisma: PrismaClient | Prisma.TransactionClient, projectId: string): Promise<string | null> =>
 	(await prisma.projectLanguage.findFirst({ where: { projectId, isBase: true }, select: { id: true } }))?.id ?? null
 
-export const listProjectLanguages = async (prisma: PrismaClient, projectId: string): Promise<Language[]> => {
-	const languages = await prisma.projectLanguage.findMany({ where: { projectId }, select: LANGUAGE_SELECT, orderBy: LANGUAGE_ORDER })
-	return languages.map(toLanguage)
+const listWithCounts = async (db: PrismaClient | Prisma.TransactionClient, projectId: string): Promise<LanguageListItem[]> => {
+	const [languages, keyCount, filled] = await Promise.all([
+		db.projectLanguage.findMany({ where: { projectId }, select: LANGUAGE_SELECT, orderBy: LANGUAGE_ORDER }),
+		db.translationKey.count({ where: { projectId } }),
+		db.translation.groupBy({ by: ['languageId'], where: { value: { not: null }, language: { projectId } }, _count: { _all: true } }),
+	])
+	const filledByLanguage = new Map(filled.map(({ languageId, _count }) => [languageId, _count._all]))
+	return languages.map((language) => ({ ...toLanguage(language), translatedCount: filledByLanguage.get(language.id) ?? 0, keyCount }))
 }
+
+export const listProjectLanguages = (prisma: PrismaClient, projectId: string): Promise<LanguageListItem[]> => listWithCounts(prisma, projectId)
 
 /**
  * The first language of the project becomes the base, a new one goes last. No pre-check for the tag: the unique constraint (P2002) also covers concurrent requests.
@@ -111,7 +119,7 @@ export const deleteProjectLanguage = async (prisma: PrismaClient, projectId: str
  * Replaces the order with `languageIds`, which must be exactly the languages of the project (400 otherwise, nothing is written,
  * e.g. when another member added or removed one meanwhile). The first one becomes the base in the same transaction.
  */
-export const reorderProjectLanguages = async (prisma: PrismaClient, projectId: string, { languageIds }: ReorderLanguagesRequest): Promise<Language[]> =>
+export const reorderProjectLanguages = async (prisma: PrismaClient, projectId: string, { languageIds }: ReorderLanguagesRequest): Promise<LanguageListItem[]> =>
 	prisma.$transaction(async (tx) => {
 		await lockProject(tx, projectId)
 		const current = await tx.projectLanguage.findMany({ where: { projectId }, select: { id: true } })
@@ -123,6 +131,5 @@ export const reorderProjectLanguages = async (prisma: PrismaClient, projectId: s
 		}
 		await Promise.all(languageIds.map((id, position) => tx.projectLanguage.update({ where: { id }, data: { position } })))
 		await setBaseLanguage(tx, projectId, languageIds[0] as string)
-		const languages = await tx.projectLanguage.findMany({ where: { projectId }, select: LANGUAGE_SELECT, orderBy: LANGUAGE_ORDER })
-		return languages.map(toLanguage)
+		return listWithCounts(tx, projectId)
 	})

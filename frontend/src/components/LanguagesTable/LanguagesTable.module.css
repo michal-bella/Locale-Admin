@@ -1,5 +1,5 @@
 .card {
-	overflow: hidden;
+	overflow-x: auto;
 	border: 1px solid var(--app-color-border);
 	border-radius: var(--mantine-radius-xl);
 	background-color: var(--app-color-surface);
@@ -15,6 +15,14 @@
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
 	color: var(--app-color-muted);
+}
+
+.translatedColumn {
+	width: 9.375rem;
+}
+
+.coverageColumn {
+	width: 14.25rem;
 }
 
 .actionsColumn {
@@ -60,6 +68,35 @@
 	color: var(--app-color-eyebrow);
 }
 
+.count {
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	white-space: nowrap;
+	color: var(--app-color-label);
+}
+
+.coverage {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	width: 10.25rem;
+}
+
+.track {
+	background-color: var(--app-color-border-subtle);
+}
+
+/* Figma has 32 px for "100%"; "100 %" with the space of sk and cs needs 40 px. */
+.percent {
+	width: 2.5rem;
+	flex-shrink: 0;
+	white-space: nowrap;
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 700;
+	text-align: right;
+	color: var(--app-color-label);
+}
+
 .grip {
 	flex-shrink: 0;
 	margin-inline-start: -0.75rem;
@@ -89,4 +126,62 @@
 .state {
 	padding: 2.5rem 1.25rem;
 	text-align: center;
+}
+
+.narrowOnly,
+.phoneOnly {
+	display: none;
+}
+
+/* Below 1200 px the sidebar leaves the name column too narrow next to all four columns; the phone breakpoint is the members table's. */
+@media (max-width: 74.99em) {
+	.wideOnly {
+		display: none;
+	}
+
+	.narrowOnly {
+		display: block;
+		padding-top: 0.25rem;
+	}
+
+	.coverageColumn {
+		width: 12.5rem;
+	}
+}
+
+@media (max-width: 39.99em) {
+	.tabletUp {
+		display: none;
+	}
+
+	.phoneOnly {
+		display: flex;
+	}
+
+	.phoneOnly .coverage {
+		width: 100%;
+		max-width: 12rem;
+	}
+
+	.th,
+	.td {
+		padding-inline: 0.75rem;
+	}
+
+	.actionsColumn {
+		width: auto;
+	}
+
+	.actionsCell {
+		padding-inline: 0 0.75rem;
+	}
+
+	.grip {
+		margin-inline-start: 0;
+	}
+
+	/* The name block is taller with the progress under it; the grip and flag stay next to the name. */
+	.languageRow {
+		align-items: flex-start;
+	}
 }

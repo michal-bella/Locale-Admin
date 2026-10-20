@@ -3,7 +3,16 @@ import { randomUUID } from 'node:crypto'
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 
-import { ERROR_CODE, ROLE, VALIDATION_CODE, errorResponseSchema, languageSchema, languagesResponseSchema, type LanguageTag } from '@locale/shared'
+import {
+	ERROR_CODE,
+	ROLE,
+	VALIDATION_CODE,
+	errorResponseSchema,
+	languageListItemSchema,
+	languageSchema,
+	languagesResponseSchema,
+	type LanguageTag,
+} from '@locale/shared'
 
 import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
@@ -72,7 +81,7 @@ describe('GET /api/projects/:projectId/languages', () => {
 		expect(res.status).toBe(200)
 		const languages = languagesResponseSchema.parse(res.body)
 		expect(languages.map(({ tag }) => tag)).toEqual(['ru', 'de-AT', 'sk'])
-		expect(languageSchema.strict().parse(languages[0])).toEqual({
+		expect(languageListItemSchema.strict().parse(languages[0])).toEqual({
 			id: ru.id,
 			tag: 'ru',
 			englishName: 'Russian',
@@ -80,7 +89,43 @@ describe('GET /api/projects/:projectId/languages', () => {
 			flagCode: 'ru',
 			isBase: true,
 			createdAt: ru.createdAt.toISOString(),
+			translatedCount: 0,
+			keyCount: 0,
 		})
+	})
+
+	it('counts the keys with a value per language and the keys of the project, without other projects', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await loginToProject(app)
+		const other = await getTestPrisma().project.create({ data: { name: 'B', slug: `b-${randomUUID().slice(0, 8)}` } })
+		const sk = await createLanguageRow(project.id, 'sk', true)
+		const en = await createLanguageRow(project.id, 'en', false, 1)
+		const otherSk = await createLanguageRow(other.id, 'sk', true)
+		const createKey = (projectId: string, name: string, values: { languageId: string; value: string | null }[]) =>
+			getTestPrisma().translationKey.create({ data: { projectId, namespace: 'loc', name, translations: { create: values } } })
+		await createKey(project.id, 'a', [
+			{ languageId: sk.id, value: 'A' },
+			{ languageId: en.id, value: 'A' },
+		])
+		await createKey(project.id, 'b', [
+			{ languageId: sk.id, value: 'B' },
+			{ languageId: en.id, value: null },
+		])
+		await createKey(project.id, 'c', [])
+		await createKey(other.id, 'a', [{ languageId: otherSk.id, value: 'A' }])
+
+		const res = await request(app).get(languagesUrl(project.id)).set('Cookie', cookie)
+		const reordered = await putOrder(app, cookie, project.id, { languageIds: [en.id, sk.id] })
+
+		const counts = (body: unknown) => languagesResponseSchema.parse(body).map(({ tag, translatedCount, keyCount }) => ({ tag, translatedCount, keyCount }))
+		expect(counts(res.body)).toEqual([
+			{ tag: 'sk', translatedCount: 2, keyCount: 3 },
+			{ tag: 'en', translatedCount: 1, keyCount: 3 },
+		])
+		expect(counts(reordered.body)).toEqual([
+			{ tag: 'en', translatedCount: 1, keyCount: 3 },
+			{ tag: 'sk', translatedCount: 2, keyCount: 3 },
+		])
 	})
 
 	it('orders the languages after the base by position, then by tag', async () => {

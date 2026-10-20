@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test'
 
-import { type Language, type ProjectSettings, SUPPORTED_LANGUAGES } from '@locale/shared'
+import { type LanguageListItem, type ProjectSettings, SUPPORTED_LANGUAGES } from '@locale/shared'
 
 import http from '@/api/http'
 import queryClient from '@/api/queryClient'
@@ -12,7 +12,7 @@ import i18n from '@/lib/i18n'
 import { ADMIN_USER, apiError, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
-const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
+const toLanguage = (tag: LanguageListItem['tag'], index: number, isBase = false): LanguageListItem => {
 	const supported = SUPPORTED_LANGUAGES.find((language) => language.tag === tag)
 	if (!supported) {
 		throw new Error(`Unknown tag ${tag}`)
@@ -22,6 +22,8 @@ const toLanguage = (tag: Language['tag'], index: number, isBase = false): Langua
 		...supported,
 		isBase,
 		createdAt: '2026-10-17T10:00:00.000Z',
+		translatedCount: 0,
+		keyCount: 0,
 	}
 }
 
@@ -46,7 +48,7 @@ const LIST_URL = `/projects/${PROJECT.id}/languages`
 /** The project route resolves the slug and loads the settings before the page renders. */
 const PROJECT_ROUTES = { ...projectListRoute(PROJECT), [`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT } }
 
-const languagesResponse = (languages: Language[]) => ({ status: 200, data: languages })
+const languagesResponse = (languages: LanguageListItem[]) => ({ status: 200, data: languages })
 
 const getTable = (label = 'Zoznam jazykov') => screen.getByRole('table', { name: label })
 
@@ -78,7 +80,7 @@ const pickOption = async (input: HTMLElement, name: string) => {
 }
 
 /** GET returns the current list, DELETE removes the language from it. */
-const mockLanguagesApi = (initial: Language[]) => {
+const mockLanguagesApi = (initial: LanguageListItem[]) => {
 	let languages = initial
 	const requests = signedInAs(ADMIN_USER, {
 		...PROJECT_ROUTES,
@@ -134,6 +136,30 @@ describe('ProjectLanguagesPage table', () => {
 		expect(within(englishRow).getByText('English · en')).toBeInTheDocument()
 		expect(within(englishRow).queryByText('Základný')).not.toBeInTheDocument()
 		expect(englishRow.querySelector('[data-flag="gb"]')).not.toBeNull()
+	})
+
+	it('shows the translated keys and the coverage of every language', async () => {
+		signedInAs(ADMIN_USER, {
+			...PROJECT_ROUTES,
+			[`GET ${LIST_URL}`]: languagesResponse([
+				{ ...SLOVAK, translatedCount: 248, keyCount: 248 },
+				{ ...ENGLISH, translatedCount: 221, keyCount: 248 },
+				{ ...RUSSIAN, translatedCount: 247, keyCount: 248 },
+			]),
+		})
+		renderApp(PAGE_PATH)
+
+		await findInTable('Slovenčina')
+		expect(within(getTable()).getByRole('columnheader', { name: 'Preložené' })).toBeInTheDocument()
+		expect(within(getTable()).getByRole('columnheader', { name: 'Pokrytie' })).toBeInTheDocument()
+		expect(within(getRow('Slovenčina')).getByText('248 / 248')).toBeInTheDocument()
+		expect(within(getRow('Angličtina')).getByText('221 / 248')).toBeInTheDocument()
+		// The column and the narrow-screen copies under the bar and under the name; CSS shows one of them per breakpoint.
+		expect(within(getRow('Angličtina')).getAllByText('221 z 248 preložených')).toHaveLength(2)
+		expect(within(getRow('Slovenčina')).getAllByText('100 %')).toHaveLength(2)
+		expect(within(getRow('Angličtina')).getAllByRole('progressbar', { name: 'Pokrytie jazyka Angličtina: 89 %' })).toHaveLength(2)
+		// 99.6 % is not shown as 100 % while a key is missing.
+		expect(within(getRow('Ruština')).getAllByText('99 %')).toHaveLength(2)
 	})
 
 	it('shows skeleton rows while loading and keeps Pridať jazyk disabled', async () => {
@@ -206,7 +232,7 @@ describe('Reordering languages', () => {
 			.map((row) => within(row).getAllByText(/./)[0]?.textContent)
 
 	/** GET returns the current list, PUT …/order saves the order and makes the first language the base. */
-	const mockReorderApi = (initial: Language[]) => {
+	const mockReorderApi = (initial: LanguageListItem[]) => {
 		let languages = initial
 		return signedInAs(ADMIN_USER, {
 			...PROJECT_ROUTES,
@@ -516,7 +542,7 @@ describe('Focus after a modal closes', () => {
 	})
 
 	it('moves focus to the table when the empty-state button is gone after adding a language', async () => {
-		let languages: Language[] = []
+		let languages: LanguageListItem[] = []
 		signedInAs(ADMIN_USER, {
 			...PROJECT_ROUTES,
 			[`GET ${LIST_URL}`]: () => languagesResponse(languages),

@@ -39,9 +39,20 @@ Schéma `languageSchema`.
 | `isBase`      | boolean           | základný jazyk projektu                                    |
 | `createdAt`   | string (ISO 8601) | čas pridania do projektu                                   |
 
+## Položka zoznamu `LanguageListItem`
+
+`GET` aj `PUT …/order` vracajú `Language` rozšírený o stav prekladu (schéma `languageListItemSchema`); `POST` vracia len `Language`.
+
+| Pole              | Typ    | Popis                                                                                    |
+| ----------------- | ------ | ---------------------------------------------------------------------------------------- |
+| `translatedCount` | number | počet kľúčov projektu s hodnotou v tomto jazyku (`null` sa nepočíta)                     |
+| `keyCount`        | number | počet kľúčov projektu, v každej položke rovnaký; jazyk je celý preložený, keď sa rovnajú |
+
+Počty rátajú dva agregačné dotazy (`count` kľúčov a `GROUP BY languageId`), riadky prekladov sa nenačítavajú.
+
 ## GET /api/projects/:projectId/languages
 
-Vráti `200` s poľom `Language[]` (schéma `languagesResponseSchema`, bez obálky), základný jazyk prvý, ostatné podľa poradia (`position`, pri zhode podľa `tag`). V tomto poradí sú aj stĺpce jazykov na stránke Preklady a vlajky v zozname projektov. Projekt bez jazykov vráti `[]`. Nový jazyk (`POST`) sa zaradí na koniec.
+Vráti `200` s poľom `LanguageListItem[]` (schéma `languagesResponseSchema`, bez obálky), základný jazyk prvý, ostatné podľa poradia (`position`, pri zhode podľa `tag`). V tomto poradí sú aj stĺpce jazykov na stránke Preklady a vlajky v zozname projektov. Projekt bez jazykov vráti `[]`. Nový jazyk (`POST`) sa zaradí na koniec.
 
 ## PUT /api/projects/:projectId/languages/order
 
@@ -49,7 +60,7 @@ Telo (schéma `reorderLanguagesRequestSchema`): `{ "languageIds": ["<id>", "<id>
 
 | HTTP | `code`             | Kedy                                                                                                                                                   |
 | ---- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 200  |                    | telo `Language[]` v novom poradí                                                                                                                       |
+| 200  |                    | telo `LanguageListItem[]` v novom poradí                                                                                                               |
 | 400  | `VALIDATION_ERROR` | prázdny zoznam, duplicitné alebo neplatné ID; zoznam sa nezhoduje s jazykmi projektu, napr. iný člen medzitým jazyk pridal (`languageIds` / `INVALID`) |
 
 Pri chybe sa nič nezapíše.

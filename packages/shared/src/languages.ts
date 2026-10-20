@@ -36,8 +36,19 @@ export const languageSchema = z.object({
 
 export type Language = z.infer<typeof languageSchema>
 
+/**
+ * One language in `GET /api/projects/:projectId/languages` and `PUT …/order`. `translatedCount` is the number of keys with a value in this
+ * language, `keyCount` the number of keys of the project (the same in every item), so the language is fully translated when they are equal.
+ */
+export const languageListItemSchema = languageSchema.extend({
+	translatedCount: z.number().int().nonnegative(),
+	keyCount: z.number().int().nonnegative(),
+})
+
+export type LanguageListItem = z.infer<typeof languageListItemSchema>
+
 /** Body of `GET /api/projects/:projectId/languages`, the base language first, then in the order set by drag and drop. */
-export const languagesResponseSchema = z.array(languageSchema)
+export const languagesResponseSchema = z.array(languageListItemSchema)
 
 export type LanguagesResponse = z.infer<typeof languagesResponseSchema>
 

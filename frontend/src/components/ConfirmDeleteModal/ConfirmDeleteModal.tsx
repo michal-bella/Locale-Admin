@@ -29,7 +29,7 @@ const ConfirmDeleteModal = ({ projectId, opened, language, onClose, onDeleted }:
 		}
 		deleteLanguage.mutate(language.id, {
 			onSuccess: () => {
-				notifications.show({ color: 'green', message: t('languagesPage.deleteModal.success', { name: language.englishName }) })
+				notifications.show({ color: 'green', message: t('languagesPage.deleteModal.success', { name: t(`languageNames.${language.tag}`) }) })
 				onDeleted()
 			},
 			onError: (error) => {
@@ -61,7 +61,7 @@ const ConfirmDeleteModal = ({ projectId, opened, language, onClose, onDeleted }:
 				</>
 			}
 		>
-			<Text size='sm'>{language && t('languagesPage.deleteModal.message', { name: language.englishName, tag: language.tag })}</Text>
+			<Text size='sm'>{language && t('languagesPage.deleteModal.message', { name: t(`languageNames.${language.tag}`), tag: language.tag })}</Text>
 		</AppModal>
 	)
 }

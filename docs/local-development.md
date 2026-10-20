@@ -1,6 +1,6 @@
 ---
 title: 'Lokálny vývoj'
-updated: 2026-10-16
+updated: 2026-10-20
 notion_page_id:
 ---
 
@@ -33,7 +33,9 @@ pnpm install
 | Migrácie a seed | `pnpm db:migrate` (spustí aj seed)            | automaticky pri štarte BE kontajnera               |
 | Na čo           | každodenný vývoj, unit a integračné testy     | smoke testy, E2E, akceptačné kritériá              |
 
-Oba režimy zdieľajú tú istú DB. Porty sa nebijú, takže môžu bežať naraz. Porty DB (`5433`) a BE kontajnera (`3001`) sú dostupné iba z `localhost`, nie z lokálnej siete.
+Oba režimy zdieľajú tú istú DB. Porty sa nebijú, takže môžu bežať naraz.
+
+Všetky checkouty (hlavný aj git worktree) používajú ten istý compose projekt `locale-admin`, teda aj ten istý kontajner `locale-admin-db-1`. Konfigurácia `db` sa medzi checkoutmi líši (absolútna cesta bind mountu `./docker/postgres/init`), takže obyčajné `docker compose up db` z iného checkoutu kontajner znova vytvorí a Postgres spadne uprostred behu iného checkoutu (Prisma `57P03 the database system is shutting down`, stovky 500). Preto `pnpm db:up`, `pnpm stack:up` aj `pnpm test:e2e` spúšťajú `db` s `--no-recreate`: bežiaci kontajner nechajú tak, chýbajúci alebo zastavený spustia. Zmena konfigurácie `db` (napr. image) sa preto neaplikuje sama, treba `docker compose up -d --wait --force-recreate db` (dáta ostanú vo volume). Porty DB (`5433`) a BE kontajnera (`3001`) sú dostupné iba z `localhost`, nie z lokálnej siete.
 
 FE aj BE sú v oboch režimoch na jednom origine: vo vývoji Vite proxy presmeruje `/api` na `localhost:3000`, v stacku nginx presmeruje `/api` na kontajner `backend`. Pri `NODE_ENV=development` počúva BE iba na `127.0.0.1`, z iného zariadenia v sieti nie je dostupný (inak by šlo obísť rate limit loginu podvrhnutým `X-Forwarded-For`).
 
@@ -55,7 +57,7 @@ flowchart LR
 
 | Príkaz                        | Čo robí                                                    |
 | ----------------------------- | ---------------------------------------------------------- |
-| `pnpm db:up` / `pnpm db:down` | spustí / zastaví Postgres                                  |
+| `pnpm db:up` / `pnpm db:down` | spustí / zastaví Postgres (bežiaci kontajner nereštartuje) |
 | `pnpm db:migrate`             | `prisma migrate dev` + seed                                |
 | `pnpm db:seed`                | iba seed (idempotentný)                                    |
 | `pnpm db:reset`               | zmaže DB, aplikuje migrácie a spustí seed                  |
@@ -86,13 +88,14 @@ flowchart LR
 
 ## Troubleshooting
 
-| Problém                                          | Riešenie                                                                                                   |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `Missing .env`                                   | `cp .env.example .env`                                                                                     |
-| port `5433` je obsadený                          | zmeň `DB_PORT` v `.env` a port v `DATABASE_URL` / `TEST_DATABASE_URL`                                      |
-| BE nenaštartuje: chyba ENV                       | chýba alebo je neplatná premenná, napr. `SEED_ADMIN_PASSWORD`; chyba vypíše jej názov                      |
-| `docker compose up` čaká na `backend`            | `pnpm stack:logs backend`, najčastejšie migrácia alebo pripojenie k DB                                     |
-| refresh na hlbokej route vráti 404               | nginx nemá SPA fallback, skontroluj `docker/nginx/default.conf`                                            |
-| test DB neexistuje                               | vytvorí ju `globalSetup` integračných testov, prípadne `pnpm db:down` a zmazanie volume                    |
-| po prihlásení sa cookie neuloží (stále `/login`) | cez http musí byť `COOKIE_SECURE=false` v `.env` (Safari a WebKit `Secure` cookie cez http zahodia)        |
-| login vracia 429                                 | prekročený `LOGIN_RATE_LIMIT_MAX`; počkaj `Retry-After` sekúnd alebo reštartuj backend (limit je v pamäti) |
+| Problém                                          | Riešenie                                                                                                                                                                                  |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Missing .env`                                   | `cp .env.example .env`                                                                                                                                                                    |
+| port `5433` je obsadený                          | zmeň `DB_PORT` v `.env` a port v `DATABASE_URL` / `TEST_DATABASE_URL`                                                                                                                     |
+| BE nenaštartuje: chyba ENV                       | chýba alebo je neplatná premenná, napr. `SEED_ADMIN_PASSWORD`; chyba vypíše jej názov                                                                                                     |
+| `docker compose up` čaká na `backend`            | `pnpm stack:logs backend`, najčastejšie migrácia alebo pripojenie k DB                                                                                                                    |
+| refresh na hlbokej route vráti 404               | nginx nemá SPA fallback, skontroluj `docker/nginx/default.conf`                                                                                                                           |
+| test DB neexistuje                               | vytvorí ju `globalSetup` integračných testov, prípadne `pnpm db:down` a zmazanie volume                                                                                                   |
+| po prihlásení sa cookie neuloží (stále `/login`) | cez http musí byť `COOKIE_SECURE=false` v `.env` (Safari a WebKit `Secure` cookie cez http zahodia)                                                                                       |
+| login vracia 429                                 | prekročený `LOGIN_RATE_LIMIT_MAX`; počkaj `Retry-After` sekúnd alebo reštartuj backend (limit je v pamäti)                                                                                |
+| testy padajú na `57P03` / stovky 500 naraz       | Postgres reštartoval iný checkout; `docker inspect locale-admin-db-1 --format '{{.State.StartedAt}}'`. Skripty `db` znova nevytvárajú, priame `docker compose up` bez `--no-recreate` áno |

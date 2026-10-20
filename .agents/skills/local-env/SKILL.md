@@ -11,11 +11,13 @@ Human-facing docs: `docs/local-development.md`. All commands from the repo root.
 
 |       | Dev mode                                               | Production stack                                                  |
 | ----- | ------------------------------------------------------ | ----------------------------------------------------------------- |
-| Start | `pnpm db:up && pnpm db:migrate && pnpm dev`            | `pnpm stack:up` (`docker compose up -d --build --wait`)           |
+| Start | `pnpm db:up && pnpm db:migrate && pnpm dev`            | `pnpm stack:up` (db `--no-recreate`, then backend + frontend)     |
 | URLs  | FE `http://localhost:5173`, BE `http://localhost:3000` | `http://localhost:8080` (nginx), BE debug `http://localhost:3001` |
 | Stop  | Ctrl+C, `pnpm db:down`                                 | `pnpm stack:down`                                                 |
 
 Both modes share the same Postgres (`localhost:5433`, DB `locale`). Ports do not collide, both can run at once.
+
+Every checkout (main and git worktrees) uses compose project `locale-admin`, so one `locale-admin-db-1`. Its config hash differs per checkout (bind mount path), so a plain `docker compose up db` (or `up` of the whole stack) from another checkout recreates it and kills Postgres mid-run (`57P03`). `pnpm db:up`, `stack:up` and `test:e2e` use `--no-recreate` for `db`; never run `docker compose up` for `db` without it. To apply a `db` config change on purpose: `docker compose up -d --wait --force-recreate db` (volume keeps the data).
 
 ## Status and logs
 
@@ -45,18 +47,19 @@ Prisma model names are quoted PascalCase tables (`"User"`, `"Session"`), columns
 
 ## Troubleshooting
 
-| Symptom                                                             | Fix                                                                                                                                                      |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Missing .env`                                                      | `cp .env.example .env`                                                                                                                                   |
-| port 5433 / 3000 / 5173 / 8080 in use                               | `lsof -i :<port>`; change `DB_PORT` (and both DB URLs) in `.env` or stop the other process                                                               |
-| `stack:up` hangs at backend                                         | `pnpm stack:logs backend`: ENV validation error names the variable; migration or DB connection errors follow                                             |
-| BE exits `Invalid environment variables: SEED_ADMIN_PASSWORD`       | set it in `.env` (min. 8 chars)                                                                                                                          |
-| deep link like `/admin/users` returns nginx 404                     | check `try_files … /index.html` in `docker/nginx/default.conf`                                                                                           |
-| `/api/*` returns 502 via `:8080`                                    | backend container not healthy: `docker compose ps`, logs                                                                                                 |
-| integration tests: database `locale_test` missing                   | `globalSetup` creates it; check `TEST_DATABASE_URL` ends with `_test`                                                                                    |
-| Prisma warns about OpenSSL in Docker                                | runtime image must `apt-get install openssl` (see `docker/backend.Dockerfile`)                                                                           |
-| login succeeds (200) but the next request is 401 / back on `/login` | the browser dropped the cookie: over http `COOKIE_SECURE` must be `false` in `.env` (Safari, WebKit drop `Secure` cookies on http)                       |
-| login returns 429 `RATE_LIMITED`                                    | wait `Retry-After` seconds or `docker compose up -d --force-recreate backend` (in-memory limiter); `pnpm test:e2e` runs with `LOGIN_RATE_LIMIT_MAX=1000` |
+| Symptom                                                             | Fix                                                                                                                                                                       |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Missing .env`                                                      | `cp .env.example .env`                                                                                                                                                    |
+| port 5433 / 3000 / 5173 / 8080 in use                               | `lsof -i :<port>`; change `DB_PORT` (and both DB URLs) in `.env` or stop the other process                                                                                |
+| `stack:up` hangs at backend                                         | `pnpm stack:logs backend`: ENV validation error names the variable; migration or DB connection errors follow                                                              |
+| BE exits `Invalid environment variables: SEED_ADMIN_PASSWORD`       | set it in `.env` (min. 8 chars)                                                                                                                                           |
+| deep link like `/admin/users` returns nginx 404                     | check `try_files … /index.html` in `docker/nginx/default.conf`                                                                                                            |
+| `/api/*` returns 502 via `:8080`                                    | backend container not healthy: `docker compose ps`, logs                                                                                                                  |
+| integration tests: database `locale_test` missing                   | `globalSetup` creates it; check `TEST_DATABASE_URL` ends with `_test`                                                                                                     |
+| Prisma warns about OpenSSL in Docker                                | runtime image must `apt-get install openssl` (see `docker/backend.Dockerfile`)                                                                                            |
+| login succeeds (200) but the next request is 401 / back on `/login` | the browser dropped the cookie: over http `COOKIE_SECURE` must be `false` in `.env` (Safari, WebKit drop `Secure` cookies on http)                                        |
+| tests fail with `57P03` / bursts of 500                             | another checkout recreated db: compare `docker inspect locale-admin-db-1 --format '{{.State.StartedAt}}'`; `docker events --filter container=locale-admin-db-1` shows who |
+| login returns 429 `RATE_LIMITED`                                    | wait `Retry-After` seconds or `docker compose up -d --force-recreate backend` (in-memory limiter); `pnpm test:e2e` runs with `LOGIN_RATE_LIMIT_MAX=1000`                  |
 
 ## Agent worktrees
 

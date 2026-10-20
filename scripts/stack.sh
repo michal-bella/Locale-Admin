@@ -4,7 +4,11 @@ source "$(dirname "$0")/lib.sh"
 require_env_file
 
 case "${1:-}" in
-	up) docker compose up -d --build --wait ;;
+	up)
+		# db separately with --no-recreate, see scripts/db.sh.
+		docker compose up -d --wait --no-recreate db
+		docker compose up -d --build --wait --no-deps backend frontend
+		;;
 	down) docker compose down ;;
 	logs)
 		shift

@@ -74,6 +74,45 @@ Dva behy v tom istom checkoute naraz sa stále bijú; nespúšťaj ich.
 | Unit (frontend) | `components/ImportModal/ImportModal.test.tsx`      | krok 1: otvorenie, výber súboru a veľkosť, lokálne odmietnutie `.txt`, nad 10 MB a tela nad 12 MB, chyba `FileReader`, zoznam chýb `422` s „a ďalších N“ a výmena súboru, `413`; krok 2: predvyplnené jazyky, počty, upozornenia a súhrn, Pridať jazyk s opakovaným preview (aj po `LANGUAGE_TAKEN`, ručná voľba ostáva), `UNKNOWN` bez Pridať jazyk, Preskočiť a disabled Importovať, zabudnutie volieb pri inom súbore, približné počty, odoslanie `columns` a `createMissingKeys`, `IMPORT_COLUMNS_INVALID`, `422` pri importe → krok 1, Späť                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Unit (frontend) | `api/getPlaceholderMismatch.test.ts`               | helper vráti `details` iba pre `PLACEHOLDER_MISMATCH` v tvare podľa kontraktu, inak `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
+## Záťažové testy exportu
+
+Export (`GET /api/projects/:projectId/export`) sa testuje nástrojom [k6](https://grafana.com/docs/k6/) proti samostatnému stacku, ktorý nezasahuje do lokálnej DB ani do stacku na `:8080`: `scripts/load/docker-compose.yml` (projekt `locale-load`, vlastná Postgres DB, **2 repliky backendu s limitom 2 GB** ako v produkcii, produkčný nginx na `127.0.0.1:8090`). k6 beží z image `grafana/k6:1.3.0`, do repa sa nič neinštaluje.
+
+```bash
+scripts/load/run-export.sh up        # build a štart stacku
+scripts/load/run-export.sh seed      # projekty load-m a load-l (scripts/load/seed-export.sql)
+scripts/load/run-export.sh run spike # jeden scenár, alebo `all`
+scripts/load/run-export.sh down      # zmaže stack aj dáta
+```
+
+`run` počas scenára každé ~2 s vzorkuje `docker stats` replík, po skončení počká 20 s naprázdno a vypíše pamäť (začiatok, max, koniec) a súhrn riadkov `Export finished` z logu (počet, prerušené, `heapUsedMb`, trvanie). Surové výstupy sú v `scripts/load/results/` (v `.gitignore`).
+
+Dáta: **load-m** 5 000 kľúčov × 9 jazykov (45 000 prekladov, súbor ~5,6 MB), **load-l** 50 000 kľúčov × 9 jazykov (450 000, ~56 MB, 10× nad očakávaním). Hodnoty ~130 znakov s diakritikou a `{{count}}`, každá 10. mimo základného jazyka nepreložená. Limity sú predvolené (`EXPORT_MAX_CONCURRENT=2`, `EXPORT_QUEUE_MAX=20`, `EXPORT_QUEUE_TIMEOUT_MS=10000`), na stack spolu 4 bežiace exporty a 40 miest vo fronte.
+
+### Výsledky (2026-10-20, Docker Desktop, 10 CPU)
+
+| Scenár      | Záťaž                                   | Výsledok                                                                           | Pamäť repliky (RSS max / heap max) |
+| ----------- | --------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------- |
+| `baseline`  | 1 používateľ, load-m, 20×               | p95 606 ms, súbor bajtovo rovnaký vo všetkých 20 behoch, 5 000 kľúčov              | 192 MiB / 83 MiB                   |
+| `realistic` | 3 súbežní, load-m, 2 min, pauza 1 – 3 s | 160 exportov, 0 chýb, p95 519 ms                                                   | 231 MiB / 105 MiB                  |
+| `spike`     | **100 naraz**, load-m                   | 44 × 200 (4 bežia + 40 vo fronte, čakanie max. 5,3 s), 56 × 429 hneď, 0 × 5xx      | 278 MiB / 114 MiB                  |
+| `big`       | 10 súbežných, load-l, 3× každý          | 27 × 200 (jeden export ~5 – 6 s), 3 × 429 (čakanie dlhšie ako 10 s), 0 × 5xx       | 276 MiB / 107 MiB                  |
+| `soak`      | spike 3× po 90 s                        | 132 × 200, 168 × 429, 0 × 5xx; pamäť po vlnách nerastie (nižšie)                   | 273 MiB / 110 MiB                  |
+| `abort`     | 50 klientov na load-l to vzdá po 100 ms | prerušené exporty skončia do 335 ms, ďalší export dostane slot hneď (teardown 200) | 256 MiB / 54 MiB                   |
+
+Čerstvý kontajner má ~73 MiB RSS. Po prvej záťaži RSS ostane na ~190 – 250 MiB (V8 si heap rezervuje a OS ho nevracia), preto sa leak posudzuje podľa toho, či pamäť **rastie medzi vlnami**, nie podľa návratu na začiatočnú hodnotu:
+
+| `soak`    | vlna 1 RSS max / v pokoji / heap max | vlna 2              | vlna 3        |
+| --------- | ------------------------------------ | ------------------- | ------------- |
+| backend-1 | 259 / 243 / 101 MiB                  | 273 / 252 / 110 MiB | 267 / – / 108 |
+| backend-2 | 236 / 235 / 103 MiB                  | 257 / 236 / 101 MiB | 266 / – / 106 |
+
+Závery:
+
+- Pamäť nezávisí od veľkosti súboru: export 56 MB súboru drží heap pod 110 MiB, lebo backend streamuje po 1 000 kľúčoch. Ani 100 súbežných používateľov nedostane repliku nad 280 MiB z 2 048 MiB.
+- 429 pri `spike` je zámer: 100 kliknutí naraz je 30× viac ako očakávaní 3 používatelia; kto dostane 429, skúsi to po `Retry-After` (10 s).
+- Záťažový test našiel chybu: klient, ktorý odíde ešte počas overenia session a prístupu, nechal export čakať na `drain` navždy a slot sa nikdy neuvoľnil (po scenári `abort` ďalší export dostal 429). Opravené cez `res.destroyed` a abort pri časovom limite, regresný test „frees the slot when the client left before the export started“ v `backend/test/exports.test.ts`. Druhé zistenie: prvý prechod (kontrola hodnôt) teraz tiež končí pri odpojení, prerušený export load-l skončí za ~0,3 s namiesto ~2,4 s.
+
 ## E2E testy (Playwright)
 
 Testy sú v `e2e/tests/`, pomocné moduly v `e2e/support/`, konfigurácia v `e2e/playwright.config.ts`. Bežia v prehliadačoch Chromium a WebKit voči produkčnému stacku na `http://localhost:8080`.

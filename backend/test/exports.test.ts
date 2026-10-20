@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto'
+import { request as httpRequest } from 'node:http'
+import { type AddressInfo } from 'node:net'
 
 import request from 'supertest'
 import { describe, expect, it, vi } from 'vitest'
@@ -297,6 +299,45 @@ describe('GET /api/projects/:projectId/export', () => {
 			expectErrorCode(await exportCsv(app, cookie, project.id, { languageIds: foreign.id }), 400, ERROR_CODE.EXPORT_LANGUAGES_INVALID)
 			expectErrorCode(await exportCsv(app, cookie, project.id, { languageIds: sk.id }), 422, ERROR_CODE.EXPORT_VALUE_UNSAFE)
 			expectErrorCode(await exportCsv(app, cookie, project.id, { languageIds: sk.id }), 422, ERROR_CODE.EXPORT_VALUE_UNSAFE)
+		})
+
+		it('frees the slot when the client left before the export started', async () => {
+			const app = createTestApp({ config: { exportMaxConcurrent: 1, exportQueueMax: 0 } })
+			const { project, sk, cookie } = await setup(app)
+			await createKey(project.id, 'loc', 'a', { [sk.id]: 'A' })
+			const prisma = getTestPrisma()
+			const count = prisma.projectMember.count.bind(prisma.projectMember)
+			let entered = () => {}
+			const accessChecked = new Promise<void>((resolve) => {
+				entered = resolve
+			})
+			let release = () => {}
+			const released = new Promise<void>((resolve) => {
+				release = resolve
+			})
+			const spy = vi.spyOn(prisma.projectMember, 'count').mockImplementationOnce((async (...args: Parameters<typeof count>) => {
+				entered()
+				await released
+				return count(...args)
+			}) as typeof prisma.projectMember.count)
+			const server = app.listen(0)
+			try {
+				const { port } = server.address() as AddressInfo
+				const gone = httpRequest({ port, path: `/api/projects/${project.id}/export?languageIds=${sk.id}`, headers: { Cookie: cookie } })
+				gone.on('error', () => undefined)
+				gone.end()
+				await accessChecked
+				gone.destroy()
+				await new Promise((resolve) => setTimeout(resolve, 50))
+				release()
+
+				await vi.waitFor(async () => {
+					expect((await exportCsv(app, cookie, project.id, { languageIds: sk.id })).status).toBe(200)
+				})
+			} finally {
+				spy.mockRestore()
+				server.close()
+			}
 		})
 
 		it('closes the connection after the export timeout and frees the slot', async () => {

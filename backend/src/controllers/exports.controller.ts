@@ -21,6 +21,10 @@ export const createExportController = (prisma: PrismaClient, config: Config): Re
 	return async (req, res) => {
 		const query = exportQuerySchema.parse(req.query)
 		const closed = new AbortController()
+		// The client may have left during auth or the access check, before this listener exists (seen in the load test).
+		if (res.destroyed) {
+			closed.abort()
+		}
 		res.on('close', () => closed.abort())
 
 		const release = await limiter.acquire(closed.signal)
@@ -31,10 +35,14 @@ export const createExportController = (prisma: PrismaClient, config: Config): Re
 			res.set('Retry-After', retryAfterSeconds)
 			throw new AppError(429, ERROR_CODE.EXPORT_BUSY, 'Too many exports at once')
 		}
-		// A client that stops reading would keep the slot and the transaction; closing the connection ends both.
-		const timer = setTimeout(() => res.destroy(), config.exportTimeoutMs)
+		// A client that stops reading would keep the slot and the transaction; the abort also ends a wait for `drain`.
+		const timer = setTimeout(() => {
+			closed.abort()
+			res.destroy()
+		}, config.exportTimeoutMs)
+		const startedAt = performance.now()
 		try {
-			await exportCsv(
+			const keys = await exportCsv(
 				prisma,
 				req.params.projectId,
 				query,
@@ -57,6 +65,16 @@ export const createExportController = (prisma: PrismaClient, config: Config): Re
 				config.exportTimeoutMs,
 			)
 			res.end()
+			// The load tests (scripts/load) read the heap from this line to spot leaks.
+			req.log.info(
+				{
+					keys,
+					aborted: res.destroyed,
+					durationMs: Math.round(performance.now() - startedAt),
+					heapUsedMb: Math.round(process.memoryUsage().heapUsed / 1048576),
+				},
+				'Export finished',
+			)
 		} finally {
 			clearTimeout(timer)
 			release()

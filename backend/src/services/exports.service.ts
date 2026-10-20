@@ -69,9 +69,9 @@ async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], sta
 /**
  * Streams the project as CSV into `sink`. One `REPEATABLE READ` transaction makes both passes see the same snapshot,
  * even while an import runs: the first pass only checks the values (422 `EXPORT_VALUE_UNSAFE` before anything is sent),
- * the second writes the file batch by batch.
+ * the second writes the file batch by batch. Returns the number of written keys.
  */
-export const exportCsv = async (prisma: PrismaClient, projectId: string, query: ExportQuery, sink: ExportSink, timeoutMs: number): Promise<void> => {
+export const exportCsv = async (prisma: PrismaClient, projectId: string, query: ExportQuery, sink: ExportSink, timeoutMs: number): Promise<number> => {
 	const languages = await prisma.projectLanguage.findMany({
 		where: { projectId, id: { in: query.languageIds } },
 		select: { id: true, tag: true },
@@ -83,11 +83,14 @@ export const exportCsv = async (prisma: PrismaClient, projectId: string, query: 
 	const languageIds = languages.map((language) => language.id)
 	const tags = languages.map((language) => language.tag)
 
-	await prisma.$transaction(
+	return prisma.$transaction(
 		async (tx) => {
 			const issues: ExportIssue[] = []
 			let total = 0
 			for await (const rows of rowBatches(tx, projectId, languageIds, query.status)) {
+				if (sink.signal.aborted) {
+					return 0
+				}
 				for (const row of rows) {
 					const found = rowIssues(row, tags)
 					total += found.length
@@ -101,9 +104,10 @@ export const exportCsv = async (prisma: PrismaClient, projectId: string, query: 
 			sink.start()
 			await sink.write(csvHeader(tags))
 			let namespace = ''
+			let written = 0
 			for await (const rows of rowBatches(tx, projectId, languageIds, query.status)) {
 				if (sink.signal.aborted) {
-					return
+					return written
 				}
 				let chunk = ''
 				for (const row of rows) {
@@ -114,7 +118,9 @@ export const exportCsv = async (prisma: PrismaClient, projectId: string, query: 
 					chunk += csvRow(row)
 				}
 				await sink.write(chunk)
+				written += rows.length
 			}
+			return written
 		},
 		{ isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: timeoutMs },
 	)

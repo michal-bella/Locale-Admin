@@ -49,7 +49,7 @@ Export import toho istého súboru vráti bajt po bajte (integračný test), s v
 
 ### Ako sa odpoveď tvorí
 
-Všetko beží v jednej transakcii `REPEATABLE READ`, takže súbor je konzistentný snímok aj počas súbežného importu. Kľúče sa čítajú po 1 000 (`EXPORT_BATCH_SIZE`, keyset stránkovanie). Prvý prechod iba kontroluje hodnoty, druhý pošle hlavičky a zapisuje dávky so spätným tlakom (čaká na `drain`). V pamäti je vždy najviac jedna dávka. Keď klient zavrie spojenie, export po aktuálnej dávke skončí a transakcia sa uzavrie. Celý export (vrátane sťahovania klientom) má limit `EXPORT_TIMEOUT_MS` (60 s): potom sa transakcia zruší a spojenie zavrie, takže klient, ktorý prestane čítať, nedrží slot ani spojenie do DB.
+Všetko beží v jednej transakcii `REPEATABLE READ`, takže súbor je konzistentný snímok aj počas súbežného importu. Kľúče sa čítajú po 1 000 (`EXPORT_BATCH_SIZE`, keyset stránkovanie). Prvý prechod iba kontroluje hodnoty, druhý pošle hlavičky a zapisuje dávky so spätným tlakom (čaká na `drain`). V pamäti je vždy najviac jedna dávka. Keď klient zavrie spojenie, export po aktuálnej dávke skončí (v oboch prechodoch) a transakcia sa uzavrie. Platí to aj pre klienta, ktorý odíde ešte počas overenia session a prístupu, teda skôr, ako kontrolér začne počúvať na `close` (zistí sa z `res.destroyed`); bez toho by export čakal na `drain` navždy a slot by sa nikdy neuvoľnil (našiel záťažový test, regresný test v `backend/test/exports.test.ts`). Každý dokončený export zapíše do logu `Export finished` s `keys`, `aborted`, `durationMs` a `heapUsedMb`. Celý export (vrátane sťahovania klientom) má limit `EXPORT_TIMEOUT_MS` (60 s): potom sa transakcia zruší a spojenie zavrie, takže klient, ktorý prestane čítať, nedrží slot ani spojenie do DB.
 
 ## Súbežné exporty
 

@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Export prekladov do CSV – záťažové testy (2026-10-20)
+
+- testy: k6 záťažové testy exportu proti samostatnému stacku s 2 replikami po 2 GB (`scripts/load/`): 1, 3, 100 súbežných, projekt s 50 000 kľúčmi, 3 vlny po 100 a prerušené sťahovania; pamäť repliky max. 280 MiB, žiadny leak ani 5xx ([Testovanie](./testing.md#záťažové-testy-exportu))
+- backend: export klienta, ktorý odíde ešte pred štartom exportu, už nedrží slot navždy; kontrola hodnôt končí pri odpojení klienta; log `Export finished` s trvaním, počtom kľúčov a heapom ([API](./api/exports.md#ako-sa-odpoveď-tvorí))
+
 ### Export prekladov do CSV – ochrana proti záťaži (2026-10-20)
 
 - API: najviac `EXPORT_MAX_CONCURRENT` (2) exportov naraz na proces, ďalšie čakajú vo fronte (`EXPORT_QUEUE_MAX` 20, `EXPORT_QUEUE_TIMEOUT_MS` 10 s), potom 429 `EXPORT_BUSY` s `Retry-After`; export po `EXPORT_TIMEOUT_MS` (60 s) zavrie spojenie; slot sa uvoľní aj po chybe a odpojení ([API](./api/exports.md#súbežné-exporty), [ENV](./local-development.md))

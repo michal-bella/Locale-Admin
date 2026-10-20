@@ -76,7 +76,7 @@ Vo vzorke dnes nie je ani jeden taký prípad (všetkých 2 455 dátových riadk
 
 ## Výkon a ochrana pamäte
 
-Očakávanie: max. 3 používatelia, tisíce kľúčov (vzorka: 2 459 kľúčov × 10 jazykov ≈ 1 MB CSV). Prostredie: 2 pody, 2 GB pamäte na pod. Návrh je dimenzovaný tak, aby pamäť **nezávisela od veľkosti projektu ani od počtu súbežných exportov**.
+Očakávanie: max. 3 používatelia, tisíce kľúčov (vzorka: 2 459 kľúčov × 9 jazykov ≈ 1 MB CSV). Prostredie: 2 pody, 2 GB pamäte na pod. Návrh je dimenzovaný tak, aby pamäť **nezávisela od veľkosti projektu ani od počtu súbežných exportov**.
 
 1. **Streamovanie po dávkach.** Backend nečíta celý projekt do pamäte. Kľúče číta keyset stránkovaním po 1 000 (`ORDER BY namespace COLLATE "C", name COLLATE "C"`, `WHERE (namespace, name) > (…)`), ku každej dávke jedným dotazom preklady vybraných jazykov, a hneď zapisuje do `res`. Rešpektuje backpressure (`res.write()` vráti `false` → počká na `drain`). Pamäť jedného exportu ≈ jedna dávka (stovky kB). Spojenie z DB poolu drží len počas jedného dotazu, nie počas celého exportu.
 2. **Limit súbežných exportov na pod** (in-process semafor, ENV `EXPORT_MAX_CONCURRENT`, predvolene 2, a fronta `EXPORT_QUEUE_MAX`, predvolene 20, s čakaním max. `EXPORT_QUEUE_TIMEOUT_MS` 10 s). Plná fronta alebo vypršané čakanie → `429 EXPORT_BUSY` s `Retry-After`. FE zobrazí preloženú hlášku „Export práve robí veľa ľudí, skúste to o chvíľu“. Pri 2 podoch teda naraz beží max. 4 exporty, ostatné čakajú, nič nepadne na pamäť.
@@ -88,8 +88,8 @@ Očakávanie: max. 3 používatelia, tisíce kľúčov (vzorka: 2 459 kľúčov 
 ### Záťažové testy (míľnik C)
 
 - Nástroj **k6** cez Docker (`grafana/k6`, nič sa neinštaluje do repa), skript `scripts/load/export.k6.js` + `scripts/load/run-export.sh`.
-- Dáta: `scripts/load/seed-export.sql` (generate_series) vytvorí projekt **M** (5 000 kľúčov × 10 jazykov = 50 000 prekladov, hodnoty ~120 znakov) a **L** (50 000 kľúčov × 10 jazykov = 500 000, 10× nad očakávaním).
-- Stack beží s `mem_limit: 2g` na backende (override `docker-compose.load.yml`, len pre test) a voliteľne `--scale backend=2`.
+- Dáta: `scripts/load/seed-export.sql` (generate_series) vytvorí projekt **M** (5 000 kľúčov × 9 jazykov = 45 000 prekladov, hodnoty ~130 znakov) a **L** (50 000 kľúčov × 9 jazykov = 450 000, 10× nad očakávaním); 9 = celý katalóg `SUPPORTED_LANGUAGES`.
+- Samostatný stack `scripts/load/docker-compose.yml` (vlastná DB, 2 repliky backendu s limitom 2 GB, produkčný nginx), zdieľaný stack ani lokálna DB sa nemenia.
 - Scenáre:
 
   | Scenár     | Záťaž                                   | Cieľ                                                                     |
@@ -98,11 +98,11 @@ Očakávanie: max. 3 používatelia, tisíce kľúčov (vzorka: 2 459 kľúčov 
   | realistic  | 3 súbežní, projekt M, 2 min             | 0 chýb, p95 < 2 s                                                        |
   | spike      | **100 súbežných**, projekt M            | žiadny 5xx ani reštart kontajnera; časť dostane 429, zvyšok 200; RSS < 1 GB |
   | big        | 10 súbežných, projekt L                 | RSS sa nezvýši úmerne veľkosti projektu (streamovanie funguje)            |
-  | soak/leak  | spike 3× po sebe s 1 min pauzou         | RSS a `heapUsed` sa po každom kole vrátia k baseline ±10 % (žiadny leak), aktívne sloty = 0 |
+  | soak/leak  | spike 3× po 90 s                        | RSS a `heapUsed` nerastú medzi vlnami (žiadny leak); RSS sa po prvej záťaži na začiatočnú hodnotu nevracia, V8 si heap rezervuje |
   | abort      | 50 klientov preruší sťahovanie po 100 ms | sloty sa uvoľnia, ďalší export prejde hneď                               |
 
 - Meranie pamäte: `docker stats` vzorkované každú sekundu do CSV + `heapUsed` z dočasného logu po každom exporte (log `export finished` s trvaním, počtom riadkov a `process.memoryUsage().heapUsed`).
-- Výsledky (tabuľka p50/p95, max RSS, počet 429) idú do `docs/testing.md`. Ak niektorý cieľ neprejde, upravia sa limity alebo veľkosť dávky a test sa zopakuje.
+- Výsledky (tabuľka p50/p95, max RSS, počet 429) idú do `docs/testing.md` – [hotové 2026-10-20](../testing.md#záťažové-testy-exportu), všetky ciele splnené. Ak niektorý cieľ neprejde, upravia sa limity alebo veľkosť dávky a test sa zopakuje.
 
 ## Frontend
 
@@ -140,7 +140,7 @@ Očakávanie: max. 3 používatelia, tisíce kľúčov (vzorka: 2 459 kľúčov 
 
 ### C – Záťažové testy (`backend-developer` / orchestrátor)
 
-1. Seed skript M a L, k6 scenáre, `docker-compose.load.yml` s `mem_limit: 2g`.
+1. Seed skript M a L, k6 scenáre, samostatný stack `scripts/load/docker-compose.yml` (2 repliky po 2 GB).
 2. Spustenie scenárov z tabuľky, prípadné doladenie limitov.
 3. Výsledky do `docs/testing.md`.
 

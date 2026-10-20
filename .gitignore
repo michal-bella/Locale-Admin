@@ -20,3 +20,6 @@ e2e/.auth/
 # Playwright MCP screenshots
 .playwright-mcp/
 .claude/launch.json
+
+# Load test output (scripts/load/run-export.sh)
+scripts/load/results/

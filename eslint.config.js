@@ -72,6 +72,13 @@ export default defineConfig([
 		languageOptions: { globals: globals.node },
 	},
 
+	// k6 load tests run inside k6, which provides the `k6/*` modules and `__ENV`.
+	{
+		files: ['scripts/**/*.k6.js'],
+		languageOptions: { globals: { __ENV: 'readonly' } },
+		rules: { 'import-x/no-unresolved': ['error', { ignore: ['^k6(/|$)'] }] },
+	},
+
 	// Frontend.
 	{
 		files: ['frontend/**/*.{ts,tsx}'],

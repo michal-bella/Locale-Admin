@@ -29,6 +29,7 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `PATCH`  | `/api/projects/:projectId/settings`                             | uloženie nastavení projektu, základný jazyk iba ADMIN, [detail](./projects.md)                              |
 | `GET`    | `/api/projects/:projectId/languages`                            | jazyky projektu (člen, ADMIN), [detail](./project-languages.md)                                             |
 | `POST`   | `/api/projects/:projectId/languages`                            | pridanie jazyka do projektu (člen, ADMIN), [detail](./project-languages.md)                                 |
+| `PUT`    | `/api/projects/:projectId/languages/order`                      | poradie jazykov projektu, prvý je základný (člen, ADMIN), [detail](./project-languages.md)                  |
 | `DELETE` | `/api/projects/:projectId/languages/:languageId`                | odobratie jazyka z projektu (člen, ADMIN), [detail](./project-languages.md)                                 |
 | `GET`    | `/api/projects/:projectId/members`                              | členovia projektu (člen, ADMIN), [detail](./projects.md)                                                    |
 | `POST`   | `/api/projects/:projectId/members`                              | pridanie existujúceho používateľa do projektu (ADMIN), [detail](./projects.md)                              |

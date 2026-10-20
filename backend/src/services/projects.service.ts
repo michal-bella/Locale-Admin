@@ -9,19 +9,22 @@ const PROJECT_LIST_SELECT = {
 	name: true,
 	slug: true,
 	primaryColor: true,
-	languages: { select: { id: true, tag: true }, orderBy: [{ isBase: 'desc' }, { createdAt: 'asc' }, { tag: 'asc' }] },
-	_count: { select: { translationKeys: true } },
+	createdAt: true,
+	languages: { select: { id: true, tag: true }, orderBy: [{ isBase: 'desc' }, { position: 'asc' }, { tag: 'asc' }] },
+	_count: { select: { translationKeys: true, members: true } },
 } satisfies Prisma.ProjectSelect
 
 type ProjectListRow = Prisma.ProjectGetPayload<{ select: typeof PROJECT_LIST_SELECT }>
 
 // `tag` is always a catalog value (written only from the validated API and the seed).
-const toListItem = ({ languages, _count, ...project }: ProjectListRow, isMember: boolean, translatedCount: number): ProjectListItem => ({
+const toListItem = ({ languages, _count, createdAt, ...project }: ProjectListRow, isMember: boolean, translatedCount: number): ProjectListItem => ({
 	...project,
 	isMember,
 	languageTags: languages.map((language) => language.tag as LanguageTag),
 	keyCount: _count.translationKeys,
 	translatedCount,
+	memberCount: _count.members,
+	createdAt: createdAt.toISOString(),
 })
 
 export const isPrismaError = (err: unknown, code: string): boolean => err instanceof Prisma.PrismaClientKnownRequestError && err.code === code
@@ -82,7 +85,12 @@ export const reorderProjects = async (prisma: PrismaClient, user: AuthUser, { pr
 export const createProject = async (prisma: PrismaClient, userId: string, { name, slug, languageTags }: CreateProjectRequest): Promise<ProjectListItem> => {
 	try {
 		const project = await prisma.project.create({
-			data: { name, slug, members: { create: { userId } }, languages: { create: languageTags.map((tag, index) => ({ tag, isBase: index === 0 })) } },
+			data: {
+				name,
+				slug,
+				members: { create: { userId } },
+				languages: { create: languageTags.map((tag, index) => ({ tag, isBase: index === 0, position: index })) },
+			},
 			select: PROJECT_LIST_SELECT,
 		})
 		return toListItem(project, true, 0)

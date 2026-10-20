@@ -50,6 +50,9 @@ const languagesResponse = (languages: Language[]) => ({ status: 200, data: langu
 
 const getTable = (label = 'Zoznam jazykov') => screen.getByRole('table', { name: label })
 
+/** The top bar's language switcher shows "Slovenčina" too. */
+const findInTable = async (name: string) => within(await screen.findByRole('table', { name: 'Zoznam jazykov' })).findByText(name)
+
 const getRow = (name: string, tableLabel?: string) => {
 	const row = within(getTable(tableLabel)).getByText(name).closest('tr')
 	if (!row) {
@@ -110,20 +113,24 @@ describe('ProjectLanguagesPage table', () => {
 		})
 		renderApp(PAGE_PATH)
 
-		expect(await screen.findByText('Slovak')).toBeInTheDocument()
+		expect(await findInTable('Slovenčina')).toBeInTheDocument()
 		expect(screen.getByText('Lokalizácia')).toBeInTheDocument()
 		expect(screen.getByRole('heading', { level: 1, name: 'Jazyky' })).toBeInTheDocument()
-		expect(screen.getByText('Jazyky, do ktorých sa projekt prekladá. Základný jazyk zmeníte v nastaveniach projektu.')).toBeInTheDocument()
+		expect(
+			screen.getByText(
+				'Jazyky, do ktorých sa projekt prekladá. Poradie zmeníte potiahnutím – v tomto poradí sa zobrazia stĺpce v prekladoch a jazyk na prvom mieste je základný.',
+			),
+		).toBeInTheDocument()
 		expect(within(getTable()).getByRole('columnheader', { name: 'Jazyk' })).toBeInTheDocument()
 		expect(within(getTable()).getByRole('columnheader', { name: 'Akcie' })).toBeInTheDocument()
 		expect(within(getTable()).getAllByRole('row').slice(1)).toHaveLength(2)
 
-		const slovakRow = getRow('Slovak')
+		const slovakRow = getRow('Slovenčina')
 		expect(within(slovakRow).getByText('slovenčina · sk')).toBeInTheDocument()
 		expect(within(slovakRow).getByText('Základný')).toBeInTheDocument()
 		expect(slovakRow.querySelector('[data-flag="sk"]')).not.toBeNull()
 
-		const englishRow = getRow('English')
+		const englishRow = getRow('Angličtina')
 		expect(within(englishRow).getByText('English · en')).toBeInTheDocument()
 		expect(within(englishRow).queryByText('Základný')).not.toBeInTheDocument()
 		expect(englishRow.querySelector('[data-flag="gb"]')).not.toBeNull()
@@ -172,7 +179,7 @@ describe('ProjectLanguagesPage table', () => {
 		retry.focus()
 		fireEvent.click(retry)
 
-		expect(await screen.findByText('Slovak')).toBeInTheDocument()
+		expect(await findInTable('Slovenčina')).toBeInTheDocument()
 		await waitFor(() => expect(getTable()).toHaveFocus())
 	})
 
@@ -191,6 +198,116 @@ describe('ProjectLanguagesPage table', () => {
 	})
 })
 
+describe('Reordering languages', () => {
+	const rowNames = () =>
+		within(getTable())
+			.getAllByRole('row')
+			.slice(1)
+			.map((row) => within(row).getAllByText(/./)[0]?.textContent)
+
+	/** GET returns the current list, PUT …/order saves the order and makes the first language the base. */
+	const mockReorderApi = (initial: Language[]) => {
+		let languages = initial
+		return signedInAs(ADMIN_USER, {
+			...PROJECT_ROUTES,
+			[`GET ${LIST_URL}`]: () => languagesResponse(languages),
+			[`PUT ${LIST_URL}/order`]: (config) => {
+				const { languageIds } = bodyOf(config) as { languageIds: string[] }
+				languages = languageIds.flatMap((id, index) =>
+					initial.filter((language) => language.id === id).map((language) => ({ ...language, isBase: index === 0 })),
+				)
+				return languagesResponse(languages)
+			},
+		})
+	}
+
+	const puts = (requests: InternalAxiosRequestConfig[]) => requests.filter((request) => request.method === 'put').map((request) => bodyOf(request))
+
+	const pressArrow = async (name: string, key: 'ArrowUp' | 'ArrowDown') => {
+		const grip = await screen.findByRole('button', { name: `Presunúť jazyk ${name}` })
+		grip.focus()
+		fireEvent.keyDown(grip, { key })
+	}
+
+	it('shows the names in the UI language with the native name and tag under them', async () => {
+		mockReorderApi([SLOVAK, ENGLISH])
+		renderApp(PAGE_PATH)
+
+		expect(await screen.findByText('Angličtina')).toBeInTheDocument()
+		expect(within(getRow('Angličtina')).getByText('English · en')).toBeInTheDocument()
+	})
+
+	it('saves a move that keeps the base language without asking', async () => {
+		const requests = mockReorderApi([SLOVAK, ENGLISH, RUSSIAN])
+		renderApp(PAGE_PATH)
+
+		await pressArrow('Ruština', 'ArrowUp')
+
+		await waitFor(() => expect(puts(requests)).toEqual([{ languageIds: [SLOVAK.id, RUSSIAN.id, ENGLISH.id] }]))
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+		await waitFor(() => expect(rowNames()).toEqual(['Slovenčina', 'Ruština', 'Angličtina']))
+		expect(screen.getByRole('status')).toHaveTextContent('Jazyk Ruština je na 2. mieste z 3.')
+	})
+
+	it('asks before a new first language becomes the base; Nie puts the rows back and saves nothing', async () => {
+		const requests = mockReorderApi([SLOVAK, ENGLISH])
+		renderApp(PAGE_PATH)
+
+		await pressArrow('Angličtina', 'ArrowUp')
+
+		const dialog = await screen.findByRole('dialog', { name: 'Zmeniť základný jazyk' })
+		expect(
+			within(dialog).getByText(
+				'Jazyk na prvom mieste je základný. Presunutím sa základným jazykom projektu stane angličtina namiesto slovenčina. Zmena sa prejaví aj v nastaveniach projektu.',
+			),
+		).toBeInTheDocument()
+		expect(rowNames()).toEqual(['Angličtina', 'Slovenčina'])
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Nie, vrátiť' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(rowNames()).toEqual(['Slovenčina', 'Angličtina'])
+		expect(puts(requests)).toEqual([])
+	})
+
+	it('Áno saves the order and moves the base badge to the new first language', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		const requests = mockReorderApi([SLOVAK, ENGLISH])
+		renderApp(PAGE_PATH)
+
+		await pressArrow('Slovenčina', 'ArrowDown')
+		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Zmeniť základný jazyk' })).getByRole('button', { name: 'Áno, zmeniť' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(puts(requests)).toEqual([{ languageIds: [ENGLISH.id, SLOVAK.id] }])
+		await waitFor(() => expect(within(getRow('Angličtina')).getByText('Základný')).toBeInTheDocument())
+		expect(within(getRow('Slovenčina')).queryByText('Základný')).not.toBeInTheDocument()
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Základný jazyk je teraz Angličtina.' }))
+	})
+
+	it('restores the order and shows the translated error when saving fails', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		signedInAs(ADMIN_USER, {
+			...PROJECT_ROUTES,
+			[`GET ${LIST_URL}`]: languagesResponse([SLOVAK, ENGLISH, RUSSIAN]),
+			[`PUT ${LIST_URL}/order`]: apiError(400, 'VALIDATION_ERROR'),
+		})
+		renderApp(PAGE_PATH)
+
+		await pressArrow('Ruština', 'ArrowUp')
+
+		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red' })))
+		await waitFor(() => expect(rowNames()).toEqual(['Slovenčina', 'Angličtina', 'Ruština']))
+	})
+
+	it('has no grip with a single language', async () => {
+		mockReorderApi([SLOVAK])
+		renderApp(PAGE_PATH)
+
+		await findInTable('Slovenčina')
+		expect(screen.queryByRole('button', { name: 'Presunúť jazyk Slovenčina' })).not.toBeInTheDocument()
+	})
+})
+
 describe('AddLanguageModal', () => {
 	it('disables already added languages and adds the selected one', async () => {
 		const show = vi.spyOn(notifications, 'show')
@@ -204,7 +321,7 @@ describe('AddLanguageModal', () => {
 			},
 		})
 		renderApp(PAGE_PATH)
-		await screen.findByText('Slovak')
+		await findInTable('Slovenčina')
 		const dialog = await openAddModal()
 
 		const submit = within(dialog).getByRole('button', { name: 'Pridať' })
@@ -222,7 +339,7 @@ describe('AddLanguageModal', () => {
 		fireEvent.click(submit)
 
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-		expect(await screen.findByText('Russian')).toBeInTheDocument()
+		expect(await screen.findByText('Ruština')).toBeInTheDocument()
 		const posts = requests.filter((request) => request.method === 'post' && request.url === LIST_URL)
 		expect(posts).toHaveLength(1)
 		expect(bodyOf(posts[0])).toEqual({ tag: 'ru' })
@@ -235,7 +352,7 @@ describe('AddLanguageModal', () => {
 			[`GET ${LIST_URL}`]: languagesResponse([SLOVAK]),
 		})
 		renderApp(PAGE_PATH)
-		await screen.findByText('Slovak')
+		await findInTable('Slovenčina')
 		const dialog = await openAddModal()
 
 		const input = within(dialog).getByLabelText('Jazyk', { selector: 'input' })
@@ -253,7 +370,7 @@ describe('AddLanguageModal', () => {
 		})
 		renderApp(PAGE_PATH)
 
-		await screen.findByText('Slovak')
+		await findInTable('Slovenčina')
 		expect(screen.getByRole('button', { name: 'Pridať jazyk' })).toBeDisabled()
 	})
 
@@ -269,7 +386,7 @@ describe('AddLanguageModal', () => {
 			},
 		})
 		renderApp(PAGE_PATH)
-		await screen.findByText('Slovak')
+		await findInTable('Slovenčina')
 		const dialog = await openAddModal()
 
 		const input = within(dialog).getByLabelText('Jazyk', { selector: 'input' })
@@ -304,8 +421,8 @@ describe('Deleting a language', () => {
 		})
 		renderApp(PAGE_PATH)
 
-		expect(await screen.findByRole('button', { name: 'Odobrať jazyk Slovak' })).toBeDisabled()
-		expect(screen.getByRole('button', { name: 'Odobrať jazyk English' })).toBeEnabled()
+		expect(await screen.findByRole('button', { name: 'Odobrať jazyk Slovenčina' })).toBeDisabled()
+		expect(screen.getByRole('button', { name: 'Odobrať jazyk Angličtina' })).toBeEnabled()
 	})
 
 	it('asks for confirmation from the row button; Zrušiť removes nothing, Odobrať removes', async () => {
@@ -313,20 +430,20 @@ describe('Deleting a language', () => {
 		const requests = mockLanguagesApi([SLOVAK, ENGLISH])
 		renderApp(PAGE_PATH)
 
-		await clickRemove('English')
+		await clickRemove('Angličtina')
 		let confirm = await screen.findByRole('dialog', { name: 'Odobrať jazyk' })
 		expect(within(confirm).getByText('Naozaj chcete odobrať jazyk English (en) z projektu?')).toBeInTheDocument()
 		fireEvent.click(within(confirm).getByRole('button', { name: 'Zrušiť' }))
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		expect(requests.some((request) => request.method === 'delete')).toBe(false)
-		expect(getRow('English')).toBeInTheDocument()
+		expect(getRow('Angličtina')).toBeInTheDocument()
 
-		await clickRemove('English')
+		await clickRemove('Angličtina')
 		confirm = await screen.findByRole('dialog', { name: 'Odobrať jazyk' })
 		fireEvent.click(within(confirm).getByRole('button', { name: 'Odobrať' }))
 
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-		await waitFor(() => expect(within(getTable()).queryByText('English')).not.toBeInTheDocument())
+		await waitFor(() => expect(within(getTable()).queryByText('Angličtina')).not.toBeInTheDocument())
 		expect(requests.filter((request) => request.method === 'delete').map((request) => request.url)).toEqual([`${LIST_URL}/${ENGLISH.id}`])
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Jazyk English bol odobraný z projektu.' }))
 	})
@@ -348,7 +465,7 @@ describe('Deleting a language', () => {
 		})
 		renderApp(PAGE_PATH)
 
-		await clickRemove('English')
+		await clickRemove('Angličtina')
 		const confirm = await screen.findByRole('dialog', { name: 'Odobrať jazyk' })
 		fireEvent.click(within(confirm).getByRole('button', { name: 'Odobrať' }))
 
@@ -359,8 +476,8 @@ describe('Deleting a language', () => {
 		)
 		expect(screen.getByRole('dialog', { name: 'Odobrať jazyk' })).toBeInTheDocument()
 		await waitFor(() => expect(requests.filter((request) => request.method === 'get' && request.url === LIST_URL)).toHaveLength(2))
-		await waitFor(() => expect(within(getRow('English')).getByText('Základný')).toBeInTheDocument())
-		expect(within(getRow('Slovak')).queryByText('Základný')).not.toBeInTheDocument()
+		await waitFor(() => expect(within(getRow('Angličtina')).getByText('Základný')).toBeInTheDocument())
+		expect(within(getRow('Slovenčina')).queryByText('Základný')).not.toBeInTheDocument()
 	})
 })
 
@@ -379,9 +496,9 @@ describe('Focus after a modal closes', () => {
 	it('returns to the row button after the remove confirmation is cancelled', async () => {
 		mockLanguagesApi([SLOVAK, ENGLISH])
 		renderApp(PAGE_PATH)
-		const trigger = await screen.findByRole('button', { name: 'Odobrať jazyk English' })
+		const trigger = await screen.findByRole('button', { name: 'Odobrať jazyk Angličtina' })
 
-		const confirm = await openRemove('English')
+		const confirm = await openRemove('Angličtina')
 		press(within(confirm).getByRole('button', { name: 'Zrušiť' }))
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		expect(trigger).toHaveFocus()
@@ -391,10 +508,10 @@ describe('Focus after a modal closes', () => {
 		mockLanguagesApi([SLOVAK, ENGLISH])
 		renderApp(PAGE_PATH)
 
-		const confirm = await openRemove('English')
+		const confirm = await openRemove('Angličtina')
 		press(within(confirm).getByRole('button', { name: 'Odobrať' }))
 
-		await waitFor(() => expect(within(getTable()).queryByText('English')).not.toBeInTheDocument())
+		await waitFor(() => expect(within(getTable()).queryByText('Angličtina')).not.toBeInTheDocument())
 		expect(getTable()).toHaveFocus()
 	})
 
@@ -417,7 +534,7 @@ describe('Focus after a modal closes', () => {
 		press(within(dialog).getByRole('button', { name: 'Pridať' }))
 
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-		expect(await within(getTable()).findByText('Russian')).toBeInTheDocument()
+		expect(await within(getTable()).findByText('Ruština')).toBeInTheDocument()
 		expect(getTable()).toHaveFocus()
 	})
 })

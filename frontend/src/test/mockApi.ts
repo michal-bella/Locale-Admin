@@ -37,18 +37,30 @@ export const apiError = (status: number, code: string, extra: { details?: unknow
 
 /** Replaces the HTTP layer of the shared axios instance. Unknown routes answer 404. Returns the list of sent requests. */
 type ListedProject = Pick<ProjectListItem, 'id' | 'name' | 'slug' | 'primaryColor'> &
-	Partial<Pick<ProjectListItem, 'isMember' | 'languageTags' | 'keyCount' | 'translatedCount'>>
+	Partial<Pick<ProjectListItem, 'isMember' | 'languageTags' | 'keyCount' | 'translatedCount' | 'memberCount' | 'createdAt'>>
 
 export const projectListResponse = (...projects: ListedProject[]): MockResponse => ({
 	status: 200,
 	data: {
-		projects: projects.map(({ isMember = true, languageTags = [], keyCount = 0, translatedCount = 0, ...project }): ProjectListItem => ({
-			...project,
-			isMember,
-			languageTags,
-			keyCount,
-			translatedCount,
-		})),
+		projects: projects.map(
+			({
+				isMember = true,
+				languageTags = [],
+				keyCount = 0,
+				translatedCount = 0,
+				memberCount = 1,
+				createdAt = '2026-10-12T08:00:00.000Z',
+				...project
+			}): ProjectListItem => ({
+				...project,
+				isMember,
+				languageTags,
+				keyCount,
+				translatedCount,
+				memberCount,
+				createdAt,
+			}),
+		),
 	},
 })
 

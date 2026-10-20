@@ -146,6 +146,20 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 		expect(await putOk(app, cookie, project.id, noBase.id, en.id, '{{anything}}')).toMatchObject({ status: 'TRANSLATED' })
 	})
 
+	it('takes the placeholders from the key name when the base value is null or missing', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const nullBase = await createKey(project.id, 'Cena do vrátane DPH ({{symbol}})', { [sk.id]: null })
+		const noBase = await createKey(project.id, 'Spolu {{count}} položiek')
+
+		const res = await put(app, cookie, project.id, nullBase.id, en.id, 'Price incl. VAT')
+		expectErrorCode(res, 400, ERROR_CODE.PLACEHOLDER_MISMATCH)
+		expect(placeholderDetails(res)).toEqual({ missing: ['{{symbol}}'], extra: [] })
+		expect(await findRow(nullBase.id, en.id)).toBeNull()
+		expect(await putOk(app, cookie, project.id, nullBase.id, en.id, 'Price incl. VAT ({{symbol}})')).toMatchObject({ status: 'TRANSLATED' })
+		expectErrorCode(await put(app, cookie, project.id, noBase.id, en.id, '{{total}} items'), 400, ERROR_CODE.PLACEHOLDER_MISMATCH)
+	})
+
 	it('allows a mismatch when protectVariables is off', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie } = await setup(app, { protectVariables: false })

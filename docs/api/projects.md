@@ -40,6 +40,8 @@ Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema
 | `languageTags`    | string[] | tagy jazykov projektu, základný jazyk prvý, potom podľa pridania                                                            |
 | `keyCount`        | number   | počet kľúčov projektu                                                                                                       |
 | `translatedCount` | number   | počet vyplnených hodnôt cez všetky kľúče a jazyky; projekt je celý preložený, keď sa rovná `keyCount × languageTags.length` |
+| `memberCount`     | number   | počet členov projektu                                                                                                       |
+| `createdAt`       | ISO 8601 | kedy bol projekt vytvorený                                                                                                  |
 
 ```json
 {
@@ -52,7 +54,9 @@ Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema
 			"isMember": true,
 			"languageTags": ["sk", "en"],
 			"keyCount": 224,
-			"translatedCount": 447
+			"translatedCount": 447,
+			"memberCount": 3,
+			"createdAt": "2026-10-12T08:00:00.000Z"
 		}
 	]
 }
@@ -62,11 +66,11 @@ Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema
 
 Telo (schéma `createProjectRequestSchema`): `{ "name": "Booking Web", "slug": "booking-web", "languageTags": ["sk", "en"] }`. Validácia `name` a `slug` je rovnaká ako pri nastaveniach. `languageTags` sú tagy z katalógu, aspoň jeden a bez duplicít (`REQUIRED` / `INVALID`); prvý je základný jazyk. Farba a ochrana premenných dostanú defaulty. Projekt, jeho jazyky aj členstvo tvorcu vzniknú naraz.
 
-| HTTP | `code`             | Kedy                                                                            |
-| ---- | ------------------ | ------------------------------------------------------------------------------- |
-| 201  |                    | telo `ProjectListItem` s `isMember: true`, `keyCount: 0` a `translatedCount: 0` |
-| 400  | `VALIDATION_ERROR` | nevalidné telo, `details` podľa polí                                            |
-| 409  | `SLUG_TAKEN`       | projekt s týmto slugom už existuje                                              |
+| HTTP | `code`             | Kedy                                                                                              |
+| ---- | ------------------ | ------------------------------------------------------------------------------------------------- |
+| 201  |                    | telo `ProjectListItem` s `isMember: true`, `keyCount: 0`, `translatedCount: 0` a `memberCount: 1` |
+| 400  | `VALIDATION_ERROR` | nevalidné telo, `details` podľa polí                                                              |
+| 409  | `SLUG_TAKEN`       | projekt s týmto slugom už existuje                                                                |
 
 ## PUT /api/projects/order
 

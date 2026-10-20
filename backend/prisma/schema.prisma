@@ -63,6 +63,8 @@ model ProjectLanguage {
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tag          String
   isBase       Boolean       @default(false)
+  /// Column order on the translations page (drag and drop on the Languages page); the base language is always shown first.
+  position     Int           @default(0)
   createdAt    DateTime      @default(now())
   translations Translation[]
 

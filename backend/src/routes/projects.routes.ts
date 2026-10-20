@@ -8,6 +8,7 @@ import {
 	createCreateProjectLanguageController,
 	createDeleteProjectLanguageController,
 	createListProjectLanguagesController,
+	createReorderProjectLanguagesController,
 } from '../controllers/projectLanguages.controller'
 import {
 	createAddProjectMemberController,
@@ -43,6 +44,7 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.patch('/:projectId/settings', requireProjectAccess, createUpdateProjectSettingsController(prisma))
 	router.get('/:projectId/languages', requireProjectAccess, createListProjectLanguagesController(prisma))
 	router.post('/:projectId/languages', requireProjectAccess, createCreateProjectLanguageController(prisma))
+	router.put('/:projectId/languages/order', requireProjectAccess, createReorderProjectLanguagesController(prisma))
 	router.delete('/:projectId/languages/:languageId', requireProjectAccess, createDeleteProjectLanguageController(prisma))
 	router.get('/:projectId/members', requireProjectAccess, createListProjectMembersController(prisma))
 	router.post('/:projectId/members', requireProjectAccess, requireRole(ROLE.ADMIN), createAddProjectMemberController(prisma))

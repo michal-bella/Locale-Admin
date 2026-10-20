@@ -13,6 +13,8 @@ export type ProjectListItem = {
 	languageTags: string[]
 	keyCount: number
 	translatedCount: number
+	memberCount: number
+	createdAt: string
 }
 
 export type ProjectSettings = {

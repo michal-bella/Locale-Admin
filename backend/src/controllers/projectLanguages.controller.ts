@@ -1,10 +1,10 @@
 import { type Request, type RequestHandler } from 'express'
 
-import { createLanguageRequestSchema, languageSchema, ERROR_CODE, type Language, type LanguagesResponse } from '@locale/shared'
+import { createLanguageRequestSchema, languageSchema, reorderLanguagesRequestSchema, ERROR_CODE, type Language, type LanguagesResponse } from '@locale/shared'
 
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
-import { createProjectLanguage, deleteProjectLanguage, listProjectLanguages } from '../services/projectLanguages.service'
+import { createProjectLanguage, deleteProjectLanguage, listProjectLanguages, reorderProjectLanguages } from '../services/projectLanguages.service'
 
 type Params = { projectId: string; languageId: string }
 
@@ -37,4 +37,11 @@ export const createDeleteProjectLanguageController =
 	async (req, res) => {
 		await deleteProjectLanguage(prisma, req.params.projectId, parseLanguageId(req))
 		res.status(204).end()
+	}
+
+export const createReorderProjectLanguagesController =
+	(prisma: PrismaClient): RequestHandler<Pick<Params, 'projectId'>> =>
+	async (req, res) => {
+		const body: LanguagesResponse = await reorderProjectLanguages(prisma, req.params.projectId, reorderLanguagesRequestSchema.parse(req.body))
+		res.status(200).json(body)
 	}

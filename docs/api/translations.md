@@ -158,7 +158,7 @@ Keď má projekt zapnuté `protectVariables` (nastavenia projektu, predvolene za
 
 - sa upravuje základný jazyk (ten je zdrojom pravdy),
 - je `value` `null`,
-- kľúč nemá v základnom jazyku hodnotu (riadok chýba alebo je `null`),
+- kľúč nemá v základnom jazyku hodnotu (riadok chýba alebo je `null`) a ani jeho názov neobsahuje premenné; inak sa porovná s premennými v názve kľúča (veta ako `Cena do vrátane DPH ({{symbol}})` vyžaduje `{{symbol}}`),
 - projekt má `protectVariables` vypnuté.
 
 Pri nezhode sa nič nezapíše a vráti sa 400 `PLACEHOLDER_MISMATCH` s `details: { missing, extra }` – normalizované premenné, ktoré v hodnote chýbajú oproti základnému jazyku, a ktoré sú navyše.

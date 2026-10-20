@@ -141,7 +141,7 @@ pnpm test:e2e tests/login.spec.ts      # iba jeden súbor (argumenty idú do Pla
 pnpm test:e2e --project=webkit         # iba jeden prehliadač
 ```
 
-`pnpm test:e2e` (skript `scripts/test-e2e.sh`) najprv spustí Postgres, ak nebeží (`docker compose up -d --wait db`, bežiaci kontajner nereštartuje), potom znova vytvorí kontajnery `backend` a `frontend` (`docker compose up -d --build --wait --force-recreate --no-deps`) s `LOGIN_RATE_LIMIT_MAX=1000`, aby testy neskončili na 429, a potom spustí `pnpm --filter e2e test:e2e` (`playwright test`). Stack po testoch beží ďalej s limitom 1000; `pnpm stack:up` vráti hodnoty z `.env`.
+`pnpm test:e2e` (skript `scripts/test-e2e.sh`) najprv spustí Postgres, ak nebeží (`docker compose up -d --wait --no-recreate db`, bežiaci kontajner nereštartuje ani keď ho spustil iný checkout, [Lokálny vývoj](./local-development.md#dva-režimy)), potom znova vytvorí kontajnery `backend` a `frontend` (`docker compose up -d --build --wait --force-recreate --no-deps`) s `LOGIN_RATE_LIMIT_MAX=1000`, aby testy neskončili na 429, a potom spustí `pnpm --filter e2e test:e2e` (`playwright test`). Stack po testoch beží ďalej s limitom 1000; `pnpm stack:up` vráti hodnoty z `.env`.
 
 Testy sa dajú pustiť aj priamo (`pnpm --filter e2e test:e2e`) proti už bežiacemu stacku. Jeden beh urobí približne 17 pokusov o prihlásenie (setup 2, na prehliadač 4 v `login.spec`, 1 v `users.spec` a 2 v `profile.spec`, 1 v `api-smoke.spec` iba v Chromiu), teda viac ako predvolený limit 10 za 15 minút. Priamy beh preto potrebuje zvýšený `LOGIN_RATE_LIMIT_MAX`; inak použite `pnpm test:e2e`.
 

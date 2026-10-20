@@ -4,7 +4,9 @@ source "$(dirname "$0")/lib.sh"
 require_env_file
 
 case "${1:-}" in
-	up) docker compose up -d --wait db ;;
+	# --no-recreate: the db config hash differs per checkout (bind mount path), so a plain up from a
+	# worktree would recreate the Postgres another checkout is using.
+	up) docker compose up -d --wait --no-recreate db ;;
 	down) docker compose stop db ;;
 	migrate) pnpm --filter backend db:migrate ;;
 	seed) pnpm --filter backend db:seed ;;

@@ -24,6 +24,8 @@ RUN cd /out && node_modules/.bin/prisma version >/dev/null
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# The pod has a 2 GB memory limit: a smaller heap makes V8 collect garbage before the kernel OOM-kills the container.
+ENV NODE_OPTIONS=--max-old-space-size=1536
 WORKDIR /app
 # Files stay owned by root, so the app user cannot modify its own code.
 COPY --from=build /out ./

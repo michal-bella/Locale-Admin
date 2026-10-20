@@ -1,0 +1,101 @@
+.formats {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.5rem;
+	padding-top: 0.5rem;
+}
+
+@media (max-width: 30em) {
+	.formats {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.format {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-lg);
+	text-align: left;
+}
+
+.format[data-checked] {
+	border-color: var(--mantine-color-brand-2);
+	background-color: var(--app-color-brand-tint);
+	box-shadow: 0 0 0 1px var(--mantine-color-brand-1);
+}
+
+[data-mantine-color-scheme='dark'] .format[data-checked] {
+	border-color: var(--mantine-color-brand-7);
+	box-shadow: none;
+}
+
+.format:disabled {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.formatBadge {
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+	width: 2.25rem;
+	height: 2.25rem;
+	border-radius: var(--mantine-radius-sm);
+	background-color: var(--app-color-avatar-muted);
+	font-size: var(--mantine-font-size-2xs);
+	font-weight: 700;
+	line-height: 1.5;
+	color: var(--app-color-text-secondary);
+}
+
+.format[data-checked] .formatBadge {
+	background-color: var(--mantine-color-brand-6);
+	color: var(--mantine-color-white);
+}
+
+.formatName {
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 700;
+	line-height: 1.4286;
+	color: var(--app-color-text-strong);
+}
+
+.formatDescription {
+	font-size: var(--mantine-font-size-2xs);
+	line-height: 1.5;
+	color: var(--app-color-text-secondary);
+}
+
+.language {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	width: auto;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-sm);
+}
+
+/* Mantine's default border (gray-4) is 1.5:1 on white, too faint for an unchecked box (WCAG 1.4.11). */
+.indicator:not([data-checked]) {
+	border-color: var(--mantine-color-slate-5);
+}
+
+[data-mantine-color-scheme='dark'] .indicator:not([data-checked]) {
+	border-color: var(--mantine-color-slate-4);
+}
+
+.languageLabel {
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 500;
+	color: var(--app-color-text-strong);
+}
+
+.issues {
+	margin: 0;
+	padding-left: 1.25rem;
+	overflow-wrap: anywhere;
+}

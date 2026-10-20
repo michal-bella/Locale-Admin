@@ -407,7 +407,8 @@
 			"summary_few": "Zobrazeno {{shown}} z {{count}} klíčů",
 			"summary_many": "Zobrazeno {{shown}} z {{count}} klíčů",
 			"summary_other": "Zobrazeno {{shown}} z {{count}} klíčů"
-		}
+		},
+		"exportButton": "Exportovat"
 	},
 	"importModal": {
 		"title": "Importovat překlady",
@@ -518,6 +519,57 @@
 		"successOverwritten_few": "{{count}} přepsané",
 		"successOverwritten_many": "{{count}} přepsaných",
 		"successOverwritten_other": "{{count}} přepsaných"
+	},
+	"exportModal": {
+		"title": "Exportovat překlady",
+		"description": "Vyberte jazyky a formát výstupního souboru.",
+		"close": "Zavřít",
+		"cancel": "Zrušit",
+		"submit": "Exportovat CSV",
+		"success": "Překlady se stáhly do souboru {{fileName}}.",
+		"format": {
+			"label": "Formát výstupu",
+			"soon": "Brzy",
+			"description": {
+				"JSON": "Pro webové aplikace",
+				"CSV": "Univerzální tabulka",
+				"XLSX": "Microsoft Excel",
+				"ARB": "Flutter aplikace"
+			}
+		},
+		"languages": {
+			"label": "Jazyky",
+			"required": "Vyberte alespoň jeden jazyk."
+		},
+		"status": {
+			"label": "Stav",
+			"ALL": "Všechny",
+			"TRANSLATED": "Přeložené",
+			"UNTRANSLATED": "Nepřeložené"
+		},
+		"fileName": {
+			"label": "Název souboru",
+			"extensionHint": ", přípona .csv se doplní",
+			"required": "Zadejte název souboru.",
+			"invalid": "Název souboru nesmí obsahovat znaky \\ / : * ? \" < > |.",
+			"tooLong": "Název souboru může mít nejvýše {{max}} znaků."
+		},
+		"issues": {
+			"value": {
+				"SEMICOLON": "„{{key}}“: překlad {{language}} obsahuje středník (;).",
+				"LINE_BREAK": "„{{key}}“: překlad {{language}} obsahuje nový řádek."
+			},
+			"row": {
+				"SEMICOLON": "Klíč „{{key}}“ obsahuje středník (;).",
+				"LINE_BREAK": "Klíč „{{key}}“ obsahuje nový řádek.",
+				"SECTION_MARKER": "„{{key}}“: řádek obsahuje text ve tvaru --název--, který by se načetl jako nová sekce.",
+				"NAMESPACE": "Namespace „{{namespace}}“ by se v CSV načetl jinak (obsahuje -- nebo končí pomlčkou). Přejmenujte ho."
+			},
+			"more_one": "… a ještě {{count}} další.",
+			"more_few": "… a ještě {{count}} další.",
+			"more_many": "… a ještě {{count}} dalších.",
+			"more_other": "… a ještě {{count}} dalších."
+		}
 	},
 	"importIssues": {
 		"FILE_EMPTY": "Soubor je prázdný nebo obsahuje pouze hlavičku.",
@@ -838,6 +890,9 @@
 		"PLACEHOLDER_MISMATCH": "Proměnné v překladu se neshodují se základním jazykem.",
 		"TRANSLATION_KEY_NOT_FOUND": "Klíč se nenašel. Možná ho mezitím někdo odstranil.",
 		"TRANSLATION_KEY_TAKEN": "Klíč s tímto názvem už v namespace existuje.",
+		"EXPORT_LANGUAGES_INVALID": "Vybraný jazyk do projektu nepatří. Obnovte stránku a zkuste to znovu.",
+		"EXPORT_VALUE_UNSAFE": "Některé překlady obsahují znaky, které by rozbily soubor CSV. Opravte je a zkuste to znovu.",
+		"EXPORT_BUSY": "Export právě dělá mnoho lidí najednou. Zkuste to za chvíli znovu.",
 		"RATE_LIMITED": "Příliš mnoho pokusů. Zkuste to znovu později.",
 		"INTERNAL_ERROR": "Nastala neočekávaná chyba. Zkuste to znovu.",
 		"UNKNOWN": "Nastala neznámá chyba. Zkuste to znovu."

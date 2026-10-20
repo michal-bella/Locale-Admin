@@ -113,3 +113,26 @@ The limit lives in memory: `docker compose up -d --force-recreate backend` reset
 ## Mutations
 
 All `POST`/`PUT`/`PATCH`/`DELETE` requests must send `Content-Type: application/json` and `X-Requested-With: XMLHttpRequest` (otherwise 403 `CSRF_REJECTED`), with `-d '{}'` when there is no body.
+
+## Export (`GET /api/projects/:projectId/export`)
+
+After logging in (`JAR` from the auth section), take the project with the most keys and all its languages:
+
+```bash
+P=$(curl -s -b $JAR $BASE/projects | python3 -c 'import json,sys; d=json.load(sys.stdin); print(max(d["projects"],key=lambda p:p["keyCount"])["id"])')
+L=$(curl -s -b $JAR $BASE/projects/$P/languages | python3 -c 'import json,sys; print(",".join(l["id"] for l in json.load(sys.stdin)))')
+curl -s -D - -o /tmp/translations.csv -b $JAR "$BASE/projects/$P/export?languageIds=$L" | grep -iE '^(HTTP|content-type|content-disposition)'
+# HTTP/1.1 200, text/csv; charset=utf-8, attachment; filename="translations.csv"
+curl -s -w ' %{http_code}\n' -b $JAR "$BASE/projects/$P/export?languageIds=00000000-0000-4000-8000-000000000000"
+# 400 EXPORT_LANGUAGES_INVALID
+```
+
+429 `EXPORT_BUSY` needs a backend with `EXPORT_MAX_CONCURRENT=1 EXPORT_QUEUE_MAX=0` and a project with thousands of keys (one export then takes ~100 ms):
+
+```bash
+seq 60 | xargs -P 60 -I{} curl -s -o /dev/null -w '%{http_code}\n' -b $JAR "$BASE/projects/$P/export?languageIds=$L" | sort | uniq -c
+# a few 200, the rest 429 (Retry-After: 10); the next single export is 200 again
+```
+
+To test a branch without rebuilding the shared stack, run its image as a separate container on the stack network:
+`docker build -f docker/backend.Dockerfile -t locale-export-smoke:local .`, then `docker run -d --rm --name locale-export-smoke --network locale-admin_default -p 127.0.0.1:3002:3000` with `DATABASE_URL` pointing to host `db`, `SEED_ADMIN_PASSWORD`, `COOKIE_SECURE=false` and the `EXPORT_*` overrides, and use `BASE=http://127.0.0.1:3002/api`. It runs migrations and the seed on the shared DB on start.

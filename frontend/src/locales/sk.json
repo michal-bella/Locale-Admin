@@ -407,7 +407,8 @@
 			"summary_few": "Zobrazených {{shown}} z {{count}} kľúčov",
 			"summary_many": "Zobrazených {{shown}} z {{count}} kľúčov",
 			"summary_other": "Zobrazených {{shown}} z {{count}} kľúčov"
-		}
+		},
+		"exportButton": "Exportovať"
 	},
 	"importModal": {
 		"title": "Importovať preklady",
@@ -518,6 +519,57 @@
 		"successOverwritten_few": "{{count}} prepísané",
 		"successOverwritten_many": "{{count}} prepísaných",
 		"successOverwritten_other": "{{count}} prepísaných"
+	},
+	"exportModal": {
+		"title": "Exportovať preklady",
+		"description": "Vyberte jazyky a formát výstupného súboru.",
+		"close": "Zavrieť",
+		"cancel": "Zrušiť",
+		"submit": "Exportovať CSV",
+		"success": "Preklady sa stiahli do súboru {{fileName}}.",
+		"format": {
+			"label": "Formát výstupu",
+			"soon": "Čoskoro",
+			"description": {
+				"JSON": "Pre webové aplikácie",
+				"CSV": "Univerzálna tabuľka",
+				"XLSX": "Microsoft Excel",
+				"ARB": "Flutter aplikácie"
+			}
+		},
+		"languages": {
+			"label": "Jazyky",
+			"required": "Vyberte aspoň jeden jazyk."
+		},
+		"status": {
+			"label": "Stav",
+			"ALL": "Všetky",
+			"TRANSLATED": "Preložené",
+			"UNTRANSLATED": "Nepreložené"
+		},
+		"fileName": {
+			"label": "Názov súboru",
+			"extensionHint": ", prípona .csv sa doplní",
+			"required": "Zadajte názov súboru.",
+			"invalid": "Názov súboru nesmie obsahovať znaky \\ / : * ? \" < > |.",
+			"tooLong": "Názov súboru môže mať najviac {{max}} znakov."
+		},
+		"issues": {
+			"value": {
+				"SEMICOLON": "„{{key}}“: preklad {{language}} obsahuje bodkočiarku (;).",
+				"LINE_BREAK": "„{{key}}“: preklad {{language}} obsahuje nový riadok."
+			},
+			"row": {
+				"SEMICOLON": "Kľúč „{{key}}“ obsahuje bodkočiarku (;).",
+				"LINE_BREAK": "Kľúč „{{key}}“ obsahuje nový riadok.",
+				"SECTION_MARKER": "„{{key}}“: riadok obsahuje text v tvare --názov--, ktorý by sa načítal ako nová sekcia.",
+				"NAMESPACE": "Namespace „{{namespace}}“ by sa v CSV načítal inak (obsahuje -- alebo končí pomlčkou). Premenujte ho."
+			},
+			"more_one": "… a ešte {{count}} ďalší.",
+			"more_few": "… a ešte {{count}} ďalšie.",
+			"more_many": "… a ešte {{count}} ďalších.",
+			"more_other": "… a ešte {{count}} ďalších."
+		}
 	},
 	"importIssues": {
 		"FILE_EMPTY": "Súbor je prázdny alebo obsahuje iba hlavičku.",
@@ -838,6 +890,9 @@
 		"PLACEHOLDER_MISMATCH": "Premenné v preklade sa nezhodujú so základným jazykom.",
 		"TRANSLATION_KEY_NOT_FOUND": "Kľúč sa nenašiel. Možno ho medzitým niekto odstránil.",
 		"TRANSLATION_KEY_TAKEN": "Kľúč s týmto názvom už v namespace existuje.",
+		"EXPORT_LANGUAGES_INVALID": "Vybraný jazyk do projektu nepatrí. Obnovte stránku a skúste to znova.",
+		"EXPORT_VALUE_UNSAFE": "Niektoré preklady obsahujú znaky, ktoré by rozbili CSV súbor. Opravte ich a skúste to znova.",
+		"EXPORT_BUSY": "Export práve robí veľa ľudí naraz. Skúste to o chvíľu znova.",
 		"RATE_LIMITED": "Príliš veľa pokusov. Skúste to znova neskôr.",
 		"INTERNAL_ERROR": "Nastala neočakávaná chyba. Skúste to znova.",
 		"UNKNOWN": "Nastala neznáma chyba. Skúste to znova."

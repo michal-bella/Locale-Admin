@@ -2,7 +2,7 @@
 
 Admin application for managing translations in **projects**. This file is the entry point for every AI agent and tool working in this repo. Module rules live in the module's own `AGENTS.md`; step-by-step procedures live in skills.
 
-Current plan: [`docs/plans/project-members.md`](docs/plans/project-members.md) (previous: [`docs/plans/translations-views.md`](docs/plans/translations-views.md)) (phase 1: [`docs/plans/phase-1.md`](docs/plans/phase-1.md)). Human documentation: [`docs/`](docs/README.md).
+Current plan: [`docs/plans/translations-export.md`](docs/plans/translations-export.md) (previous: [`docs/plans/project-members.md`](docs/plans/project-members.md)) (phase 1: [`docs/plans/phase-1.md`](docs/plans/phase-1.md)). Human documentation: [`docs/`](docs/README.md).
 
 ## Domain
 

@@ -15,6 +15,7 @@ Index projektovej dokumentácie. Zdroj pravdy je tento priečinok v repe, Notion
 | [API](./api/README.md)                  | endpointy, chybový kontrakt                      |
 | [API: preklady](./api/translations.md)  | zoznam prekladov, úprava prekladu a kľúča        |
 | [API: import](./api/imports.md)         | import CSV: formát, chyby, kontrola a zápis      |
+| [API: export](./api/exports.md)         | export CSV: formát, stav, nebezpečné hodnoty     |
 | [Databáza](./database.md)               | dátový model, migrácie, seed                     |
 | [Frontend](./frontend.md)               | routing, layout, i18n, Mantine theme             |
 | [Lokálny vývoj](./local-development.md) | spustenie, ENV premenné, troubleshooting         |

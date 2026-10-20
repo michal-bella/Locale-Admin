@@ -8,6 +8,32 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Export prekladov do CSV – E2E a review (2026-10-20)
+
+- testy: E2E `export.spec.ts` (Chromium aj WebKit): stiahnutie `translations.csv`, presný obsah, opätovný import bez zmien, filter Nepreložené s vlastným názvom súboru, zablokovaný export; modál exportu v axe kontrole (predvolený stav, chyby polí, zoznam 422)
+- API: export blokuje aj namespace, ktorý `convert-csv-to-json` prečíta inak (`a--b`, `x-`), kódom `NAMESPACE`; filter stavu sa vyhodnocuje nad dávkou v JS namiesto korelovaného poddotazu ([API](./api/exports.md))
+- frontend: modál exportu po chybe presunie fokus na hlásenie, pri neplatnom formulári na prvé neplatné pole, po otvorení na kartu CSV; kontrast popisov, prípony `.csv` a nezaškrtnutého štvorčeka jazyka ([Frontend](./frontend.md#modál-exportovať-preklady))
+
+### Export prekladov do CSV – frontend (2026-10-20)
+
+- frontend: tlačidlo **Exportovať** v hlavičke stránky Preklady otvára modál **Exportovať preklady** (Figma 3:2768): formát CSV (JSON, XLSX, ARB neaktívne „Čoskoro“), jazyky (predvolene všetky), stav, názov súboru (predvolene `translations`), zoznam hodnôt, ktoré export zablokovali ([Frontend](./frontend.md#modál-exportovať-preklady))
+
+### Export prekladov do CSV – záťažové testy (2026-10-20)
+
+- testy: k6 záťažové testy exportu proti samostatnému stacku s 2 replikami po 2 GB (`scripts/load/`): 1, 3, 100 súbežných, projekt s 50 000 kľúčmi, 3 vlny po 100 a prerušené sťahovania; pamäť repliky max. 280 MiB, žiadny leak ani 5xx ([Testovanie](./testing.md#záťažové-testy-exportu))
+- backend: export klienta, ktorý odíde ešte pred štartom exportu, už nedrží slot navždy; kontrola hodnôt končí pri odpojení klienta; log `Export finished` s trvaním, počtom kľúčov a heapom ([API](./api/exports.md#ako-sa-odpoveď-tvorí))
+
+### Export prekladov do CSV – ochrana proti záťaži (2026-10-20)
+
+- API: najviac `EXPORT_MAX_CONCURRENT` (2) exportov naraz na proces, ďalšie čakajú vo fronte (`EXPORT_QUEUE_MAX` 20, `EXPORT_QUEUE_TIMEOUT_MS` 10 s), potom 429 `EXPORT_BUSY` s `Retry-After`; export po `EXPORT_TIMEOUT_MS` (60 s) zavrie spojenie; slot sa uvoľní aj po chybe a odpojení ([API](./api/exports.md#súbežné-exporty), [ENV](./local-development.md))
+- Docker: backend beží s `NODE_OPTIONS=--max-old-space-size=1536` (limit podu 2 GB) ([architektúra](./architecture.md#docker-služby))
+
+### Export prekladov do CSV – backend (2026-10-20)
+
+- API: `GET /api/projects/:projectId/export?languageIds=…&status=ALL|TRANSLATED|UNTRANSLATED` streamuje CSV vo formáte GoodRequest `i18nextJsonToCsv` (nepreložené `null`, jazyky v poradí projektu, namespace a kľúče podľa bajtov) z jedného snímku DB po dávkach 1 000 kľúčov ([API](./api/exports.md))
+- API: hodnoty s `;`, novým riadkom alebo `--x--` export zablokujú: 422 `EXPORT_VALUE_UNSAFE` so zoznamom kľúčov a jazykov; cudzí jazyk 400 `EXPORT_LANGUAGES_INVALID`
+- backend: chyba po začatí streamovanej odpovede sa zaloguje a spojenie sa zavrie (predtým by error middleware zlyhal na už odoslaných hlavičkách)
+
 ### Projekty: dátum vytvorenia a počet členov (2026-10-20)
 
 - API: položka `GET /api/projects` (a `201 POST /api/projects`) má `memberCount` a `createdAt` ([API](./api/projects.md#get-apiprojects))

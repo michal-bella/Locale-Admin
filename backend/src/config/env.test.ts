@@ -20,6 +20,10 @@ describe('parseEnv', () => {
 			sessionMaxAgeDays: 30,
 			loginRateLimitMax: 10,
 			loginRateLimitWindowMs: 900000,
+			exportMaxConcurrent: 2,
+			exportQueueMax: 20,
+			exportQueueTimeoutMs: 10000,
+			exportTimeoutMs: 60000,
 		})
 	})
 
@@ -48,6 +52,20 @@ describe('parseEnv', () => {
 
 	it.each(['SESSION_TTL_DAYS', 'SESSION_MAX_AGE_DAYS', 'LOGIN_RATE_LIMIT_MAX', 'LOGIN_RATE_LIMIT_WINDOW_MS'])('rejects a non-positive %s', (name) => {
 		expect(() => parseEnv({ ...VALID_ENV, [name]: '0' })).toThrow(new RegExp(name))
+	})
+
+	it('parses the export limits, allowing an empty queue', () => {
+		expect(
+			parseEnv({ ...VALID_ENV, EXPORT_MAX_CONCURRENT: '4', EXPORT_QUEUE_MAX: '0', EXPORT_QUEUE_TIMEOUT_MS: '500', EXPORT_TIMEOUT_MS: '120000' }),
+		).toMatchObject({ exportMaxConcurrent: 4, exportQueueMax: 0, exportQueueTimeoutMs: 500, exportTimeoutMs: 120000 })
+	})
+
+	it.each(['EXPORT_MAX_CONCURRENT', 'EXPORT_QUEUE_TIMEOUT_MS', 'EXPORT_TIMEOUT_MS'])('rejects a non-positive %s', (name) => {
+		expect(() => parseEnv({ ...VALID_ENV, [name]: '0' })).toThrow(new RegExp(name))
+	})
+
+	it('rejects a negative EXPORT_QUEUE_MAX', () => {
+		expect(() => parseEnv({ ...VALID_ENV, EXPORT_QUEUE_MAX: '-1' })).toThrow(/EXPORT_QUEUE_MAX/)
 	})
 
 	it('rejects a missing SEED_ADMIN_PASSWORD', () => {

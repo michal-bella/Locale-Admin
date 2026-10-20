@@ -302,7 +302,9 @@
 			"lastEdit": "Poslední úprava: {{name}}, {{time}}",
 			"lastEditTime": "Poslední úprava: {{time}}",
 			"submitNext": "Uložit a další",
-			"submitNextHint": "Uloží a otevře další nepřeloženou buňku na této stránce ({{shortcut}})"
+			"submitNextHint": "Uloží a otevře další nepřeloženou buňku na této stránce ({{shortcut}})",
+			"copyBase": "Převzít ze základního jazyka",
+			"copyBaseLabel": "Převzít text ze základního jazyka ({{language}}) do překladu"
 		},
 		"plural": {
 			"hash": "Číslo",

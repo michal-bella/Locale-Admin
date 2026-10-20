@@ -300,7 +300,9 @@
 			"lastEdit": "Last edited by {{name}}, {{time}}",
 			"lastEditTime": "Last edited {{time}}",
 			"submitNext": "Save and next",
-			"submitNextHint": "Saves and opens the next untranslated cell on this page ({{shortcut}})"
+			"submitNextHint": "Saves and opens the next untranslated cell on this page ({{shortcut}})",
+			"copyBase": "Copy from the base language",
+			"copyBaseLabel": "Copy the base language text ({{language}}) into the translation"
 		},
 		"plural": {
 			"hash": "Number",

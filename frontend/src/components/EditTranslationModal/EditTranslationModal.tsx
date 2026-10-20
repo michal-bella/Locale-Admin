@@ -19,8 +19,10 @@ import getApiErrorCode from '@/api/getApiErrorCode'
 import getApiErrorDetails from '@/api/getApiErrorDetails'
 import getPlaceholderMismatch from '@/api/getPlaceholderMismatch'
 import AppModal from '@/components/AppModal/AppModal'
+import { Copy } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import PluralFormChip from '@/components/PluralForms/PluralFormChip'
+import RowAction from '@/components/RowAction/RowAction'
 import TokenEditor from '@/components/TokenEditor/TokenEditor'
 import TranslationValue from '@/components/TranslationValue/TranslationValue'
 import { formatDateTime } from '@/lib/formatDate'
@@ -188,6 +190,14 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	const describedBy = [lockedHintId, message && errorId].filter(Boolean).join(' ')
 	const isInvalid = (form: PluralForm) => rejected !== null && (rejected.kind !== 'unbalanced' || rejected.forms.includes(form))
 
+	// Copies the format of the base text (variables, HTML, plural forms) as a starting point; a target form the base lacks takes its Other form.
+	const copyBase = (base: string) => {
+		const baseForms = parsePluralForms(base)
+		setDraft(plural ? Object.fromEntries(forms.map((form) => [form, baseForms[form] ?? baseForms.other ?? ''])) : { [PLAIN]: base })
+		setRejected(null)
+		editorRefs.current[forms[0] ?? PLAIN]?.focus()
+	}
+
 	const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
 		if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
 			event.preventDefault()
@@ -246,7 +256,18 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 			</div>
 			{baseValue !== undefined && baseLanguage && (
 				<div>
-					<span className={classes.label}>{t('translationsPage.editModal.baseLanguage', { language: baseLanguage.nativeName })}</span>
+					<div className={classes.labelRow}>
+						<span className={classes.label}>{t('translationsPage.editModal.baseLanguage', { language: baseLanguage.nativeName })}</span>
+						{baseValue !== null && (
+							<RowAction
+								icon={Copy}
+								tooltip={t('translationsPage.editModal.copyBase')}
+								label={t('translationsPage.editModal.copyBaseLabel', { language: baseLanguage.nativeName })}
+								disabled={saving}
+								onClick={() => copyBase(baseValue)}
+							/>
+						)}
+					</div>
 					<div className={classes.reference}>
 						<TranslationValue value={baseValue} pluralTag={item.plural ? baseLanguage.tag : undefined} />
 					</div>

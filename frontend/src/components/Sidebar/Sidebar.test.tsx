@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { type ProjectSettings } from '@locale/shared'
@@ -186,5 +186,32 @@ describe('Sidebar', () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe('/admin/users'))
 		expect(sidebar).toHaveAttribute('data-collapsed')
 		expect(openButton).toHaveFocus()
+	})
+
+	it('collapses to icons with the labels kept for screen readers, remembers it, and shows the labels in the opened narrow-screen sidebar', async () => {
+		signedInAs(ADMIN_USER, { 'GET /admin/users': { status: 200, data: { users: [] } } })
+		renderApp('/profile')
+		const navigation = await findNavigation()
+		const sidebar = screen.getByRole('complementary')
+		expect(sidebar).not.toHaveAttribute('data-compact')
+
+		fireEvent.click(within(sidebar).getByRole('button', { name: 'Zbaliť menu' }))
+
+		expect(sidebar).toHaveAttribute('data-compact')
+		expect(within(sidebar).getByRole('button', { name: 'Rozbaliť menu' })).toHaveAttribute('aria-expanded', 'false')
+		expect(within(sidebar).queryByText('Locale')).not.toBeInTheDocument()
+		const admin = within(navigation.getByRole('list', { name: 'Správa' }))
+		expect(admin.getAllByRole('link').map((link) => link.textContent)).toEqual(['Projekty', 'Používatelia'])
+		expect(localStorage.getItem('locale-sidebar-compact')).toBe('true')
+
+		cleanup()
+		renderApp('/profile')
+		await findNavigation()
+		const remembered = screen.getByRole('complementary')
+		expect(remembered).toHaveAttribute('data-compact')
+
+		fireEvent.click(await screen.findByRole('button', { name: 'Otvoriť navigáciu' }))
+		expect(remembered).not.toHaveAttribute('data-compact')
+		expect(within(remembered).getByText('Locale')).toBeInTheDocument()
 	})
 })

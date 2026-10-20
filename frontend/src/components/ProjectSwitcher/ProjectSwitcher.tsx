@@ -25,7 +25,7 @@ const ProjectAvatar = ({ name, primaryColor, size }: { name: string; primaryColo
  * Project switcher at the top of the sidebar (Figma 3:470). The second line shows the slug instead of the organization,
  * which no longer exists. Switching keeps Preklady, Prehľad, Jazyky or Členovia; from Nastavenia projektu it opens Preklady.
  */
-const ProjectSwitcher = ({ project, onNavigate }: ProjectSwitcherProps) => {
+const ProjectSwitcher = ({ project, onNavigate, compact = false }: ProjectSwitcherProps) => {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const pathname = useLocation({ select: (location) => location.pathname })
@@ -44,22 +44,27 @@ const ProjectSwitcher = ({ project, onNavigate }: ProjectSwitcherProps) => {
 	}
 
 	return (
-		<Menu position='bottom-start' width='target' radius='lg' shadow='md'>
+		<Menu position={compact ? 'right-start' : 'bottom-start'} width={compact ? 240 : 'target'} radius='lg' shadow='md'>
 			<Menu.Target>
 				<UnstyledButton
 					aria-label={t('sidebar.projectSwitcher.label', { name: project.name })}
+					data-compact={compact || undefined}
 					className={`${classes.trigger} flex items-center gap-3`}
 				>
 					<ProjectAvatar name={project.name} primaryColor={project.primaryColor} size='md' />
-					<span className='flex min-w-0 flex-1 flex-col'>
-						<Text component='span' fz='xs' fw={600} lh='xs' c='var(--app-color-text-strong)' truncate>
-							{project.name}
-						</Text>
-						<Text component='span' fz='3xs' lh={1.5} c='var(--app-color-muted)' truncate>
-							{project.slug}
-						</Text>
-					</span>
-					<ChevronSelector aria-hidden className={classes.chevron} />
+					{!compact && (
+						<>
+							<span className='flex min-w-0 flex-1 flex-col'>
+								<Text component='span' fz='xs' fw={600} lh='xs' c='var(--app-color-text-strong)' truncate>
+									{project.name}
+								</Text>
+								<Text component='span' fz='3xs' lh={1.5} c='var(--app-color-muted)' truncate>
+									{project.slug}
+								</Text>
+							</span>
+							<ChevronSelector aria-hidden className={classes.chevron} />
+						</>
+					)}
 				</UnstyledButton>
 			</Menu.Target>
 			{/* An ADMIN sees every project, so the list scrolls instead of running off the screen. */}

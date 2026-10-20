@@ -9,6 +9,12 @@
 	text-align: start;
 }
 
+.trigger[data-compact] {
+	justify-content: center;
+	min-height: 0;
+	padding: 0.375rem;
+}
+
 .trigger:hover {
 	background-color: var(--app-color-surface-muted);
 }

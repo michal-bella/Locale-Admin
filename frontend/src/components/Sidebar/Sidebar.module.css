@@ -12,6 +12,23 @@
 	}
 }
 
+/* Compact sidebar (from `md`): icons only, centred in the 80 px rail. */
+.root[data-compact] .header,
+.root[data-compact] .footer {
+	justify-content: center;
+}
+
+.root[data-compact] .link {
+	justify-content: center;
+	padding-inline: 0;
+}
+
+.footer {
+	display: flex;
+	justify-content: flex-end;
+	padding-top: 0.75rem;
+}
+
 .brandLink {
 	border-radius: var(--mantine-radius-lg);
 	color: inherit;

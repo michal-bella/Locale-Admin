@@ -493,6 +493,18 @@ describe('TranslationsPage', () => {
 		expect(await screen.findByRole('dialog', { name: 'Importovať preklady' })).toBeInTheDocument()
 	})
 
+	it('shows an EDITOR Exportovať but no Importovať, also not in the empty state', async () => {
+		mockPage({
+			user: EDITOR_USER,
+			translations: response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0 }, namespaces: [] }),
+		})
+		renderApp(PAGE_PATH)
+
+		expect(await findVisibleText('Projekt zatiaľ nemá žiadne kľúče. Pridá ich administrátor importom súboru.')).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Exportovať' })).toBeEnabled()
+		expect(screen.queryByRole('button', { name: 'Importovať' })).not.toBeInTheDocument()
+	})
+
 	it('shows the empty state without asking for translations when the project has no languages', async () => {
 		const requests = mockPage({ languages: [] })
 		renderApp(PAGE_PATH)

@@ -280,10 +280,12 @@ const TranslationsTable = ({
 		if (!data || data.stats.totalKeys === 0) {
 			return stateRow(
 				<div className='flex flex-col items-center gap-4'>
-					<Text size='sm'>{t('translationsPage.table.empty')}</Text>
-					<Button variant='default' leftSection={<Upload aria-hidden />} onClick={onImport}>
-						{t('translationsPage.importButton')}
-					</Button>
+					<Text size='sm'>{isAdmin ? t('translationsPage.table.empty') : t('translationsPage.table.emptyEditor')}</Text>
+					{isAdmin && (
+						<Button variant='default' leftSection={<Upload aria-hidden />} onClick={onImport}>
+							{t('translationsPage.importButton')}
+						</Button>
+					)}
 				</div>,
 			)
 		}

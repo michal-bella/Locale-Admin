@@ -8,6 +8,12 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Export do XLSX a import iba pre adminov (2026-10-20)
+
+- API: `GET /api/projects/:projectId/export?format=XLSX` vráti `translations.xlsx` s jedným hárkom `Namespace | Key | <jazyky>`, nepreložené ako prázdna bunka, streamované cez `exceljs` ([API](./api/exports.md#odpoveď-200-xlsx)); záťažové testy aj pre XLSX ([Testovanie](./testing.md#záťažové-testy-exportu))
+- API: import (`POST …/imports/preview` aj `POST …/imports`) smie iba `ADMIN`, člen s rolou `EDITOR` dostane 403 `FORBIDDEN` ([API](./api/imports.md)); export ostáva pre každého člena
+- frontend: v modáli exportu sa dá vybrať **XLSX**; tlačidlo **Importovať** (hlavička aj prázdny stav tabuľky) vidí iba `ADMIN`, editor v prázdnom stave dostane text, že kľúče pridá administrátor ([Frontend](./frontend.md#modál-exportovať-preklady))
+
 ### Export prekladov do CSV – E2E a review (2026-10-20)
 
 - testy: E2E `export.spec.ts` (Chromium aj WebKit): stiahnutie `translations.csv`, presný obsah, opätovný import bez zmien, filter Nepreložené s vlastným názvom súboru, zablokovaný export; modál exportu v axe kontrole (predvolený stav, chyby polí, zoznam 422)

@@ -12,15 +12,26 @@ export const openExportModal = async (page: Page, project: ProjectListItem) => {
 	await expect(getExportDialog(page)).toBeVisible()
 }
 
-/** Clicks Exportovať CSV and returns the saved file name and content. */
-export const downloadExport = async (page: Page) => {
-	const [download] = await Promise.all([page.waitForEvent('download'), getExportDialog(page).getByRole('button', { name: 'Exportovať CSV' }).click()])
+/** Clicks Exportovať <format> and returns the saved file name and its bytes. */
+export const downloadExportBytes = async (page: Page, format = 'CSV') => {
+	const [download] = await Promise.all([
+		page.waitForEvent('download'),
+		getExportDialog(page)
+			.getByRole('button', { name: `Exportovať ${format}` })
+			.click(),
+	])
 	const stream = await download.createReadStream()
 	const chunks: Buffer[] = []
 	for await (const chunk of stream) {
 		chunks.push(chunk as Buffer)
 	}
-	return { fileName: download.suggestedFilename(), content: Buffer.concat(chunks).toString('utf8') }
+	return { fileName: download.suggestedFilename(), bytes: Buffer.concat(chunks) }
+}
+
+/** Clicks Exportovať CSV and returns the saved file name and content. */
+export const downloadExport = async (page: Page) => {
+	const { fileName, bytes } = await downloadExportBytes(page)
+	return { fileName, content: bytes.toString('utf8') }
 }
 
 /**

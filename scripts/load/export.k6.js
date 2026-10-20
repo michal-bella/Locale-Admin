@@ -7,6 +7,7 @@ import { Counter } from 'k6/metrics'
 
 const BASE = __ENV.BASE_URL || 'http://nginx/api'
 const SCENARIO = __ENV.SCENARIO || 'baseline'
+const FORMAT = __ENV.FORMAT || 'CSV'
 
 const busy = new Counter('export_busy')
 const serverErrors = new Counter('export_server_errors')
@@ -69,7 +70,7 @@ export function setup() {
 			throw new Error(`Project ${slug} not found, run: scripts/load/run-export.sh seed`)
 		}
 		const languages = http.get(`${BASE}/projects/${project.id}/languages`, { headers: { Cookie: cookie } }).json()
-		return `${BASE}/projects/${project.id}/export?languageIds=${languages.map((language) => language.id).join(',')}`
+		return `${BASE}/projects/${project.id}/export?format=${FORMAT}&languageIds=${languages.map((language) => language.id).join(',')}`
 	}
 	return { cookie, m: exportUrl('load-m'), l: exportUrl('load-l') }
 }
@@ -95,7 +96,10 @@ export function baseline(data) {
 	record(res, { busyAllowed: false })
 	const hash = crypto.sha256(res.body || '', 'hex')
 	firstHash = firstHash || hash
-	check(res, { 'same file every run': () => hash === firstHash, 'all keys': (r) => (r.body || '').split('\n').length === 5000 + 4 + 2 })
+	check(res, {
+		'same file every run': () => FORMAT !== 'CSV' || hash === firstHash,
+		'all keys': (r) => FORMAT !== 'CSV' || (r.body || '').split('\n').length === 5000 + 4 + 2,
+	})
 }
 
 export function realistic(data) {

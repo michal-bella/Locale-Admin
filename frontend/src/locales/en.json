@@ -326,6 +326,7 @@
 			"loadError": "The translations could not be loaded.",
 			"retry": "Try again",
 			"empty": "The project has no keys yet. Add them by importing a file.",
+			"emptyEditor": "The project has no keys yet. An administrator adds them by importing a file.",
 			"noResults": "No key matches the filters.",
 			"clearFilters": "Clear filters",
 			"edit": "Edit key",
@@ -523,7 +524,7 @@
 		"description": "Choose the languages and the format of the output file.",
 		"close": "Close",
 		"cancel": "Cancel",
-		"submit": "Export CSV",
+		"submit": "Export {{format}}",
 		"success": "Translations were downloaded to {{fileName}}.",
 		"format": {
 			"label": "Output format",
@@ -547,7 +548,7 @@
 		},
 		"fileName": {
 			"label": "File name",
-			"extensionHint": ", the .csv extension is added",
+			"extensionHint": ", the {{extension}} extension is added",
 			"required": "Enter a file name.",
 			"invalid": "The file name cannot contain \\ / : * ? \" < > |.",
 			"tooLong": "The file name can have at most {{max}} characters."

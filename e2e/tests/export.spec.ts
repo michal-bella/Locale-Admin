@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { MUTATION_HEADERS } from '../support/api'
-import { downloadExport, getExportDialog, openExportModal, SAMPLE_EXPORT } from '../support/exports'
+import { downloadExport, downloadExportBytes, getExportDialog, openExportModal, SAMPLE_EXPORT } from '../support/exports'
 import { importPreviewApi, importSample } from '../support/imports'
 import { listLanguages } from '../support/languages'
 import { createProject } from '../support/projects'
@@ -80,4 +80,21 @@ test('lists a value that would break the CSV and downloads nothing', async ({ pa
 	await expect(alert).toContainText('Niektoré preklady obsahujú znaky, ktoré by rozbili CSV súbor.')
 	await expect(alert.getByRole('listitem')).toHaveText(['„loc / nav.home“: preklad angličtina obsahuje bodkočiarku (;).'])
 	expect(downloaded).toBe(false)
+})
+
+test('exports XLSX as translations.xlsx', async ({ page, request }) => {
+	const project = await createProject(request, 'export-xlsx', ['sk', 'en'])
+	await importSample(request, project.id, { sk: 'sk', en: 'en', cs: null })
+	await openExportModal(page, project)
+	const dialog = getExportDialog(page)
+
+	await dialog.getByRole('radio', { name: /XLSX/ }).click()
+	await expect(dialog.getByRole('radio', { name: /XLSX/ })).toBeChecked()
+	const { fileName, bytes } = await downloadExportBytes(page, 'XLSX')
+
+	expect(fileName).toBe('translations.xlsx')
+	// An XLSX is a zip archive; the content itself is checked by the backend integration tests.
+	expect(bytes.subarray(0, 2).toString('latin1')).toBe('PK')
+	expect(bytes.length).toBeGreaterThan(1000)
+	await expect(page.getByText('Preklady sa stiahli do súboru translations.xlsx.')).toBeVisible()
 })

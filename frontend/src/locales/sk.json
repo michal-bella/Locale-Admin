@@ -328,6 +328,7 @@
 			"loadError": "Preklady sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
 			"empty": "Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.",
+			"emptyEditor": "Projekt zatiaľ nemá žiadne kľúče. Pridá ich administrátor importom súboru.",
 			"noResults": "Filtrom nezodpovedá žiadny kľúč.",
 			"clearFilters": "Zrušiť filtre",
 			"edit": "Upraviť kľúč",
@@ -525,7 +526,7 @@
 		"description": "Vyberte jazyky a formát výstupného súboru.",
 		"close": "Zavrieť",
 		"cancel": "Zrušiť",
-		"submit": "Exportovať CSV",
+		"submit": "Exportovať {{format}}",
 		"success": "Preklady sa stiahli do súboru {{fileName}}.",
 		"format": {
 			"label": "Formát výstupu",
@@ -549,7 +550,7 @@
 		},
 		"fileName": {
 			"label": "Názov súboru",
-			"extensionHint": ", prípona .csv sa doplní",
+			"extensionHint": ", prípona {{extension}} sa doplní",
 			"required": "Zadajte názov súboru.",
 			"invalid": "Názov súboru nesmie obsahovať znaky \\ / : * ? \" < > |.",
 			"tooLong": "Názov súboru môže mať najviac {{max}} znakov."

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Load tests of the CSV export against a separate stack (scripts/load/docker-compose.yml, http://127.0.0.1:8090).
 # Usage: scripts/load/run-export.sh up | seed | run <baseline|realistic|spike|big|soak|abort> | all | down
+# FORMAT=XLSX runs the scenarios against the XLSX export (default CSV).
 # `run` samples `docker stats` of the backend replicas every ~2 s and prints memory and the `Export finished` log lines.
 source "$(dirname "$0")/../lib.sh"
 
@@ -48,7 +49,7 @@ EOF
 
 run_scenario() {
 	local scenario=$1 stamp
-	stamp="$(date +%Y%m%d-%H%M%S)-$scenario"
+	stamp="$(date +%Y%m%d-%H%M%S)-$scenario-${FORMAT:-CSV}"
 	mkdir -p "$RESULTS"
 	local since
 	since="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -57,13 +58,13 @@ run_scenario() {
 	sleep 3
 	local status=0
 	docker run --rm --network locale-load_default -v "$REPO_ROOT/$LOAD_DIR:/scripts:ro" -v "$REPO_ROOT/$RESULTS:/results" \
-		-e SCENARIO="$scenario" -e LOAD_ADMIN_PASSWORD="${LOAD_ADMIN_PASSWORD:-load-test-admin}" \
+		-e SCENARIO="$scenario" -e FORMAT="${FORMAT:-CSV}" -e LOAD_ADMIN_PASSWORD="${LOAD_ADMIN_PASSWORD:-load-test-admin}" \
 		"$K6_IMAGE" run --quiet --summary-export "/results/$stamp-summary.json" /scripts/export.k6.js >"$RESULTS/$stamp-k6.txt" 2>&1 || status=$?
 	# Idle after the load, so the end of the memory samples shows what the replicas keep.
 	sleep 20
 	kill "$sampler" && wait "$sampler" 2>/dev/null || true
 	"${COMPOSE[@]}" logs --no-color --since "$since" backend >"$RESULTS/$stamp-backend.log"
-	echo "=== $scenario (k6 exit $status) ==="
+	echo "=== $scenario ${FORMAT:-CSV} (k6 exit $status) ==="
 	sed -n '/THRESHOLDS/,$p' "$RESULTS/$stamp-k6.txt" | grep -E '✓|✗|export|http_req_duration|http_reqs|checks|iteration_duration' || true
 	summarize "$RESULTS/$stamp-memory.csv" "$RESULTS/$stamp-backend.log"
 	return "$status"

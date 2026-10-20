@@ -2,32 +2,64 @@ import { once } from 'node:events'
 
 import { type RequestHandler } from 'express'
 
-import { EXPORT_FILE_NAME_DEFAULT, exportQuerySchema } from '@locale/shared'
+import { ERROR_CODE, EXPORT_FILE_NAME_DEFAULT, exportQuerySchema } from '@locale/shared'
 
+import { type Config } from '../config/env'
+import { createConcurrencyLimiter } from '../lib/concurrencyLimiter'
+import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 import { exportCsv } from '../services/exports.service'
 
-export const createExportController =
-	(prisma: PrismaClient): RequestHandler<{ projectId: string }> =>
-	async (req, res) => {
+export const createExportController = (prisma: PrismaClient, config: Config): RequestHandler<{ projectId: string }> => {
+	const limiter = createConcurrencyLimiter({
+		maxActive: config.exportMaxConcurrent,
+		queueMax: config.exportQueueMax,
+		queueTimeoutMs: config.exportQueueTimeoutMs,
+	})
+	const retryAfterSeconds = String(Math.ceil(config.exportQueueTimeoutMs / 1000))
+
+	return async (req, res) => {
 		const query = exportQuerySchema.parse(req.query)
 		const closed = new AbortController()
 		res.on('close', () => closed.abort())
-		await exportCsv(prisma, req.params.projectId, query, {
-			signal: closed.signal,
-			start: () => {
-				res.status(200).set({
-					'Content-Type': 'text/csv; charset=utf-8',
-					'Content-Disposition': `attachment; filename="${EXPORT_FILE_NAME_DEFAULT}.csv"`,
-					'Cache-Control': 'no-store',
-				})
-			},
-			// Backpressure: wait until the client takes the chunk. A closed connection ends the wait; the export then stops before the next batch.
-			write: async (chunk) => {
-				if (!res.write(chunk)) {
-					await once(res, 'drain', { signal: closed.signal }).catch(() => undefined)
-				}
-			},
-		})
-		res.end()
+
+		const release = await limiter.acquire(closed.signal)
+		if (!release) {
+			if (closed.signal.aborted) {
+				return
+			}
+			res.set('Retry-After', retryAfterSeconds)
+			throw new AppError(429, ERROR_CODE.EXPORT_BUSY, 'Too many exports at once')
+		}
+		// A client that stops reading would keep the slot and the transaction; closing the connection ends both.
+		const timer = setTimeout(() => res.destroy(), config.exportTimeoutMs)
+		try {
+			await exportCsv(
+				prisma,
+				req.params.projectId,
+				query,
+				{
+					signal: closed.signal,
+					start: () => {
+						res.status(200).set({
+							'Content-Type': 'text/csv; charset=utf-8',
+							'Content-Disposition': `attachment; filename="${EXPORT_FILE_NAME_DEFAULT}.csv"`,
+							'Cache-Control': 'no-store',
+						})
+					},
+					// Backpressure: wait until the client takes the chunk. A closed connection ends the wait; the export then stops before the next batch.
+					write: async (chunk) => {
+						if (!res.write(chunk)) {
+							await once(res, 'drain', { signal: closed.signal }).catch(() => undefined)
+						}
+					},
+				},
+				config.exportTimeoutMs,
+			)
+			res.end()
+		} finally {
+			clearTimeout(timer)
+			release()
+		}
 	}
+}

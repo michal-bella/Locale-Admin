@@ -9,6 +9,8 @@ const booleanStringSchema = z.enum(['true', 'false']).transform((value) => value
 
 const positiveIntSchema = z.coerce.number().int().positive()
 
+const nonNegativeIntSchema = z.coerce.number().int().nonnegative()
+
 export const envSchema = z.object({
 	NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 	PORT: z.coerce.number().int().positive().default(3000),
@@ -21,6 +23,10 @@ export const envSchema = z.object({
 	SESSION_MAX_AGE_DAYS: positiveIntSchema.default(30),
 	LOGIN_RATE_LIMIT_MAX: positiveIntSchema.default(10),
 	LOGIN_RATE_LIMIT_WINDOW_MS: positiveIntSchema.default(900000),
+	EXPORT_MAX_CONCURRENT: positiveIntSchema.default(2),
+	EXPORT_QUEUE_MAX: nonNegativeIntSchema.default(20),
+	EXPORT_QUEUE_TIMEOUT_MS: positiveIntSchema.default(10000),
+	EXPORT_TIMEOUT_MS: positiveIntSchema.default(60000),
 })
 
 export const seedEnvSchema = envSchema.pick({ DATABASE_URL: true, SEED_ADMIN_PASSWORD: true })
@@ -38,6 +44,12 @@ export type Config = {
 	sessionMaxAgeDays: number
 	loginRateLimitMax: number
 	loginRateLimitWindowMs: number
+	/** Exports running at once per process; more wait in a queue of `exportQueueMax` for at most `exportQueueTimeoutMs`, then 429. */
+	exportMaxConcurrent: number
+	exportQueueMax: number
+	exportQueueTimeoutMs: number
+	/** Whole export including the client download; the transaction is rolled back and the connection closed after it. */
+	exportTimeoutMs: number
 }
 
 /** Formats zod issues as `NAME: message` lines without echoing the values (they may be secrets). */
@@ -61,5 +73,9 @@ export const parseEnv = (env: NodeJS.ProcessEnv): Config => {
 		sessionMaxAgeDays: data.SESSION_MAX_AGE_DAYS,
 		loginRateLimitMax: data.LOGIN_RATE_LIMIT_MAX,
 		loginRateLimitWindowMs: data.LOGIN_RATE_LIMIT_WINDOW_MS,
+		exportMaxConcurrent: data.EXPORT_MAX_CONCURRENT,
+		exportQueueMax: data.EXPORT_QUEUE_MAX,
+		exportQueueTimeoutMs: data.EXPORT_QUEUE_TIMEOUT_MS,
+		exportTimeoutMs: data.EXPORT_TIMEOUT_MS,
 	}
 }

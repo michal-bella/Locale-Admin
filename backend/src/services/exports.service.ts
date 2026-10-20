@@ -15,8 +15,6 @@ export type ExportSink = { start: () => void; write: (chunk: string) => Promise<
 /** Keys read per query; one batch is the only part of the file held in memory. */
 export const EXPORT_BATCH_SIZE = 1000
 
-const EXPORT_TIMEOUT_MS = 60_000
-
 /** Same order as the Languages page: the base language first, then the drag and drop position. */
 const LANGUAGE_ORDER = [{ isBase: 'desc' }, { position: 'asc' }, { tag: 'asc' }] satisfies Prisma.ProjectLanguageOrderByWithRelationInput[]
 
@@ -73,7 +71,7 @@ async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], sta
  * even while an import runs: the first pass only checks the values (422 `EXPORT_VALUE_UNSAFE` before anything is sent),
  * the second writes the file batch by batch.
  */
-export const exportCsv = async (prisma: PrismaClient, projectId: string, query: ExportQuery, sink: ExportSink): Promise<void> => {
+export const exportCsv = async (prisma: PrismaClient, projectId: string, query: ExportQuery, sink: ExportSink, timeoutMs: number): Promise<void> => {
 	const languages = await prisma.projectLanguage.findMany({
 		where: { projectId, id: { in: query.languageIds } },
 		select: { id: true, tag: true },
@@ -118,6 +116,6 @@ export const exportCsv = async (prisma: PrismaClient, projectId: string, query: 
 				await sink.write(chunk)
 			}
 		},
-		{ isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: EXPORT_TIMEOUT_MS },
+		{ isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: timeoutMs },
 	)
 }

@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Export prekladov do CSV – ochrana proti záťaži (2026-10-20)
+
+- API: najviac `EXPORT_MAX_CONCURRENT` (2) exportov naraz na proces, ďalšie čakajú vo fronte (`EXPORT_QUEUE_MAX` 20, `EXPORT_QUEUE_TIMEOUT_MS` 10 s), potom 429 `EXPORT_BUSY` s `Retry-After`; export po `EXPORT_TIMEOUT_MS` (60 s) zavrie spojenie; slot sa uvoľní aj po chybe a odpojení ([API](./api/exports.md#súbežné-exporty), [ENV](./local-development.md))
+- Docker: backend beží s `NODE_OPTIONS=--max-old-space-size=1536` (limit podu 2 GB) ([architektúra](./architecture.md#docker-služby))
+
 ### Export prekladov do CSV – backend (2026-10-20)
 
 - API: `GET /api/projects/:projectId/export?languageIds=…&status=ALL|TRANSLATED|UNTRANSLATED` streamuje CSV vo formáte GoodRequest `i18nextJsonToCsv` (nepreložené `null`, jazyky v poradí projektu, namespace a kľúče podľa bajtov) z jedného snímku DB po dávkach 1 000 kľúčov ([API](./api/exports.md))

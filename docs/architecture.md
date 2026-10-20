@@ -41,7 +41,7 @@ FE a BE bežia na rovnakom origine: v Dockeri cez nginx proxy, vo vývoji cez Vi
 | `backend`  | `docker/backend.Dockerfile` (Node 24, multi-stage)                 | `3001` (iba debug) | `GET /api/health` vráti 200 |
 | `frontend` | `docker/frontend.Dockerfile` (build cez Vite+, runtime nginx 1.30) | `8080`             | nginx vráti `index.html`    |
 
-- Backend pri štarte spustí `prisma migrate deploy`, idempotentný seed a server (`docker/backend-entrypoint.sh`, server dostane SIGTERM a korektne sa ukončí). Beží ako používateľ `node`, súbory aplikácie patria `root` a nedajú sa meniť.
+- Backend pri štarte spustí `prisma migrate deploy`, idempotentný seed a server (`docker/backend-entrypoint.sh`, server dostane SIGTERM a korektne sa ukončí). Beží ako používateľ `node`, súbory aplikácie patria `root` a nedajú sa meniť. `NODE_OPTIONS=--max-old-space-size=1536` drží heap pod limitom podu 2 GB, aby V8 upratal pamäť skôr, ako kontajner zabije OOM killer.
 - Porty `5433` (DB) a `3001` (BE) sú naviazané iba na `127.0.0.1`.
 - nginx proxuje `/api/*` na `backend:3000` s hlavičkami `X-Forwarded-*` (Express má `trust proxy 1`), statické assety cachuje natrvalo a pre ostatné cesty vracia `index.html` (SPA fallback). Pre `/api/` má `client_max_body_size 12m` (predvolené 1 MB by nepustilo import súboru); backend sám obmedzuje telo na 100 kB okrem rout importu (12 MB, [Import](./api/imports.md#limity)).
 - Služby štartujú v poradí `db` → `backend` → `frontend`, každá čaká na zelený healthcheck predchádzajúcej.

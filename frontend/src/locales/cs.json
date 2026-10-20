@@ -840,6 +840,7 @@
 		"TRANSLATION_KEY_TAKEN": "Klíč s tímto názvem už v namespace existuje.",
 		"EXPORT_LANGUAGES_INVALID": "Vybraný jazyk do projektu nepatří. Obnovte stránku a zkuste to znovu.",
 		"EXPORT_VALUE_UNSAFE": "Některé překlady obsahují znaky, které by rozbily soubor CSV. Opravte je a zkuste to znovu.",
+		"EXPORT_BUSY": "Export právě dělá mnoho lidí najednou. Zkuste to za chvíli znovu.",
 		"RATE_LIMITED": "Příliš mnoho pokusů. Zkuste to znovu později.",
 		"INTERNAL_ERROR": "Nastala neočekávaná chyba. Zkuste to znovu.",
 		"UNKNOWN": "Nastala neznámá chyba. Zkuste to znovu."

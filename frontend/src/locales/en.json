@@ -834,6 +834,7 @@
 		"TRANSLATION_KEY_TAKEN": "A key with this name already exists in the namespace.",
 		"EXPORT_LANGUAGES_INVALID": "A selected language does not belong to the project. Reload the page and try again.",
 		"EXPORT_VALUE_UNSAFE": "Some translations contain characters that would break the CSV file. Fix them and try again.",
+		"EXPORT_BUSY": "Too many exports are running right now. Try again in a moment.",
 		"RATE_LIMITED": "Too many attempts. Please try again later.",
 		"INTERNAL_ERROR": "An unexpected error occurred. Please try again.",
 		"UNKNOWN": "An unknown error occurred. Please try again."

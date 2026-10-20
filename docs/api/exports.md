@@ -49,7 +49,13 @@ Export import toho istého súboru vráti bajt po bajte (integračný test), s v
 
 ### Ako sa odpoveď tvorí
 
-Všetko beží v jednej transakcii `REPEATABLE READ`, takže súbor je konzistentný snímok aj počas súbežného importu. Kľúče sa čítajú po 1 000 (`EXPORT_BATCH_SIZE`, keyset stránkovanie). Prvý prechod iba kontroluje hodnoty, druhý pošle hlavičky a zapisuje dávky so spätným tlakom (čaká na `drain`). V pamäti je vždy najviac jedna dávka. Keď klient zavrie spojenie, export po aktuálnej dávke skončí a transakcia sa uzavrie. Transakcia má limit 60 s.
+Všetko beží v jednej transakcii `REPEATABLE READ`, takže súbor je konzistentný snímok aj počas súbežného importu. Kľúče sa čítajú po 1 000 (`EXPORT_BATCH_SIZE`, keyset stránkovanie). Prvý prechod iba kontroluje hodnoty, druhý pošle hlavičky a zapisuje dávky so spätným tlakom (čaká na `drain`). V pamäti je vždy najviac jedna dávka. Keď klient zavrie spojenie, export po aktuálnej dávke skončí a transakcia sa uzavrie. Celý export (vrátane sťahovania klientom) má limit `EXPORT_TIMEOUT_MS` (60 s): potom sa transakcia zruší a spojenie zavrie, takže klient, ktorý prestane čítať, nedrží slot ani spojenie do DB.
+
+## Súbežné exporty
+
+Každý proces backendu (pod) púšťa naraz najviac `EXPORT_MAX_CONCURRENT` exportov (2). Ďalšie čakajú vo fronte s kapacitou `EXPORT_QUEUE_MAX` (20) najviac `EXPORT_QUEUE_TIMEOUT_MS` (10 s), v poradí príchodu. Plná fronta alebo vypršané čakanie vráti 429 `EXPORT_BUSY` s hlavičkou `Retry-After` (sekundy, zaokrúhlený `EXPORT_QUEUE_TIMEOUT_MS`). Klient, ktorý sa odpojí počas čakania, z fronty odíde. Slot sa uvoľní vždy, aj po chybe (400, 422, výpadok DB) či odpojení.
+
+Limit je v pamäti procesu, pri 2 podoch teda naraz bežia najviac 4 exporty. Validácia query (400 `VALIDATION_ERROR`) prebehne skôr, než export čaká na slot. Hodnoty sú nastaviteľné cez ENV ([lokálny vývoj](../local-development.md)).
 
 ## Hodnoty, ktoré by súbor rozbili
 
@@ -72,6 +78,7 @@ Kontrolujú sa iba exportované kľúče a jazyky (po filtri stavu). Medzera na 
 | 401  | `AUTH_UNAUTHENTICATED`     | bez session                                                                                                                                                                                         |
 | 404  | `NOT_FOUND`                | projekt neexistuje alebo k nemu používateľ nemá prístup                                                                                                                                             |
 | 422  | `EXPORT_VALUE_UNSAFE`      | [nebezpečné hodnoty](#hodnoty-ktoré-by-súbor-rozbili), `details: { issues, total }`, `issues` max. 50 (`EXPORT_ISSUES_MAX`) v poradí súboru, položka `{ code, keyId, namespace, key, languageTag }` |
+| 429  | `EXPORT_BUSY`              | príliš veľa súbežných exportov v procese, [`Retry-After`](#súbežné-exporty)                                                                                                                         |
 
 Chyba po začatí streamu (napr. výpadok DB) sa už nedá poslať ako JSON: backend ju zaloguje a spojenie zavrie, prehliadač dostane neúplné sťahovanie.
 

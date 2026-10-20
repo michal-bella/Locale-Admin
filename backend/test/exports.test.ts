@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import request from 'supertest'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { ERROR_CODE, EXPORT_ISSUES_MAX, ROLE, errorResponseSchema, exportValueUnsafeDetailsSchema, importResultSchema } from '@locale/shared'
 
@@ -45,6 +45,26 @@ const setup = async (app: App, { member = true }: { member?: boolean } = {}) => 
 
 const exportCsv = (app: App, cookie: string, projectId: string, query: Record<string, string>) =>
 	request(app).get(`/api/projects/${projectId}/export`).query(query).set('Cookie', cookie)
+
+/** Makes the next export wait inside its transaction call, holding its slot, until `release()`. */
+const blockNextExport = () => {
+	const prisma = getTestPrisma()
+	const transaction = prisma.$transaction.bind(prisma)
+	let entered = () => {}
+	const started = new Promise<void>((resolve) => {
+		entered = resolve
+	})
+	let release = () => {}
+	const released = new Promise<void>((resolve) => {
+		release = resolve
+	})
+	const spy = vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (...args: Parameters<typeof transaction>) => {
+		entered()
+		await released
+		return transaction(...args)
+	})
+	return { started, release, restore: () => spy.mockRestore() }
+}
 
 const exportOk = async (...args: Parameters<typeof exportCsv>) => {
 	const res = await exportCsv(...args)
@@ -204,5 +224,100 @@ describe('GET /api/projects/:projectId/export', () => {
 
 		expectErrorCode(await exportCsv(app, cookie, project.id, { languageIds: sk.id }), 404, ERROR_CODE.NOT_FOUND)
 		expectErrorCode(await request(app).get(`/api/projects/${project.id}/export`).query({ languageIds: sk.id }), 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
+	})
+
+	describe('limits concurrent exports per process', () => {
+		it('refuses an export with 429 and Retry-After while the slot is taken and the queue is full, then frees the slot', async () => {
+			const app = createTestApp({ config: { exportMaxConcurrent: 1, exportQueueMax: 0, exportQueueTimeoutMs: 2500 } })
+			const { project, sk, cookie } = await setup(app)
+			await createKey(project.id, 'loc', 'a', { [sk.id]: 'A' })
+			const blocked = blockNextExport()
+			try {
+				const first = exportCsv(app, cookie, project.id, { languageIds: sk.id }).then((res) => res)
+				await blocked.started
+
+				const busy = await exportCsv(app, cookie, project.id, { languageIds: sk.id })
+				expectErrorCode(busy, 429, ERROR_CODE.EXPORT_BUSY)
+				expect(busy.headers['retry-after']).toBe('3')
+
+				blocked.release()
+				expect((await first).text).toBe('Keys; sk \n--loc--\n a; A\n')
+				expect(await exportOk(app, cookie, project.id, { languageIds: sk.id })).toBe('Keys; sk \n--loc--\n a; A\n')
+			} finally {
+				blocked.restore()
+			}
+		})
+
+		it('lets a queued export run when the slot is released', async () => {
+			const app = createTestApp({ config: { exportMaxConcurrent: 1, exportQueueMax: 1 } })
+			const { project, sk, cookie } = await setup(app)
+			const blocked = blockNextExport()
+			try {
+				const first = exportCsv(app, cookie, project.id, { languageIds: sk.id }).then((res) => res.status)
+				await blocked.started
+				let settled = false
+				const queued = exportCsv(app, cookie, project.id, { languageIds: sk.id })
+					.then((res) => res.status)
+					.finally(() => {
+						settled = true
+					})
+				await new Promise((resolve) => setTimeout(resolve, 100))
+				expect(settled).toBe(false)
+
+				blocked.release()
+				expect(await Promise.all([first, queued])).toEqual([200, 200])
+			} finally {
+				blocked.restore()
+			}
+		})
+
+		it('refuses a queued export with 429 after the queue timeout', async () => {
+			const app = createTestApp({ config: { exportMaxConcurrent: 1, exportQueueMax: 1, exportQueueTimeoutMs: 100 } })
+			const { project, sk, cookie } = await setup(app)
+			const blocked = blockNextExport()
+			try {
+				const first = exportCsv(app, cookie, project.id, { languageIds: sk.id }).then((res) => res.status)
+				await blocked.started
+
+				expectErrorCode(await exportCsv(app, cookie, project.id, { languageIds: sk.id }), 429, ERROR_CODE.EXPORT_BUSY)
+
+				blocked.release()
+				expect(await first).toBe(200)
+			} finally {
+				blocked.restore()
+			}
+		})
+
+		it('frees the slot after a refused export', async () => {
+			const app = createTestApp({ config: { exportMaxConcurrent: 1, exportQueueMax: 0 } })
+			const { project, sk, cookie } = await setup(app)
+			const foreign = await createLanguage((await createProject()).id, 'sk', { isBase: true })
+			await createKey(project.id, 'loc', 'a;b', { [sk.id]: 'A' })
+
+			expectErrorCode(await exportCsv(app, cookie, project.id, { languageIds: foreign.id }), 400, ERROR_CODE.EXPORT_LANGUAGES_INVALID)
+			expectErrorCode(await exportCsv(app, cookie, project.id, { languageIds: sk.id }), 422, ERROR_CODE.EXPORT_VALUE_UNSAFE)
+			expectErrorCode(await exportCsv(app, cookie, project.id, { languageIds: sk.id }), 422, ERROR_CODE.EXPORT_VALUE_UNSAFE)
+		})
+
+		it('closes the connection after the export timeout and frees the slot', async () => {
+			const app = createTestApp({ config: { exportMaxConcurrent: 1, exportQueueMax: 0, exportTimeoutMs: 200 } })
+			const { project, sk, cookie } = await setup(app)
+			const blocked = blockNextExport()
+			try {
+				const first = exportCsv(app, cookie, project.id, { languageIds: sk.id }).then(
+					(res) => res.status,
+					(error: NodeJS.ErrnoException) => error.code,
+				)
+				await blocked.started
+
+				expect(await first).toBe('ECONNRESET')
+				blocked.release()
+				await vi.waitFor(async () => {
+					expect((await exportCsv(app, cookie, project.id, { languageIds: sk.id })).status).toBe(200)
+				})
+			} finally {
+				blocked.restore()
+			}
+		})
 	})
 })

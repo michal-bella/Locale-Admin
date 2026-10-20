@@ -17,6 +17,10 @@ export const TEST_CONFIG: Config = {
 	sessionMaxAgeDays: 30,
 	loginRateLimitMax: 1000,
 	loginRateLimitWindowMs: 900000,
+	exportMaxConcurrent: 2,
+	exportQueueMax: 20,
+	exportQueueTimeoutMs: 10000,
+	exportTimeoutMs: 60000,
 }
 
 export const createTestApp = ({ config, prisma }: { config?: Partial<Config>; prisma?: PrismaClient } = {}) =>

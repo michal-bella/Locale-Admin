@@ -65,20 +65,24 @@ flowchart LR
 
 ## ENV premenné
 
-| Premenná                                            | Kde              | Popis                                                                                              |
-| --------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
-| `DB_PORT`                                           | compose          | port Postgresu na hoste (default `5433`, `5432` býva obsadený)                                     |
-| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | compose          | prístup do lokálnej DB                                                                             |
-| `DATABASE_URL`                                      | BE, Prisma       | pripojenie k DB z hosta. V kontajneri ho compose prepíše na host `db`                              |
-| `TEST_DATABASE_URL`                                 | integračné testy | test DB, názov musí končiť na `_test`                                                              |
-| `NODE_ENV`, `PORT`, `LOG_LEVEL`                     | BE               | prostredie, port, úroveň logovania                                                                 |
-| `SEED_ADMIN_PASSWORD`                               | BE, seed         | heslo admina pre seed, povinné, min. 8 znakov                                                      |
-| `APP_VERSION`                                       | BE               | verzia v odpovedi `GET /api/health`, nepovinná (default `0.0.0`)                                   |
-| `COOKIE_SECURE`                                     | BE               | `Secure` príznak session cookie. Default `true`, v `.env.example` a compose `false` (lokálne http) |
-| `SESSION_TTL_DAYS`                                  | BE               | platnosť session od poslednej aktivity v dňoch (default `7`)                                       |
-| `SESSION_MAX_AGE_DAYS`                              | BE               | absolútny limit session od prihlásenia v dňoch (default `30`)                                      |
-| `LOGIN_RATE_LIMIT_MAX`                              | BE               | počet pokusov o login z jednej IP za okno (default `10`, `pnpm test:e2e` používa `1000`)           |
-| `LOGIN_RATE_LIMIT_WINDOW_MS`                        | BE               | dĺžka okna rate limitu v ms (default `900000` = 15 min)                                            |
+| Premenná                                            | Kde              | Popis                                                                                                               |
+| --------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `DB_PORT`                                           | compose          | port Postgresu na hoste (default `5433`, `5432` býva obsadený)                                                      |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | compose          | prístup do lokálnej DB                                                                                              |
+| `DATABASE_URL`                                      | BE, Prisma       | pripojenie k DB z hosta. V kontajneri ho compose prepíše na host `db`                                               |
+| `TEST_DATABASE_URL`                                 | integračné testy | test DB, názov musí končiť na `_test`                                                                               |
+| `NODE_ENV`, `PORT`, `LOG_LEVEL`                     | BE               | prostredie, port, úroveň logovania                                                                                  |
+| `SEED_ADMIN_PASSWORD`                               | BE, seed         | heslo admina pre seed, povinné, min. 8 znakov                                                                       |
+| `APP_VERSION`                                       | BE               | verzia v odpovedi `GET /api/health`, nepovinná (default `0.0.0`)                                                    |
+| `COOKIE_SECURE`                                     | BE               | `Secure` príznak session cookie. Default `true`, v `.env.example` a compose `false` (lokálne http)                  |
+| `SESSION_TTL_DAYS`                                  | BE               | platnosť session od poslednej aktivity v dňoch (default `7`)                                                        |
+| `SESSION_MAX_AGE_DAYS`                              | BE               | absolútny limit session od prihlásenia v dňoch (default `30`)                                                       |
+| `LOGIN_RATE_LIMIT_MAX`                              | BE               | počet pokusov o login z jednej IP za okno (default `10`, `pnpm test:e2e` používa `1000`)                            |
+| `LOGIN_RATE_LIMIT_WINDOW_MS`                        | BE               | dĺžka okna rate limitu v ms (default `900000` = 15 min)                                                             |
+| `EXPORT_MAX_CONCURRENT`                             | BE               | počet exportov, ktoré bežia naraz v jednom procese (pode), default `2` ([export](./api/exports.md#súbežné-exporty)) |
+| `EXPORT_QUEUE_MAX`                                  | BE               | koľko exportov môže čakať vo fronte, default `20`; plná fronta → 429 `EXPORT_BUSY`                                  |
+| `EXPORT_QUEUE_TIMEOUT_MS`                           | BE               | najdlhšie čakanie vo fronte v ms, default `10000`; potom 429                                                        |
+| `EXPORT_TIMEOUT_MS`                                 | BE               | najdlhší export v ms vrátane sťahovania, default `60000`; potom sa transakcia zruší a spojenie zavrie               |
 
 ## Troubleshooting
 

@@ -8,6 +8,12 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Preklady: posledná úprava, Uložiť a ďalší, vymazanie vyhľadávania (2026-10-20)
+
+- API: bunka prekladu v zozname aj odpoveď `PUT …/translations/:languageId` nesú `updatedBy` (`{ id, name }` alebo `null`) ([API](./api/translations.md))
+- frontend: modál Upraviť preklad ukazuje, kto a kedy preklad naposledy uložil, a má **Uložiť a ďalší** (aj `Cmd/Ctrl+Enter`), ktoré otvorí ďalšiu nepreloženú bunku na strane ([Frontend](./frontend.md#modál-upraviť-preklad))
+- frontend: vyhľadávanie má X na vymazanie, `Esc` ho tiež vymaže ([Frontend](./frontend.md#stránka-preklady))
+
 ### Preklady: vyhľadávanie bez diakritiky (2026-10-20)
 
 - API: `search` v `GET /api/projects/:projectId/translations` ignoruje diakritiku cez rozšírenie PostgreSQL `unaccent` (nová migrácia), „vlastni“ nájde „vlastní“ ([API](./api/translations.md), [Databáza](./database.md#migrácie))

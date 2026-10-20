@@ -73,3 +73,9 @@
 [data-mantine-color-scheme='dark'] .error {
 	color: var(--mantine-color-error);
 }
+
+.lastEdit {
+	font-size: var(--mantine-font-size-2xs);
+	line-height: 1.5;
+	color: var(--app-color-text-secondary);
+}

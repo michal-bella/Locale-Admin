@@ -6,6 +6,7 @@ import {
 	serializePluralValue,
 	translationGroup,
 	type TranslationCell,
+	type TranslationEditor,
 	type TranslationKeyPlural,
 	type TranslationListItem,
 	type TranslationsQuery,
@@ -34,7 +35,16 @@ type ItemRow = {
 	untranslated: boolean
 }
 
-type CellRow = Pick<Translation, 'keyId' | 'languageId' | 'value' | 'updatedAt'>
+type EditorRow = { id: string; email: string; firstName: string | null; lastName: string | null }
+
+type CellRow = Pick<Translation, 'keyId' | 'languageId' | 'value' | 'updatedAt'> & { updatedBy: EditorRow | null }
+
+const EDITOR_SELECT = { select: { id: true, email: true, firstName: true, lastName: true } } as const
+
+const toEditor = ({ id, email, firstName, lastName }: EditorRow): TranslationEditor => ({
+	id,
+	name: [firstName, lastName].filter(Boolean).join(' ') || email,
+})
 
 /** `\` is the default ILIKE escape character, so it is escaped too. */
 const toContainsPattern = (search: string) => `%${search.replace(/[\\%_]/g, '\\$&')}%`
@@ -96,7 +106,7 @@ const toPlural = (pluralVariable: string | null): TranslationKeyPlural | null =>
 
 const toStatus = (value: string | null): TranslationStatus => (value === null ? 'UNTRANSLATED' : 'TRANSLATED')
 
-const EMPTY_CELL: TranslationCell = { value: null, status: 'UNTRANSLATED', updatedAt: null }
+const EMPTY_CELL: TranslationCell = { value: null, status: 'UNTRANSLATED', updatedAt: null, updatedBy: null }
 
 const toItem = (row: ItemRow, languageIds: string[], cells: Map<string, CellRow>): TranslationListItem => ({
 	keyId: row.keyId,
@@ -109,7 +119,17 @@ const toItem = (row: ItemRow, languageIds: string[], cells: Map<string, CellRow>
 	translations: Object.fromEntries(
 		languageIds.map((languageId) => {
 			const cell = cells.get(`${row.keyId}:${languageId}`)
-			return [languageId, cell ? { value: cell.value, status: toStatus(cell.value), updatedAt: cell.updatedAt.toISOString() } : EMPTY_CELL]
+			return [
+				languageId,
+				cell
+					? {
+							value: cell.value,
+							status: toStatus(cell.value),
+							updatedAt: cell.updatedAt.toISOString(),
+							updatedBy: cell.updatedBy && toEditor(cell.updatedBy),
+						}
+					: EMPTY_CELL,
+			]
 		}),
 	),
 })
@@ -163,7 +183,7 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	])
 	const cellRows = await prisma.translation.findMany({
 		where: { keyId: { in: rows.map((row) => row.keyId) } },
-		select: { keyId: true, languageId: true, value: true, updatedAt: true },
+		select: { keyId: true, languageId: true, value: true, updatedAt: true, updatedBy: EDITOR_SELECT },
 	})
 	const cells = new Map(cellRows.map((cell) => [`${cell.keyId}:${cell.languageId}`, cell]))
 	const languageIds = languages.map((language) => language.id)
@@ -223,9 +243,14 @@ export const updateTranslation = async (
 		where: { keyId_languageId: { keyId, languageId } },
 		create: { keyId, languageId, value, updatedById: userId },
 		update: { value, updatedById: userId },
-		select: { value: true, updatedAt: true },
+		select: { value: true, updatedAt: true, updatedBy: EDITOR_SELECT },
 	})
-	return { value: row.value, status: row.value === null ? 'UNTRANSLATED' : 'TRANSLATED', updatedAt: row.updatedAt.toISOString() }
+	return {
+		value: row.value,
+		status: row.value === null ? 'UNTRANSLATED' : 'TRANSLATED',
+		updatedAt: row.updatedAt.toISOString(),
+		updatedBy: row.updatedBy && toEditor(row.updatedBy),
+	}
 }
 
 /**

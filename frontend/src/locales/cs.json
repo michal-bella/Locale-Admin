@@ -228,7 +228,8 @@
 		"toolbar": {
 			"search": {
 				"label": "Hledat klíč nebo překlad",
-				"placeholder": "Hledat klíč nebo překlad…"
+				"placeholder": "Hledat klíč nebo překlad…",
+				"clear": "Vymazat vyhledávání"
 			},
 			"status": {
 				"label": "Stav",
@@ -297,7 +298,11 @@
 			"baseLanguage": "Základní jazyk ({{language}})",
 			"value": "Překlad",
 			"cancel": "Zrušit",
-			"submit": "Uložit"
+			"submit": "Uložit",
+			"lastEdit": "Poslední úprava: {{name}}, {{time}}",
+			"lastEditTime": "Poslední úprava: {{time}}",
+			"submitNext": "Uložit a další",
+			"submitNextHint": "Uloží a otevře další nepřeloženou buňku na této stránce ({{shortcut}})"
 		},
 		"plural": {
 			"hash": "Číslo",

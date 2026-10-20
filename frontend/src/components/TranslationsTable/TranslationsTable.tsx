@@ -23,9 +23,10 @@ import { type TranslationsTableProps } from './types'
 
 const SKELETON_ROWS = 5
 
-const EMPTY_CELL: TranslationCellData = { value: null, status: 'UNTRANSLATED', updatedAt: null }
+const EMPTY_CELL: TranslationCellData = { value: null, status: 'UNTRANSLATED', updatedAt: null, updatedBy: null }
 
-type Editing = { item: TranslationListItem; language: Language }
+/** `viaNext`: opened by Uložiť a ďalší while the modal stayed open. */
+type Editing = { item: TranslationListItem; language: Language; viaNext?: boolean }
 
 /**
  * Keys with their translations; every translation cell is a `TranslationCell` that opens `EditTranslationModal`. `EXTENDED` shows a column per language
@@ -78,6 +79,17 @@ const TranslationsTable = ({
 		setEditingTranslation({ item, language })
 		translationModal.open()
 	}
+
+	// Editable cells of the page in reading order: every language in the extended view, the target in the compact one.
+	const editableLanguages = isExtended ? languages : targetLanguage ? [targetLanguage] : []
+	const nextUntranslated = (() => {
+		if (!editingTranslation || !data) {
+			return undefined
+		}
+		const cells = data.items.flatMap((item) => editableLanguages.map((language) => ({ item, language })))
+		const current = cells.findIndex(({ item, language }) => item.keyId === editingTranslation.item.keyId && language.id === editingTranslation.language.id)
+		return cells.slice(current + 1).find(({ item, language }) => item.translations[language.id]?.status !== 'TRANSLATED')
+	})()
 
 	// A successful retry replaces the focused retry button with the rows.
 	const retry = async () => {
@@ -344,6 +356,8 @@ const TranslationsTable = ({
 				opened={translationOpened}
 				onClose={translationModal.close}
 				onSave={onSave}
+				onNext={nextUntranslated && (() => setEditingTranslation({ ...nextUntranslated, viaNext: true }))}
+				focusOnSwitch={editingTranslation?.viaNext}
 			/>
 		</div>
 	)

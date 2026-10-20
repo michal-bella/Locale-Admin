@@ -79,19 +79,20 @@ Schéma `translationsResponseSchema`.
 
 Položka `items[]`:
 
-| Pole           | Typ                        | Popis                                                            |
-| -------------- | -------------------------- | ---------------------------------------------------------------- |
-| `keyId`        | UUID                       | ID kľúča                                                         |
-| `namespace`    | string                     | namespace (JSON súbor), `""` ak nemá                             |
-| `name`         | string                     | kľúč                                                             |
-| `group`        | string                     | skupina (viď vyššie)                                             |
-| `description`  | string alebo `null`        | popis kľúča pre prekladateľov (viď úprava kľúča)                 |
-| `plural`       | objekt alebo `null`        | `{ variable }` pri plurálovom kľúči, inak `null`                 |
-| `status`       | enum                       | stav riadku podľa zobrazenia (viď vyššie)                        |
-| `translations` | objekt                     | bunka pre **každý** jazyk projektu, kľúč je `ProjectLanguage.id` |
-| `….value`      | string alebo `null`        | text v jazyku, `null` ak chýba                                   |
-| `….status`     | enum                       | `TRANSLATED` alebo `UNTRANSLATED`                                |
-| `….updatedAt`  | string (ISO 8601) / `null` | posledná zmena prekladu v jazyku, `null` ak riadok neexistuje    |
+| Pole           | Typ                        | Popis                                                                                                                                                                  |
+| -------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `keyId`        | UUID                       | ID kľúča                                                                                                                                                               |
+| `namespace`    | string                     | namespace (JSON súbor), `""` ak nemá                                                                                                                                   |
+| `name`         | string                     | kľúč                                                                                                                                                                   |
+| `group`        | string                     | skupina (viď vyššie)                                                                                                                                                   |
+| `description`  | string alebo `null`        | popis kľúča pre prekladateľov (viď úprava kľúča)                                                                                                                       |
+| `plural`       | objekt alebo `null`        | `{ variable }` pri plurálovom kľúči, inak `null`                                                                                                                       |
+| `status`       | enum                       | stav riadku podľa zobrazenia (viď vyššie)                                                                                                                              |
+| `translations` | objekt                     | bunka pre **každý** jazyk projektu, kľúč je `ProjectLanguage.id`                                                                                                       |
+| `….value`      | string alebo `null`        | text v jazyku, `null` ak chýba                                                                                                                                         |
+| `….status`     | enum                       | `TRANSLATED` alebo `UNTRANSLATED`                                                                                                                                      |
+| `….updatedAt`  | string (ISO 8601) / `null` | posledná zmena prekladu v jazyku, `null` ak riadok neexistuje                                                                                                          |
+| `….updatedBy`  | objekt alebo `null`        | kto bunku naposledy uložil (úprava, import, zmena plurálu): `{ id, name }`, `name` je celé meno alebo e-mail; `null` ak riadok neexistuje alebo bol používateľ zmazaný |
 
 ```json
 {
@@ -105,8 +106,13 @@ Položka `items[]`:
 			"plural": null,
 			"status": "UNTRANSLATED",
 			"translations": {
-				"7a2e…": { "value": "Zatiaľ nemáte žiadne objednávky", "status": "TRANSLATED", "updatedAt": "2026-10-18T11:00:00.000Z" },
-				"9c4b…": { "value": null, "status": "UNTRANSLATED", "updatedAt": "2026-10-18T12:00:00.000Z" }
+				"7a2e…": {
+					"value": "Zatiaľ nemáte žiadne objednávky",
+					"status": "TRANSLATED",
+					"updatedAt": "2026-10-18T11:00:00.000Z",
+					"updatedBy": { "id": "5d1f…", "name": "Martin Kováč" }
+				},
+				"9c4b…": { "value": null, "status": "UNTRANSLATED", "updatedAt": "2026-10-18T12:00:00.000Z", "updatedBy": null }
 			}
 		}
 	],
@@ -160,7 +166,7 @@ Pri nezhode sa nič nezapíše a vráti sa 400 `PLACEHOLDER_MISMATCH` s `details
 Schéma `updateTranslationResponseSchema`, rovnaký tvar ako `target` v zozname:
 
 ```json
-{ "value": "You have {{count}} items", "status": "TRANSLATED", "updatedAt": "2026-10-19T09:30:00.000Z" }
+{ "value": "You have {{count}} items", "status": "TRANSLATED", "updatedAt": "2026-10-19T09:30:00.000Z", "updatedBy": { "id": "5d1f…", "name": "Martin Kováč" } }
 ```
 
 ### Chyby

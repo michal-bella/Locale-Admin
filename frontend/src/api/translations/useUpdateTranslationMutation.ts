@@ -1,6 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { type TranslationListItem, type TranslationsQueryInput, type TranslationsResponse, type UpdateTranslationResponse } from '@locale/shared'
+import {
+	type AuthUser,
+	type TranslationCell,
+	type TranslationEditor,
+	type TranslationListItem,
+	type TranslationsQueryInput,
+	type TranslationsResponse,
+	type UpdateTranslationResponse,
+} from '@locale/shared'
 
 import http from '@/api/http'
 import { QUERY_KEYS } from '@/api/queryKeys'
@@ -13,12 +21,17 @@ const rowStatus = (item: TranslationListItem, targetLanguageId: string | undefin
 	return cells.every((cell) => cell?.status === 'TRANSLATED') ? 'TRANSLATED' : 'UNTRANSLATED'
 }
 
-const applyUpdate = (data: TranslationsResponse, { keyId, languageId, value }: UpdateTranslationVariables, targetLanguageId: string | undefined) => {
+const applyUpdate = (
+	data: TranslationsResponse,
+	{ keyId, languageId, value }: UpdateTranslationVariables,
+	targetLanguageId: string | undefined,
+	updatedBy: TranslationEditor | null,
+) => {
 	const item = data.items.find((candidate) => candidate.keyId === keyId)
 	if (!item) {
 		return data
 	}
-	const cell = { value, status: value === null ? 'UNTRANSLATED' : 'TRANSLATED', updatedAt: new Date().toISOString() } as const
+	const cell: TranslationCell = { value, status: value === null ? 'UNTRANSLATED' : 'TRANSLATED', updatedAt: new Date().toISOString(), updatedBy }
 	const updated: TranslationListItem = { ...item, translations: { ...item.translations, [languageId]: cell } }
 	updated.status = rowStatus(updated, targetLanguageId)
 	const delta = updated.status === item.status ? 0 : updated.status === 'TRANSLATED' ? 1 : -1
@@ -30,7 +43,7 @@ const applyUpdate = (data: TranslationsResponse, { keyId, languageId, value }: U
 }
 
 /**
- * `PUT /projects/:id/keys/:keyId/translations/:languageId`. Updates the page `listQuery` in the cache optimistically (the cell, the row
+ * `PUT /projects/:id/keys/:keyId/translations/:languageId`. Updates the page `listQuery` in the cache optimistically (the cell with the signed-in user as `updatedBy`, the row
  * status and `stats` when it flips), restores the snapshot on error and refetches every translations page of the project on settle,
  * which also repairs a rollback that undid a concurrent edit of another row.
  */
@@ -49,7 +62,12 @@ export const useUpdateTranslationMutation = (projectId: string, listQuery: Trans
 			}
 			await queryClient.cancelQueries({ queryKey: listKey })
 			const previous = queryClient.getQueryData<TranslationsResponse>(listKey)
-			queryClient.setQueryData<TranslationsResponse>(listKey, (current) => current && applyUpdate(current, variables, targetLanguageId))
+			const me = queryClient.getQueryData<AuthUser>(QUERY_KEYS.AUTH.ME())
+			const updatedBy = me && { id: me.id, name: [me.firstName, me.lastName].filter(Boolean).join(' ') || me.email }
+			queryClient.setQueryData<TranslationsResponse>(
+				listKey,
+				(current) => current && applyUpdate(current, variables, targetLanguageId, updatedBy ?? null),
+			)
 			return { previous }
 		},
 		onError: (_error, _variables, context) => {

@@ -1,6 +1,6 @@
-import { Button, VisuallyHidden } from '@mantine/core'
+import { Button, Tooltip, VisuallyHidden } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useId, useRef, useState } from 'react'
+import { type KeyboardEvent, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -23,6 +23,8 @@ import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import PluralFormChip from '@/components/PluralForms/PluralFormChip'
 import TokenEditor from '@/components/TokenEditor/TokenEditor'
 import TranslationValue from '@/components/TranslationValue/TranslationValue'
+import { formatDateTime } from '@/lib/formatDate'
+import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import { parsePluralForms, pluralFormsOf } from '@/lib/pluralForms'
 
 import classes from './EditTranslationModal.module.css'
@@ -35,14 +37,20 @@ type Draft = Partial<Record<PluralForm, string>>
 
 const PLAIN: PluralForm = 'other'
 
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+
+const SHORTCUT = IS_MAC ? '⌘ Enter' : 'Ctrl + Enter'
+
 /**
  * "Upraviť preklad": the key, the language, the base language value as a reference and a `TokenEditor` per form (one for a plain key).
  * Saves only with the button. Empty or whitespace-only text saves `null`; for a plural key the forms are saved as one ICU message (empty
  * forms kept, all empty → `null`) after checking that every form keeps `{`/`}` balanced and the whole message fits
  * `TRANSLATION_VALUE_MAX_LENGTH`. `PLACEHOLDER_MISMATCH` and an unparseable plural (`VALIDATION_ERROR` on `value`) show under the
  * fields and keep the modal open; any other error shows a notification. `key` on the content resets the draft for every key and language.
+ * The footer shows who saved the value last and when. With `onNext`, Uložiť a ďalší (and Cmd/Ctrl+Enter) saves and moves to the next
+ * untranslated cell instead of closing.
  */
-const EditTranslationModal = ({ item, language, baseLanguage, opened, onClose, onSave }: EditTranslationModalProps) => {
+const EditTranslationModal = ({ item, language, baseLanguage, opened, onClose, onSave, onNext, focusOnSwitch = false }: EditTranslationModalProps) => {
 	const { t } = useTranslation()
 	const [saving, setSaving] = useState(false)
 
@@ -64,27 +72,32 @@ const EditTranslationModal = ({ item, language, baseLanguage, opened, onClose, o
 					setSaving={setSaving}
 					onClose={onClose}
 					onSave={onSave}
+					onNext={onNext}
+					focusOnMount={focusOnSwitch}
 				/>
 			)}
 		</AppModal>
 	)
 }
 
-type FieldsProps = Pick<EditTranslationModalProps, 'baseLanguage' | 'onClose' | 'onSave'> & {
+type FieldsProps = Pick<EditTranslationModalProps, 'baseLanguage' | 'onClose' | 'onSave' | 'onNext'> & {
 	item: TranslationListItem
 	language: Language
 	saving: boolean
 	setSaving: (saving: boolean) => void
+	focusOnMount: boolean
 }
 
-const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSave }: FieldsProps) => {
-	const { t } = useTranslation()
-	const value = item.translations[language.id]?.value ?? null
+const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSave, onNext, focusOnMount }: FieldsProps) => {
+	const { t, i18n } = useTranslation()
+	const cell = item.translations[language.id]
+	const value = cell?.value ?? null
 	const plural = item.plural ? { variable: item.plural.variable, tag: language.tag } : null
 	const forms: PluralForm[] = plural ? pluralFormsOf(plural.tag, parsePluralForms(value)) : [PLAIN]
 	const [draft, setDraft] = useState<Draft>(() => (plural ? parsePluralForms(value) : { [PLAIN]: value ?? '' }))
 	const [rejected, setRejected] = useState<Rejection | null>(null)
 	const editorRefs = useRef<Partial<Record<PluralForm, HTMLDivElement | null>>>({})
+	const pendingFocusRef = useRef(focusOnMount)
 	const label = t('translationsPage.editor.label', { key: item.name, language: language.nativeName })
 	const lockedHintId = useId()
 	const errorId = useId()
@@ -120,13 +133,14 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 		}
 	}
 
-	const save = async () => {
+	const save = async (goNext = false) => {
 		if (saving) {
 			return
 		}
+		const done = goNext && onNext ? onNext : onClose
 		const next = composeValue()
 		if (next === value) {
-			onClose()
+			done()
 			return
 		}
 		const rejection = validate(next)
@@ -137,7 +151,7 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 		setSaving(true)
 		try {
 			await onSave(item.keyId, language.id, next)
-			onClose()
+			done()
 		} catch (error) {
 			const details = getPlaceholderMismatch(error)
 			if (details) {
@@ -174,10 +188,29 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	const describedBy = [lockedHintId, message && errorId].filter(Boolean).join(' ')
 	const isInvalid = (form: PluralForm) => rejected !== null && (rejected.kind !== 'unbalanced' || rejected.forms.includes(form))
 
+	const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+		if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+			event.preventDefault()
+			void save(true)
+		}
+	}
+
+	const lastEdit = cell?.updatedAt && (
+		<span className={classes.lastEdit} title={formatDateTime(cell.updatedAt, i18n.language)}>
+			{cell.updatedBy
+				? t('translationsPage.editModal.lastEdit', { name: cell.updatedBy.name, time: formatRelativeTime(cell.updatedAt, i18n.language) })
+				: t('translationsPage.editModal.lastEditTime', { time: formatRelativeTime(cell.updatedAt, i18n.language) })}
+		</span>
+	)
+
 	const field = (form: PluralForm, index: number) => (
 		<TokenEditor
 			key={form}
 			ref={(element) => {
+				if (element && index === 0 && pendingFocusRef.current) {
+					pendingFocusRef.current = false
+					element.focus()
+				}
 				editorRefs.current[form] = element
 			}}
 			value={draft[form] ?? ''}
@@ -192,6 +225,7 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 			readOnly={saving}
 			maxLength={TRANSLATION_VALUE_MAX_LENGTH}
 			modalAutofocus={index === 0}
+			onKeyDown={handleKeyDown}
 			className={classes.field}
 		/>
 	)
@@ -239,13 +273,28 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 					</span>
 				)}
 			</div>
-			<div className='flex items-center justify-end gap-2'>
-				<Button variant='default' onClick={onClose} disabled={saving}>
-					{t('translationsPage.editModal.cancel')}
-				</Button>
-				<Button loading={saving} onClick={() => void save()}>
-					{t('translationsPage.editModal.submit')}
-				</Button>
+			<div className='flex flex-wrap items-center gap-2'>
+				{lastEdit}
+				<div className='ml-auto flex flex-wrap items-center justify-end gap-2'>
+					<Button variant='default' onClick={onClose} disabled={saving}>
+						{t('translationsPage.editModal.cancel')}
+					</Button>
+					<Button
+						variant={onNext ? 'default' : 'filled'}
+						loading={saving}
+						onClick={() => void save()}
+						aria-keyshortcuts={onNext ? undefined : 'Meta+Enter Control+Enter'}
+					>
+						{t('translationsPage.editModal.submit')}
+					</Button>
+					{onNext && (
+						<Tooltip label={t('translationsPage.editModal.submitNextHint', { shortcut: SHORTCUT })}>
+							<Button loading={saving} onClick={() => void save(true)} aria-keyshortcuts='Meta+Enter Control+Enter'>
+								{t('translationsPage.editModal.submitNext')}
+							</Button>
+						</Tooltip>
+					)}
+				</div>
 			</div>
 		</>
 	)

@@ -1,6 +1,6 @@
-import { type ComboboxItem, type ComboboxLikeRenderOptionInput, SegmentedControl, Select, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
+import { CloseButton, type ComboboxItem, type ComboboxLikeRenderOptionInput, SegmentedControl, Select, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useDebouncedCallback } from '@mantine/hooks'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type Language, TRANSLATIONS_SEARCH_MAX_LENGTH, translationsSortSchema, translationStatusSchema, translationsViewSchema } from '@locale/shared'
@@ -71,7 +71,7 @@ const LanguageSelect = ({
 
 /**
  * Filters above the translations table (Figma 3:121): search, status, namespace, sort, the view and layout switches and, in the compact view,
- * source → target language. The search writes to the URL 300 ms after the last keystroke; the other filters right away.
+ * source → target language. The search writes to the URL 300 ms after the last keystroke; the X and Esc clear it right away, as the other filters do.
  */
 const TranslationsToolbar = ({
 	search,
@@ -93,6 +93,14 @@ const TranslationsToolbar = ({
 	const [searchValue, setSearchValue] = useState(search ?? '')
 	const [committedSearch, setCommittedSearch] = useState(search)
 	const commitSearch = useDebouncedCallback((value: string) => onChange({ search: value.trim() || undefined }), SEARCH_DEBOUNCE_MS)
+	const searchRef = useRef<HTMLInputElement>(null)
+
+	const clearSearch = () => {
+		commitSearch.cancel()
+		setSearchValue('')
+		onChange({ search: undefined })
+		searchRef.current?.focus()
+	}
 
 	// The URL changed without typing (Zrušiť filtre, back button), so the field shows the URL value.
 	if (search !== committedSearch) {
@@ -110,13 +118,20 @@ const TranslationsToolbar = ({
 			<TextInput
 				aria-label={t('translationsPage.toolbar.search.label')}
 				placeholder={t('translationsPage.toolbar.search.placeholder')}
+				ref={searchRef}
 				leftSection={<Search aria-hidden />}
+				rightSection={searchValue && <CloseButton size='sm' aria-label={t('translationsPage.toolbar.search.clear')} onClick={clearSearch} />}
 				maxLength={TRANSLATIONS_SEARCH_MAX_LENGTH}
 				className={classes.search}
 				value={searchValue}
 				onChange={(event) => {
 					setSearchValue(event.currentTarget.value)
 					commitSearch(event.currentTarget.value)
+				}}
+				onKeyDown={(event) => {
+					if (event.key === 'Escape' && searchValue) {
+						clearSearch()
+					}
 				}}
 			/>
 			<Select

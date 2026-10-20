@@ -11,6 +11,7 @@ notion_page_id:
 ### Preklady: automatické rozpoznanie plurálov (2026-10-20)
 
 - API: import nastaví kľúču `pluralVariable`, keď sú jeho hodnoty ICU plurálové správy s jednou premennou (nový kľúč aj existujúci bez plurálu, z uložených aj súborových hodnôt); správu obalenú textom (Tolgee) zapíše ako čistú plurálovú správu s textom v každej forme ([API](./api/imports.md))
+- frontend: plurálový editor ponúka iba formy, ktoré používajú celé čísla (v sk a cs bez `many`, tá je iba pre desatinné čísla); uložená forma sa zobrazí vždy
 - API aj frontend: ICU argument `{name}` je premenná ako `{{name}}` (chip v tabuľke a editore, kontrola premenných pri ukladaní a v preview importu) ([API](./api/translations.md))
 - frontend: Upraviť kľúč pri takom kľúči otvorí plurál zapnutý s predvyplnenou premennou ([Frontend](./frontend.md#modál-upraviť-kľúč))
 

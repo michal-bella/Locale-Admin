@@ -1087,7 +1087,7 @@ describe('TranslationsPage plural forms', () => {
 		await within(getRow('items.count')).findByText('items!', { exact: false })
 	})
 
-	it('edits the four Slovak forms and keeps an empty form as an empty string', async () => {
+	it('edits the three Slovak forms of whole numbers (no fraction-only Veľa) and keeps an empty form as an empty string', async () => {
 		const puts = mockEditing(undefined, ADMIN_USER, [
 			{
 				...PLURAL_ITEM(),
@@ -1102,17 +1102,16 @@ describe('TranslationsPage plural forms', () => {
 		expect(fields.map((field) => field.getAttribute('aria-label'))).toEqual([
 			'Preklad kľúča items.count, slovenčina, Jeden',
 			'Preklad kľúča items.count, slovenčina, Málo',
-			'Preklad kľúča items.count, slovenčina, Veľa',
 			'Preklad kľúča items.count, slovenčina, Iné',
 		])
 		// Slovak is the base language, so there is no reference block.
 		expect(within(dialog).queryByText(/Základný jazyk/)).not.toBeInTheDocument()
 		typeText(fields[0]!, '# položka')
-		typeText(fields[3]!, '# položiek')
+		typeText(fields[2]!, '# položiek')
 		save(dialog)
 
 		await waitFor(() => expect(puts()).toHaveLength(1))
-		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: '{count, plural, one {# položka} few {} many {} other {# položiek}}' })
+		expect(JSON.parse(puts()[0]?.data as string)).toEqual({ value: '{count, plural, one {# položka} few {} other {# položiek}}' })
 	})
 
 	it('saves null when every form is empty', async () => {

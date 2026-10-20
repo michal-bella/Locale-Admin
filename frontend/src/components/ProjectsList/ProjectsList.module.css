@@ -96,17 +96,14 @@
 	cursor: grabbing;
 }
 
-.row[data-dragging] {
-	opacity: 0.5;
+/* SortableJS: the row being held, and the placeholder that slides between the other rows while dragging. */
+.chosen {
+	background-color: var(--app-color-surface-muted);
 }
 
-/* A 2 px line on the edge where the dragged project lands. */
-.row[data-drop='before'] {
-	box-shadow: inset 0 2px 0 var(--mantine-primary-color-filled);
-}
-
-.row[data-drop='after'] {
-	box-shadow: inset 0 -2px 0 var(--mantine-primary-color-filled);
+.ghost {
+	opacity: 0.4;
+	background-color: var(--app-color-brand-tint);
 }
 
 .state {

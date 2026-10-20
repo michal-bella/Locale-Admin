@@ -1,5 +1,6 @@
 import { notifications } from '@mantine/notifications'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import Sortable from 'sortablejs'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test'
 
 import { type ProjectListItem, type ProjectSettings, SUPPORTED_LANGUAGES } from '@locale/shared'
@@ -106,23 +107,24 @@ describe('ProjectsPage list', () => {
 		expect(screen.getByText('Projekt Booking Web je na 2. mieste z 2.', { selector: '[role="status"]' })).toBeInTheDocument()
 	})
 
-	it('drops a dragged project above or below the row under the pointer', async () => {
+	it('saves the order SortableJS reports after a drag, leaving the rows to React', async () => {
 		const third: ProjectListItem = { ...BOOKING, id: '00000000-0000-4000-8000-000000000403', name: 'Third', slug: 'third' }
 		const requests = signedInAs(ADMIN_USER, orderRoutes([BOOKING, DEMO, third]))
 		renderApp('/')
-		await waitFor(getList)
-		const rows = within(getList()).getAllByRole('listitem')
-		const dataTransfer = { effectAllowed: '', setData: vi.fn(), setDragImage: vi.fn() }
+		const list = await waitFor(getList)
+		const rows = within(list).getAllByRole('listitem')
+		const sortable = Sortable.get(list)
+		expect(sortable?.option('handle')).toMatch(/grip/)
 
-		fireEvent.dragStart(screen.getByRole('button', { name: 'Presunúť projekt Third' }), { dataTransfer })
-		// jsdom has no layout: every rect is 0 high, so clientY 1 is past the middle and lands after the row.
-		fireEvent.dragOver(rows[0]!, { dataTransfer, clientY: 1 })
-		expect(rows[0]).toHaveAttribute('data-drop', 'after')
-		fireEvent.drop(rows[0]!, { dataTransfer, clientY: 1 })
+		// jsdom cannot drag, so do what SortableJS does on a drop: move the row node, then call onEnd.
+		act(() => {
+			list.insertBefore(rows[2]!, rows[1]!)
+			sortable?.option('onEnd')?.({ item: rows[2]!, from: list, to: list, oldIndex: 2, newIndex: 1 } as unknown as Sortable.SortableEvent)
+		})
 
 		await waitFor(() => expect(names()).toEqual(['Booking Web', 'Third', 'Demo project']))
 		expect(putOrder(requests)).toEqual([{ projectIds: [BOOKING.id, third.id, DEMO.id] }])
-		expect(rows[0]).not.toHaveAttribute('data-drop')
+		expect(within(getList()).getAllByRole('listitem')).toHaveLength(3)
 	})
 
 	it('puts the order back and notifies when saving it fails', async () => {

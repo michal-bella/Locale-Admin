@@ -1,8 +1,9 @@
 import { ActionIcon, Button, Skeleton, Text, Tooltip, VisuallyHidden } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { Link } from '@tanstack/react-router'
-import { type DragEvent, type KeyboardEvent, type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { type KeyboardEvent, type ReactNode, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import Sortable from 'sortablejs'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectsQuery } from '@/api/projects/projectsQuery'
@@ -15,11 +16,12 @@ import { type ProjectsListProps } from './types'
 
 const SKELETON_ROWS = 2
 
-type DropTarget = { id: string; side: 'before' | 'after' }
+const SORT_ANIMATION_MS = 150
 
 /**
  * Projects of the user in a card (rows as in the old system without keys, progress and flags, which come with translations). The grip
- * reorders them for this user only: native drag and drop, or ArrowUp / ArrowDown while the grip has the focus; a live region says the new place.
+ * reorders them for this user only: SortableJS drag and drop (the other rows slide aside while dragging), or ArrowUp / ArrowDown while the
+ * grip has the focus; a live region says the new place.
  */
 const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	const { t } = useTranslation()
@@ -27,8 +29,6 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	const listRef = useRef<HTMLUListElement>(null)
 	const [retrySucceeded, setRetrySucceeded] = useState(false)
 	const reorder = useReorderProjectsMutation()
-	const [draggedId, setDraggedId] = useState<string | null>(null)
-	const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
 	const [announcement, setAnnouncement] = useState('')
 	const moveHintId = useId()
 	const gripRefs = useRef(new Map<string, HTMLButtonElement>())
@@ -73,31 +73,38 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 		saveOrder(ids, projectId)
 	}
 
-	const dropOn = (target: DropTarget) => {
-		if (!draggedId || draggedId === target.id) {
+	const onSorted = useEffectEvent((oldIndex: number, newIndex: number) => {
+		const ids = data?.projects.map((project) => project.id) ?? []
+		const [moved] = ids.splice(oldIndex, 1)
+		if (moved) {
+			ids.splice(newIndex, 0, moved)
+			saveOrder(ids, moved)
+		}
+	})
+
+	const canReorder = (data?.projects.length ?? 0) > 1
+
+	useEffect(() => {
+		const list = listRef.current
+		if (!list || !canReorder) {
 			return
 		}
-		const ids = (data?.projects.map((project) => project.id) ?? []).filter((id) => id !== draggedId)
-		ids.splice(ids.indexOf(target.id) + (target.side === 'after' ? 1 : 0), 0, draggedId)
-		saveOrder(ids, draggedId)
-	}
-
-	const endDrag = () => {
-		setDraggedId(null)
-		setDropTarget(null)
-	}
-
-	const dragOver = (event: DragEvent<HTMLLIElement>, id: string) => {
-		if (!draggedId) {
-			return
-		}
-		event.preventDefault()
-		const { top, height } = event.currentTarget.getBoundingClientRect()
-		const side = event.clientY < top + height / 2 ? 'before' : 'after'
-		if (dropTarget?.id !== id || dropTarget.side !== side) {
-			setDropTarget({ id, side })
-		}
-	}
+		const sortable = Sortable.create(list, {
+			handle: `.${classes.grip}`,
+			animation: SORT_ANIMATION_MS,
+			ghostClass: classes.ghost,
+			chosenClass: classes.chosen,
+			onEnd: ({ item, from, oldIndex, newIndex }) => {
+				if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) {
+					return
+				}
+				// SortableJS moved the node itself; put it back so React's DOM matches its render, then React reorders the rows from the new list.
+				from.insertBefore(item, from.children[oldIndex < newIndex ? oldIndex : oldIndex + 1] ?? null)
+				onSorted(oldIndex, newIndex)
+			},
+		})
+		return () => sortable.destroy()
+	}, [canReorder])
 
 	const gripKeyDown = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
 		if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
@@ -142,26 +149,11 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 		return <div className={classes.card}>{state(<Text size='sm'>{t('projectsPage.list.empty')}</Text>)}</div>
 	}
 
-	const canReorder = data.projects.length > 1
-
 	return (
 		<>
 			<ul ref={listRef} tabIndex={-1} aria-label={t('projectsPage.list.label')} className={classes.card}>
 				{data.projects.map((project) => (
-					<li
-						key={project.id}
-						className={`${classes.row} flex items-center gap-4`}
-						data-dragging={draggedId === project.id || undefined}
-						data-drop={dropTarget?.id === project.id ? dropTarget.side : undefined}
-						onDragOver={(event) => dragOver(event, project.id)}
-						onDrop={(event) => {
-							event.preventDefault()
-							if (dropTarget) {
-								dropOn(dropTarget)
-							}
-							endDrag()
-						}}
-					>
+					<li key={project.id} className={`${classes.row} flex items-center gap-4`}>
 						{canReorder && (
 							<Tooltip label={t('projectsPage.list.move')}>
 								<ActionIcon
@@ -184,18 +176,6 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 										}
 									}}
 									className={`${classes.action} ${classes.grip}`}
-									draggable
-									onDragStart={(event) => {
-										event.dataTransfer.effectAllowed = 'move'
-										event.dataTransfer.setData('text/plain', project.id)
-										// The whole row follows the pointer, not just the grip.
-										const row = event.currentTarget.closest('li')
-										if (row) {
-											event.dataTransfer.setDragImage(row, 24, row.offsetHeight / 2)
-										}
-										setDraggedId(project.id)
-									}}
-									onDragEnd={endDrag}
 									onKeyDown={(event) => gripKeyDown(event, project.id)}
 								>
 									<GripVertical aria-hidden />

@@ -14,6 +14,7 @@ import {
 	listTranslations,
 	saveTranslation,
 	setTranslationsView,
+	translationApi,
 	translationKeyApi,
 	type TranslationsView,
 } from '../support/translations'
@@ -91,6 +92,33 @@ const translationsWithPluralKey = async (request: APIRequest) => {
 	} finally {
 		await api.dispose()
 	}
+}
+
+/** Prehľad with every section filled: keys, three languages, a translation edit in the feed (with its row action) and a bar today. */
+const dashboardWithData = async (request: APIRequest) => {
+	const api = await newAdminApi(request)
+	try {
+		const project = await createProject(api, 'a11y-dashboard', ['sk', 'en', 'cs'])
+		const languages = await listLanguages(api, project.id)
+		await insertTranslationKeys(project.id, languages, [
+			{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov', en: 'Home', cs: 'Domů' } },
+			{ namespace: 'loc', name: 'nav.orders', values: { sk: 'Objednávky' } },
+		])
+		const { keyId } = (await listTranslations(api, project.id)).items.find(({ name }) => name === 'nav.orders')!
+		const en = languages.find(({ tag }) => tag === 'en')!
+		const response = await api.put(translationApi(project.id, keyId, en.id), { data: { value: 'Orders' }, headers: MUTATION_HEADERS })
+		expect(response.status(), `PUT ${translationApi(project.id, keyId, en.id)}`).toBe(200)
+		return `/projects/${project.slug}/dashboard`
+	} finally {
+		await api.dispose()
+	}
+}
+
+const dashboardReady = async (page: Page) => {
+	await expect(page.getByRole('region', { name: 'Štatistiky projektu' })).toHaveAttribute('aria-busy', 'false')
+	await expect(page.getByRole('list', { name: 'Stav jazykov' }).getByRole('listitem')).toHaveCount(3)
+	await expect(page.getByRole('list', { name: 'Dnes' }).getByRole('listitem').first()).toContainText('úprava prekladu nav.orders')
+	await expect(page.getByRole('list', { name: 'Najaktívnejší členovia' })).toBeVisible()
 }
 
 const translationsReady = (page: Page) => expect(page.getByRole('table', { name: 'Zoznam prekladov' })).toHaveAttribute('aria-busy', 'false')
@@ -279,6 +307,11 @@ const SCREENS: Screen[] = [
 		name: 'project settings',
 		path: inNewProject('settings'),
 		ready: (page) => expect(page.getByRole('button', { name: 'Uložiť zmeny' })).toBeVisible(),
+	},
+	{
+		name: 'project dashboard',
+		path: dashboardWithData,
+		ready: dashboardReady,
 	},
 	{
 		name: 'members',

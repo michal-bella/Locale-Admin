@@ -9,7 +9,7 @@ import { projectRoute } from '@/routes/projectRoute'
  * Filters of the translations list in the URL, so a reload or a shared link shows the same page. Languages are tags (`?source=sk&target=en`),
  * the page maps them to ids. Every field is optional and an invalid value is dropped, a missing one means the default.
  */
-/** How the compact view lays out the source and target: side by side (default) or stacked in one column. */
+/** How the table lays out the languages of the view: side by side (default) or stacked in one column. */
 export const translationsLayoutSchema = z.enum(['COLUMNS', 'STACKED'])
 
 export type TranslationsLayout = z.infer<typeof translationsLayoutSchema>

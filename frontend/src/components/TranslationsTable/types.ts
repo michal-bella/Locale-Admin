@@ -12,7 +12,7 @@ export type TranslationsTableProps = {
 	isRetrying: boolean
 	/** `EXTENDED`: a column per language with the key and status columns sticky; `COMPACT`: source and target columns. */
 	view: TranslationsView
-	/** Compact view only: `STACKED` puts the source and target under each other in one column and the status into the key cell. */
+	/** `STACKED` puts the languages of the view under each other in one column and the status into the key cell. */
 	layout: TranslationsLayout
 	/** Every language of the project in column order (base first); the base one is the reference in `EditTranslationModal`. */
 	languages: Language[]

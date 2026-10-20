@@ -10,7 +10,7 @@ notion_page_id:
 
 ### Preklady: jazyky pod sebou (2026-10-20)
 
-- frontend: v zobrazení **Zdroj → cieľ** prepínač rozloženia (ikony, URL `?layout=STACKED`); **Jazyky pod sebou** ukáže tabuľku s dvomi stĺpcami Kľúč a Preklady, zdroj a cieľ pod sebou a stav pri kľúči ([Frontend](./frontend.md#stránka-preklady))
+- frontend: prepínač rozloženia v toolbare oboch zobrazení (ikony, URL `?layout=STACKED`); **Jazyky pod sebou** ukáže tabuľku s dvomi stĺpcami Kľúč a Preklady, jazyky pod sebou (vo **Všetky jazyky** všetky, v **Zdroj → cieľ** zdroj a cieľ) a stav pri kľúči ([Frontend](./frontend.md#stránka-preklady))
 
 ### Zmena roly používateľa v detaile (2026-10-20)
 

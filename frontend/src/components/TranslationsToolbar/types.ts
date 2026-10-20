@@ -12,7 +12,7 @@ export type TranslationsToolbarProps = {
 	onViewChange: (view: TranslationsView) => void
 	/** While the preference saves, so two quick switches cannot race. */
 	isViewSaving?: boolean
-	/** Only in the compact view: source and target side by side or stacked in one column. */
+	/** Languages of the view side by side or stacked in one column. */
 	layout: TranslationsLayout
 	onLayoutChange: (layout: TranslationsLayout) => void
 	languages: Language[]

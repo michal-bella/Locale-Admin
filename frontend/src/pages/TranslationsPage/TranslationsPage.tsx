@@ -30,7 +30,7 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
 /**
  * Translations of the project (Figma 3:2): stats, filters in the URL, the table (cells open the edit modal) and pagination. The view is the
  * user's preference (`me.preferences.translationsView`): `EXTENDED` lists every language of the project and the API decides the row status
- * by all of them (no language ids in the query); `COMPACT` is the Figma source → target pair, side by side or stacked (`?layout=STACKED`). Without Exportovať, Posledný sync and the
+ * by all of them (no language ids in the query); `COMPACT` is the Figma source → target pair. Either view lays its languages side by side or stacked (`?layout=STACKED`). Without Exportovať, Posledný sync and the
  * Na kontrolu card. Importovať opens `ImportModal`.
  */
 const TranslationsPage = () => {
@@ -131,7 +131,7 @@ const TranslationsPage = () => {
 
 	// The extended table (16rem key + 16rem per language + 8.5rem status) outgrows the 1440 px frame from the fourth language on; the page then
 	// uses the full width and keeps only the padding.
-	const isWide = view === 'EXTENDED' && languages.length > 3
+	const isWide = view === 'EXTENDED' && layout === 'COLUMNS' && languages.length > 3
 
 	return (
 		<div className={`mx-auto flex w-full flex-col gap-6 p-8 ${isWide ? '' : 'max-w-[1440px]'}`}>

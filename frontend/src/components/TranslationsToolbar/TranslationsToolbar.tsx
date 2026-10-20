@@ -70,7 +70,7 @@ const LanguageSelect = ({
 )
 
 /**
- * Filters above the translations table (Figma 3:121): search, status, namespace, sort, the view switch and, in the compact view,
+ * Filters above the translations table (Figma 3:121): search, status, namespace, sort, the view and layout switches and, in the compact view,
  * source → target language. The search writes to the URL 300 ms after the last keystroke; the other filters right away.
  */
 const TranslationsToolbar = ({
@@ -178,34 +178,34 @@ const TranslationsToolbar = ({
 					radius='lg'
 					classNames={{ root: classes.view, label: classes.viewLabel }}
 				/>
+				<SegmentedControl
+					aria-label={t('translationsPage.layout.label')}
+					value={layout}
+					onChange={(value) => {
+						const parsed = translationsLayoutSchema.safeParse(value)
+						if (parsed.success) {
+							onLayoutChange(parsed.data)
+						}
+					}}
+					data={translationsLayoutSchema.options.map((value) => {
+						const Icon = LAYOUT_ICONS[value]
+						return {
+							value,
+							label: (
+								<Tooltip label={t(`translationsPage.layout.${value}`)}>
+									<span className={classes.layoutLabel}>
+										<Icon aria-hidden />
+										<VisuallyHidden>{t(`translationsPage.layout.${value}`)}</VisuallyHidden>
+									</span>
+								</Tooltip>
+							),
+						}
+					})}
+					radius='lg'
+					classNames={{ root: classes.layout, label: classes.viewLabel }}
+				/>
 				{view === 'COMPACT' && (
 					<div className='flex items-center gap-2 max-sm:w-full'>
-						<SegmentedControl
-							aria-label={t('translationsPage.layout.label')}
-							value={layout}
-							onChange={(value) => {
-								const parsed = translationsLayoutSchema.safeParse(value)
-								if (parsed.success) {
-									onLayoutChange(parsed.data)
-								}
-							}}
-							data={translationsLayoutSchema.options.map((value) => {
-								const Icon = LAYOUT_ICONS[value]
-								return {
-									value,
-									label: (
-										<Tooltip label={t(`translationsPage.layout.${value}`)}>
-											<span className={classes.layoutLabel}>
-												<Icon aria-hidden />
-												<VisuallyHidden>{t(`translationsPage.layout.${value}`)}</VisuallyHidden>
-											</span>
-										</Tooltip>
-									),
-								}
-							})}
-							radius='lg'
-							classNames={{ root: classes.layout, label: classes.viewLabel }}
-						/>
 						<LanguageSelect
 							label={t('translationsPage.toolbar.sourceLanguage')}
 							languages={languages}

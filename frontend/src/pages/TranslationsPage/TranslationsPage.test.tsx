@@ -1124,9 +1124,9 @@ describe('TranslationsPage extended view', () => {
 
 	const cellButtons = (key: string) => within(getRow(key)).getAllByRole('button', { name: /Preklad kľúča/ })
 
-	it('is the default: a column per language, every cell editable, no language pair or layout in the request or the toolbar', async () => {
+	it('is the default: a column per language, every cell editable, no language pair in the request or the toolbar', async () => {
 		const requests = mockPage({ user: EXTENDED_ADMIN, languages: [SLOVAK, ENGLISH] })
-		renderApp(`${PAGE_PATH}?source=en&target=sk&layout=STACKED`)
+		renderApp(`${PAGE_PATH}?source=en&target=sk`)
 		await screen.findByText('orders.empty.title')
 
 		const params = lastParams(requests)
@@ -1136,7 +1136,7 @@ describe('TranslationsPage extended view', () => {
 		expect(viewRadio('Všetky jazyky')).toBeChecked()
 		expect(screen.queryByRole('combobox', { name: 'Zdrojový jazyk' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('combobox', { name: 'Cieľový jazyk' })).not.toBeInTheDocument()
-		expect(screen.queryByRole('radiogroup', { name: 'Rozloženie' })).not.toBeInTheDocument()
+		expect(screen.getByRole('radio', { name: 'Jazyky vedľa seba' })).toBeChecked()
 
 		const table = getTable()
 		expect(table).toHaveAttribute('data-view', 'EXTENDED')
@@ -1164,6 +1164,30 @@ describe('TranslationsPage extended view', () => {
 		expect(cellButtons('dashboard.welcome').map((button) => button.getAttribute('data-status'))).toEqual(['TRANSLATED', 'TRANSLATED'])
 		// The group label scrolls with the sticky key column.
 		expect(within(table).getAllByText('loc:orders.empty')[0]?.className).toMatch(/groupLabel/)
+	})
+
+	it('stacks every language in one editable column with ?layout=STACKED', async () => {
+		mockPage({ user: EXTENDED_ADMIN, languages: [SLOVAK, ENGLISH, CZECH] })
+		renderApp(`${PAGE_PATH}?layout=STACKED`)
+		await screen.findByText('orders.empty.title')
+
+		expect(screen.getByRole('radio', { name: 'Jazyky pod sebou' })).toBeChecked()
+		const table = getTable()
+		expect(table).toHaveAttribute('data-layout', 'STACKED')
+		const headers = within(table)
+			.getAllByRole('columnheader')
+			.filter((header) => header.getAttribute('scope') !== 'rowgroup')
+		expect(headers.map((header) => header.textContent)).toEqual(['Kľúč', 'Preklady'])
+		expect(headers[0]?.className).not.toMatch(/stickyStart/)
+
+		const row = within(getRow('orders.empty.title'))
+		expect(row.getAllByRole('cell')).toHaveLength(2)
+		expect(row.getByText('Nepreložené')).toBeInTheDocument()
+		expect(cellButtons('orders.empty.title').map((button) => button.textContent)).toEqual([
+			'Preklad kľúča orders.empty.title, slovenčina: Zatiaľ tu nie sú žiadne objednávky',
+			'Preklad kľúča orders.empty.title, English: Bez prekladu',
+			'Preklad kľúča orders.empty.title, čeština: Bez prekladu',
+		])
 	})
 
 	it('switches to the compact view, saves the preference and asks for the language pair', async () => {

@@ -113,7 +113,7 @@ test('imports the sample file, adds the missing language from the review and sho
 	const languagesTable = page.getByRole('table', { name: 'Zoznam jazykov' })
 	await expect(languagesTable).toHaveAttribute('aria-busy', 'false')
 	await expect(languagesTable.getByText('· cs')).toBeVisible()
-	await expect(languagesTable.getByText('Czech', { exact: true })).toBeVisible()
+	await expect(languagesTable.getByText('Čeština', { exact: true })).toBeVisible()
 })
 
 test('a column set to Preskočiť is not imported', async ({ page, request }) => {

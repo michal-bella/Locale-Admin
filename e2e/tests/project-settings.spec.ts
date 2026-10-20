@@ -96,7 +96,7 @@ test.describe('ADMIN', () => {
 			.click()
 		await expect(page).toHaveURL(settingsPath(original.slug))
 		await expect(page.getByRole('heading', PAGE_HEADING)).toBeVisible()
-		const item = getMainNavigation(page).getByRole('list', { name: original.name }).getByRole('link', { name: 'Nastavenia projektu' })
+		const item = getMainNavigation(page).getByRole('list', { name: original.name }).getByRole('link', { name: 'Nastavenia', exact: true })
 		await expect(item).toHaveAttribute('aria-current', 'page')
 
 		await expectFormValues(page, original)

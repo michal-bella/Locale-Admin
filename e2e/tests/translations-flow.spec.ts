@@ -19,7 +19,7 @@ import {
 	SAMPLE_CSV,
 	submitImport,
 } from '../support/imports'
-import { listLanguages } from '../support/languages'
+import { listLanguages, reorderLanguages } from '../support/languages'
 import { createProject } from '../support/projects'
 import {
 	expectKeys,
@@ -114,7 +114,7 @@ test.describe('as a fresh ADMIN', () => {
 		await expect(getTranslationsTable(page).getByText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeVisible()
 		await expect(getStat(page, 'Celkom kľúčov')).toHaveText('0')
 		await expectView(page, 'EXTENDED')
-		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina', 'English', 'Stav'])
+		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina Základný', 'angličtina', 'Stav'])
 		await getTranslationsTable(page).getByRole('button', { name: 'Importovať' }).click()
 		await expect(getImportDialog(page)).toBeVisible()
 		await expect(getImportDialog(page).getByText('Krok 1 z 2 · Nahratie')).toBeVisible()
@@ -149,8 +149,8 @@ test.describe('as a fresh ADMIN', () => {
 		await expect(page.getByText(importSuccessMessage(10, 22, 0))).toBeVisible()
 		await expect(getImportDialog(page)).toHaveCount(0)
 
-		// The new language is a column right away; the row status counts every language.
-		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina', CS, 'English', 'Stav'])
+		// The new language is the last column right away; the row status counts every language.
+		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina Základný', 'angličtina', CS, 'Stav'])
 		await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
 		await expectStats(page, EXTENDED_ALL.translated, EXTENDED_ALL.untranslated)
 		await expect(page.getByRole('progressbar', { name: 'Preložené: 40 %' })).toBeVisible()
@@ -158,11 +158,16 @@ test.describe('as a fresh ADMIN', () => {
 		await expectKeys(getTranslationRows(page), EXTENDED_UNTRANSLATED_FIRST)
 		expect(await getRowStatuses(page)).toEqual(statuses(10, EXTENDED_ALL.untranslated))
 
+		// Zdroj → cieľ targets the first language after the base; the flow translates Czech.
+		await reorderLanguages(page.request, project.id, ['sk', 'cs', 'en'])
+		await page.reload()
+		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina Základný', CS, 'angličtina', 'Stav'])
+
 		await switchView(page, 'COMPACT')
 		await expect(page).toHaveURL(translationsPath(project))
 		await expect(page.getByRole('combobox', { name: 'Zdrojový jazyk' })).toHaveValue('SK')
 		await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('CS')
-		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina', CS, 'Stav'])
+		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina Základný', CS, 'Stav'])
 		await expectStats(page, SAMPLE.cs.translations, SAMPLE.cs.untranslated)
 		await expect(page.getByRole('progressbar', { name: 'Preložené: 60 %' })).toBeVisible()
 		await expect(page.getByRole('progressbar', { name: 'Nepreložené: 40 %' })).toBeVisible()
@@ -211,7 +216,7 @@ test.describe('as a fresh ADMIN', () => {
 		const languagesTable = page.getByRole('table', { name: 'Zoznam jazykov' })
 		await expect(languagesTable).toHaveAttribute('aria-busy', 'false')
 		await expect(languagesTable.getByText('· cs')).toBeVisible()
-		await expect(languagesTable.getByText('Czech', { exact: true })).toBeVisible()
+		await expect(languagesTable.getByText('Čeština', { exact: true })).toBeVisible()
 
 		await openTranslations(page, project)
 		await expectView(page, 'COMPACT')

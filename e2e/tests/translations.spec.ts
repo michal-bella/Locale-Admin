@@ -31,7 +31,7 @@ import { loginAsFreshAdmin } from '../support/users'
 
 const SENTENCE_KEY = 'Adresa nie je kompletná. Uistite sa'
 
-const EXTENDED_HEADERS = ['Kľúč', 'slovenčina', 'čeština', 'English', 'Stav']
+const EXTENDED_HEADERS = ['Kľúč', 'slovenčina Základný', 'čeština', 'angličtina', 'Stav']
 
 /**
  * Projects have sk (base), cs and en. Extended view (a row is translated only with every language): 1 of 5 (20 %), only `dashboard.welcome`.
@@ -67,7 +67,7 @@ test('the project index redirects to Preklady, the first sidebar item, in the ex
 	await expect(page).toHaveURL(translationsPath(project))
 	await expect(page.getByRole('heading', { level: 1, name: 'Preklady' })).toBeVisible()
 	const section = getMainNavigation(page).getByRole('list', { name: project.name })
-	await expect(section.getByRole('link')).toHaveText(['Preklady', 'Nastavenia projektu', 'Jazyky', 'Členovia'])
+	await expect(section.getByRole('link')).toHaveText(['Preklady', 'Nastavenia', 'Jazyky', 'Členovia'])
 	await expect(section.getByRole('link', { name: 'Preklady' })).toHaveAttribute('aria-current', 'page')
 
 	await expect(page.getByRole('button', { name: 'Importovať' })).toBeEnabled()
@@ -109,7 +109,7 @@ test('the extended view has a column per language, the key and status columns st
 	await expect(row.getByRole('button', { name: /^Preklad kľúča dashboard\.welcome, / })).toHaveText([
 		'Preklad kľúča dashboard.welcome, slovenčina: Vitajte späť, {{name}}',
 		'Preklad kľúča dashboard.welcome, čeština: Vítejte zpět, {{name}}',
-		'Preklad kľúča dashboard.welcome, English: Welcome back, {{ name }}',
+		'Preklad kľúča dashboard.welcome, angličtina: Welcome back, {{ name }}',
 	])
 	expect(
 		await getGroupHeaders(page)
@@ -209,7 +209,7 @@ test('the status filter follows the row status over every language; status and n
 	await expectKeys(getTranslationRows(page), [SENTENCE_KEY])
 })
 
-test('more than 50 keys are paginated and a single namespace has no namespace filter', async ({ page, request }) => {
+test('more than 25 keys are paginated and a single namespace has no namespace filter', async ({ page, request }) => {
 	const keys = Array.from({ length: 60 }, (_, index) => {
 		const name = `app.key${String(index + 1).padStart(2, '0')}`
 		return { namespace: 'app', name, values: { sk: `Text ${index + 1}`, en: index % 2 === 0 ? `Text ${index + 1} EN` : null } }
@@ -218,17 +218,22 @@ test('more than 50 keys are paginated and a single namespace has no namespace fi
 	await openTranslations(page, project)
 
 	await expect(page.getByRole('combobox', { name: 'Namespace' })).toHaveCount(0)
-	await expect(getTranslationRows(page)).toHaveCount(50)
-	await expect(getShownCount(page, 'Zobrazených 50 z 60 kľúčov')).toBeVisible()
+	await expect(getTranslationRows(page)).toHaveCount(25)
+	await expect(getShownCount(page, 'Zobrazených 25 z 60 kľúčov')).toBeVisible()
 	const pagination = page.getByRole('navigation', { name: 'Stránkovanie' })
 	await expect(pagination.getByRole('button', { name: 'Predošlá' })).toBeDisabled()
 	await expect(pagination.getByRole('button', { name: 'Strana 1' })).toHaveAttribute('aria-current', 'page')
 
 	await pagination.getByRole('button', { name: 'Ďalšia' }).click()
 	await expect(page).toHaveURL(translationsPath(project, '?page=2'))
+	await expect(getTranslationRows(page)).toHaveCount(25)
+	await expect(pagination.getByRole('button', { name: 'Strana 2' })).toHaveAttribute('aria-current', 'page')
+
+	await pagination.getByRole('button', { name: 'Strana 3' }).click()
+	await expect(page).toHaveURL(translationsPath(project, '?page=3'))
 	await expect(getTranslationRows(page)).toHaveCount(10)
 	await expect(getShownCount(page, 'Zobrazených 10 z 60 kľúčov')).toBeVisible()
-	await expect(pagination.getByRole('button', { name: 'Strana 2' })).toHaveAttribute('aria-current', 'page')
+	await expect(pagination.getByRole('button', { name: 'Strana 3' })).toHaveAttribute('aria-current', 'page')
 	await expect(pagination.getByRole('button', { name: 'Ďalšia' })).toBeDisabled()
 	await expect(getTranslationRows(page).first()).toHaveAttribute('data-status', 'TRANSLATED')
 
@@ -287,7 +292,7 @@ test.describe('view switch', () => {
 		await expectView(page, 'COMPACT')
 		await expect(page.getByRole('combobox', { name: 'Zdrojový jazyk' })).toHaveValue('SK')
 		await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('CS')
-		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina', 'čeština', 'Stav'])
+		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina Základný', 'čeština', 'Stav'])
 		await expectStats(page, 3, 2)
 		await expect(page.getByRole('progressbar', { name: 'Preložené: 60 %' })).toBeVisible()
 		await expectKeys(getTranslationRows(page), ['orders.empty.description', 'orders.empty.title', 'dashboard.welcome', 'promo.banner', SENTENCE_KEY])
@@ -306,7 +311,7 @@ test.describe('view switch', () => {
 		await pickOption(page, 'Cieľový jazyk', /^EN/)
 		await expect(page).toHaveURL(translationsPath(project, '?target=en'))
 		await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('EN')
-		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina', 'English', 'Stav'])
+		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina Základný', 'angličtina', 'Stav'])
 		await expectStats(page, 2, 3)
 		await expect(page.getByRole('progressbar', { name: 'Preložené: 40 %' })).toBeVisible()
 		await expectKeys(getTranslationRows(page), ['orders.empty.description', 'promo.banner', SENTENCE_KEY, 'dashboard.welcome', 'orders.empty.title'])

@@ -1,12 +1,16 @@
 import '@testing-library/jest-dom/vitest'
 
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { afterEach } from 'vite-plus/test'
 
 import queryClient from '@/api/queryClient'
 import { DEFAULT_LANGUAGE } from '@/lib/constants'
 import i18n from '@/lib/i18n'
 import { resetApiMock } from '@/test/mockApi'
+
+// The full run renders ~36 files in parallel and every test gets ~3x slower, the first one of a file (cold lazy route) the most.
+// The default 1 s for findBy*/waitFor then times out; 3 s stays under Vitest's 5 s test timeout so the findBy error still shows.
+configure({ asyncUtilTimeout: 3000 })
 
 afterEach(async () => {
 	cleanup()

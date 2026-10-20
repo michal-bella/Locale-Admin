@@ -39,6 +39,7 @@ Potrebujú bežiaci Postgres (`pnpm db:up`) a `TEST_DATABASE_URL` v `.env`.
 ## Unit testy frontendu
 
 - Prostredie jsdom, setup v `frontend/src/test/setup.ts` (jest-dom matchery, i18n).
+- `findBy*` a `waitFor` čakajú 3 s (`asyncUtilTimeout` v `setup.ts`), nie predvolenú 1 s. Pri plnom behu (~36 súborov paralelne) sú testy približne 3× pomalšie a prvý test súboru (studený lazy import stránky) prekračoval 1 s, hoci samostatne prejde. Timeouty preto nedávaj do jednotlivých testov, okrem naozaj ťažkej práce (napr. parsovanie veľkého súboru).
 - Stránky sa renderujú cez router s pamäťovou históriou, keď záleží na routingu.
 - `src/lib/i18n.test.ts` overuje, že každý `ERROR_CODE` a `VALIDATION_CODE` má preklad `sk`, `cs` aj `en`, že `sk.json`, `cs.json` a `en.json` majú rovnaké kľúče (plurálové kľúče `_one`/`_few`/`_many`/`_other` sa porovnávajú podľa základného kľúča a každý má všetky tvary, ktoré jazyk podľa `Intl.PluralRules` potrebuje) a že žiadna hodnota nie je prázdna. Nový kód bez prekladov test zhodí.
 

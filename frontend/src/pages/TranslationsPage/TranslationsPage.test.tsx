@@ -1433,7 +1433,7 @@ describe('TranslationsPage extended view', () => {
 		const router = renderApp(PAGE_PATH)
 		await screen.findByText('orders.empty.title')
 
-		await pickOption('Upravil', 'Anna Nová')
+		await pickOption('Editor', 'Anna Nová')
 		await waitFor(() => expect(router.state.location.search).toEqual({ updatedBy: anna.id }))
 		await pickOption('Zmenené', 'Za posledných 7 dní')
 

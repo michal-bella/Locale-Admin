@@ -96,7 +96,7 @@ const LanguageSelect = ({
 
 /**
  * Filters above the translations table (Figma 3:121): search, status, namespace, sort, the view and layout switches and, in the compact view,
- * source → target language. Len preklady hides the key and status columns. A second row holds status, namespace, sort, Upravil and Zmenené. The search writes
+ * source → target language. Len preklady hides the key and status columns. A second row holds status, namespace, sort, Editor and Zmenené. The search writes
  * to the URL 300 ms after the last keystroke; the X and Esc clear it right away, as the other filters do.
  */
 const TranslationsToolbar = ({

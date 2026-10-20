@@ -294,8 +294,8 @@
 				"remove": "Remove {{language}}"
 			},
 			"updatedBy": {
-				"label": "Edited by",
-				"placeholder": "Edited by anyone"
+				"label": "Editor",
+				"placeholder": "All editors"
 			},
 			"updatedWithin": {
 				"label": "Changed",

@@ -70,15 +70,15 @@ Zoradenie (posledné kritérium je vždy ID kľúča, takže stránky sa neprekr
 
 Schéma `translationsResponseSchema`.
 
-| Pole         | Typ      | Popis                                                                                                     |
-| ------------ | -------- | --------------------------------------------------------------------------------------------------------- |
-| `items`      | pole     | kľúče aktuálnej stránky (viď nižšie)                                                                      |
-| `total`      | číslo    | počet kľúčov, ktoré spĺňajú filtre (stránka za koncom vráti `items: []` a správny `total`)                |
-| `page`       | číslo    | aktuálna stránka                                                                                          |
-| `pageSize`   | číslo    | veľkosť stránky                                                                                           |
-| `stats`      | objekt   | `{ totalKeys, translated, untranslated }` podľa stavu riadku cez všetky kľúče projektu, **bez filtrov**   |
-| `namespaces` | string[] | všetky namespace projektu, zoradené (aj prázdny `""`, ak ho nejaký kľúč má)                               |
-| `editors`    | objekt[] | `{ id, name }` každého používateľa, ktorý uložil niektorý preklad projektu, podľa mena; filtre ho nemenia |
+| Pole         | Typ      | Popis                                                                                                                                                                                                                     |
+| ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `items`      | pole     | kľúče aktuálnej stránky (viď nižšie)                                                                                                                                                                                      |
+| `total`      | číslo    | počet kľúčov, ktoré spĺňajú filtre (stránka za koncom vráti `items: []` a správny `total`)                                                                                                                                |
+| `page`       | číslo    | aktuálna stránka                                                                                                                                                                                                          |
+| `pageSize`   | číslo    | veľkosť stránky                                                                                                                                                                                                           |
+| `stats`      | objekt   | `{ totalKeys, translated, untranslated }` podľa stavu riadku cez všetky kľúče projektu, **bez filtrov**                                                                                                                   |
+| `namespaces` | string[] | všetky namespace projektu, zoradené (aj prázdny `""`, ak ho nejaký kľúč má)                                                                                                                                               |
+| `editors`    | objekt[] | `{ id, name }` každého člena projektu a každého ďalšieho používateľa, ktorý uložil niektorý preklad projektu; zoradené podľa počtu prekladov, ktoré naposledy upravil (najviac prvý), potom podľa mena; filtre ho nemenia |
 
 Položka `items[]`:
 

@@ -23,7 +23,14 @@ const isBodyParserClientError = (err: unknown): err is BodyParserError =>
 	'expose' in err &&
 	err.expose === true
 
-export const errorMiddleware: ErrorRequestHandler = (err: unknown, req, res, _next) => {
+export const errorMiddleware: ErrorRequestHandler = (err: unknown, req, res, next) => {
+	// A streamed response (CSV export) has already sent its status; Express's default handler then closes the connection.
+	if (res.headersSent) {
+		req.log.error({ err }, 'Error after the response started')
+		next(err)
+		return
+	}
+
 	let status: number
 	let body: ErrorResponse
 

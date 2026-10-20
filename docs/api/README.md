@@ -1,6 +1,6 @@
 ---
 title: 'API'
-updated: 2026-10-19
+updated: 2026-10-20
 notion_page_id:
 ---
 
@@ -39,6 +39,7 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `PATCH`  | `/api/projects/:projectId/keys/:keyId`                          | úprava kľúča: názov, popis, plurál (iba ADMIN), [detail](./translations.md)                                 |
 | `POST`   | `/api/projects/:projectId/imports/preview`                      | kontrola súboru pred importom, nič nezapíše (člen, ADMIN), [detail](./imports.md)                           |
 | `POST`   | `/api/projects/:projectId/imports`                              | import súboru do projektu (člen, ADMIN), [detail](./imports.md)                                             |
+| `GET`    | `/api/projects/:projectId/export`                               | export prekladov do CSV (člen, ADMIN), [detail](./exports.md)                                               |
 | `GET`    | `/api/profile`                                                  | profil prihláseného používateľa, [detail](./profile.md)                                                     |
 | `PATCH`  | `/api/profile`                                                  | úprava mena a priezviska, [detail](./profile.md)                                                            |
 | `PATCH`  | `/api/profile/preferences`                                      | zobrazenie a rozloženie stránky Preklady (`translationsView`, `translationsLayout`), [detail](./profile.md) |
@@ -51,12 +52,14 @@ Každá chyba má tvar `{ error: { code, message, details? } }`.
 - `message` je iba anglický text pre logy a vývojárov. Frontend ho nikdy nezobrazuje, prekladá iba `code`.
 - `details` sa posiela pri validačných chybách: `[{ path: 'email', code: 'INVALID_EMAIL' }]`. Kódy sú z enumu `VALIDATION_CODE` (`REQUIRED`, `INVALID_EMAIL`, `TOO_SHORT`, `TOO_LONG`, `INVALID`). Pri `TOO_SHORT` a `TOO_LONG` je aj `params: { min }` alebo `{ max }`.
 - Pri `IMPORT_FILE_INVALID` je `details` objekt `{ issues, total }` s chybami súboru (viď [import](./imports.md#chyby-súboru-import-sa-zablokuje)).
+- Pri `EXPORT_VALUE_UNSAFE` je `details` objekt `{ issues, total }` s hodnotami, ktoré by rozbili CSV (viď [export](./exports.md#hodnoty-ktoré-by-súbor-rozbili)).
 - Pri `PLACEHOLDER_MISMATCH` je `details` objekt `{ missing, extra }` s normalizovanými premennými (viď [preklady](./translations.md#ochrana-premenných)).
 
 | HTTP | `code`                      | Kedy                                                                                                                           |
 | ---- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | 400  | `VALIDATION_ERROR`          | nevalidné telo požiadavky (zod) alebo poškodený JSON                                                                           |
 | 400  | `IMPORT_COLUMNS_INVALID`    | priradenie stĺpcov importu k jazykom je neplatné (chýbajúci alebo cudzí stĺpec, cudzí alebo zdvojený jazyk, všetko preskočené) |
+| 400  | `EXPORT_LANGUAGES_INVALID`  | jazyk exportu nepatrí projektu                                                                                                 |
 | 400  | `PLACEHOLDER_MISMATCH`      | preklad nemá rovnaké premenné `{{…}}` ako základný jazyk pri zapnutej ochrane premenných, `details: { missing, extra }`        |
 | 413  | `VALIDATION_ERROR`          | telo požiadavky je väčšie ako 100 KB (okrem ciest importu)                                                                     |
 | 413  | `IMPORT_FILE_TOO_LARGE`     | súbor importu nad 10 MB alebo telo požiadavky importu nad 12 MB                                                                |
@@ -77,7 +80,8 @@ Každá chyba má tvar `{ error: { code, message, details? } }`.
 | 409  | `LAST_ADMIN`                | posledný admin by prišiel o rolu `ADMIN` (viď [profil](./profile.md), [správa používateľov](./admin-users.md))                 |
 | 409  | `TRANSLATION_KEY_TAKEN`     | kľúč s týmto názvom už v namespace existuje (premenovanie kľúča)                                                               |
 | 422  | `IMPORT_FILE_INVALID`       | importovaný súbor má chyby, `details: { issues, total }`                                                                       |
+| 422  | `EXPORT_VALUE_UNSAFE`       | hodnota by rozbila exportované CSV (`;`, nový riadok, `--x--`), `details: { issues, total }`                                   |
 | 429  | `RATE_LIMITED`              | prekročený rate limit, s hlavičkou `Retry-After`                                                                               |
 | 500  | `INTERNAL_ERROR`            | neočakávaná chyba, detail je iba v logu                                                                                        |
 
-Pre validáciu tela požiadavky sa používa iba 400; 422 je vyhradené pre chyby v obsahu importovaného súboru. Chyby parsovania tela (413, 415 a ďalšie 4xx z `express.json()`) vracajú svoj HTTP status s kódom `VALIDATION_ERROR` (413 na cestách importu s kódom `IMPORT_FILE_TOO_LARGE`) a logujú sa ako `warn`, nie `error`. Kódy `AUTH_*`, `FORBIDDEN`, `CSRF_REJECTED` a `RATE_LIMITED` vracia backend od míľnika B (viď [auth](./auth.md)), `EMAIL_TAKEN` od míľnika C (viď [správa používateľov](./admin-users.md)), `LANGUAGE_TAKEN` a `LANGUAGE_IS_BASE` od stránky Jazyky (viď [jazyky projektu](./project-languages.md)), `SLUG_TAKEN` a `LAST_MEMBER` od projektov, `ALREADY_MEMBER` od pridávania existujúcich používateľov do projektu (viď [projekty](./projects.md)), `SELF_DELETE` od mazania používateľov (viď [správa používateľov](./admin-users.md)), `IMPORT_FILE_INVALID` a `IMPORT_FILE_TOO_LARGE` od kontroly importu, `IMPORT_COLUMNS_INVALID` od zápisu importu (viď [import](./imports.md)), `PLACEHOLDER_MISMATCH` a `TRANSLATION_KEY_NOT_FOUND` od úpravy prekladu, `TRANSLATION_KEY_TAKEN` od úpravy kľúča (viď [preklady](./translations.md)).
+Pre validáciu tela požiadavky sa používa iba 400; 422 je vyhradené pre chyby v obsahu importovaného súboru a pre hodnoty, ktoré by rozbili exportovaný súbor. Chyby parsovania tela (413, 415 a ďalšie 4xx z `express.json()`) vracajú svoj HTTP status s kódom `VALIDATION_ERROR` (413 na cestách importu s kódom `IMPORT_FILE_TOO_LARGE`) a logujú sa ako `warn`, nie `error`. Kódy `AUTH_*`, `FORBIDDEN`, `CSRF_REJECTED` a `RATE_LIMITED` vracia backend od míľnika B (viď [auth](./auth.md)), `EMAIL_TAKEN` od míľnika C (viď [správa používateľov](./admin-users.md)), `LANGUAGE_TAKEN` a `LANGUAGE_IS_BASE` od stránky Jazyky (viď [jazyky projektu](./project-languages.md)), `SLUG_TAKEN` a `LAST_MEMBER` od projektov, `ALREADY_MEMBER` od pridávania existujúcich používateľov do projektu (viď [projekty](./projects.md)), `SELF_DELETE` od mazania používateľov (viď [správa používateľov](./admin-users.md)), `IMPORT_FILE_INVALID` a `IMPORT_FILE_TOO_LARGE` od kontroly importu, `IMPORT_COLUMNS_INVALID` od zápisu importu (viď [import](./imports.md)), `PLACEHOLDER_MISMATCH` a `TRANSLATION_KEY_NOT_FOUND` od úpravy prekladu, `TRANSLATION_KEY_TAKEN` od úpravy kľúča (viď [preklady](./translations.md)), `EXPORT_LANGUAGES_INVALID` a `EXPORT_VALUE_UNSAFE` od exportu (viď [export](./exports.md)).

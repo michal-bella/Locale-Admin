@@ -8,6 +8,12 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Export prekladov do CSV – backend (2026-10-20)
+
+- API: `GET /api/projects/:projectId/export?languageIds=…&status=ALL|TRANSLATED|UNTRANSLATED` streamuje CSV vo formáte GoodRequest `i18nextJsonToCsv` (nepreložené `null`, jazyky v poradí projektu, namespace a kľúče podľa bajtov) z jedného snímku DB po dávkach 1 000 kľúčov ([API](./api/exports.md))
+- API: hodnoty s `;`, novým riadkom alebo `--x--` export zablokujú: 422 `EXPORT_VALUE_UNSAFE` so zoznamom kľúčov a jazykov; cudzí jazyk 400 `EXPORT_LANGUAGES_INVALID`
+- backend: chyba po začatí streamovanej odpovede sa zaloguje a spojenie sa zavrie (predtým by error middleware zlyhal na už odoslaných hlavičkách)
+
 ### Projekty: dátum vytvorenia a počet členov (2026-10-20)
 
 - API: položka `GET /api/projects` (a `201 POST /api/projects`) má `memberCount` a `createdAt` ([API](./api/projects.md#get-apiprojects))

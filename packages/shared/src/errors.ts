@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { exportValueUnsafeDetailsSchema } from './exports'
 import { importFileInvalidDetailsSchema } from './imports'
 import { placeholderMismatchDetailsSchema } from './translations'
 
@@ -24,6 +25,8 @@ export enum ERROR_CODE {
 	PLACEHOLDER_MISMATCH = 'PLACEHOLDER_MISMATCH',
 	TRANSLATION_KEY_NOT_FOUND = 'TRANSLATION_KEY_NOT_FOUND',
 	TRANSLATION_KEY_TAKEN = 'TRANSLATION_KEY_TAKEN',
+	EXPORT_LANGUAGES_INVALID = 'EXPORT_LANGUAGES_INVALID',
+	EXPORT_VALUE_UNSAFE = 'EXPORT_VALUE_UNSAFE',
 	RATE_LIMITED = 'RATE_LIMITED',
 	INTERNAL_ERROR = 'INTERNAL_ERROR',
 }
@@ -45,12 +48,14 @@ export const validationIssueSchema = z.object({
 
 export type ValidationIssue = z.infer<typeof validationIssueSchema>
 
-/** `details`: field issues for `VALIDATION_ERROR`, file issues for `IMPORT_FILE_INVALID`, placeholders for `PLACEHOLDER_MISMATCH`. */
+/** `details`: field issues for `VALIDATION_ERROR`, file issues for `IMPORT_FILE_INVALID`, unsafe values for `EXPORT_VALUE_UNSAFE`, placeholders for `PLACEHOLDER_MISMATCH`. */
 export const errorResponseSchema = z.object({
 	error: z.object({
 		code: z.enum(ERROR_CODE),
 		message: z.string(),
-		details: z.union([z.array(validationIssueSchema), importFileInvalidDetailsSchema, placeholderMismatchDetailsSchema]).optional(),
+		details: z
+			.union([z.array(validationIssueSchema), importFileInvalidDetailsSchema, exportValueUnsafeDetailsSchema, placeholderMismatchDetailsSchema])
+			.optional(),
 	}),
 })
 

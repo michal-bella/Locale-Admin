@@ -838,6 +838,8 @@
 		"PLACEHOLDER_MISMATCH": "Premenné v preklade sa nezhodujú so základným jazykom.",
 		"TRANSLATION_KEY_NOT_FOUND": "Kľúč sa nenašiel. Možno ho medzitým niekto odstránil.",
 		"TRANSLATION_KEY_TAKEN": "Kľúč s týmto názvom už v namespace existuje.",
+		"EXPORT_LANGUAGES_INVALID": "Vybraný jazyk do projektu nepatrí. Obnovte stránku a skúste to znova.",
+		"EXPORT_VALUE_UNSAFE": "Niektoré preklady obsahujú znaky, ktoré by rozbili CSV súbor. Opravte ich a skúste to znova.",
 		"RATE_LIMITED": "Príliš veľa pokusov. Skúste to znova neskôr.",
 		"INTERNAL_ERROR": "Nastala neočakávaná chyba. Skúste to znova.",
 		"UNKNOWN": "Nastala neznáma chyba. Skúste to znova."

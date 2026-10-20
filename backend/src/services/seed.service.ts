@@ -83,7 +83,7 @@ export const seedProject = async (prisma: PrismaClient): Promise<SeedProjectResu
 			data: {
 				...SEED_PROJECT,
 				members: { create: { user: { connect: { email: SEED_ADMIN_EMAIL } } } },
-				languages: { create: SEED_LANGUAGE_TAGS.map((tag) => ({ tag, isBase: tag === SEED_BASE_LANGUAGE_TAG })) },
+				languages: { create: SEED_LANGUAGE_TAGS.map((tag, position) => ({ tag, isBase: tag === SEED_BASE_LANGUAGE_TAG, position })) },
 			},
 			select: { id: true, languages: { select: { id: true, tag: true } } },
 		})

@@ -8,6 +8,25 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Projekty: dátum vytvorenia a počet členov (2026-10-20)
+
+- API: položka `GET /api/projects` (a `201 POST /api/projects`) má `memberCount` a `createdAt` ([API](./api/projects.md#get-apiprojects))
+- frontend: zoznam projektov na indexe ukazuje dátum vytvorenia pod slugom a počet členov pod počtom kľúčov; na úzkej obrazovke je dátum pri počtoch ([Frontend](./frontend.md))
+
+### Jazyky: poradie a základný jazyk presunom (2026-10-20)
+
+- API: `PUT /api/projects/:projectId/languages/order` uloží poradie jazykov projektu, prvý jazyk sa stane základným; `GET …/languages` vracia jazyky v tomto poradí (základný vždy prvý), nový jazyk ide na koniec ([API](./api/project-languages.md#put-apiprojectsprojectidlanguagesorder), [databáza](./database.md#projectlanguage))
+- frontend: na stránke Jazyky sa jazyky presúvajú myšou alebo šípkami, poradie určuje stĺpce v prekladoch; presun na prvé miesto sa potvrdzuje v modáli **Zmeniť základný jazyk**, **Nie** ho vráti ([Frontend](./frontend.md#stránka-jazyky-projektu))
+- frontend: názvy jazykov na stránke Jazyky sú v jazyku aplikácie (napr. „Bulharčina“), popis pod nimi ostáva pôvodný názov a tag
+
+### Členovia: úzka obrazovka (2026-10-20)
+
+- frontend: Členovia na úzkej obrazovke: počet projektov, dátum a na telefóne aj rola sú pod e-mailom, e-mail sa láme pred `@` ([Frontend](./frontend.md#stránka-členovia))
+
+### Preklady: premenné podľa názvu kľúča (2026-10-20)
+
+- API: `PUT …/translations/:languageId` pri chýbajúcej hodnote základného jazyka porovná premenné s názvom kľúča, takže preklad bez `{{symbol}}` pri kľúči `Cena ({{symbol}})` vráti 400 `PLACEHOLDER_MISMATCH` ([API](./api/translations.md))
+
 ### Preklady: filtre jazykov, autora, obdobia a plurálov (2026-10-20)
 
 - API: `GET …/translations` má filtre `updatedById`, `updatedWithin` (`DAY` / `WEEK` / `MONTH`), odpoveď má `editors` ([API](./api/translations.md#get-apiprojectsprojectidtranslations))

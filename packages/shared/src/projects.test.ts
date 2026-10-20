@@ -49,6 +49,8 @@ describe('projectListItemSchema', () => {
 			languageTags: ['sk'],
 			keyCount: 0,
 			translatedCount: 0,
+			memberCount: 1,
+			createdAt: '2026-10-18T08:00:00.000Z',
 			protectVariables: true,
 		}
 		expect(projectListItemSchema.parse(project)).not.toHaveProperty('protectVariables')

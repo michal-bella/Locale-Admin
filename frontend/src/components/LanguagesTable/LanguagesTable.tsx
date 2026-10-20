@@ -1,11 +1,18 @@
-import { Badge, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
+import { ActionIcon, Badge, Button, Skeleton, Table, Text, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useMergedRef } from '@mantine/hooks'
-import { type ReactNode, useRef } from 'react'
+import { notifications } from '@mantine/notifications'
+import { type KeyboardEvent, type ReactNode, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import Sortable from 'sortablejs'
+
+import { type Language } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
-import { Plus, Trash } from '@/components/Icons'
+import { useReorderProjectLanguagesMutation } from '@/api/projectLanguages/useReorderProjectLanguagesMutation'
+import ChangeBaseLanguageModal from '@/components/ChangeBaseLanguageModal/ChangeBaseLanguageModal'
+import { GripVertical, Plus, Trash } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import RowAction from '@/components/RowAction/RowAction'
 
@@ -14,18 +21,149 @@ import { type LanguagesTableProps } from './types'
 
 const SKELETON_ROWS = 3
 
-/** Languages of a project in a card (Figma 3:812) without the Preložené, Na kontrolu and Pokrytie columns. The base language cannot be removed. */
+const SORT_ANIMATION_MS = 150
+
+/**
+ * Languages of a project in a card (Figma 3:812) without the Preložené, Na kontrolu and Pokrytie columns. The base language cannot be removed.
+ * The grip reorders them for the whole project (the column order of the translations): SortableJS drag and drop, or ArrowUp / ArrowDown
+ * while the grip has the focus, as in the project list. The first language is the base, so a move that changes it waits for a confirmation;
+ * "Nie" puts the rows back.
+ */
 const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps) => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectLanguagesQuery(projectId)
 	const tableRef = useRef<HTMLTableElement>(null)
 	const mergedRef = useMergedRef(tableRef, ref)
+	const bodyRef = useRef<HTMLTableSectionElement>(null)
+	const reorder = useReorderProjectLanguagesMutation(projectId)
+	const [announcement, setAnnouncement] = useState('')
+	const moveHintId = useId()
+	const gripRefs = useRef(new Map<string, HTMLButtonElement>())
+	const [keyboardMovedId, setKeyboardMovedId] = useState<string | null>(null)
+	// Same as in ProjectsList: the dropped order is rendered from here until newer data (the optimistic cache update, a rollback) replaces it.
+	const [dropped, setDropped] = useState<{ from: typeof data; ids: string[]; movedId: string } | null>(null)
+	const droppedIds = dropped && dropped.from === data ? dropped.ids : null
+	const position = new Map(droppedIds?.map((id, index) => [id, index]))
+	const languages = droppedIds ? [...(data ?? [])].sort((a, b) => (position.get(a.id) ?? 0) - (position.get(b.id) ?? 0)) : data
+	const currentBase = data?.find((language) => language.isBase) ?? null
+	const [baseChange, setBaseChange] = useState<{ language: Language; currentBase: Language | null } | null>(null)
+	const [baseModalOpened, setBaseModalOpened] = useState(false)
+
+	const languageName = (language: Language) => {
+		const name = t(`languageNames.${language.tag}`)
+		return name.charAt(0).toLocaleUpperCase(i18n.language) + name.slice(1)
+	}
+
+	useLayoutEffect(() => {
+		if (keyboardMovedId && (document.activeElement === null || document.activeElement === document.body)) {
+			gripRefs.current.get(keyboardMovedId)?.focus()
+		}
+	}, [keyboardMovedId, data, dropped])
 
 	// A successful retry replaces the focused retry button with the rows.
 	const retry = async () => {
 		const { isSuccess } = await refetch()
 		if (isSuccess) {
 			tableRef.current?.focus()
+		}
+	}
+
+	const saveOrder = (languageIds: string[], movedId: string) => {
+		const moved = data?.find((language) => language.id === movedId)
+		const newBase = data?.find((language) => language.id === languageIds[0])
+		const baseChanged = newBase !== undefined && newBase.id !== currentBase?.id
+		if (moved) {
+			setAnnouncement(
+				t('languagesPage.table.moved', { name: languageName(moved), position: languageIds.indexOf(movedId) + 1, count: languageIds.length }),
+			)
+		}
+		reorder.mutate(languageIds, {
+			onSuccess: () => {
+				if (baseChanged) {
+					notifications.show({ color: 'green', message: t('languagesPage.baseModal.success', { name: languageName(newBase) }) })
+				}
+			},
+			onError: (err) => notifications.show({ color: 'red', message: t(`errors.${getApiErrorCode(err)}`) }),
+			onSettled: () => setBaseModalOpened(false),
+		})
+	}
+
+	/** Renders the new order at once; a new first language opens the confirmation instead of saving. */
+	const applyOrder = (languageIds: string[], movedId: string) => {
+		// Renders the new order before the browser paints the row SortableJS was just put back at; otherwise it flashes at its old place.
+		flushSync(() => setDropped({ from: data, ids: languageIds, movedId }))
+		const newBase = data?.find((language) => language.id === languageIds[0])
+		if (newBase && newBase.id !== currentBase?.id) {
+			setBaseChange({ language: newBase, currentBase })
+			setBaseModalOpened(true)
+			return
+		}
+		saveOrder(languageIds, movedId)
+	}
+
+	const confirmBaseChange = () => {
+		if (dropped && !reorder.isPending) {
+			saveOrder(dropped.ids, dropped.movedId)
+		}
+	}
+
+	const cancelBaseChange = () => {
+		if (!reorder.isPending) {
+			setBaseModalOpened(false)
+			setDropped(null)
+		}
+	}
+
+	const moveBy = (languageId: string, offset: number) => {
+		const ids = languages?.map((language) => language.id) ?? []
+		const from = ids.indexOf(languageId)
+		const to = from + offset
+		if (from === -1 || to < 0 || to >= ids.length) {
+			return
+		}
+		ids.splice(from, 1)
+		ids.splice(to, 0, languageId)
+		applyOrder(ids, languageId)
+	}
+
+	const onSorted = useEffectEvent((oldIndex: number, newIndex: number) => {
+		const ids = languages?.map((language) => language.id) ?? []
+		const [moved] = ids.splice(oldIndex, 1)
+		if (moved) {
+			ids.splice(newIndex, 0, moved)
+			applyOrder(ids, moved)
+		}
+	})
+
+	const canReorder = (data?.length ?? 0) > 1
+
+	useEffect(() => {
+		const body = bodyRef.current
+		if (!body || !canReorder) {
+			return
+		}
+		const sortable = Sortable.create(body, {
+			handle: `.${classes.grip}`,
+			animation: SORT_ANIMATION_MS,
+			ghostClass: classes.ghost,
+			chosenClass: classes.chosen,
+			onEnd: ({ item, from, oldIndex, newIndex }) => {
+				if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) {
+					return
+				}
+				// SortableJS moved the node itself; put it back so React's DOM matches its render, then React reorders the rows from the new list.
+				from.insertBefore(item, from.children[oldIndex < newIndex ? oldIndex : oldIndex + 1] ?? null)
+				onSorted(oldIndex, newIndex)
+			},
+		})
+		return () => sortable.destroy()
+	}, [canReorder])
+
+	const gripKeyDown = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
+		if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+			event.preventDefault()
+			setKeyboardMovedId(id)
+			moveBy(id, event.key === 'ArrowUp' ? -1 : 1)
 		}
 	}
 
@@ -73,14 +211,42 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 				</div>,
 			)
 		}
-		return data.map((language) => (
+		return (languages ?? []).map((language) => (
 			<Table.Tr key={language.id} className={classes.tr}>
 				<Table.Td className={classes.td}>
 					<div className='flex items-center gap-3'>
+						{canReorder && (
+							<Tooltip label={t('languagesPage.table.move')}>
+								<ActionIcon
+									variant='transparent'
+									size={32}
+									radius='md'
+									aria-label={t('languagesPage.table.moveLabel', { name: languageName(language) })}
+									aria-describedby={moveHintId}
+									ref={(element) => {
+										if (element) {
+											gripRefs.current.set(language.id, element)
+										} else {
+											gripRefs.current.delete(language.id)
+										}
+									}}
+									onBlur={(event) => {
+										// A blur from the DOM move has no relatedTarget; only a real focus change ends the keyboard move.
+										if (event.relatedTarget) {
+											setKeyboardMovedId(null)
+										}
+									}}
+									className={classes.grip}
+									onKeyDown={(event) => gripKeyDown(event, language.id)}
+								>
+									<GripVertical aria-hidden />
+								</ActionIcon>
+							</Tooltip>
+						)}
 						<LanguageFlag code={language.flagCode} size='lg' />
 						<div className='flex flex-col'>
 							<Text size='sm' fw={600} c='var(--app-color-text-strong)' className={classes.name}>
-								{language.englishName}
+								{languageName(language)}
 							</Text>
 							<Text component='span' className={classes.meta}>
 								{language.nativeName} · {language.tag}
@@ -97,7 +263,7 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 					<RowAction
 						icon={Trash}
 						tooltip={t('languagesPage.table.delete')}
-						label={t('languagesPage.table.deleteLabel', { name: language.englishName })}
+						label={t('languagesPage.table.deleteLabel', { name: languageName(language) })}
 						danger
 						disabled={language.isBase}
 						onClick={(event) => onDelete(language, event.currentTarget)}
@@ -118,8 +284,18 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 						</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
-				<Table.Tbody>{renderBody()}</Table.Tbody>
+				<Table.Tbody ref={bodyRef}>{renderBody()}</Table.Tbody>
 			</Table>
+			<VisuallyHidden id={moveHintId}>{t('languagesPage.table.moveHint')}</VisuallyHidden>
+			<VisuallyHidden role='status'>{announcement}</VisuallyHidden>
+			<ChangeBaseLanguageModal
+				opened={baseModalOpened}
+				language={baseChange?.language ?? null}
+				currentBase={baseChange?.currentBase ?? null}
+				isPending={reorder.isPending}
+				onConfirm={confirmBaseChange}
+				onCancel={cancelBaseChange}
+			/>
 		</div>
 	)
 }

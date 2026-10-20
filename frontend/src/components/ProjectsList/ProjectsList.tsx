@@ -13,6 +13,7 @@ import { useProjectsQuery } from '@/api/projects/projectsQuery'
 import { useReorderProjectsMutation } from '@/api/projects/useReorderProjectsMutation'
 import { GripVertical, LogOut, Settings } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
+import { formatDate } from '@/lib/formatDate'
 import { formatShare } from '@/lib/formatShare'
 import { findSupportedLanguage } from '@/lib/languageOptions'
 import { getProjectInitials, isLightColor } from '@/lib/utils'
@@ -68,7 +69,7 @@ const ProjectProgress = ({ project }: { project: ProjectListItem }) => {
  * grip has the focus; a live region says the new place.
  */
 const ProjectsList = ({ onLeave }: ProjectsListProps) => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectsQuery()
 	const listRef = useRef<HTMLUListElement>(null)
 	const [retrySucceeded, setRetrySucceeded] = useState(false)
@@ -135,6 +136,8 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	})
 
 	const canReorder = (data?.projects.length ?? 0) > 1
+
+	const createdOn = (project: ProjectListItem) => t('projectsPage.list.createdOn', { date: formatDate(project.createdAt, i18n.language) })
 
 	useEffect(() => {
 		const list = listRef.current
@@ -249,11 +252,23 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 							<Text component='span' size='xs' c='var(--app-color-muted)' className={classes.slug}>
 								{project.slug}
 							</Text>
+							{/* Below lg the name column is too narrow for the date; it moves to the counts on the stats line. */}
+							<Text component='span' size='xs' c='var(--app-color-muted)' className='hidden lg:inline'>
+								{createdOn(project)}
+							</Text>
 						</div>
 						<div className={classes.stats}>
-							<Text size='sm' c='var(--app-color-text-strong)' className='shrink-0 lg:w-24 lg:text-right'>
-								{t('projectsPage.list.keys', { count: project.keyCount })}
-							</Text>
+							<div className='flex shrink-0 flex-col gap-0.5 lg:w-24 lg:text-right'>
+								<Text size='sm' c='var(--app-color-text-strong)'>
+									{t('projectsPage.list.keys', { count: project.keyCount })}
+								</Text>
+								<Text size='xs' c='var(--app-color-muted)'>
+									{t('projectsPage.list.members', { count: project.memberCount })}
+								</Text>
+								<Text size='xs' c='var(--app-color-muted)' className='lg:hidden'>
+									{createdOn(project)}
+								</Text>
+							</div>
 							<div className='order-last min-w-0 basis-full lg:order-none lg:flex-1 lg:basis-auto'>
 								<ProjectProgress project={project} />
 							</div>

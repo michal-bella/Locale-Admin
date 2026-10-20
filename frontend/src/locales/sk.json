@@ -41,6 +41,11 @@
 			"keys_many": "{{count}} kľúčov",
 			"keys_other": "{{count}} kľúčov",
 			"noKeys": "Zatiaľ bez kľúčov",
+			"members_one": "{{count}} člen",
+			"members_few": "{{count}} členovia",
+			"members_many": "{{count}} členov",
+			"members_other": "{{count}} členov",
+			"createdOn": "Vytvorený {{date}}",
 			"translated": "Preložené: {{percent}}",
 			"untranslated": "Nepreložené: {{percent}}",
 			"lessThan": "< {{percent}}",
@@ -599,6 +604,11 @@
 			"role": "Rola",
 			"projects": "Projekty",
 			"joinedAt": "Pridaný",
+			"projectCount_one": "{{count}} projekt",
+			"projectCount_few": "{{count}} projekty",
+			"projectCount_many": "{{count}} projektov",
+			"projectCount_other": "{{count}} projektov",
+			"joinedOn": "Pridaný {{date}}",
 			"empty": "Projekt zatiaľ nemá žiadnych členov.",
 			"loadError": "Zoznam členov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
@@ -681,9 +691,13 @@
 	"languagesPage": {
 		"eyebrow": "Lokalizácia",
 		"title": "Jazyky",
-		"description": "Jazyky, do ktorých sa projekt prekladá. Základný jazyk zmeníte v nastaveniach projektu.",
+		"description": "Jazyky, do ktorých sa projekt prekladá. Poradie zmeníte potiahnutím – v tomto poradí sa zobrazia stĺpce v prekladoch a jazyk na prvom mieste je základný.",
 		"addButton": "Pridať jazyk",
 		"table": {
+			"move": "Presunúť",
+			"moveLabel": "Presunúť jazyk {{name}}",
+			"moveHint": "Poradie zmeníte potiahnutím alebo šípkami hore a dole. Jazyk na prvom mieste je základný.",
+			"moved": "Jazyk {{name}} je na {{position}}. mieste z {{count}}.",
 			"label": "Zoznam jazykov",
 			"language": "Jazyk",
 			"base": "Základný",
@@ -693,6 +707,14 @@
 			"empty": "Projekt zatiaľ nemá žiadne jazyky.",
 			"loadError": "Zoznam jazykov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova"
+		},
+		"baseModal": {
+			"title": "Zmeniť základný jazyk",
+			"close": "Zavrieť",
+			"message": "Jazyk na prvom mieste je základný. Presunutím sa základným jazykom projektu stane {{name}} namiesto {{current}}. Zmena sa prejaví aj v nastaveniach projektu.",
+			"cancel": "Nie, vrátiť",
+			"confirm": "Áno, zmeniť",
+			"success": "Základný jazyk je teraz {{name}}."
 		},
 		"addModal": {
 			"title": "Pridať jazyk",

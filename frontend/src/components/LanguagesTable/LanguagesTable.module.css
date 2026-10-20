@@ -60,6 +60,32 @@
 	color: var(--app-color-eyebrow);
 }
 
+.grip {
+	flex-shrink: 0;
+	margin-inline-start: -0.75rem;
+	color: var(--app-color-muted);
+	cursor: grab;
+}
+
+.grip:hover {
+	background-color: var(--app-color-surface-muted);
+	color: var(--app-color-text-strong);
+}
+
+.grip:active {
+	cursor: grabbing;
+}
+
+/* SortableJS: the row being held, and the placeholder that slides between the other rows while dragging. */
+.chosen {
+	background-color: var(--app-color-surface-muted);
+}
+
+.ghost {
+	opacity: 0.4;
+	background-color: var(--app-color-brand-tint);
+}
+
 .state {
 	padding: 2.5rem 1.25rem;
 	text-align: center;

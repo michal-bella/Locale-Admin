@@ -41,6 +41,11 @@
 			"keys_many": "{{count}} keys",
 			"keys_other": "{{count}} keys",
 			"noKeys": "No keys yet",
+			"members_one": "{{count}} member",
+			"members_few": "{{count}} members",
+			"members_many": "{{count}} members",
+			"members_other": "{{count}} members",
+			"createdOn": "Created {{date}}",
 			"translated": "Translated: {{percent}}",
 			"untranslated": "Untranslated: {{percent}}",
 			"lessThan": "< {{percent}}",
@@ -593,6 +598,11 @@
 			"role": "Role",
 			"projects": "Projects",
 			"joinedAt": "Added",
+			"projectCount_one": "{{count}} project",
+			"projectCount_few": "{{count}} projects",
+			"projectCount_many": "{{count}} projects",
+			"projectCount_other": "{{count}} projects",
+			"joinedOn": "Added {{date}}",
 			"empty": "The project has no members yet.",
 			"loadError": "The member list could not be loaded.",
 			"retry": "Try again",
@@ -675,9 +685,13 @@
 	"languagesPage": {
 		"eyebrow": "Localization",
 		"title": "Languages",
-		"description": "Languages the project is translated into. Change the base language in the project settings.",
+		"description": "Languages the project is translated into. Drag them to change the order: the translation columns follow it and the first language is the base.",
 		"addButton": "Add language",
 		"table": {
+			"move": "Move",
+			"moveLabel": "Move language {{name}}",
+			"moveHint": "Drag, or use the up and down arrows, to change the order. The first language is the base.",
+			"moved": "Language {{name}} is now at position {{position}} of {{count}}.",
 			"label": "Language list",
 			"language": "Language",
 			"base": "Base",
@@ -687,6 +701,14 @@
 			"empty": "The project has no languages yet.",
 			"loadError": "The language list could not be loaded.",
 			"retry": "Try again"
+		},
+		"baseModal": {
+			"title": "Change the base language",
+			"close": "Close",
+			"message": "The first language is the base. After this move {{name}} becomes the base language of the project instead of {{current}}. The project settings change too.",
+			"cancel": "No, undo",
+			"confirm": "Yes, change",
+			"success": "The base language is now {{name}}."
 		},
 		"addModal": {
 			"title": "Add language",

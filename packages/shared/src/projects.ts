@@ -19,7 +19,7 @@ export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>
 /**
  * One project on the index page and the body of `201 POST /api/projects`. `isMember` is `false` only for an ADMIN outside the project.
  * `languageTags` start with the base language; `translatedCount` is the number of filled values over all keys and languages, so the
- * project is fully translated when it equals `keyCount * languageTags.length`.
+ * project is fully translated when it equals `keyCount * languageTags.length`. `memberCount` counts every member of the project.
  */
 export const projectListItemSchema = z.object({
 	id: z.uuid(),
@@ -30,6 +30,8 @@ export const projectListItemSchema = z.object({
 	languageTags: z.array(z.enum(LANGUAGE_TAGS)),
 	keyCount: z.number().int().nonnegative(),
 	translatedCount: z.number().int().nonnegative(),
+	memberCount: z.number().int().nonnegative(),
+	createdAt: z.iso.datetime(),
 })
 
 export type ProjectListItem = z.infer<typeof projectListItemSchema>

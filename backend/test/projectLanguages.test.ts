@@ -26,7 +26,8 @@ const loginToProject = async (app: App, role: ROLE = ROLE.EDITOR, { member = tru
 	return { project, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
 }
 
-const createLanguageRow = (projectId: string, tag: LanguageTag, isBase = false) => getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase } })
+const createLanguageRow = (projectId: string, tag: LanguageTag, isBase = false, position = 0) =>
+	getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase, position } })
 
 const languagesUrl = (projectId: string) => `/api/projects/${projectId}/languages`
 
@@ -36,6 +37,18 @@ const postLanguage = (app: App, cookie: string, projectId: string, body: unknown
 		.set('Cookie', cookie)
 		.set(CSRF_HEADERS)
 		.send(body as object)
+
+const putOrder = (app: App, cookie: string, projectId: string, body: unknown) =>
+	request(app)
+		.put(`${languagesUrl(projectId)}/order`)
+		.set('Cookie', cookie)
+		.set(CSRF_HEADERS)
+		.send(body as object)
+
+const tagsInOrder = async (projectId: string) =>
+	(await getTestPrisma().projectLanguage.findMany({ where: { projectId }, orderBy: { position: 'asc' } })).map(({ tag, isBase }) =>
+		isBase ? `${tag}*` : tag,
+	)
 
 const deleteLanguage = (app: App, cookie: string, projectId: string, id: string) =>
 	request(app)
@@ -68,6 +81,19 @@ describe('GET /api/projects/:projectId/languages', () => {
 			isBase: true,
 			createdAt: ru.createdAt.toISOString(),
 		})
+	})
+
+	it('orders the languages after the base by position, then by tag', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await loginToProject(app)
+		await createLanguageRow(project.id, 'en', false, 0)
+		await createLanguageRow(project.id, 'sk', true, 2)
+		await createLanguageRow(project.id, 'ru', false, 1)
+		await createLanguageRow(project.id, 'bg', false, 1)
+
+		const res = await request(app).get(languagesUrl(project.id)).set('Cookie', cookie)
+
+		expect(languagesResponseSchema.parse(res.body).map(({ tag }) => tag)).toEqual(['sk', 'en', 'bg', 'ru'])
 	})
 
 	it('returns 404 NOT_FOUND to an EDITOR who is not a member and 200 to an ADMIN who is not', async () => {
@@ -110,6 +136,16 @@ describe('POST /api/projects/:projectId/languages', () => {
 		expect(languageSchema.parse(second.body)).toMatchObject({ tag: 'en', isBase: false })
 	})
 
+	it('puts a new language last', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await loginToProject(app)
+		await createLanguageRow(project.id, 'sk', true, 0)
+		await createLanguageRow(project.id, 'ru', false, 4)
+
+		expect((await postLanguage(app, cookie, project.id, { tag: 'bg' })).status).toBe(201)
+		expect(await tagsInOrder(project.id)).toEqual(['sk*', 'ru', 'bg'])
+	})
+
 	it('returns 400 for a tag outside the catalog and 409 LANGUAGE_TAKEN for a tag already in the project', async () => {
 		const app = createTestApp()
 		const { project, cookie } = await loginToProject(app)
@@ -144,6 +180,83 @@ describe('POST /api/projects/:projectId/languages', () => {
 			ERROR_CODE.CSRF_REJECTED,
 		)
 		expect(await getTestPrisma().projectLanguage.count()).toBe(0)
+	})
+})
+
+describe('PUT /api/projects/:projectId/languages/order', () => {
+	it('saves the order, makes the first language the base and returns the list in the new order', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await loginToProject(app)
+		const sk = await createLanguageRow(project.id, 'sk', true, 0)
+		const en = await createLanguageRow(project.id, 'en', false, 1)
+		const ru = await createLanguageRow(project.id, 'ru', false, 2)
+
+		const res = await putOrder(app, cookie, project.id, { languageIds: [en.id, ru.id, sk.id] })
+
+		expect(res.status).toBe(200)
+		expect(languagesResponseSchema.parse(res.body).map(({ tag, isBase }) => ({ tag, isBase }))).toEqual([
+			{ tag: 'en', isBase: true },
+			{ tag: 'ru', isBase: false },
+			{ tag: 'sk', isBase: false },
+		])
+		expect(await tagsInOrder(project.id)).toEqual(['en*', 'ru', 'sk'])
+		const settings = await request(app).get(`/api/projects/${project.id}/settings`).set('Cookie', cookie)
+		expect(settings.body).toMatchObject({ baseLanguageId: en.id })
+	})
+
+	it('keeps the base when the first language stays', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await loginToProject(app)
+		const sk = await createLanguageRow(project.id, 'sk', true, 0)
+		const en = await createLanguageRow(project.id, 'en', false, 1)
+		const ru = await createLanguageRow(project.id, 'ru', false, 2)
+
+		expect((await putOrder(app, cookie, project.id, { languageIds: [sk.id, ru.id, en.id] })).status).toBe(200)
+		expect(await tagsInOrder(project.id)).toEqual(['sk*', 'ru', 'en'])
+	})
+
+	it.each([
+		{ name: 'a missing language', ids: (sk: string, _en: string) => [sk] },
+		{ name: 'a language of another project', ids: (sk: string, en: string, foreign: string) => [sk, en, foreign] },
+		{ name: 'an unknown id', ids: (sk: string, en: string) => [sk, en, randomUUID()] },
+	])('returns 400 VALIDATION_ERROR and writes nothing for $name', async ({ ids }) => {
+		const app = createTestApp()
+		const { project, cookie } = await loginToProject(app)
+		const sk = await createLanguageRow(project.id, 'sk', true, 0)
+		const en = await createLanguageRow(project.id, 'en', false, 1)
+		const foreign = await createLanguageRow((await getTestPrisma().project.create({ data: { name: 'B', slug: 'b' } })).id, 'ru', true)
+
+		const res = await putOrder(app, cookie, project.id, { languageIds: ids(sk.id, en.id, foreign.id) })
+
+		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(errorResponseSchema.parse(res.body).error.details).toEqual([{ path: 'languageIds', code: VALIDATION_CODE.INVALID }])
+		expect(await tagsInOrder(project.id)).toEqual(['sk*', 'en'])
+	})
+
+	it('returns 400 VALIDATION_ERROR for duplicate ids and an empty list', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await loginToProject(app)
+		const sk = await createLanguageRow(project.id, 'sk', true, 0)
+
+		expectErrorCode(await putOrder(app, cookie, project.id, { languageIds: [sk.id, sk.id] }), 400, ERROR_CODE.VALIDATION_ERROR)
+		expectErrorCode(await putOrder(app, cookie, project.id, { languageIds: [] }), 400, ERROR_CODE.VALIDATION_ERROR)
+	})
+
+	it('returns 404 NOT_FOUND to an EDITOR who is not a member and 403 CSRF_REJECTED without the header', async () => {
+		const app = createTestApp()
+		const outsider = await loginToProject(app, ROLE.EDITOR, { member: false })
+		const member = await loginToProject(app)
+		const sk = await createLanguageRow(member.project.id, 'sk', true)
+
+		expectErrorCode(await putOrder(app, outsider.cookie, outsider.project.id, { languageIds: [sk.id] }), 404, ERROR_CODE.NOT_FOUND)
+		expectErrorCode(
+			await request(app)
+				.put(`${languagesUrl(member.project.id)}/order`)
+				.set('Cookie', member.cookie)
+				.send({ languageIds: [sk.id] }),
+			403,
+			ERROR_CODE.CSRF_REJECTED,
+		)
 	})
 })
 

@@ -52,17 +52,18 @@ Indexy: `userId`, `expiresAt`.
 
 Jazyk projektu, do ktorého sa projekt prekladá. Ukladá sa iba tag, anglický a pôvodný názov a vlajku dopĺňa backend z katalógu `SUPPORTED_LANGUAGES` v `packages/shared` (upraviť sa nedajú). Správanie API je v [API: jazyky projektu](./api/project-languages.md).
 
-| Pole        | Typ      | Poznámka                                                                  |
-| ----------- | -------- | ------------------------------------------------------------------------- |
-| `id`        | UUID     | PK                                                                        |
-| `projectId` | UUID     | FK na `Project`, pri zmazaní projektu sa zmaže                            |
-| `tag`       | string   | tag z katalógu (`sk`, `en`, `de-AT`, ...), v projekte unikátny            |
-| `isBase`    | boolean  | default `false`, základný jazyk projektu; prvý jazyk projektu je základný |
-| `createdAt` | datetime |                                                                           |
+| Pole        | Typ      | Poznámka                                                                                                                                                                                                                           |
+| ----------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | UUID     | PK                                                                                                                                                                                                                                 |
+| `projectId` | UUID     | FK na `Project`, pri zmazaní projektu sa zmaže                                                                                                                                                                                     |
+| `tag`       | string   | tag z katalógu (`sk`, `en`, `de-AT`, ...), v projekte unikátny                                                                                                                                                                     |
+| `isBase`    | boolean  | default `false`, základný jazyk projektu; prvý jazyk projektu je základný                                                                                                                                                          |
+| `position`  | int      | default `0`, poradie stĺpcov v prekladoch (drag and drop na stránke Jazyky); základný jazyk sa zobrazí vždy prvý, pri zhode rozhoduje `tag`. Migrácia `language_position` doplnila doterajšie poradie (základný, potom podľa tagu) |
+| `createdAt` | datetime |                                                                                                                                                                                                                                    |
 
 Indexy: unikátna dvojica (`projectId`, `tag`) a čiastočný unikátny index `ProjectLanguage_projectId_isBase_key` na `projectId` s podmienkou `WHERE "isBase"`, ktorý zaručí najviac jeden základný jazyk v projekte. Prisma ho v `schema.prisma` nevie vyjadriť, je ručne pridaný v migrácii `project_languages`.
 
-Zápisy, ktoré čítajú alebo presúvajú príznak `isBase` (pridanie, odobratie, zmena základného jazyka v nastaveniach cez `setBaseLanguage`), zamknú v transakcii riadok projektu (`SELECT … FOR UPDATE`). Pri READ COMMITTED by inak súbežné požiadavky v jednom projekte narazili na čiastočný index.
+Zápisy, ktoré čítajú alebo presúvajú príznak `isBase` (pridanie, odobratie, zmena poradia, zmena základného jazyka v nastaveniach cez `setBaseLanguage`), zamknú v transakcii riadok projektu (`SELECT … FOR UPDATE`). Pri READ COMMITTED by inak súbežné požiadavky v jednom projekte narazili na čiastočný index.
 
 Do 2026-10-18 boli jazyky globálne (tabuľka `Language`, spravoval ich ADMIN). Migrácia `project_languages` dala každému existujúcemu projektu kópiu všetkých dovtedajších jazykov aj s príznakom základného jazyka a tabuľku `Language` zmazala.
 
@@ -186,6 +187,7 @@ erDiagram
         uuid projectId FK
         string tag
         boolean isBase
+        int position
         datetime createdAt
     }
     Project {

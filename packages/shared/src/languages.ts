@@ -36,7 +36,7 @@ export const languageSchema = z.object({
 
 export type Language = z.infer<typeof languageSchema>
 
-/** Body of `GET /api/projects/:projectId/languages`, the base language first, then by tag. */
+/** Body of `GET /api/projects/:projectId/languages`, the base language first, then in the order set by drag and drop. */
 export const languagesResponseSchema = z.array(languageSchema)
 
 export type LanguagesResponse = z.infer<typeof languagesResponseSchema>
@@ -47,3 +47,14 @@ export const createLanguageRequestSchema = z.object({
 })
 
 export type CreateLanguageRequest = z.infer<typeof createLanguageRequestSchema>
+
+/** Body of `PUT /api/projects/:projectId/languages/order`: every language of the project in the new order. The first one becomes the base. */
+export const reorderLanguagesRequestSchema = z.object({
+	languageIds: z
+		.array(z.uuid())
+		.min(1)
+		.max(SUPPORTED_LANGUAGES.length)
+		.refine((ids) => new Set(ids).size === ids.length),
+})
+
+export type ReorderLanguagesRequest = z.infer<typeof reorderLanguagesRequestSchema>

@@ -19,6 +19,8 @@ const BOOKING: ProjectListItem = {
 	languageTags: ['en', 'sk'],
 	keyCount: 224,
 	translatedCount: 447,
+	memberCount: 3,
+	createdAt: '2026-10-12T08:00:00.000Z',
 }
 
 const DEMO: ProjectListItem = {
@@ -30,6 +32,8 @@ const DEMO: ProjectListItem = {
 	languageTags: [],
 	keyCount: 0,
 	translatedCount: 0,
+	memberCount: 1,
+	createdAt: '2026-09-01T08:00:00.000Z',
 }
 
 const projectsResponse = (projects: ProjectListItem[]) => ({ status: 200, data: { projects } })
@@ -168,13 +172,16 @@ describe('ProjectsPage list', () => {
 		expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
 	})
 
-	it('shows the key count, the translated share over all languages and the language flags', async () => {
+	it('shows the creation date, the key and member counts, the translated share over all languages and the language flags', async () => {
 		signedInAs(ADMIN_USER, { 'GET /projects': projectsResponse([BOOKING, DEMO]) })
 		renderApp('/')
 
 		await waitFor(getList)
 		const [booking, demo] = getRows().map((row) => within(row))
+		// Rendered twice, for the wide and the narrow layout; CSS shows one of them.
+		expect(booking?.getAllByText('Vytvorený 12. 10. 2026')).toHaveLength(2)
 		expect(booking?.getByText('224 kľúčov')).toBeInTheDocument()
+		expect(booking?.getByText('3 členovia')).toBeInTheDocument()
 		expect(booking?.getByText('Preložené: > 99 %')).toBeInTheDocument()
 		expect(booking?.getByText('Nepreložené: < 1 %')).toBeInTheDocument()
 		expect(
@@ -183,6 +190,7 @@ describe('ProjectsPage list', () => {
 				.map((item) => item.textContent),
 		).toEqual(['English', 'Slovak'])
 		expect(demo?.getByText('0 kľúčov')).toBeInTheDocument()
+		expect(demo?.getByText('1 člen')).toBeInTheDocument()
 		expect(demo?.getByText('Zatiaľ bez kľúčov')).toBeInTheDocument()
 	})
 

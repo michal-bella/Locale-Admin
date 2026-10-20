@@ -37,7 +37,8 @@ describe('GET /api/projects', () => {
 	it('returns only the projects of an EDITOR sorted by name', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await login(app)
-		const web = await createProjectRow('Booking Web', 'booking-web', [user.id])
+		const { user: colleague } = await createUser()
+		const web = await createProjectRow('Booking Web', 'booking-web', [user.id, colleague.id])
 		const admin = await createProjectRow('B2B Admin', 'b2b-admin', [user.id])
 		await createProjectRow('Foreign', 'foreign')
 
@@ -45,7 +46,18 @@ describe('GET /api/projects', () => {
 
 		expect(res.status).toBe(200)
 		expect(projectListResponseSchema.extend({ projects: projectListItemSchema.strict().array() }).strict().parse(res.body).projects).toEqual([
-			{ id: admin.id, name: 'B2B Admin', slug: 'b2b-admin', primaryColor: '#E83E8C', isMember: true, languageTags: [], keyCount: 0, translatedCount: 0 },
+			{
+				id: admin.id,
+				name: 'B2B Admin',
+				slug: 'b2b-admin',
+				primaryColor: '#E83E8C',
+				isMember: true,
+				languageTags: [],
+				keyCount: 0,
+				translatedCount: 0,
+				memberCount: 1,
+				createdAt: admin.createdAt.toISOString(),
+			},
 			{
 				id: web.id,
 				name: 'Booking Web',
@@ -55,6 +67,8 @@ describe('GET /api/projects', () => {
 				languageTags: [],
 				keyCount: 0,
 				translatedCount: 0,
+				memberCount: 2,
+				createdAt: web.createdAt.toISOString(),
 			},
 		])
 	})
@@ -152,6 +166,7 @@ describe('POST /api/projects', () => {
 			languageTags: ['en', 'sk'],
 			keyCount: 0,
 			translatedCount: 0,
+			memberCount: 1,
 		})
 		expect(await getTestPrisma().projectMember.findMany({ where: { projectId: body.id }, select: { userId: true } })).toEqual([{ userId: user.id }])
 		// The first chosen language is the base.

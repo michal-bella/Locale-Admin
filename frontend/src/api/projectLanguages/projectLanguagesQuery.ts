@@ -5,7 +5,7 @@ import { type LanguagesResponse } from '@locale/shared'
 import http from '@/api/http'
 import { QUERY_KEYS } from '@/api/queryKeys'
 
-/** Languages of the project, the base language first, then by tag. */
+/** Languages of the project, the base language first, then in the order set on the Languages page (also the column order of the translations). */
 export const projectLanguagesQueryOptions = (projectId: string) =>
 	queryOptions({
 		queryKey: QUERY_KEYS.PROJECTS.LANGUAGES(projectId),

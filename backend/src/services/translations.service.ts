@@ -223,8 +223,8 @@ const keyNotFound = () => new AppError(404, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND
 
 /**
  * Upserts the target cell. On a plural key a non-null value must be a plural message with the key's variable. With
- * `protectVariables` a non-base value must keep the `{{…}}` placeholders of the base language value (skipped when
- * that is missing or `null`). No advisory lock: a concurrent import stays consistent, only its counts may be off by
+ * `protectVariables` a non-base value must keep the `{{…}}` placeholders of the base language value; when that is missing
+ * or `null`, of the key name (a sentence key such as `Cena ({{symbol}})` names its variables), skipped when the name has none. No advisory lock: a concurrent import stays consistent, only its counts may be off by
  * this row (plan, "Odložené z míľnika A").
  */
 export const updateTranslation = async (
@@ -234,7 +234,7 @@ export const updateTranslation = async (
 ): Promise<UpdateTranslationResponse> => {
 	const key = await prisma.translationKey.findFirst({
 		where: { id: keyId, projectId },
-		select: { pluralVariable: true, project: { select: { protectVariables: true } } },
+		select: { name: true, pluralVariable: true, project: { select: { protectVariables: true } } },
 	})
 	if (!key) {
 		throw keyNotFound()
@@ -252,8 +252,9 @@ export const updateTranslation = async (
 
 	if (value !== null && !language.isBase && key.project.protectVariables) {
 		const base = await prisma.translation.findFirst({ where: { keyId, language: { projectId, isBase: true } }, select: { value: true } })
-		if (base?.value != null) {
-			const { missing, extra } = comparePlaceholders(placeholders(base.value), value)
+		const reference = base?.value ?? (placeholders(key.name).size > 0 ? key.name : null)
+		if (reference !== null) {
+			const { missing, extra } = comparePlaceholders(placeholders(reference), value)
 			if (missing.length > 0 || extra.length > 0) {
 				throw new AppError(400, ERROR_CODE.PLACEHOLDER_MISMATCH, 'Placeholders differ from the base language', { missing, extra })
 			}

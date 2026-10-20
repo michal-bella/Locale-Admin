@@ -302,6 +302,47 @@ test.describe('/api/projects/:projectId/languages', () => {
 		expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
 		await anonymous.dispose()
 	})
+
+	test('PUT …/order saves the new order and the first language becomes the base; invalid lists, CSRF and anonymous write nothing', async ({
+		request,
+		playwright,
+		baseURL,
+	}) => {
+		const project = await createProject(request, 'smoke-languages-order', ['sk', 'en', 'hu'])
+		const url = `${projectLanguagesApi(project.id)}/order`
+		const [sk, en, hu] = await listLanguages(request, project.id)
+		const put = (languageIds: string[], headers: Record<string, string> = MUTATION_HEADERS) => request.put(url, { data: { languageIds }, headers })
+		const order = async () => (await listLanguages(request, project.id)).map(({ tag, isBase }) => ({ tag, isBase }))
+
+		const reordered = await put([en!.id, hu!.id, sk!.id])
+		expect(reordered.status()).toBe(200)
+		const expected = [
+			{ tag: 'en', isBase: true },
+			{ tag: 'hu', isBase: false },
+			{ tag: 'sk', isBase: false },
+		]
+		expect(((await reordered.json()) as Language[]).map(({ tag, isBase }) => ({ tag, isBase }))).toEqual(expected)
+		expect(await order()).toEqual(expected)
+
+		for (const languageIds of [[sk!.id, sk!.id, en!.id], [sk!.id, en!.id], [sk!.id, en!.id, hu!.id, randomUUID()], []]) {
+			const invalid = await put(languageIds)
+			expect(invalid.status(), JSON.stringify(languageIds)).toBe(400)
+			const error = await readApiError(invalid)
+			expect(error.code).toBe('VALIDATION_ERROR')
+			expect(error.details).toEqual([expect.objectContaining({ path: 'languageIds' })])
+		}
+
+		const withoutCsrfHeader = await request.put(url, { data: { languageIds: [sk!.id, en!.id, hu!.id] } })
+		expect(withoutCsrfHeader.status()).toBe(403)
+		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
+
+		const anonymous = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
+		const unauthenticated = await anonymous.put(url, { data: { languageIds: [sk!.id, en!.id, hu!.id] }, headers: MUTATION_HEADERS })
+		expect(unauthenticated.status()).toBe(401)
+		expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
+		await anonymous.dispose()
+		expect(await order()).toEqual(expected)
+	})
 })
 
 test.describe('anonymous /api/projects', () => {

@@ -1,6 +1,6 @@
 ---
 title: 'Rozhodnutia (ADR)'
-updated: 2026-10-16
+updated: 2026-10-20
 notion_page_id:
 ---
 
@@ -12,3 +12,4 @@ notion_page_id:
 | [0002](./0002-tanstack-router.md) | TanStack Router s routami v kóde                        | prijaté |
 | [0003](./0003-typescript-6.md)    | TypeScript 6.0 namiesto 7.0                             | prijaté |
 | [0004](./0004-db-session.md)      | Session v databáze namiesto JWT                         | prijaté |
+| [0005](./0005-activity-events.md) | Tabuľka udalostí `ActivityEvent` pre aktivitu projektu  | prijaté |

@@ -1,6 +1,6 @@
 ---
 title: 'Databáza'
-updated: 2026-10-19
+updated: 2026-10-20
 notion_page_id:
 ---
 
@@ -147,6 +147,41 @@ Riadky zapisujú dva endpointy:
 
 Stav prekladu sa neukladá. **Nepreložené** = riadok pre jazyk chýba alebo `value` je `null`, inak **Preložené**. Jazyk pridaný do projektu po importe preto nemá žiadne riadky a všetky kľúče sú v ňom nepreložené; nič sa nedopĺňa. Index `pg_trgm` pre vyhľadávanie zatiaľ nie je, 2 500 kľúčov × 10 jazykov zvládne `ILIKE` za približne 10 ms (viď [API: preklady](./api/translations.md#výkon)).
 
+### ActivityEvent
+
+Záznam jednej zmeny projektu pre stránku Prehľad (feed aktivity a graf dennej aktivity) a budúcu stránku Aktivita. Tabuľka je iba na pripisovanie: riadky sa nemenia ani nemažú (okrem kaskády), retencia zatiaľ nie je. Rozhodnutie je v [ADR 0005](./decisions/0005-activity-events.md).
+
+| Pole        | Typ                  | Poznámka                                                                                                                        |
+| ----------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | UUID                 | PK                                                                                                                              |
+| `projectId` | UUID                 | FK na `Project`, pri zmazaní projektu sa zmaže                                                                                  |
+| `userId`    | UUID, nullable       | FK na `User`, kto zmenu urobil; pri zmazaní usera sa nastaví `null`, udalosť ostane                                             |
+| `type`      | enum `ACTIVITY_TYPE` | druh zmeny, viď tabuľku nižšie                                                                                                  |
+| `payload`   | JSON                 | snímka údajov v čase zmeny podľa `type`, validovaná schémou `activityEventDataSchema` v `packages/shared/src/activity.ts`       |
+| `count`     | int                  | default `1`; počet zmenených prekladov, ktoré udalosť predstavuje (import = počet zapísaných buniek), z neho sa ráta denný graf |
+| `createdAt` | datetime             | čas zmeny                                                                                                                       |
+
+Index (`projectId`, `createdAt` DESC) pre feed aj denné súčty.
+
+Udalosť zapisuje helper `recordActivity(tx, …)` (`backend/src/lib/activity.ts`) v **tej istej transakcii** ako zmenu, takže zlyhaná zmena (validácia, konflikt, rollback) nezapíše nič. Payload je snímka (tag jazyka, namespace a názov kľúča, meno a e-mail člena, stará a nová hodnota), aby feed ostal čitateľný aj po zmazaní kľúča, jazyka alebo používateľa.
+
+| `type`                  | Kedy sa zapíše                                                                                                         | `payload`                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `PROJECT_CREATED`       | `POST /api/projects`                                                                                                   | `{ name }`                                                                       |
+| `PROJECT_UPDATED`       | `PATCH …/settings`, iba ak sa zmenilo aspoň jedno pole                                                                 | `{ fields }` – zmenené z `name`, `slug`, `primaryColor`, `protectVariables`      |
+| `LANGUAGE_ADDED`        | `POST …/languages`                                                                                                     | `{ tag }`                                                                        |
+| `LANGUAGE_REMOVED`      | `DELETE …/languages/:languageId`                                                                                       | `{ tag }`                                                                        |
+| `BASE_LANGUAGE_CHANGED` | základný jazyk sa naozaj zmenil: `baseLanguageId` v `PATCH …/settings` alebo nový prvý jazyk v `PUT …/languages/order` | `{ fromTag, toTag }` (`fromTag` je `null`, ak projekt základný jazyk nemal)      |
+| `MEMBER_ADDED`          | `POST …/members`                                                                                                       | `{ member: { id, firstName, lastName, email } }`                                 |
+| `MEMBER_REMOVED`        | `DELETE …/members/:userId` aj `DELETE …/membership` (odchod)                                                           | `{ member, left }` – `left` je `true`, keď člen odišiel sám                      |
+| `KEYS_IMPORTED`         | `POST …/imports`, ak vytvoril kľúč alebo zapísal hodnotu; jedna udalosť za import                                      | `{ keysCreated, translationsCreated, translationsUpdated, languageTags }`        |
+| `KEY_UPDATED`           | `PATCH …/keys/:keyId`, iba ak sa zmenil názov, popis alebo plurál                                                      | `{ keyId, namespace, name, fields }` – `name` je nový názov                      |
+| `TRANSLATION_UPDATED`   | `PUT …/translations/:languageId`, iba ak sa uložená hodnota zmenila                                                    | `{ keyId, namespace, name, languageTag, oldValue, newValue }` (`null` = prázdne) |
+
+Pri `KEYS_IMPORTED` je `count` počet zapísaných buniek (`translationsCreated + translationsUpdated`), `languageTags` sú jazyky, do ktorých sa niečo zapísalo, v poradí projektu. Nezaznamenáva sa zmena poradia jazykov (ak nemení základný jazyk) ani projektov, zmazanie projektu ADMIN-om (kaskáda zmaže aj udalosti) a zmeny používateľov.
+
+Migrácia `activity_event` doplnila každému existujúcemu projektu jednu udalosť `PROJECT_CREATED` s časom `Project.createdAt` a autorom podľa najstaršieho člena (alebo `null`). Iné spätné doplnenie nie je: `Translation.updatedAt` drží iba poslednú zmenu bunky a graf by klamal.
+
 ```mermaid
 erDiagram
     User ||--o{ Session : "má"
@@ -159,6 +194,8 @@ erDiagram
     TranslationKey ||--o{ Translation : "má"
     ProjectLanguage ||--o{ Translation : "obsahuje"
     User |o--o{ Translation : "naposledy upravil"
+    Project ||--o{ ActivityEvent : "má históriu"
+    User |o--o{ ActivityEvent : "urobil"
     User {
         uuid id PK
         string email UK
@@ -226,6 +263,15 @@ erDiagram
         uuid updatedById FK
         datetime updatedAt
     }
+    ActivityEvent {
+        uuid id PK
+        uuid projectId FK
+        uuid userId FK
+        ACTIVITY_TYPE type
+        json payload
+        int count
+        datetime createdAt
+    }
 ```
 
 ## Migrácie
@@ -252,6 +298,7 @@ Seed (`backend/prisma/seed.ts`) vytvorí admina `michal.bella@goodrequest.com` s
 - Seed je idempotentný: ak admin s týmto emailom existuje, nemení nič (ani heslo, ani rolu). Zmena `SEED_ADMIN_PASSWORD` v `.env` existujúceho admina neovplyvní. Lokálne sa admin obnoví cez `pnpm db:reset`.
 - Projekt `B2B Admin` so slugom `b2b-admin` (farba a ochrana premenných z defaultov) seed vytvorí iba do prázdnej tabuľky `Project` s jazykmi `sk` (základný) a `en` a jeho jediným členom urobí seedovaného admina. Ak projekt existuje, nemení nič, takže zmeny ADMIN-a v nastaveniach projektu ostanú aj po reštarte.
 - Preklady: 30 vymyslených kľúčov v namespace `loc` a `paths` (vety, kľúče-cesty ako `orders.empty.title`, premenné `{{count}}`, HTML `<strong>`), časť v `en` nepreložená (chýbajúci riadok aj `null`). Vzniknú iba v tom istom behu (a transakcii), ktorý vytvára projekt `b2b-admin`. Do projektu, ktorý už existuje, seed nikdy nič nepridá (ani do reálneho projektu bez kľúčov, napr. v produkcii), takže v staršej lokálnej DB sa vzorové preklady objavia až po `pnpm db:reset`.
+- Aktivita: v tom istom behu vzniknú vymyslené udalosti seedovaného admina za posledných 30 dní (vytvorenie projektu, prvý import, úpravy prekladov, nastavení a kľúča, niektoré dni bez zmien), aby mal Prehľad lokálne dáta. Rovnako iba s novým projektom, v staršej lokálnej DB až po `pnpm db:reset`.
 
 ## Test databáza
 

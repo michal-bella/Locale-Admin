@@ -1,3 +1,4 @@
+export * from './activity'
 export * from './adminProjects'
 export * from './adminUsers'
 export * from './auth'

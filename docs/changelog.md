@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Prehľad projektu – zápis udalostí (2026-10-20)
+
+- databáza: nová tabuľka `ActivityEvent` (enum `ACTIVITY_TYPE`), migrácia `activity_event` doplnila každému projektu udalosť `PROJECT_CREATED` ([Databáza](./database.md#activityevent), [ADR 0005](./decisions/0005-activity-events.md))
+- backend: vytvorenie projektu, zmena nastavení a základného jazyka, pridanie a odobratie jazyka, pridanie, odobratie a odchod člena, import, úprava kľúča a prekladu zapíšu v tej istej transakcii jednu udalosť so snímkou údajov; nezmenená hodnota ani nezmenené nastavenia nezapíšu nič. API odpovede sa nemenia, čítacie endpointy prídu v ďalšom kroku
+- shared: `ACTIVITY_TYPE` a `activityEventDataSchema` (payload podľa typu) v `packages/shared/src/activity.ts`
+- seed: vzorová aktivita seedovaného projektu za posledných 30 dní ([Databáza](./database.md#seed))
+
 ### Stav prekladu na stránke Jazyky (2026-10-20)
 
 - API: `GET` a `PUT …/languages/order` vracajú pri každom jazyku `translatedCount` a `keyCount` ([API](./api/project-languages.md#položka-zoznamu-languagelistitem))

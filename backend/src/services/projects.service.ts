@@ -1,6 +1,16 @@
-import { ERROR_CODE, ROLE, type AuthUser, type CreateProjectRequest, type LanguageTag, type ProjectListItem, type ReorderProjectsRequest } from '@locale/shared'
+import {
+	ACTIVITY_TYPE,
+	ERROR_CODE,
+	ROLE,
+	type AuthUser,
+	type CreateProjectRequest,
+	type LanguageTag,
+	type ProjectListItem,
+	type ReorderProjectsRequest,
+} from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
+import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 
@@ -84,14 +94,18 @@ export const reorderProjects = async (prisma: PrismaClient, user: AuthUser, { pr
 /** The creator becomes the first member, the first language the base. No pre-check for the slug: the unique constraint (P2002) also covers concurrent requests. */
 export const createProject = async (prisma: PrismaClient, userId: string, { name, slug, languageTags }: CreateProjectRequest): Promise<ProjectListItem> => {
 	try {
-		const project = await prisma.project.create({
-			data: {
-				name,
-				slug,
-				members: { create: { userId } },
-				languages: { create: languageTags.map((tag, index) => ({ tag, isBase: index === 0, position: index })) },
-			},
-			select: PROJECT_LIST_SELECT,
+		const project = await prisma.$transaction(async (tx) => {
+			const created = await tx.project.create({
+				data: {
+					name,
+					slug,
+					members: { create: { userId } },
+					languages: { create: languageTags.map((tag, index) => ({ tag, isBase: index === 0, position: index })) },
+				},
+				select: PROJECT_LIST_SELECT,
+			})
+			await recordActivity(tx, { projectId: created.id, userId, type: ACTIVITY_TYPE.PROJECT_CREATED, payload: { name } })
+			return created
 		})
 		return toListItem(project, true, 0)
 	} catch (err) {
@@ -103,10 +117,10 @@ export const createProject = async (prisma: PrismaClient, userId: string, { name
 }
 
 /**
- * Removes a member: leaving the project (the user themselves) or removing another member.
+ * Removes a member: leaving the project (the user themselves, `actorId === userId`) or removing another member.
  * The project row lock serializes concurrent removals, so the last two members cannot both go.
  */
-export const removeProjectMember = async (prisma: PrismaClient, projectId: string, userId: string): Promise<void> =>
+export const removeProjectMember = async (prisma: PrismaClient, projectId: string, userId: string, actorId: string): Promise<void> =>
 	prisma.$transaction(async (tx) => {
 		await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId}::uuid FOR UPDATE`
 		const members = await tx.projectMember.findMany({ where: { projectId }, select: { userId: true } })
@@ -116,5 +130,9 @@ export const removeProjectMember = async (prisma: PrismaClient, projectId: strin
 		if (members.length === 1) {
 			throw new AppError(409, ERROR_CODE.LAST_MEMBER, 'The last member cannot be removed from the project')
 		}
-		await tx.projectMember.delete({ where: { projectId_userId: { projectId, userId } } })
+		const { user } = await tx.projectMember.delete({
+			where: { projectId_userId: { projectId, userId } },
+			select: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+		})
+		await recordActivity(tx, { projectId, userId: actorId, type: ACTIVITY_TYPE.MEMBER_REMOVED, payload: { member: user, left: userId === actorId } })
 	})

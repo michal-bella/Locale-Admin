@@ -327,7 +327,8 @@
 			},
 			"plural": {
 				"label": "Použiť plurálové formy",
-				"description": "Zapnutie presunie aktuálny text do formy Other, vypnutie ponechá text formy Other."
+				"description": "Zapnutie presunie aktuálny text do formy Other, vypnutie ponechá text formy Other.",
+				"detected": "Preklady už sú plurálové správy s premennou {{variable}}, preto je plurál predvyplnený. Zapne sa po uložení."
 			},
 			"variable": {
 				"label": "Názov premennej"

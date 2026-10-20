@@ -31,8 +31,19 @@ describe('tokenize', () => {
 		])
 	})
 
-	it('leaves single braces, a lone < and {{}} as text', () => {
-		expect(tokenize('{a} 1 < 2 {{}} done')).toEqual([{ type: 'text', value: '{a} 1 < 2 {{}} done' }])
+	it('leaves braces without a name, a lone < and {{}} as text', () => {
+		expect(tokenize('{1} {# x} 1 < 2 {{}} done')).toEqual([{ type: 'text', value: '{1} {# x} 1 < 2 {{}} done' }])
+	})
+
+	it('splits ICU arguments {var} and {var, number} but not plural arguments', () => {
+		expect(tokenize('Zobraziť ďalšie ({remainingRequestsCount}), {rating, number} z 5')).toEqual([
+			{ type: 'text', value: 'Zobraziť ďalšie (' },
+			{ type: 'placeholder', value: '{remainingRequestsCount}' },
+			{ type: 'text', value: '), ' },
+			{ type: 'placeholder', value: '{rating, number}' },
+			{ type: 'text', value: ' z 5' },
+		])
+		expect(tokenize('{count, plural, other {# x}}').filter((token) => token.type !== 'text')).toEqual([])
 	})
 
 	it('treats tags as text when turned off and # as a token only when asked', () => {

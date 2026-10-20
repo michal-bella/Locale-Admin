@@ -216,6 +216,32 @@ describe('EditKeyModal', () => {
 		expect(body(patches()[0])).toEqual({ plural: { variable: 'total' } })
 	})
 
+	it('prefills plural on with the detected variable when the translations are plural messages of a non-plural key', async () => {
+		const detected = item('passes.loaded', {
+			translations: {
+				[SLOVAK.id]: {
+					value: '{total, plural, one {# ďalšia} few {# ďalšie} other {# ďalších}}',
+					status: 'TRANSLATED',
+					updatedAt: null,
+					updatedBy: null,
+				},
+				[ENGLISH.id]: { value: '{total, plural, one {# more} other {# more}}', status: 'TRANSLATED', updatedAt: null, updatedBy: null },
+			},
+		})
+		const { patches } = mockPage({ items: [WELCOME, detected] })
+		renderApp(PAGE_PATH)
+		const dialog = await openModal('passes.loaded')
+
+		const checkbox = within(dialog).getByRole('checkbox', { name: 'Použiť plurálové formy' })
+		expect(checkbox).toBeChecked()
+		expect(checkbox).toHaveAccessibleDescription('Preklady už sú plurálové správy s premennou total, preto je plurál predvyplnený. Zapne sa po uložení.')
+		expect(within(dialog).getByLabelText('Názov premennej')).toHaveValue('total')
+		submit(dialog)
+
+		await waitFor(() => expect(patches()).toHaveLength(1))
+		expect(body(patches()[0])).toEqual({ plural: { variable: 'total' } })
+	})
+
 	it('turns plural forms off with null', async () => {
 		const { patches } = mockPage()
 		renderApp(PAGE_PATH)

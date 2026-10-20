@@ -2,6 +2,7 @@ import {
 	ERROR_CODE,
 	TRANSLATION_KEY_PATH_PATTERN,
 	VALIDATION_CODE,
+	normalizePluralValue,
 	parsePluralValue,
 	serializePluralValue,
 	translationGroup,
@@ -255,14 +256,14 @@ export const updateTranslation = async (
 
 /**
  * Value of one language after the plural setting of its key changed. Plural on wraps the text as the `other` form
- * (a text that already is a plural message keeps its forms); plural off keeps the `other` form; a new variable
+ * (a text that already is a plural message keeps its forms, also one wrapped in text, see `normalizePluralValue`); plural off keeps the `other` form; a new variable
  * re-serializes the forms. A value that is not a plural message stays as is.
  */
 export const convertPluralValue = (value: string, from: string | null, to: string | null): string => {
 	if (from === null) {
-		return to === null ? value : serializePluralValue({ variable: to, forms: parsePluralValue(value)?.forms ?? { other: value } })
+		return to === null ? value : serializePluralValue({ variable: to, forms: normalizePluralValue(value)?.forms ?? { other: value } })
 	}
-	const parsed = parsePluralValue(value)
+	const parsed = normalizePluralValue(value)
 	if (!parsed) {
 		return value
 	}

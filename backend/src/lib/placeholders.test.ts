@@ -12,6 +12,15 @@ describe('placeholders', () => {
 		expect([...placeholders('{count, plural, one {# item} other {# items}}')]).toEqual([])
 	})
 
+	it('finds ICU arguments as {name}, also inside plural forms and with a format', () => {
+		expect([...placeholders('{rating, number} z 5, {count, plural, one {{count} osoba} other {{count} osôb}} ({category})')]).toEqual([
+			'{rating}',
+			'{count}',
+			'{category}',
+		])
+		expect(comparePlaceholders(placeholders('Show more ({remaining})'), 'Zobraziť viac')).toEqual({ missing: ['{remaining}'], extra: [] })
+	})
+
 	it('compares against the base placeholders', () => {
 		expect(comparePlaceholders(placeholders('{{a}} {{b}}'), '{{b}} {{c}}')).toEqual({ missing: ['{{a}}'], extra: ['{{c}}'] })
 	})

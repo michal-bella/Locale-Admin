@@ -150,7 +150,7 @@ Keď má kľúč zapnuté [plurálové formy](#plurálové-formy), hodnota iná 
 
 ### Ochrana premenných
 
-Keď má projekt zapnuté `protectVariables` (nastavenia projektu, predvolene zapnuté), hodnota v inom ako základnom jazyku musí obsahovať presne tie premenné `{{…}}`, ktoré má hodnota kľúča v základnom jazyku. Premenná sa normalizuje rovnako ako pri [importe](./imports.md#upozornenia-import-prejde): bez medzier, bez úvodného `-` a bez časti od `,`, takže `{{ count }}`, `{{- count}}` aj `{{count, number}}` sú `{{count}}`. Kontrola sa preskočí, keď:
+Keď má projekt zapnuté `protectVariables` (nastavenia projektu, predvolene zapnuté), hodnota v inom ako základnom jazyku musí obsahovať presne tie premenné, ktoré má hodnota kľúča v základnom jazyku: i18next `{{…}}` aj ICU argumenty `{name}` (aj `{name, number}`, `date`, `time`; plurálový argument `{count, plural, …}` premennou nie je, premenné v jeho formách áno). Premenná sa normalizuje rovnako ako pri [importe](./imports.md#upozornenia-import-prejde): bez medzier, bez úvodného `-` a bez časti od `,`, takže `{{ count }}`, `{{- count}}` aj `{{count, number}}` sú `{{count}}` a `{rating, number}` je `{rating}`. Kontrola sa preskočí, keď:
 
 - sa upravuje základný jazyk (ten je zdrojom pravdy),
 - je `value` `null`,

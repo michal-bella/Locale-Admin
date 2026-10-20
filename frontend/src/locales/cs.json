@@ -327,7 +327,8 @@
 			},
 			"plural": {
 				"label": "Použít plurálové formy",
-				"description": "Zapnutí přesune aktuální text do formy Other, vypnutí ponechá text formy Other."
+				"description": "Zapnutí přesune aktuální text do formy Other, vypnutí ponechá text formy Other.",
+				"detected": "Překlady už jsou plurálové zprávy s proměnnou {{variable}}, proto je plurál předvyplněný. Zapne se po uložení."
 			},
 			"variable": {
 				"label": "Název proměnné"

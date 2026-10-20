@@ -80,3 +80,70 @@ export const parsePluralValue = (value: string): PluralValue | null => {
 	}
 	return { variable: head[1] as string, forms }
 }
+
+/** `[start, end)` of every top-level `{…}` of a message; `null` when the braces are not balanced. */
+const topLevelArguments = (value: string): { start: number; end: number }[] | null => {
+	const segments: { start: number; end: number }[] = []
+	let depth = 0
+	let start = 0
+	for (let index = 0; index < value.length; index += 1) {
+		if (value[index] === '{') {
+			if (depth === 0) {
+				start = index
+			}
+			depth += 1
+		} else if (value[index] === '}') {
+			depth -= 1
+			if (depth < 0) {
+				return null
+			}
+			if (depth === 0) {
+				segments.push({ start, end: index + 1 })
+			}
+		}
+	}
+	return depth === 0 ? segments : null
+}
+
+const PLURAL_ARGUMENT = /^\{\s*[A-Za-z_][A-Za-z0-9_]*\s*,\s*plural\s*,/
+
+/**
+ * Like `parsePluralValue`, but also accepts one plural argument inside other text, as Tolgee exports it: `{category}, {starCount, plural,
+ * one {# star} other {# stars}}` becomes `starCount` with the forms `{category}, # star` and `{category}, # stars` (the text around the
+ * plural goes into every form). `null` for no plural argument, more than one (`{hours, plural, …}{minutes, plural, …}`) or an unparseable one.
+ */
+export const normalizePluralValue = (value: string): PluralValue | null => {
+	const direct = parsePluralValue(value)
+	if (direct) {
+		return direct
+	}
+	const plurals = (topLevelArguments(value) ?? []).filter(({ start, end }) => PLURAL_ARGUMENT.test(value.slice(start, end)))
+	const [plural] = plurals
+	if (plurals.length !== 1 || !plural) {
+		return null
+	}
+	const parsed = parsePluralValue(value.slice(plural.start, plural.end))
+	if (!parsed) {
+		return null
+	}
+	const prefix = value.slice(0, plural.start)
+	const suffix = value.slice(plural.end)
+	const forms = Object.fromEntries(Object.entries(parsed.forms).map(([form, text]) => [form, `${prefix}${text}${suffix}`]))
+	return { variable: parsed.variable, forms }
+}
+
+/**
+ * Plural variable of a key judged from its values (import, edit key modal): the variable when at least one value is a plural message
+ * (`normalizePluralValue`) and every plural message uses the same one; plain values do not count against it (they become the `other`
+ * form). `null` otherwise.
+ */
+export const detectPluralVariable = (values: Iterable<string | null>): string | null => {
+	const variables = new Set<string>()
+	for (const value of values) {
+		const parsed = value === null ? null : normalizePluralValue(value)
+		if (parsed) {
+			variables.add(parsed.variable)
+		}
+	}
+	return variables.size === 1 ? ([...variables][0] ?? null) : null
+}

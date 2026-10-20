@@ -476,6 +476,74 @@ describe('POST /api/projects/:projectId/imports', () => {
 		expect(translations.every(({ updatedById }) => updatedById === user.id)).toBe(true)
 	})
 
+	it('makes a key plural when its values are plural messages with one variable, never changing an existing variable', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app)
+		const prisma = getTestPrisma()
+		await createKey(project.id, 'loc', 'existing', { [sk.id]: '{count, plural, one {# kus} other {# kusov}}' })
+		await prisma.translationKey.create({ data: { projectId: project.id, namespace: 'loc', name: 'kept', pluralVariable: 'n' } })
+
+		await importOk(
+			app,
+			cookie,
+			project.id,
+			[
+				'Keys; sk ; en ; cs',
+				'--loc--',
+				'items; {count, plural, one {# položka} few {# položky} other {# položiek}}; {count, plural, one {# item} other {# items}}; ',
+				'mixed; {count, plural, one {# kus} other {# kusov}}; {n, plural, one {# piece} other {# pieces}}; ',
+				'plain; Položky; Items; ',
+				'existing; ; {count, plural, one {# piece} other {# pieces}}; ',
+				'kept; ; {count, plural, one {# piece} other {# pieces}}; ',
+			],
+			allColumns(sk, en, cs),
+		)
+
+		const keys = await prisma.translationKey.findMany({ where: { projectId: project.id }, select: { name: true, pluralVariable: true } })
+		expect(Object.fromEntries(keys.map(({ name, pluralVariable }) => [name, pluralVariable]))).toEqual({
+			items: 'count',
+			mixed: null,
+			plain: null,
+			existing: 'count',
+			kept: 'n',
+		})
+	})
+
+	it('detects a plural from the stored values and writes a plural wrapped in text as a plain plural message, counted like the preview', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app)
+		await createKey(project.id, 'loc', 'stored', { [sk.id]: '{count, plural, one {{count} osoba} other {{count} osôb}}', [en.id]: 'undefined' })
+		const file = [
+			'Keys; sk ; en ; cs',
+			'--loc--',
+			'stars; {category}, {starCount, plural, one {# hviezdička} other {# hviezdičiek}}; undefined; ',
+			'stored; ; undefined; ',
+		]
+		const changes = (await previewOk(app, cookie, project.id, file)).changes.map(({ tag, new: added, changed, unchanged }) => ({
+			tag,
+			added,
+			changed,
+			unchanged,
+		}))
+
+		await importOk(app, cookie, project.id, file, allColumns(sk, en, cs))
+		const second = (await previewOk(app, cookie, project.id, file)).changes
+
+		const keys = await getTestPrisma().translationKey.findMany({ where: { projectId: project.id }, select: { name: true, pluralVariable: true } })
+		expect(Object.fromEntries(keys.map(({ name, pluralVariable }) => [name, pluralVariable]))).toEqual({ stars: 'starCount', stored: 'count' })
+		expect(await projectValues(project.id)).toMatchObject({
+			'loc/stars sk': '{starCount, plural, one {{category}, # hviezdička} other {{category}, # hviezdičiek}}',
+			'loc/stars en': 'undefined',
+		})
+		expect(changes).toEqual([
+			{ tag: 'sk', added: 1, changed: 0, unchanged: 0 },
+			{ tag: 'en', added: 1, changed: 0, unchanged: 1 },
+			{ tag: 'cs', added: 0, changed: 0, unchanged: 2 },
+		])
+		// Re-importing the same file finds the stored plain plural message equal, so nothing changes.
+		expect(second.every((column) => column.new === 0 && column.changed === 0)).toBe(true)
+	})
+
 	it('changes nothing when the same file is imported again', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cs, cookie } = await setup(app)

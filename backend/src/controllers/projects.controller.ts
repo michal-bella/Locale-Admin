@@ -24,7 +24,8 @@ export const createCreateProjectController =
 export const createLeaveProjectController =
 	(prisma: PrismaClient): RequestHandler<{ projectId: string }> =>
 	async (req, res) => {
-		await removeProjectMember(prisma, req.params.projectId, getAuth(req).user.id)
+		const userId = getAuth(req).user.id
+		await removeProjectMember(prisma, req.params.projectId, userId, userId)
 		res.status(204).end()
 	}
 

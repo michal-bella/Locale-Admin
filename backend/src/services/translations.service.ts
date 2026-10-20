@@ -1,4 +1,6 @@
 import {
+	ACTIVITY_KEY_FIELDS,
+	ACTIVITY_TYPE,
 	ERROR_CODE,
 	TRANSLATION_KEY_PATH_PATTERN,
 	VALIDATION_CODE,
@@ -21,6 +23,7 @@ import {
 } from '@locale/shared'
 
 import { Prisma, type Translation } from '../generated/prisma/client'
+import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
 import { comparePlaceholders, placeholders } from '../lib/placeholders'
 import { type PrismaClient } from '../lib/prisma'
@@ -225,7 +228,7 @@ const keyNotFound = () => new AppError(404, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND
  * Upserts the target cell. On a plural key a non-null value must be a plural message with the key's variable. With
  * `protectVariables` a non-base value must keep the `{{…}}` placeholders of the base language value; when that is missing
  * or `null`, of the key name (a sentence key such as `Cena ({{symbol}})` names its variables), skipped when the name has none. No advisory lock: a concurrent import stays consistent, only its counts may be off by
- * this row (plan, "Odložené z míľnika A").
+ * this row (plan, "Odložené z míľnika A"). Writes `TRANSLATION_UPDATED` only when the stored value changes.
  */
 export const updateTranslation = async (
 	prisma: PrismaClient,
@@ -234,12 +237,12 @@ export const updateTranslation = async (
 ): Promise<UpdateTranslationResponse> => {
 	const key = await prisma.translationKey.findFirst({
 		where: { id: keyId, projectId },
-		select: { name: true, pluralVariable: true, project: { select: { protectVariables: true } } },
+		select: { namespace: true, name: true, pluralVariable: true, project: { select: { protectVariables: true } } },
 	})
 	if (!key) {
 		throw keyNotFound()
 	}
-	const language = await prisma.projectLanguage.findFirst({ where: { id: languageId, projectId }, select: { isBase: true } })
+	const language = await prisma.projectLanguage.findFirst({ where: { id: languageId, projectId }, select: { tag: true, isBase: true } })
 	if (!language) {
 		throw new AppError(404, ERROR_CODE.NOT_FOUND, 'Language not found')
 	}
@@ -261,11 +264,23 @@ export const updateTranslation = async (
 		}
 	}
 
-	const row = await prisma.translation.upsert({
-		where: { keyId_languageId: { keyId, languageId } },
-		create: { keyId, languageId, value, updatedById: userId },
-		update: { value, updatedById: userId },
-		select: { value: true, updatedAt: true, updatedBy: EDITOR_SELECT },
+	const row = await prisma.$transaction(async (tx) => {
+		const oldValue = (await tx.translation.findUnique({ where: { keyId_languageId: { keyId, languageId } }, select: { value: true } }))?.value ?? null
+		const updated = await tx.translation.upsert({
+			where: { keyId_languageId: { keyId, languageId } },
+			create: { keyId, languageId, value, updatedById: userId },
+			update: { value, updatedById: userId },
+			select: { value: true, updatedAt: true, updatedBy: EDITOR_SELECT },
+		})
+		if (updated.value !== oldValue) {
+			await recordActivity(tx, {
+				projectId,
+				userId,
+				type: ACTIVITY_TYPE.TRANSLATION_UPDATED,
+				payload: { keyId, namespace: key.namespace, name: key.name, languageTag: language.tag, oldValue, newValue: updated.value },
+			})
+		}
+		return updated
 	})
 	return {
 		value: row.value,
@@ -293,7 +308,7 @@ export const convertPluralValue = (value: string, from: string | null, to: strin
 
 /**
  * Renames the key, sets its description or plural setting; a plural change converts every non-null value in the same
- * transaction and marks the converted rows as updated by the acting user.
+ * transaction and marks the converted rows as updated by the acting user. Writes `KEY_UPDATED` with the attributes that really changed.
  */
 export const updateTranslationKey = async (
 	prisma: PrismaClient,
@@ -301,7 +316,7 @@ export const updateTranslationKey = async (
 	{ name, description, plural }: UpdateTranslationKeyRequest,
 ): Promise<UpdateTranslationKeyResponse> =>
 	prisma.$transaction(async (tx) => {
-		const key = await tx.translationKey.findFirst({ where: { id: keyId, projectId }, select: { pluralVariable: true } })
+		const key = await tx.translationKey.findFirst({ where: { id: keyId, projectId }, select: { name: true, description: true, pluralVariable: true } })
 		if (!key) {
 			throw keyNotFound()
 		}
@@ -327,6 +342,15 @@ export const updateTranslationKey = async (
 				}
 				throw err
 			})
+		const fields = ACTIVITY_KEY_FIELDS.filter((field) => updated[field] !== key[field])
+		if (fields.length > 0) {
+			await recordActivity(tx, {
+				projectId,
+				userId,
+				type: ACTIVITY_TYPE.KEY_UPDATED,
+				payload: { keyId, namespace: updated.namespace, name: updated.name, fields },
+			})
+		}
 		return {
 			keyId: updated.id,
 			namespace: updated.namespace,

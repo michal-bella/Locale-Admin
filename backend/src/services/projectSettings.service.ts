@@ -1,6 +1,7 @@
-import { ERROR_CODE, VALIDATION_CODE, type ProjectSettings, type UpdateProjectSettingsRequest } from '@locale/shared'
+import { ACTIVITY_PROJECT_FIELDS, ACTIVITY_TYPE, ERROR_CODE, VALIDATION_CODE, type ProjectSettings, type UpdateProjectSettingsRequest } from '@locale/shared'
 
 import { type Prisma, type Project } from '../generated/prisma/client'
+import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 
@@ -37,20 +38,31 @@ export const getProjectSettings = async (prisma: PrismaClient, projectId: string
 	return toProjectSettings(project, baseLanguageId)
 }
 
-/** A new `baseLanguageId` (a language of this project) moves the base flag in the same transaction as the settings. */
+/**
+ * A new `baseLanguageId` (a language of this project) moves the base flag in the same transaction as the settings.
+ * Writes `PROJECT_UPDATED` with the settings that really changed, none when nothing did.
+ */
 export const updateProjectSettings = async (
 	prisma: PrismaClient,
-	projectId: string,
+	{ projectId, userId }: { projectId: string; userId: string },
 	{ baseLanguageId, ...settings }: UpdateProjectSettingsRequest,
 ): Promise<ProjectSettings> => {
 	try {
 		return await prisma.$transaction(async (tx) => {
 			if (baseLanguageId !== undefined) {
-				if (!(await setBaseLanguage(tx, projectId, baseLanguageId))) {
+				if (!(await setBaseLanguage(tx, { projectId, userId }, baseLanguageId))) {
 					throw new AppError(400, ERROR_CODE.VALIDATION_ERROR, 'Base language not found', [{ path: 'baseLanguageId', code: VALIDATION_CODE.INVALID }])
 				}
 			}
+			const current = await tx.project.findUnique({ where: { id: projectId }, select: PROJECT_SELECT })
+			if (!current) {
+				throw notFound()
+			}
 			const updated = await tx.project.update({ where: { id: projectId }, data: settings, select: PROJECT_SELECT })
+			const fields = ACTIVITY_PROJECT_FIELDS.filter((field) => updated[field] !== current[field])
+			if (fields.length > 0) {
+				await recordActivity(tx, { projectId, userId, type: ACTIVITY_TYPE.PROJECT_UPDATED, payload: { fields } })
+			}
 			return toProjectSettings(updated, await findBaseLanguageId(tx, projectId))
 		})
 	} catch (err) {

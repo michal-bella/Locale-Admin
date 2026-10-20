@@ -1,4 +1,4 @@
-import { type LanguageTag } from '@locale/shared'
+import { ACTIVITY_TYPE, activityEventDataSchema, type ActivityEventData, type LanguageTag } from '@locale/shared'
 
 import { ROLE } from '../generated/prisma/enums'
 import { hashPassword } from '../lib/password'
@@ -70,26 +70,66 @@ export const SEED_TRANSLATIONS: SeedTranslation[] = [
 	{ namespace: 'paths', name: 'help.contact', values: { sk: '/pomoc/kontakt' } },
 ]
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
+type SeedKey = { id: string; namespace: string; name: string; en: string | null | undefined }
+
+type SeedActivityEvent = { daysAgo: number; count?: number; data: ActivityEventData }
+
+/** Invented history of the last 30 days (0 = today): the project, its first import, then edits by the admin. Some days stay empty for the dashboard chart. */
+const seedActivityEvents = (keys: SeedKey[]): SeedActivityEvent[] => {
+	const translated = keys.filter((key): key is SeedKey & { en: string } => typeof key.en === 'string')
+	const filled = SEED_TRANSLATIONS.flatMap(({ values }) => Object.values(values)).filter((value) => value !== null).length
+	const { id: keyId, namespace, name } = translated[0] as SeedKey
+	return [
+		{ daysAgo: 30, data: { type: ACTIVITY_TYPE.PROJECT_CREATED, payload: { name: SEED_PROJECT.name } } },
+		{
+			daysAgo: 29,
+			count: filled,
+			data: {
+				type: ACTIVITY_TYPE.KEYS_IMPORTED,
+				payload: { keysCreated: keys.length, translationsCreated: filled, translationsUpdated: 0, languageTags: [...SEED_LANGUAGE_TAGS] },
+			},
+		},
+		{ daysAgo: 22, data: { type: ACTIVITY_TYPE.PROJECT_UPDATED, payload: { fields: ['primaryColor'] } } },
+		{ daysAgo: 12, data: { type: ACTIVITY_TYPE.KEY_UPDATED, payload: { keyId, namespace, name, fields: ['description'] } } },
+		...[26, 21, 17, 9, 8, 5, 3, 3, 3, 3, 2, 0].map((daysAgo, index): SeedActivityEvent => {
+			const key = translated[index % translated.length] as SeedKey & { en: string }
+			return {
+				daysAgo,
+				data: {
+					type: ACTIVITY_TYPE.TRANSLATION_UPDATED,
+					payload: { keyId: key.id, namespace: key.namespace, name: key.name, languageTag: 'en', oldValue: null, newValue: key.en },
+				},
+			}
+		}),
+	]
+}
+
 /**
  * Seeds only an empty table, so changes stay after a restart. Run after `seedAdmin`: the admin becomes the only member. Languages `sk` (base) and `en`.
- * The sample translations are created only together with the project, so a real project with the same slug never gets invented keys.
+ * The sample translations and activity are created only together with the project, so a real project with the same slug never gets invented data.
  */
 export const seedProject = async (prisma: PrismaClient): Promise<SeedProjectResult> => {
 	if ((await prisma.project.count()) > 0) {
 		return 'exists'
 	}
 	await prisma.$transaction(async (tx) => {
+		const now = Date.now()
+		const admin = await tx.user.findUniqueOrThrow({ where: { email: SEED_ADMIN_EMAIL }, select: { id: true } })
 		const project = await tx.project.create({
 			data: {
 				...SEED_PROJECT,
+				createdAt: new Date(now - 30 * DAY_MS - 60 * 1000),
 				members: { create: { user: { connect: { email: SEED_ADMIN_EMAIL } } } },
 				languages: { create: SEED_LANGUAGE_TAGS.map((tag, position) => ({ tag, isBase: tag === SEED_BASE_LANGUAGE_TAG, position })) },
 			},
 			select: { id: true, languages: { select: { id: true, tag: true } } },
 		})
 		const languageIds = new Map(project.languages.map(({ id, tag }) => [tag, id]))
+		const keys: SeedKey[] = []
 		for (const { namespace, name, values } of SEED_TRANSLATIONS) {
-			await tx.translationKey.create({
+			const { id } = await tx.translationKey.create({
 				data: {
 					projectId: project.id,
 					namespace,
@@ -101,8 +141,19 @@ export const seedProject = async (prisma: PrismaClient): Promise<SeedProjectResu
 						}),
 					},
 				},
+				select: { id: true },
 			})
+			keys.push({ id, namespace, name, en: values.en })
 		}
+		await tx.activityEvent.createMany({
+			data: seedActivityEvents(keys).map(({ daysAgo, count, data }, index) => ({
+				projectId: project.id,
+				userId: admin.id,
+				...activityEventDataSchema.parse(data),
+				count,
+				createdAt: new Date(now - daysAgo * DAY_MS - index * 60 * 1000),
+			})),
+		})
 	})
 	return 'created'
 }

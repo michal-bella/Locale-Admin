@@ -1,4 +1,5 @@
 import {
+	ACTIVITY_TYPE,
 	ERROR_CODE,
 	SUPPORTED_LANGUAGES,
 	VALIDATION_CODE,
@@ -10,6 +11,7 @@ import {
 } from '@locale/shared'
 
 import { type Prisma, type ProjectLanguage } from '../generated/prisma/client'
+import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 
@@ -50,16 +52,30 @@ const notFound = () => new AppError(404, ERROR_CODE.NOT_FOUND, 'Language not fou
  */
 const lockProject = (tx: Prisma.TransactionClient, projectId: string) => tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId}::uuid FOR UPDATE`
 
-/** Makes the language the only base of its project inside the caller's transaction. Returns `false` when it is not a language of the project. */
-export const setBaseLanguage = async (tx: Prisma.TransactionClient, projectId: string, languageId: string): Promise<boolean> => {
+/**
+ * Makes the language the only base of its project inside the caller's transaction and writes `BASE_LANGUAGE_CHANGED` when the base moved.
+ * Returns `false` when it is not a language of the project.
+ */
+export const setBaseLanguage = async (
+	tx: Prisma.TransactionClient,
+	{ projectId, userId }: { projectId: string; userId: string },
+	languageId: string,
+): Promise<boolean> => {
 	await lockProject(tx, projectId)
-	const language = await tx.projectLanguage.findFirst({ where: { id: languageId, projectId }, select: { isBase: true } })
+	const language = await tx.projectLanguage.findFirst({ where: { id: languageId, projectId }, select: { tag: true, isBase: true } })
 	if (!language) {
 		return false
 	}
 	if (!language.isBase) {
+		const from = await tx.projectLanguage.findFirst({ where: { projectId, isBase: true }, select: { tag: true } })
 		await tx.projectLanguage.updateMany({ where: { projectId, isBase: true }, data: { isBase: false } })
 		await tx.projectLanguage.update({ where: { id: languageId }, data: { isBase: true } })
+		await recordActivity(tx, {
+			projectId,
+			userId,
+			type: ACTIVITY_TYPE.BASE_LANGUAGE_CHANGED,
+			payload: { fromTag: from?.tag ?? null, toTag: language.tag },
+		})
 	}
 	return true
 }
@@ -76,13 +92,19 @@ export const listProjectLanguages = async (prisma: PrismaClient, projectId: stri
  * The first language of the project becomes the base, a new one goes last. No pre-check for the tag: the unique constraint (P2002) also covers concurrent requests.
  * The project lock guarantees that P2002 can only come from the tag, never from the base index.
  */
-export const createProjectLanguage = async (prisma: PrismaClient, projectId: string, { tag }: CreateLanguageRequest): Promise<Language> => {
+export const createProjectLanguage = async (
+	prisma: PrismaClient,
+	{ projectId, userId }: { projectId: string; userId: string },
+	{ tag }: CreateLanguageRequest,
+): Promise<Language> => {
 	try {
 		const language = await prisma.$transaction(async (tx) => {
 			await lockProject(tx, projectId)
 			const { _count, _max } = await tx.projectLanguage.aggregate({ where: { projectId }, _count: true, _max: { position: true } })
 			const position = _max.position === null ? 0 : _max.position + 1
-			return tx.projectLanguage.create({ data: { projectId, tag, isBase: _count === 0, position }, select: LANGUAGE_SELECT })
+			const created = await tx.projectLanguage.create({ data: { projectId, tag, isBase: _count === 0, position }, select: LANGUAGE_SELECT })
+			await recordActivity(tx, { projectId, userId, type: ACTIVITY_TYPE.LANGUAGE_ADDED, payload: { tag } })
+			return created
 		})
 		return toLanguage(language)
 	} catch (err) {
@@ -93,10 +115,10 @@ export const createProjectLanguage = async (prisma: PrismaClient, projectId: str
 	}
 }
 
-export const deleteProjectLanguage = async (prisma: PrismaClient, projectId: string, id: string): Promise<void> => {
+export const deleteProjectLanguage = async (prisma: PrismaClient, { projectId, userId }: { projectId: string; userId: string }, id: string): Promise<void> => {
 	await prisma.$transaction(async (tx) => {
 		await lockProject(tx, projectId)
-		const language = await tx.projectLanguage.findFirst({ where: { id, projectId }, select: { isBase: true } })
+		const language = await tx.projectLanguage.findFirst({ where: { id, projectId }, select: { tag: true, isBase: true } })
 		if (!language) {
 			throw notFound()
 		}
@@ -104,6 +126,7 @@ export const deleteProjectLanguage = async (prisma: PrismaClient, projectId: str
 			throw new AppError(409, ERROR_CODE.LANGUAGE_IS_BASE, 'The base language cannot be deleted')
 		}
 		await tx.projectLanguage.delete({ where: { id } })
+		await recordActivity(tx, { projectId, userId, type: ACTIVITY_TYPE.LANGUAGE_REMOVED, payload: { tag: language.tag } })
 	})
 }
 
@@ -111,7 +134,11 @@ export const deleteProjectLanguage = async (prisma: PrismaClient, projectId: str
  * Replaces the order with `languageIds`, which must be exactly the languages of the project (400 otherwise, nothing is written,
  * e.g. when another member added or removed one meanwhile). The first one becomes the base in the same transaction.
  */
-export const reorderProjectLanguages = async (prisma: PrismaClient, projectId: string, { languageIds }: ReorderLanguagesRequest): Promise<Language[]> =>
+export const reorderProjectLanguages = async (
+	prisma: PrismaClient,
+	{ projectId, userId }: { projectId: string; userId: string },
+	{ languageIds }: ReorderLanguagesRequest,
+): Promise<Language[]> =>
 	prisma.$transaction(async (tx) => {
 		await lockProject(tx, projectId)
 		const current = await tx.projectLanguage.findMany({ where: { projectId }, select: { id: true } })
@@ -122,7 +149,7 @@ export const reorderProjectLanguages = async (prisma: PrismaClient, projectId: s
 			])
 		}
 		await Promise.all(languageIds.map((id, position) => tx.projectLanguage.update({ where: { id }, data: { position } })))
-		await setBaseLanguage(tx, projectId, languageIds[0] as string)
+		await setBaseLanguage(tx, { projectId, userId }, languageIds[0] as string)
 		const languages = await tx.projectLanguage.findMany({ where: { projectId }, select: LANGUAGE_SELECT, orderBy: LANGUAGE_ORDER })
 		return languages.map(toLanguage)
 	})

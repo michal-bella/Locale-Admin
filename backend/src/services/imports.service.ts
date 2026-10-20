@@ -1,4 +1,5 @@
 import {
+	ACTIVITY_TYPE,
 	ERROR_CODE,
 	IMPORT_FILE_MAX_BYTES,
 	IMPORT_WARNINGS_MAX,
@@ -15,6 +16,7 @@ import {
 } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
+import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
 import { parseCsv } from '../lib/import/csvParser'
 import { type ParsedFile } from '../lib/import/parsedFile'
@@ -244,6 +246,7 @@ const batches = <T>(items: T[]): T[][] =>
  * A key whose values (the stored ones with the filled file values on top) are ICU plural messages with one variable becomes plural
  * (`detectPluralVariable`): a new key, or an existing one without a plural setting; an existing plural variable is never changed. For a
  * plural key a message with text around the plural is written as a plain plural message (`valueToWrite`), and the preview counts the same.
+ * An import that creates a key or writes a value records one `KEYS_IMPORTED` event whose `count` is the number of written values.
  */
 export const importFile = (prisma: PrismaClient, projectId: string, userId: string, file: ParsedFile, request: ImportRequest): Promise<ImportResult> =>
 	prisma.$transaction(
@@ -256,7 +259,11 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 			// and now() is the transaction start, before the lock wait. Mixing them made `updatedAt` go backwards.
 			const writtenAt = new Date()
 
-			const languages = await tx.projectLanguage.findMany({ where: { projectId }, select: { id: true } })
+			const languages = await tx.projectLanguage.findMany({
+				where: { projectId },
+				select: { id: true, tag: true },
+				orderBy: [{ isBase: 'desc' }, { position: 'asc' }, { tag: 'asc' }],
+			})
 			const columns = resolveColumns(file, request.columns, new Set(languages.map(({ id }) => id)))
 			const projectKeys = await loadProjectKeys(tx, projectId, file)
 
@@ -322,6 +329,22 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 					ON CONFLICT ("keyId", "languageId") DO UPDATE
 					SET value = EXCLUDED.value, "updatedById" = EXCLUDED."updatedById", "updatedAt" = EXCLUDED."updatedAt"
 					WHERE "Translation".value IS DISTINCT FROM EXCLUDED.value`
+			}
+
+			if (createdKeyIds.size > 0 || writes.length > 0) {
+				const writtenLanguageIds = new Set(writes.map(({ languageId }) => languageId))
+				await recordActivity(tx, {
+					projectId,
+					userId,
+					type: ACTIVITY_TYPE.KEYS_IMPORTED,
+					count: writes.length,
+					payload: {
+						keysCreated: createdKeyIds.size,
+						translationsCreated,
+						translationsUpdated,
+						languageTags: languages.filter(({ id }) => writtenLanguageIds.has(id)).map(({ tag }) => tag),
+					},
+				})
 			}
 
 			return {

@@ -219,6 +219,9 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 			await tx.$executeRaw`SET LOCAL lock_timeout = '30s'`
 			// One bigint key per project; the `import:` prefix keeps it apart from other advisory locks. A hash collision only serializes two projects.
 			await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`import:${projectId}`}, 0))`
+			// Not Postgres now(): Prisma's @updatedAt uses the Node clock, the DB clock (Docker VM) can lag it by a few ms,
+			// and now() is the transaction start, before the lock wait. Mixing them made `updatedAt` go backwards.
+			const writtenAt = new Date()
 
 			const languages = await tx.projectLanguage.findMany({ where: { projectId }, select: { id: true } })
 			const columns = resolveColumns(file, request.columns, new Set(languages.map(({ id }) => id)))
@@ -229,7 +232,7 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 			for (const batch of batches(missingKeys)) {
 				const created = await tx.$queryRaw<{ id: string; namespace: string; name: string }[]>`
 					INSERT INTO "TranslationKey" (id, "projectId", namespace, name, "createdAt", "updatedAt")
-					SELECT gen_random_uuid(), ${projectId}::uuid, f.namespace, f.name, now(), now()
+					SELECT gen_random_uuid(), ${projectId}::uuid, f.namespace, f.name, ${writtenAt}, ${writtenAt}
 					FROM unnest(${batch.map((row) => row.namespace)}::text[], ${batch.map((row) => row.key)}::text[]) AS f(namespace, name)
 					ON CONFLICT ("projectId", namespace, name) DO NOTHING
 					RETURNING id, namespace, name`
@@ -266,7 +269,7 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 			for (const batch of batches(writes)) {
 				await tx.$executeRaw`
 					INSERT INTO "Translation" ("keyId", "languageId", value, "updatedById", "updatedAt")
-					SELECT f."keyId", f."languageId", f.value, ${userId}::uuid, now()
+					SELECT f."keyId", f."languageId", f.value, ${userId}::uuid, ${writtenAt}
 					FROM unnest(${batch.map((write) => write.keyId)}::uuid[], ${batch.map((write) => write.languageId)}::uuid[], ${batch.map((write) => write.value)}::text[])
 						AS f("keyId", "languageId", value)
 					ON CONFLICT ("keyId", "languageId") DO UPDATE

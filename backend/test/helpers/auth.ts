@@ -37,7 +37,7 @@ export const loginAs = async (app: Express, { email, password }: { email: string
 	const res = await request(app).post('/api/auth/login').set(CSRF_HEADERS).send({ email, password })
 	const cookie = getSessionSetCookie(res)
 	if (res.status !== 200 || !cookie) {
-		throw new Error(`loginAs failed with status ${res.status}`)
+		throw new Error(`loginAs failed with status ${res.status} ${JSON.stringify(res.body)}`)
 	}
 	return toCookieHeader(cookie.value)
 }

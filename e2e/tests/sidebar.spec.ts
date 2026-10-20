@@ -61,7 +61,7 @@ test.describe('ADMIN', () => {
 		await expect(getSidebar(page)).toHaveCount(0)
 	})
 
-	test('inside a project sees the switcher with Preklady, Nastavenia, Jazyky and Členovia; switching keeps the page, from settings opens translations', async ({
+	test('inside a project sees the switcher with Preklady, Prehľad, Nastavenia, Jazyky and Členovia; switching keeps the page, from settings opens translations', async ({
 		page,
 		playwright,
 	}) => {
@@ -74,7 +74,7 @@ test.describe('ADMIN', () => {
 		const section = getMainNavigation(page).getByRole('list', { name: project.name })
 		const settings = section.getByRole('link', { name: 'Nastavenia', exact: true })
 		const members = section.getByRole('link', { name: 'Členovia' })
-		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Nastavenia', 'Jazyky', 'Členovia'])
+		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'Nastavenia', 'Jazyky', 'Členovia'])
 		await expect(settings).toHaveAttribute('aria-current', 'page')
 
 		await members.click()

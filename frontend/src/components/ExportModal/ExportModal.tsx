@@ -4,7 +4,15 @@ import { notifications } from '@mantine/notifications'
 import { useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { EXPORT_FILE_NAME_DEFAULT, type ExportIssue, type ExportStatus, exportStatusSchema, type Language } from '@locale/shared'
+import {
+	EXPORT_FILE_NAME_DEFAULT,
+	type ExportFormat,
+	exportFormatSchema,
+	type ExportIssue,
+	type ExportStatus,
+	exportStatusSchema,
+	type Language,
+} from '@locale/shared'
 
 import { useExportMutation } from '@/api/exports/useExportMutation'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -17,15 +25,12 @@ import { downloadFile } from '@/lib/downloadFile'
 import classes from './ExportModal.module.css'
 import { type ExportModalProps } from './types'
 
-/** CSV is the only format for now; the others are shown disabled as in Figma. */
-const FORMATS = [
-	{ value: 'JSON', enabled: false },
-	{ value: 'CSV', enabled: true },
-	{ value: 'XLSX', enabled: false },
-	{ value: 'ARB', enabled: false },
-] as const
+/** The cards of Figma; a format the API does not export yet (`exportFormatSchema`) is shown disabled. */
+const FORMATS = ['JSON', 'CSV', 'XLSX', 'ARB'] as const
 
-const FILE_EXTENSION = '.csv'
+const isExportFormat = (value: string): value is ExportFormat => exportFormatSchema.safeParse(value).success
+
+const extensionOf = (format: ExportFormat) => `.${format.toLowerCase()}`
 
 const FILE_NAME_MAX_LENGTH = 100
 
@@ -34,7 +39,7 @@ const FILE_NAME_INVALID = /[\\/:*?"<>|]/
 
 const MOBILE_QUERY = '(max-width: 48em)'
 
-const toFileName = (value: string) => value.trim().replace(/\.csv$/i, '')
+const toFileName = (value: string) => value.trim().replace(/\.(csv|xlsx)$/i, '')
 
 type FileNameError = 'required' | 'invalid' | 'tooLong'
 
@@ -49,8 +54,8 @@ const validateFileName = (name: string): FileNameError | null => {
 }
 
 /**
- * Export of the project translations (Figma 3:2768): format, languages (all by default), status and file name. The server streams the
- * CSV, the browser saves it under the chosen name. Without Zahrnúť popisy a metadáta kľúčov (not part of the CSV format).
+ * Export of the project translations (Figma 3:2768): format (CSV or XLSX), languages (all by default), status and file name. The server
+ * streams the file, the browser saves it under the chosen name. Without Zahrnúť popisy a metadáta kľúčov (not part of the CSV format).
  */
 const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 	const { t, i18n } = useTranslation()
@@ -64,6 +69,7 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 
 	// `null` until the user changes the selection, so every language is selected by default, also the ones loaded later.
 	const [selectedIds, setSelectedIds] = useState<string[] | null>(null)
+	const [format, setFormat] = useState<ExportFormat>('CSV')
 	const [status, setStatus] = useState<ExportStatus>('ALL')
 	const [fileName, setFileName] = useState(EXPORT_FILE_NAME_DEFAULT)
 	const [submitted, setSubmitted] = useState(false)
@@ -74,6 +80,7 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 		return name.charAt(0).toLocaleUpperCase(i18n.language) + name.slice(1)
 	}
 	const name = toFileName(fileName)
+	const extension = extensionOf(format)
 	const languagesError = submitted && languageIds.length === 0 ? t('exportModal.languages.required') : undefined
 	const fileNameProblem = validateFileName(name)
 	const fileNameError = submitted && fileNameProblem ? t(`exportModal.fileName.${fileNameProblem}`, { max: FILE_NAME_MAX_LENGTH }) : undefined
@@ -90,6 +97,7 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 			return
 		}
 		setSelectedIds(null)
+		setFormat('CSV')
 		setStatus('ALL')
 		setFileName(EXPORT_FILE_NAME_DEFAULT)
 		setSubmitted(false)
@@ -110,10 +118,10 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 		// The request keeps the project order of the languages, the server orders the columns the same way.
 		const ordered = languages.filter((language) => languageIds.includes(language.id)).map((language) => language.id)
 		exportMutation.mutate(
-			{ languageIds: ordered, status },
+			{ languageIds: ordered, status, format },
 			{
 				onSuccess: (blob) => {
-					const fullName = `${name}${FILE_EXTENSION}`
+					const fullName = `${name}${extension}`
 					downloadFile(blob, fullName)
 					notifications.show({ color: 'green', message: t('exportModal.success', { fileName: fullName }) })
 					handleClose()
@@ -141,7 +149,7 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 				{t('exportModal.cancel')}
 			</Button>
 			<Button leftSection={<Download aria-hidden />} loading={isPending} onClick={submit}>
-				{t('exportModal.submit')}
+				{t('exportModal.submit', { format })}
 			</Button>
 		</>
 	)
@@ -157,24 +165,26 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 			fullScreen={isMobile}
 			footer={footer}
 		>
-			<Radio.Group label={t('exportModal.format.label')} value='CSV'>
+			<Radio.Group label={t('exportModal.format.label')} value={format} onChange={(value) => isExportFormat(value) && setFormat(value)}>
 				<div className={classes.formats}>
-					{FORMATS.map((format) => (
+					{FORMATS.map((card) => (
 						<Radio.Card
-							key={format.value}
-							value={format.value}
-							disabled={!format.enabled}
-							data-autofocus={format.value === 'CSV' || undefined}
+							key={card}
+							value={card}
+							disabled={!isExportFormat(card) || isPending}
+							data-autofocus={card === format || undefined}
 							className={classes.format}
 						>
 							<span className={classes.formatBadge} aria-hidden>
-								{format.value}
+								{card}
 							</span>
 							<span className='flex min-w-0 flex-col'>
-								<span className={classes.formatName}>{format.value}</span>
-								<span className={classes.formatDescription}>{t(`exportModal.format.description.${format.value}`)}</span>
+								<span className={classes.formatName}>{card}</span>
+								<span className={classes.formatDescription}>{t(`exportModal.format.description.${card}`)}</span>
 							</span>
-							{!format.enabled && (
+							{isExportFormat(card) ? (
+								<Radio.Indicator size='xs' className='ml-auto shrink-0' />
+							) : (
 								<Badge component='span' size='xs' variant='light' color='gray' className='ml-auto shrink-0'>
 									{t('exportModal.format.soon')}
 								</Badge>
@@ -208,7 +218,7 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 				label={
 					<>
 						{t('exportModal.fileName.label')}
-						<VisuallyHidden>{t('exportModal.fileName.extensionHint')}</VisuallyHidden>
+						<VisuallyHidden>{t('exportModal.fileName.extensionHint', { extension })}</VisuallyHidden>
 					</>
 				}
 				value={fileName}
@@ -217,10 +227,10 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 				disabled={isPending}
 				rightSection={
 					<Text size='sm' c='var(--app-color-text-secondary)'>
-						{FILE_EXTENSION}
+						{extension}
 					</Text>
 				}
-				rightSectionWidth={48}
+				rightSectionWidth={56}
 			/>
 			{unsafeValues && (
 				<Alert ref={alertRef} tabIndex={-1} color='red' title={t('errors.EXPORT_VALUE_UNSAFE')}>

@@ -6,7 +6,7 @@ notion_page_id:
 
 # Export prekladov (`/api/projects/:projectId/export`)
 
-Stiahnutie prekladov projektu ako súbor. Zatiaľ iba CSV; JSON, XLSX a ARB prídu neskôr. Schémy sú v `packages/shared/src/exports.ts`, plán v `docs/plans/translations-export.md`.
+Stiahnutie prekladov projektu ako súbor CSV alebo XLSX; JSON a ARB prídu neskôr. Exportovať môže každý člen projektu aj `ADMIN` (importovať iba `ADMIN`). Schémy sú v `packages/shared/src/exports.ts`, plán v `docs/plans/translations-export.md`.
 
 | Metóda | Cesta                             | Prístup            | Popis                             |
 | ------ | --------------------------------- | ------------------ | --------------------------------- |
@@ -20,11 +20,11 @@ Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez 
 | ------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
 | `languageIds` | áno     | ID jazykov projektu oddelené čiarkou, aspoň jeden, bez duplicít. Poradie stĺpcov určuje projekt, nie query |
 | `status`      | nie     | `ALL` (predvolené), `TRANSLATED`, `UNTRANSLATED`                                                           |
-| `format`      | nie     | `CSV` (predvolené, zatiaľ jediný)                                                                          |
+| `format`      | nie     | `CSV` (predvolené) alebo `XLSX`                                                                            |
 
 **Stav** sa vyhodnocuje po kľúčoch cez vybrané jazyky: `TRANSLATED` = kľúč má hodnotu vo všetkých, `UNTRANSLATED` = aspoň jedna chýba (chýbajúci riadok alebo `null`). Bunky bez prekladu v exportovanom kľúči sú `null`.
 
-## Odpoveď 200
+## Odpoveď 200 (CSV)
 
 `Content-Type: text/csv; charset=utf-8`, `Content-Disposition: attachment; filename="translations.csv"`, `Cache-Control: no-store`. Telo je formát GoodRequest `i18nextJsonToCsv`, ktorý číta `npx convert-csv-to-json` v cieľovom projekte aj náš [import](./imports.md#formát-csv):
 
@@ -50,6 +50,21 @@ Export import toho istého súboru vráti bajt po bajte (integračný test), s v
 ### Ako sa odpoveď tvorí
 
 Všetko beží v jednej transakcii `REPEATABLE READ`, takže súbor je konzistentný snímok aj počas súbežného importu. Kľúče sa čítajú po 1 000 (`EXPORT_BATCH_SIZE`, keyset stránkovanie); filter stavu sa vyhodnotí až v JS nad načítanou dávkou, nie v SQL, aby jeho cena nerástla s počtom zostávajúcich kľúčov. Prvý prechod iba kontroluje hodnoty, druhý pošle hlavičky a zapisuje dávky so spätným tlakom (čaká na `drain`). V pamäti je vždy najviac jedna dávka. Keď klient zavrie spojenie, export po aktuálnej dávke skončí (v oboch prechodoch) a transakcia sa uzavrie. Platí to aj pre klienta, ktorý odíde ešte počas overenia session a prístupu, teda skôr, ako kontrolér začne počúvať na `close` (zistí sa z `res.destroyed`); bez toho by export čakal na `drain` navždy a slot by sa nikdy neuvoľnil (našiel záťažový test, regresný test v `backend/test/exports.test.ts`). Každý dokončený export zapíše do logu `Export finished` s `keys`, `aborted`, `durationMs` a `heapUsedMb`. Celý export (vrátane sťahovania klientom) má limit `EXPORT_TIMEOUT_MS` (60 s): potom backend zavrie spojenie a export skončí pri najbližšom kroku; slot a spojenie do DB sa uvoľnia, keď dobehne práve bežiaci dotaz. Transakcia má limit o 5 s dlhší, aby export po vypršaní stihol skončiť sám a nezalogoval chybu zavretej transakcie.
+
+## Odpoveď 200 (XLSX)
+
+`Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, `Content-Disposition: attachment; filename="translations.xlsx"`. Súbor je pre ľudí (prekladateľov), nie pre `convert-csv-to-json`, a zatiaľ sa nedá importovať.
+
+| Namespace | Key        | sk      | en      |
+| --------- | ---------- | ------- | ------- |
+|           | title      | Titulok |         |
+| loc       | cart.items | Máte …  | You …   |
+| paths     | orders     |         | /orders |
+
+- Jeden hárok `Translations`, hlavička `Namespace | Key | <tag>…` je tučná, zamrazená a má filter; jazyky v poradí projektu, riadky v rovnakom poradí ako CSV (bajtovo podľa namespace a kľúča), filter stavu rovnaký.
+- Nepreložené = **prázdna bunka**. Stĺpce kľúča a jazykov zalamujú text (`wrapText`), takže nové riadky v hodnote ostanú viditeľné.
+- Kontroly CSV (`;`, nový riadok, `--x--`, namespace) sa nerobia, bunka ich unesie; export XLSX teda nikdy nevráti 422. Znaky, ktoré XML 1.0 nedovoľuje (riadiace znaky okrem tabulátora a nových riadkov), sa z bunky vynechajú, inak by Excel súbor neotvoril.
+- Zápis cez `exceljs` `stream.xlsx.WorkbookWriter` priamo do odpovede: riadky sa po dávkach 1 000 kľúčov odosielajú (`commit`) a medzi dávkami backend čaká na `drain`. Jeden prechod, rovnaká transakcia `REPEATABLE READ`, rovnaký limit súbežnosti a časový limit ako CSV.
 
 ## Súbežné exporty
 

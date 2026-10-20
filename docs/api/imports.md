@@ -8,12 +8,12 @@ notion_page_id:
 
 Import súboru s prekladmi do projektu. Najprv kontrola (preview), ktorá nič nezapisuje, potom samotný import, ktorý dostane ten istý súbor znova spolu s priradením stĺpcov k jazykom. Schémy sú v `packages/shared/src/imports.ts`, plán v `docs/plans/translations-import.md`.
 
-| Metóda | Cesta                                      | Prístup            | Popis                                                           |
-| ------ | ------------------------------------------ | ------------------ | --------------------------------------------------------------- |
-| `POST` | `/api/projects/:projectId/imports/preview` | člen alebo `ADMIN` | analýza súboru: jazyky, kľúče, zmeny, upozornenia; nič nezapíše |
-| `POST` | `/api/projects/:projectId/imports`         | člen alebo `ADMIN` | import súboru: vytvorí kľúče, zapíše a prepíše preklady         |
+| Metóda | Cesta                                      | Prístup     | Popis                                                           |
+| ------ | ------------------------------------------ | ----------- | --------------------------------------------------------------- |
+| `POST` | `/api/projects/:projectId/imports/preview` | iba `ADMIN` | analýza súboru: jazyky, kľúče, zmeny, upozornenia; nič nezapíše |
+| `POST` | `/api/projects/:projectId/imports`         | iba `ADMIN` | import súboru: vytvorí kľúče, zapíše a prepíše preklady         |
 
-Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). Požiadavka prechádza CSRF kontrolou (`Content-Type: application/json` a `X-Requested-With: XMLHttpRequest`).
+Import smie iba globálny `ADMIN` (od 2026-10-20; člen projektu s rolou `EDITOR` dostane 403 `FORBIDDEN`, kontrola prebehne ešte pred načítaním 12 MB tela). Prístup k projektu rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). Požiadavka prechádza CSRF kontrolou (`Content-Type: application/json` a `X-Requested-With: XMLHttpRequest`).
 
 ## Formát CSV
 

@@ -5,7 +5,7 @@ import { useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type TranslationsLayout, type TranslationsView } from '@locale/shared'
+import { ROLE, type TranslationsLayout, type TranslationsView } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -33,7 +33,7 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
  * user's preference (`me.preferences.translationsView`): `EXTENDED` lists every language of the project and the API decides the row status
  * by all of them (no language ids in the query); `?languages=` narrows its columns to the base language plus the chosen ones without changing
  * the row status. `COMPACT` is the Figma source → target pair. Either view lays its languages side by side or stacked, also a preference
- * (`me.preferences.translationsLayout`). Without Posledný sync and the Na kontrolu card. Importovať opens `ImportModal`, Exportovať `ExportModal`.
+ * (`me.preferences.translationsLayout`). Without Posledný sync and the Na kontrolu card. Importovať (ADMIN only) opens `ImportModal`, Exportovať (every member) `ExportModal`.
  */
 const TranslationsPage = () => {
 	const { t } = useTranslation()
@@ -42,6 +42,7 @@ const TranslationsPage = () => {
 	const navigate = useNavigate({ from: '/projects/$projectSlug/translations' })
 	const { data: project } = useProjectSettingsQuery(projectId)
 	const { data: me } = useMeQuery()
+	const isAdmin = me?.role === ROLE.ADMIN
 	const view: TranslationsView = me?.preferences.translationsView ?? 'EXTENDED'
 	const layout: TranslationsLayout = me?.preferences.translationsLayout ?? 'COLUMNS'
 	const updatePreferences = useUpdatePreferencesMutation()
@@ -158,9 +159,11 @@ const TranslationsPage = () => {
 					titleSize='h2'
 				/>
 				<div className='flex gap-2'>
-					<Button ref={importButtonRef} variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
-						{t('translationsPage.importButton')}
-					</Button>
+					{isAdmin && (
+						<Button ref={importButtonRef} variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
+							{t('translationsPage.importButton')}
+						</Button>
+					)}
 					<Button leftSection={<Download aria-hidden />} onClick={exportModal.open}>
 						{t('translationsPage.exportButton')}
 					</Button>
@@ -230,7 +233,7 @@ const TranslationsPage = () => {
 					onPageSizeChange={(next) => updateSearch({ pageSize: next === TRANSLATIONS_PAGE_SIZES[0] ? undefined : next })}
 				/>
 			)}
-			<ImportModal projectId={projectId} opened={importOpened} onClose={closeImport} />
+			{isAdmin && <ImportModal projectId={projectId} opened={importOpened} onClose={closeImport} />}
 			<ExportModal projectId={projectId} opened={exportOpened} onClose={exportModal.close} />
 		</div>
 	)

@@ -107,6 +107,8 @@ Dáta: **load-m** 5 000 kľúčov × 9 jazykov (45 000 prekladov, súbor ~5,6 MB
 | backend-1 | 259 / 243 / 101 MiB                  | 273 / 252 / 110 MiB | 267 / – / 108 |
 | backend-2 | 236 / 235 / 103 MiB                  | 257 / 236 / 101 MiB | 266 / – / 106 |
 
+**XLSX** (`FORMAT=XLSX scripts/load/run-export.sh run <scenár>`, 2026-10-20): `baseline` p95 713 ms, `big` (load-l, 10 súbežných) 25 × 200 a 5 × 429 pri exporte ~6 s, RSS repliky max. 346 MiB a heap max. 123 MiB, `spike` 44 × 200 a 56 × 429, `abort` uvoľní sloty (teardown 200), všade 0 × 5xx. `exceljs` drží pri kompresii o niečo viac pamäte ako CSV (276 MiB), heap ostáva pod 125 MiB.
+
 Závery:
 
 - Pamäť nezávisí od veľkosti súboru: export 56 MB súboru drží heap pod 110 MiB, lebo backend streamuje po 1 000 kľúčoch. Ani 100 súbežných používateľov nedostane repliku nad 280 MiB z 2 048 MiB.

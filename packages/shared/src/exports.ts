@@ -2,8 +2,8 @@ import { z } from 'zod'
 
 import { SUPPORTED_LANGUAGES } from './languages'
 
-/** Only CSV for now; JSON, XLSX and ARB come later. */
-export const exportFormatSchema = z.enum(['CSV'])
+/** CSV (GoodRequest i18nextJsonToCsv) and XLSX (one sheet: Namespace, Key and a column per language); JSON and ARB come later. */
+export const exportFormatSchema = z.enum(['CSV', 'XLSX'])
 
 export type ExportFormat = z.infer<typeof exportFormatSchema>
 

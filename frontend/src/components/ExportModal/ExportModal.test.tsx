@@ -96,10 +96,11 @@ describe('ExportModal', () => {
 
 		expect(within(dialog).getByText('Vyberte jazyky a formát výstupného súboru.')).toBeInTheDocument()
 		expect(within(dialog).getByRole('radio', { name: /CSV/ })).toBeChecked()
-		for (const format of ['JSON', 'XLSX', 'ARB']) {
+		expect(within(dialog).getByRole('radio', { name: /XLSX/ })).toBeEnabled()
+		for (const format of ['JSON', 'ARB']) {
 			expect(within(dialog).getByRole('radio', { name: new RegExp(format) })).toBeDisabled()
 		}
-		expect(within(dialog).getAllByText('Čoskoro')).toHaveLength(3)
+		expect(within(dialog).getAllByText('Čoskoro')).toHaveLength(2)
 		expect(await within(dialog).findByRole('checkbox', { name: 'Slovenčina' })).toBeChecked()
 		expect(within(dialog).getByRole('checkbox', { name: 'Angličtina' })).toBeChecked()
 		expect(within(dialog).getByRole('checkbox', { name: 'Nemčina (Rakúsko)' })).toBeChecked()
@@ -119,7 +120,7 @@ describe('ExportModal', () => {
 		submit(dialog)
 
 		await waitFor(() => expect(downloads).toEqual(['translations.csv']))
-		expect(exportRequests(requests)[0]?.params).toEqual({ languageIds: [SLOVAK.id, ENGLISH.id, GERMAN.id].join(','), status: 'ALL' })
+		expect(exportRequests(requests)[0]?.params).toEqual({ languageIds: [SLOVAK.id, ENGLISH.id, GERMAN.id].join(','), status: 'ALL', format: 'CSV' })
 		expect(exportRequests(requests)[0]?.responseType).toBe('blob')
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ message: 'Preklady sa stiahli do súboru translations.csv.' }))
 		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Exportovať preklady' })).not.toBeInTheDocument())
@@ -136,7 +137,22 @@ describe('ExportModal', () => {
 		submit(dialog)
 
 		await waitFor(() => expect(downloads).toEqual(['notino-b2b.csv']))
-		expect(exportRequests(requests)[0]?.params).toEqual({ languageIds: [SLOVAK.id, GERMAN.id].join(','), status: 'UNTRANSLATED' })
+		expect(exportRequests(requests)[0]?.params).toEqual({ languageIds: [SLOVAK.id, GERMAN.id].join(','), status: 'UNTRANSLATED', format: 'CSV' })
+	})
+
+	it('exports XLSX: the button, the extension and the request follow the chosen format', async () => {
+		const requests = mockPage()
+		renderApp(PAGE_PATH)
+		const dialog = await openModal()
+		await within(dialog).findByRole('checkbox', { name: 'Slovenčina' })
+
+		fireEvent.click(within(dialog).getByRole('radio', { name: /XLSX/ }))
+		expect(within(dialog).getByRole('radio', { name: /XLSX/ })).toBeChecked()
+		expect(within(dialog).getByRole('textbox', { name: 'Názov súboru, prípona .xlsx sa doplní' })).toBeInTheDocument()
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Exportovať XLSX' }))
+
+		await waitFor(() => expect(downloads).toEqual(['translations.xlsx']))
+		expect(exportRequests(requests)[0]?.params).toMatchObject({ format: 'XLSX' })
 	})
 
 	it('needs a language and a valid file name before it sends anything', async () => {

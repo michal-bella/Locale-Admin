@@ -30,7 +30,7 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
 /**
  * Translations of the project (Figma 3:2): stats, filters in the URL, the table (cells open the edit modal) and pagination. The view is the
  * user's preference (`me.preferences.translationsView`): `EXTENDED` lists every language of the project and the API decides the row status
- * by all of them (no language ids in the query); `COMPACT` is the Figma source → target pair. Without Exportovať, Posledný sync and the
+ * by all of them (no language ids in the query); `COMPACT` is the Figma source → target pair, side by side or stacked (`?layout=STACKED`). Without Exportovať, Posledný sync and the
  * Na kontrolu card. Importovať opens `ImportModal`.
  */
 const TranslationsPage = () => {
@@ -58,6 +58,7 @@ const TranslationsPage = () => {
 	const sourceLanguage = languages.find((language) => language.tag === search.source) ?? baseLanguage
 	const targetLanguage =
 		languages.find((language) => language.tag === search.target) ?? languages.find((language) => language.id !== sourceLanguage?.id) ?? sourceLanguage
+	const layout = search.layout ?? 'COLUMNS'
 	const sort = search.sort ?? 'UNTRANSLATED_FIRST'
 	const page = search.page ?? 1
 
@@ -163,6 +164,8 @@ const TranslationsPage = () => {
 						view={view}
 						onViewChange={changeView}
 						isViewSaving={updatePreferences.isPending}
+						layout={layout}
+						onLayoutChange={(next) => updateSearch({ layout: next === 'COLUMNS' ? undefined : next }, { resetPage: false })}
 						languages={languages}
 						sourceLanguage={sourceLanguage}
 						targetLanguage={targetLanguage}
@@ -179,6 +182,7 @@ const TranslationsPage = () => {
 					onRetry={retry}
 					isRetrying={languagesQuery.isRefetching || translationsQuery.isRefetching}
 					view={view}
+					layout={layout}
 					languages={languages}
 					sourceLanguage={sourceLanguage}
 					targetLanguage={targetLanguage}

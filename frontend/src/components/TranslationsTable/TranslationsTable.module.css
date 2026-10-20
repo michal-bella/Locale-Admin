@@ -187,6 +187,45 @@ th.stickyEnd {
 	overflow: hidden;
 }
 
+/* Only two columns, so the stacked layout gets more room around them. */
+.thStacked {
+	padding-inline: 2.5rem;
+}
+
+.tdStacked {
+	padding: 1.25rem 2.5rem;
+	vertical-align: top;
+}
+
+.stack {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.stackItem {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+}
+
+.stackLanguage {
+	font-size: var(--mantine-font-size-2xs);
+	font-weight: 600;
+	line-height: 1.5;
+	color: var(--app-color-text-secondary);
+}
+
+/* Lines the read-only source up with the text inside the bordered target cell. */
+.stackSource {
+	padding-inline: calc(0.5rem + 1px);
+}
+
+.stackedStatus {
+	display: block;
+	padding-top: 0.75rem;
+}
+
 /* A shade darker than the muted key column with a firmer top edge, so a group reads as a divider rather than a key. */
 .groupCell {
 	padding: 0.5rem 1.75rem;

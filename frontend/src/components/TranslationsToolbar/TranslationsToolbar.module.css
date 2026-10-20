@@ -49,6 +49,20 @@
 	height: 100%;
 }
 
+/* Icon-only options; the tooltip and the hidden label name them. */
+.layout {
+	flex-shrink: 0;
+	height: 2.75rem;
+}
+
+.layoutLabel {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75rem;
+	height: 100%;
+}
+
 /* Below Tailwind's sm breakpoint every control takes the full width, the language pair splits it in two. */
 @media (max-width: 39.99em) {
 	.search {

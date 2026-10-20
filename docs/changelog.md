@@ -1,12 +1,16 @@
 ---
 title: 'Changelog'
-updated: 2026-10-19
+updated: 2026-10-20
 notion_page_id:
 ---
 
 # Changelog
 
 ## Po fáze 1
+
+### Preklady: jazyky pod sebou (2026-10-20)
+
+- frontend: v zobrazení **Zdroj → cieľ** prepínač rozloženia (ikony, URL `?layout=STACKED`); **Jazyky pod sebou** ukáže tabuľku s dvomi stĺpcami Kľúč a Preklady, zdroj a cieľ pod sebou a stav pri kľúči ([Frontend](./frontend.md#stránka-preklady))
 
 ### Zmena roly používateľa v detaile (2026-10-20)
 

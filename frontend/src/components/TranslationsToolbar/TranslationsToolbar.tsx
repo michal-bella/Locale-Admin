@@ -1,14 +1,15 @@
-import { type ComboboxItem, type ComboboxLikeRenderOptionInput, SegmentedControl, Select, TextInput } from '@mantine/core'
+import { type ComboboxItem, type ComboboxLikeRenderOptionInput, SegmentedControl, Select, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useDebouncedCallback } from '@mantine/hooks'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type Language, TRANSLATIONS_SEARCH_MAX_LENGTH, translationsSortSchema, translationStatusSchema, translationsViewSchema } from '@locale/shared'
 
-import { ArrowRight, Search } from '@/components/Icons'
+import { ArrowRight, LayoutColumns, LayoutRows, Search } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import TranslationStatusBadge from '@/components/TranslationStatusBadge/TranslationStatusBadge'
 import { findSupportedLanguage } from '@/lib/languageOptions'
+import { translationsLayoutSchema } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsToolbar.module.css'
 import { type TranslationsToolbarProps } from './types'
@@ -16,6 +17,8 @@ import { type TranslationsToolbarProps } from './types'
 const SEARCH_DEBOUNCE_MS = 300
 
 const ALL_STATUSES = 'ALL' as const
+
+const LAYOUT_ICONS = { COLUMNS: LayoutColumns, STACKED: LayoutRows }
 
 const renderLanguageOption = ({ option }: ComboboxLikeRenderOptionInput<ComboboxItem>) => {
 	const language = findSupportedLanguage(option.value)
@@ -78,6 +81,8 @@ const TranslationsToolbar = ({
 	view,
 	onViewChange,
 	isViewSaving = false,
+	layout,
+	onLayoutChange,
 	languages,
 	sourceLanguage,
 	targetLanguage,
@@ -175,6 +180,32 @@ const TranslationsToolbar = ({
 				/>
 				{view === 'COMPACT' && (
 					<div className='flex items-center gap-2 max-sm:w-full'>
+						<SegmentedControl
+							aria-label={t('translationsPage.layout.label')}
+							value={layout}
+							onChange={(value) => {
+								const parsed = translationsLayoutSchema.safeParse(value)
+								if (parsed.success) {
+									onLayoutChange(parsed.data)
+								}
+							}}
+							data={translationsLayoutSchema.options.map((value) => {
+								const Icon = LAYOUT_ICONS[value]
+								return {
+									value,
+									label: (
+										<Tooltip label={t(`translationsPage.layout.${value}`)}>
+											<span className={classes.layoutLabel}>
+												<Icon aria-hidden />
+												<VisuallyHidden>{t(`translationsPage.layout.${value}`)}</VisuallyHidden>
+											</span>
+										</Tooltip>
+									),
+								}
+							})}
+							radius='lg'
+							classNames={{ root: classes.layout, label: classes.viewLabel }}
+						/>
 						<LanguageSelect
 							label={t('translationsPage.toolbar.sourceLanguage')}
 							languages={languages}

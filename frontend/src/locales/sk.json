@@ -254,8 +254,14 @@
 			"EXTENDED": "Všetky jazyky",
 			"COMPACT": "Zdroj → cieľ"
 		},
+		"layout": {
+			"label": "Rozloženie",
+			"COLUMNS": "Jazyky vedľa seba",
+			"STACKED": "Jazyky pod sebou"
+		},
 		"table": {
 			"label": "Zoznam prekladov",
+			"translations": "Preklady",
 			"key": "Kľúč",
 			"status": "Stav",
 			"noGroup": "Bez skupiny",

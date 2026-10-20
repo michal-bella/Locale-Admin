@@ -9,10 +9,27 @@ export const PLURAL_VARIABLE_MAX_LENGTH = 50
 
 export const PLURAL_VARIABLE_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/
 
-/** Categories of a language from `Intl.PluralRules` (sk: one, few, many, other; en: one, other), in `PLURAL_FORMS` order. */
+/** Whole numbers that hit every integer category of the CLDR rules; 1 000 000 is `many` in French, Spanish and Italian. */
+const SAMPLE_COUNTS = [...Array.from({ length: 1001 }, (_, count) => count), 1_000_000]
+
+const formsByTag = new Map<string, PluralForm[]>()
+
+/**
+ * Categories a language uses for whole numbers, in `PLURAL_FORMS` order (sk and cs: one, few, other; ru and pl: one, few, many, other;
+ * en: one, other). Categories only fractions select (`many` in sk and cs, `1,5 hodnotenia`) are left out, because a count is an integer;
+ * `other` always stays.
+ */
 export const pluralFormsForTag = (tag: string): PluralForm[] => {
-	const categories = new Set(new Intl.PluralRules(tag).resolvedOptions().pluralCategories)
-	return PLURAL_FORMS.filter((form) => categories.has(form))
+	const cached = formsByTag.get(tag)
+	if (cached) {
+		return cached
+	}
+	const rules = new Intl.PluralRules(tag)
+	// ICU requires `other` in every plural message, also where only fractions select it (ru, pl).
+	const categories = new Set(['other', ...SAMPLE_COUNTS.map((count) => rules.select(count))])
+	const forms = PLURAL_FORMS.filter((form) => categories.has(form))
+	formsByTag.set(tag, forms)
+	return forms
 }
 
 export type PluralValue = { variable: string; forms: Partial<Record<PluralForm, string>> }

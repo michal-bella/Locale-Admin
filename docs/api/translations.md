@@ -209,7 +209,7 @@ Plurálový kľúč má v `TranslationKey.pluralVariable` názov číselnej prem
 {count, plural, one {# položka} few {# položky} other {# položiek}}
 ```
 
-Kategórie sú CLDR (`zero`, `one`, `two`, `few`, `many`, `other`), jazyk používa svoju podmnožinu (`pluralFormsForTag`: sk `one, few, many, other`, en `one, other`). Text formy môže obsahovať `{{premenné}}`, HTML aj `#` (číslo), ale zátvorky `{` a `}` v ňom musia byť vyvážené (`hasBalancedBraces`), inak sa správa nedá rozobrať späť. Presné hodnoty `=N` a `offset:` sa nerozpoznávajú (taká správa sa berie ako obyčajný text). Medzi formami môžu byť ľubovoľné biele znaky vrátane nových riadkov. Stav prekladu, vyhľadávanie a ochrana premenných pracujú s celou správou ako s textom (premenné `{{…}}` sa nájdu aj vo vnútri formy).
+Kategórie sú CLDR (`zero`, `one`, `two`, `few`, `many`, `other`), jazyk používa svoju podmnožinu pre celé čísla (`pluralFormsForTag`: sk a cs `one, few, other`, ru a pl `one, few, many, other`, en `one, other`; `many` v sk a cs je iba pre desatinné čísla). Forma uložená v hodnote sa zobrazí vždy. Text formy môže obsahovať `{{premenné}}`, HTML aj `#` (číslo), ale zátvorky `{` a `}` v ňom musia byť vyvážené (`hasBalancedBraces`), inak sa správa nedá rozobrať späť. Presné hodnoty `=N` a `offset:` sa nerozpoznávajú (taká správa sa berie ako obyčajný text). Medzi formami môžu byť ľubovoľné biele znaky vrátane nových riadkov. Stav prekladu, vyhľadávanie a ochrana premenných pracujú s celou správou ako s textom (premenné `{{…}}` sa nájdu aj vo vnútri formy).
 
 Zmena `plural` prepíše hodnoty kľúča vo všetkých jazykoch v jednej transakcii s úpravou kľúča; `null` hodnoty ostávajú `null`, pri každej prepísanej hodnote sa nastaví `updatedById` na prihláseného administrátora:
 

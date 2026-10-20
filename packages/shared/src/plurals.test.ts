@@ -4,7 +4,11 @@ import { detectPluralVariable, hasBalancedBraces, normalizePluralValue, parsePlu
 
 describe('pluralFormsForTag', () => {
 	it('returns the CLDR categories of a language in display order', () => {
-		expect(pluralFormsForTag('sk')).toEqual(['one', 'few', 'many', 'other'])
+		expect(pluralFormsForTag('sk')).toEqual(['one', 'few', 'other'])
+		expect(pluralFormsForTag('cs')).toEqual(['one', 'few', 'other'])
+		expect(pluralFormsForTag('ru')).toEqual(['one', 'few', 'many', 'other'])
+		expect(pluralFormsForTag('pl')).toEqual(['one', 'few', 'many', 'other'])
+		expect(pluralFormsForTag('fr')).toEqual(['one', 'many', 'other'])
 		expect(pluralFormsForTag('en')).toEqual(['one', 'other'])
 		expect(pluralFormsForTag('hr')).toEqual(['one', 'few', 'other'])
 	})

@@ -44,3 +44,10 @@
 	margin-top: 0.25rem;
 	margin-inline-start: calc(var(--button-padding-x) * -1);
 }
+
+.hint {
+	padding-top: 0.25rem;
+	font-size: var(--mantine-font-size-2xs);
+	line-height: 1.5;
+	color: var(--app-color-muted);
+}

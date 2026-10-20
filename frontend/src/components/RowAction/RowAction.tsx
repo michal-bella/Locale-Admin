@@ -14,7 +14,7 @@ const RowAction = ({ icon: Icon, tooltip, label, danger = false, ...action }: Ro
 	if (action.to !== undefined) {
 		return (
 			<Tooltip label={tooltip} events={TOOLTIP_EVENTS}>
-				<ActionIcon renderRoot={(props) => <Link {...props} to={action.to} params={action.params} />} {...shared}>
+				<ActionIcon renderRoot={(props) => <Link {...props} to={action.to} params={action.params} search={action.search} />} {...shared}>
 					<Icon aria-hidden />
 				</ActionIcon>
 			</Tooltip>

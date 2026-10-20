@@ -87,7 +87,7 @@ model ActivityEvent {
 
 ## Kontrakt (`packages/shared/src/dashboard.ts`, `activity.ts`)
 
-- `dashboardResponseSchema`: `{ keys: { total, createdLast30Days }, translatedKeys, strings: { filled, total }, baseWords, languages: { id, tag, isBase, translated }[], members: { total, admins } }` (jazyky v poradí projektu: základný prvý, potom `position`).
+- `dashboardResponseSchema`: `{ keys: { total, createdLast30Days }, translatedKeys, strings: { filled, total }, baseWords }`. Jazyky (s `translatedCount` / `keyCount`) a členov (s `role`) FE berie z existujúcich `GET …/languages` a `GET …/members`, dashboard ich neduplikuje (upresnené 2026-10-20).
 - `activityEventSchema` (diskriminovaná únia podľa `type`) + `activityListQuerySchema` `{ cursor?: string, limit: 1–50, default 20 }`, odpoveď `{ items, nextCursor }` (keyset cez `createdAt, id`).
 - `activityDailyQuerySchema` `{ range: '7d' | '30d' | '90d' (default 30d), timeZone: IANA zóna (validácia cez `Intl.supportedValuesOf('timeZone')`) }`, odpoveď `{ days: { date: 'YYYY-MM-DD', changes: number }[], contributors: { user, changes }[] }` – každý deň obdobia, aj nulový.
 - Nové chybové kódy netreba (neplatný query → existujúci `VALIDATION_ERROR`, nečlen → 404 ako všade).

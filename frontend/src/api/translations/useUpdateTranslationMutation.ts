@@ -10,6 +10,7 @@ import {
 	type UpdateTranslationResponse,
 } from '@locale/shared'
 
+import { invalidateDashboard } from '@/api/dashboard/invalidateDashboard'
 import http from '@/api/http'
 import { QUERY_KEYS } from '@/api/queryKeys'
 
@@ -75,6 +76,10 @@ export const useUpdateTranslationMutation = (projectId: string, listQuery: Trans
 				queryClient.setQueryData(listKey, context.previous)
 			}
 		},
-		onSettled: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.TRANSLATIONS_ALL(projectId) }),
+		onSettled: () =>
+			Promise.all([
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.TRANSLATIONS_ALL(projectId) }),
+				invalidateDashboard(queryClient, projectId),
+			]),
 	})
 }

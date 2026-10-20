@@ -9,7 +9,7 @@ import { ROLE } from '@locale/shared'
 import { useMeQuery } from '@/api/auth/meQuery'
 import { projectSettingsQueryOptions } from '@/api/projectSettings/projectSettingsQuery'
 import Brand from '@/components/Brand/Brand'
-import { ArrowRight, Globe, Settings, Shield, Translate, Users } from '@/components/Icons'
+import { ArrowRight, Globe, LayoutGrid, Settings, Shield, Translate, Users } from '@/components/Icons'
 import ProjectSwitcher from '@/components/ProjectSwitcher/ProjectSwitcher'
 
 import classes from './Sidebar.module.css'
@@ -40,7 +40,7 @@ const NavItem = ({ to, params, icon: Icon, iconClassName = '', label, onNavigate
 
 /**
  * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Preklady,
- * Nastavenia projektu, Jazyky and Členovia, outside one: Všetky projekty. ADMIN also sees Projekty and Používatelia under SPRÁVA.
+ * Prehľad, Nastavenia projektu, Jazyky and Členovia (Preklady stay first, Prehľad is not the project's landing page), outside one: Všetky projekty. ADMIN also sees Projekty and Používatelia under SPRÁVA.
  */
 const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 	const { t } = useTranslation()
@@ -74,6 +74,13 @@ const Sidebar = ({ id, opened, onClose }: SidebarProps) => {
 							params={{ projectSlug }}
 							icon={Translate}
 							label={t('sidebar.translations')}
+							onNavigate={onClose}
+						/>
+						<NavItem
+							to='/projects/$projectSlug/dashboard'
+							params={{ projectSlug }}
+							icon={LayoutGrid}
+							label={t('sidebar.dashboard')}
 							onNavigate={onClose}
 						/>
 						<NavItem

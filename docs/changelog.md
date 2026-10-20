@@ -8,6 +8,26 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Prehľad projektu – frontend (2026-10-20)
+
+- frontend: stránka **Prehľad** `/projects/$projectSlug/dashboard` podľa Figmy `3:475` bez Importovať a Exportovať, s tlačidlom **Otvoriť preklady**: karty Kľúče, Preložené, Jazyky a Členovia, Stav jazykov, Posledná aktivita (po dňoch, Načítať ďalšie) a Denná aktivita (graf 7 / 30 / 90 dní, najaktívnejší členovia). Odkazy otvárajú Preklady s filtrom (nepreložené, jazyk, zmeny používateľa) ([Frontend](./frontend.md#stránka-prehľad-projektu))
+- frontend: **Prehľad** je druhá položka sidebaru v projekte (ikona `LayoutGrid` z Figmy); `/projects/$projectSlug` ďalej otvára Preklady
+- frontend: karta `StatCard` vytiahnutá z `TranslationStats` do `components/StatCard`, Preklady vyzerajú rovnako
+- frontend: mutácie prekladov, kľúčov, jazykov, členov a nastavení obnovia aj prehľad a aktivitu projektu ([Frontend](./frontend.md#prehľad-a-aktivita))
+- závislosti: `@mantine/charts` 9.6.3 a `recharts` 3.10.1, iba v lazy chunku stránky Prehľad ([Frontend](./frontend.md#lazy-routy-code-splitting))
+
+### Prehľad projektu – čítacie endpointy (2026-10-20)
+
+- API: `GET /api/projects/:projectId/dashboard` (kľúče, nové kľúče za 30 dní, preložené kľúče, vyplnené bunky, slová základného jazyka), `GET …/activity` (feed udalostí s kurzorom) a `GET …/activity/daily` (denné súčty `count` za 7 / 30 / 90 dní v zóne používateľa, top 5 členov), pre každého člena a `ADMIN` ([API](./api/dashboard.md))
+- shared: `dashboardResponseSchema` v `packages/shared/src/dashboard.ts`; `activityEventSchema`, `activityListQuerySchema`, `activityListResponseSchema`, `ACTIVITY_RANGES`, `activityDailyQuerySchema` a `activityDailyResponseSchema` v `packages/shared/src/activity.ts`
+
+### Prehľad projektu – zápis udalostí (2026-10-20)
+
+- databáza: nová tabuľka `ActivityEvent` (enum `ACTIVITY_TYPE`), migrácia `activity_event` doplnila každému projektu udalosť `PROJECT_CREATED` ([Databáza](./database.md#activityevent), [ADR 0005](./decisions/0005-activity-events.md))
+- backend: vytvorenie projektu, zmena nastavení a základného jazyka, pridanie a odobratie jazyka, pridanie, odobratie a odchod člena, import, úprava kľúča a prekladu zapíšu v tej istej transakcii jednu udalosť so snímkou údajov; nezmenená hodnota ani nezmenené nastavenia nezapíšu nič. API odpovede sa nemenia, čítacie endpointy prídu v ďalšom kroku
+- shared: `ACTIVITY_TYPE` a `activityEventDataSchema` (payload podľa typu) v `packages/shared/src/activity.ts`
+- seed: vzorová aktivita seedovaného projektu za posledných 30 dní ([Databáza](./database.md#seed))
+
 ### Stav prekladu na stránke Jazyky (2026-10-20)
 
 - API: `GET` a `PUT …/languages/order` vracajú pri každom jazyku `translatedCount` a `keyCount` ([API](./api/project-languages.md#položka-zoznamu-languagelistitem))

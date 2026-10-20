@@ -4,6 +4,7 @@ import { createLanguageRequestSchema, languageSchema, reorderLanguagesRequestSch
 
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
+import { getAuth } from '../middleware/auth.middleware'
 import { createProjectLanguage, deleteProjectLanguage, listProjectLanguages, reorderProjectLanguages } from '../services/projectLanguages.service'
 
 type Params = { projectId: string; languageId: string }
@@ -28,20 +29,21 @@ export const createCreateProjectLanguageController =
 	(prisma: PrismaClient): RequestHandler<Pick<Params, 'projectId'>> =>
 	async (req, res) => {
 		const input = createLanguageRequestSchema.parse(req.body)
-		const body: Language = await createProjectLanguage(prisma, req.params.projectId, input)
+		const body: Language = await createProjectLanguage(prisma, { projectId: req.params.projectId, userId: getAuth(req).user.id }, input)
 		res.status(201).json(body)
 	}
 
 export const createDeleteProjectLanguageController =
 	(prisma: PrismaClient): RequestHandler<Params> =>
 	async (req, res) => {
-		await deleteProjectLanguage(prisma, req.params.projectId, parseLanguageId(req))
+		await deleteProjectLanguage(prisma, { projectId: req.params.projectId, userId: getAuth(req).user.id }, parseLanguageId(req))
 		res.status(204).end()
 	}
 
 export const createReorderProjectLanguagesController =
 	(prisma: PrismaClient): RequestHandler<Pick<Params, 'projectId'>> =>
 	async (req, res) => {
-		const body: LanguagesResponse = await reorderProjectLanguages(prisma, req.params.projectId, reorderLanguagesRequestSchema.parse(req.body))
+		const ids = { projectId: req.params.projectId, userId: getAuth(req).user.id }
+		const body: LanguagesResponse = await reorderProjectLanguages(prisma, ids, reorderLanguagesRequestSchema.parse(req.body))
 		res.status(200).json(body)
 	}

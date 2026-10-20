@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { type AddProjectMemberRequest, ERROR_CODE, type ProjectMember } from '@locale/shared'
 
+import { invalidateDashboard } from '@/api/dashboard/invalidateDashboard'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import http from '@/api/http'
 import { QUERY_KEYS } from '@/api/queryKeys'
@@ -18,6 +19,7 @@ export const useAddProjectMemberMutation = (projectId: string) => {
 				invalidateMembers(),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.USERS() }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.PROJECTS() }),
+				invalidateDashboard(queryClient, projectId),
 			]),
 		onError: (error) => {
 			const code = getApiErrorCode(error)

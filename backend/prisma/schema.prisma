@@ -22,6 +22,19 @@ enum TRANSLATIONS_LAYOUT {
   STACKED
 }
 
+enum ACTIVITY_TYPE {
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  LANGUAGE_ADDED
+  LANGUAGE_REMOVED
+  BASE_LANGUAGE_CHANGED
+  MEMBER_ADDED
+  MEMBER_REMOVED
+  KEYS_IMPORTED
+  KEY_UPDATED
+  TRANSLATION_UPDATED
+}
+
 model User {
   id                 String              @id @default(uuid()) @db.Uuid
   email              String              @unique
@@ -40,6 +53,7 @@ model User {
   projectMemberships ProjectMember[]
   projectOrders      ProjectOrder[]
   translations       Translation[]
+  activityEvents     ActivityEvent[]
 }
 
 model Session {
@@ -83,6 +97,7 @@ model Project {
   orders           ProjectOrder[]
   languages        ProjectLanguage[]
   translationKeys  TranslationKey[]
+  activityEvents   ActivityEvent[]
 }
 
 /// Position of a project in one user's project list (drag and drop on `/`); a project without a row comes after, by name.
@@ -138,4 +153,21 @@ model Translation {
 
   @@id([keyId, languageId])
   @@index([languageId])
+}
+
+/// Append-only log of project changes for the dashboard, written in the same transaction as the change.
+/// `payload` is a snapshot validated by `activityEventDataSchema` in @locale/shared, so it stays readable after a key, language or user is deleted.
+/// `count` is the number of translations the event changed (import = written cells), the daily chart sums it.
+model ActivityEvent {
+  id        String        @id @default(uuid()) @db.Uuid
+  projectId String        @db.Uuid
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String?       @db.Uuid
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type      ACTIVITY_TYPE
+  payload   Json
+  count     Int           @default(1)
+  createdAt DateTime      @default(now())
+
+  @@index([projectId, createdAt(sort: Desc)])
 }

@@ -1,6 +1,7 @@
-import { ERROR_CODE, type AddProjectMemberRequest, type ProjectMember } from '@locale/shared'
+import { ACTIVITY_TYPE, ERROR_CODE, type AddProjectMemberRequest, type ProjectMember } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
+import { recordActivity } from '../lib/activity'
 import { ROLE_FROM_PRISMA } from '../lib/authUser'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
@@ -29,11 +30,21 @@ export const listProjectMembers = async (prisma: PrismaClient, projectId: string
 }
 
 /** Adds an existing user to the project. A missing user fails the `connect` (P2025), an existing membership the composite key (P2002). */
-export const addProjectMember = async (prisma: PrismaClient, projectId: string, { userId }: AddProjectMemberRequest): Promise<ProjectMember> => {
+export const addProjectMember = async (
+	prisma: PrismaClient,
+	projectId: string,
+	actorId: string,
+	{ userId }: AddProjectMemberRequest,
+): Promise<ProjectMember> => {
 	try {
-		const member = await prisma.projectMember.create({
-			data: { project: { connect: { id: projectId } }, user: { connect: { id: userId } } },
-			select: MEMBER_SELECT,
+		const member = await prisma.$transaction(async (tx) => {
+			const created = await tx.projectMember.create({
+				data: { project: { connect: { id: projectId } }, user: { connect: { id: userId } } },
+				select: MEMBER_SELECT,
+			})
+			const { id, firstName, lastName, email } = created.user
+			await recordActivity(tx, { projectId, userId: actorId, type: ACTIVITY_TYPE.MEMBER_ADDED, payload: { member: { id, firstName, lastName, email } } })
+			return created
 		})
 		return toProjectMember(member)
 	} catch (err) {

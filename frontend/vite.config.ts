@@ -18,7 +18,8 @@ export default defineConfig({
 				codeSplitting: {
 					groups: [
 						{ name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 40 },
-						{ name: 'mantine', test: /node_modules[\\/]@mantine[\\/]/, priority: 30 },
+						// Charts (with recharts) are used only by the lazy Prehľad page and must not land in the eager Mantine chunk.
+						{ name: 'mantine', test: /node_modules[\\/]@mantine[\\/](?!charts[\\/])/, priority: 30 },
 						{ name: 'tanstack', test: /node_modules[\\/]@tanstack[\\/]/, priority: 20 },
 						{ name: 'i18n-zod', test: /node_modules[\\/](i18next|react-i18next|zod)[\\/]/, priority: 10 },
 					],

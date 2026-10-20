@@ -4,6 +4,8 @@ import { promisify } from 'node:util'
 
 import { describe, expect, it } from 'vitest'
 
+import { ACTIVITY_TYPE, activityEventDataSchema } from '@locale/shared'
+
 import { ROLE } from '../src/generated/prisma/enums'
 import { SEED_ADMIN_EMAIL, SEED_PROJECT, SEED_TRANSLATIONS, seedAdmin, seedProject } from '../src/services/seed.service'
 
@@ -87,6 +89,26 @@ describe('seedProject', () => {
 		const values = keys.flatMap(({ translations }) => translations.map(({ value }) => value ?? ''))
 		expect(values.some((value) => value.includes('{{'))).toBe(true)
 		expect(values.some((value) => value.includes('<strong>'))).toBe(true)
+	})
+
+	it('creates valid sample activity of the admin over the last 30 days with some empty days, and none on the second run', async () => {
+		const prisma = getTestPrisma()
+		await seedAdmin(prisma, 'FirstPassword1')
+		const admin = await prisma.user.findUniqueOrThrow({ where: { email: SEED_ADMIN_EMAIL } })
+
+		await seedProject(prisma)
+		const events = await prisma.activityEvent.findMany({ orderBy: { createdAt: 'asc' } })
+		expect(events.map(({ type, payload }) => activityEventDataSchema.parse({ type, payload }).type)).toEqual(
+			expect.arrayContaining([ACTIVITY_TYPE.PROJECT_CREATED, ACTIVITY_TYPE.KEYS_IMPORTED, ACTIVITY_TYPE.TRANSLATION_UPDATED]),
+		)
+		expect(events[0]?.type).toBe(ACTIVITY_TYPE.PROJECT_CREATED)
+		expect(events.every(({ userId }) => userId === admin.id)).toBe(true)
+		const daysAgo = new Set(events.map(({ createdAt }) => Math.floor((Date.now() - createdAt.getTime()) / (24 * 60 * 60 * 1000))))
+		expect(Math.max(...daysAgo)).toBeLessThanOrEqual(30)
+		expect(daysAgo.size).toBeLessThan(31)
+
+		await seedProject(prisma)
+		await expect(prisma.activityEvent.count()).resolves.toBe(events.length)
 	})
 })
 

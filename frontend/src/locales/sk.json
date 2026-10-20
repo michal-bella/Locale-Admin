@@ -983,6 +983,8 @@
 		},
 		"openNavigation": "Otvoriť navigáciu",
 		"closeNavigation": "Zavrieť navigáciu",
+		"collapse": "Zbaliť menu",
+		"expand": "Rozbaliť menu",
 		"home": "Locale – domovská stránka",
 		"userMenu": {
 			"label": "Menu používateľa",

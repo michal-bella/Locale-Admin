@@ -965,6 +965,8 @@
 		},
 		"openNavigation": "Open navigation",
 		"closeNavigation": "Close navigation",
+		"collapse": "Collapse menu",
+		"expand": "Expand menu",
 		"home": "Locale – home page",
 		"userMenu": {
 			"label": "User menu",

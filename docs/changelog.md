@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Kompaktný sidebar (2026-10-21)
+
+- frontend: tlačidlo **Zbaliť menu** dole v sidebare (od 62 em) ho zúži na 80 px s logom, avatarom projektu a ikonami s tooltipmi; voľba sa pamätá v prehliadači ([Frontend](./frontend.md#layout-sidebar-a-horná-lišta))
+
 ### Filter Editor na stránke Preklady (2026-10-20)
 
 - API: `editors` v `GET …/translations` obsahuje každého člena projektu (aj bez úprav) a ďalších, kto uložil preklad, zoradených podľa počtu prekladov, ktoré naposledy upravili ([API](./api/translations.md))

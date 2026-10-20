@@ -7,6 +7,8 @@ export const LOCALE_STORAGE_KEY = 'locale'
 /** Mantine's default key; the pre-paint script in `index.html` reads the same key. */
 export const COLOR_SCHEME_STORAGE_KEY = 'mantine-color-scheme-value'
 
+export const SIDEBAR_COMPACT_STORAGE_KEY = 'locale-sidebar-compact'
+
 export const DEFAULT_COLOR_SCHEME = 'light'
 
 /** FE-only fallback for API errors without a known `ERROR_CODE` (translated as `errors.UNKNOWN`). */

@@ -34,6 +34,12 @@ const openLanguagesPage = async (page: Page, projectSlug: string) => {
 
 const getRemoveButton = (page: Page, name: string) => page.getByRole('button', { name: `Odobrať jazyk ${name}`, exact: true })
 
+const getGrip = (page: Page, name: string) => page.getByRole('button', { name: `Presunúť jazyk ${name}`, exact: true })
+
+const expectRowOrder = async (page: Page, tags: string[]) => {
+	await expect(getTable(page).locator('tbody tr')).toHaveText(tags.map((tag) => new RegExp(`· ${escapeRegExp(tag)}(?![a-z-])`)))
+}
+
 // Mantine marks a disabled option only with `data-combobox-disabled` (no `aria-disabled`), so toBeDisabled() cannot see it.
 const expectOptionDisabled = async (page: Page, name: string) => {
 	await expect(page.getByRole('option', { name })).toHaveAttribute('data-combobox-disabled', 'true')
@@ -122,6 +128,81 @@ test.describe('ADMIN in a project', () => {
 		const other = await createProject(api, 'languages-other', ['hu'])
 		expect((await listLanguages(api, other.id)).map(({ tag, isBase }) => ({ tag, isBase }))).toEqual([{ tag: 'hu', isBase: true }])
 		expect((await listLanguages(api, project.id)).map(({ tag }) => tag)).toEqual(['sk', 'en'])
+	})
+})
+
+test.describe('ADMIN reorders languages', () => {
+	let api: APIRequestContext
+
+	test.beforeAll(async ({ playwright }) => {
+		api = await newAdminApi(playwright.request)
+	})
+
+	test.afterAll(async () => {
+		await api?.dispose()
+	})
+
+	test('ArrowUp on the grip moves a language, announces its position and the order survives a reload', async ({ page }) => {
+		const project = await createProject(api, 'languages-order', ['sk', 'en', 'hu'])
+		await openLanguagesPage(page, project.slug)
+		await expectRowOrder(page, ['sk', 'en', 'hu'])
+
+		const saved = waitForLanguagesResponse(page, project.id, 'PUT')
+		await getGrip(page, 'Maďarčina').press('ArrowUp')
+		expect((await saved).status()).toBe(200)
+
+		await expect(page.getByRole('status').filter({ hasText: 'Jazyk Maďarčina je na 2. mieste z 3.' })).toBeAttached()
+		await expectRowOrder(page, ['sk', 'hu', 'en'])
+		await expect(getGrip(page, 'Maďarčina')).toBeFocused()
+		await expect(page.getByRole('dialog', { name: 'Zmeniť základný jazyk' })).toHaveCount(0)
+
+		await page.reload()
+		await expect(getTable(page)).toHaveAttribute('aria-busy', 'false')
+		await expectRowOrder(page, ['sk', 'hu', 'en'])
+		await expect(getBaseBadge(page, 'sk')).toBeVisible()
+		expect((await listLanguages(api, project.id)).map(({ tag }) => tag)).toEqual(['sk', 'hu', 'en'])
+	})
+
+	test('moving a language to the top asks first: "Nie, vrátiť" keeps the order, "Áno, zmeniť" makes it the base', async ({ page }) => {
+		const project = await createProject(api, 'languages-order-base', ['sk', 'en'])
+		await openLanguagesPage(page, project.slug)
+		const puts: string[] = []
+		page.on('request', (request) => {
+			if (request.method() === 'PUT' && request.url().includes(projectLanguagesApi(project.id))) {
+				puts.push(request.url())
+			}
+		})
+		const dialog = page.getByRole('dialog', { name: 'Zmeniť základný jazyk' })
+		const message = 'Presunutím sa základným jazykom projektu stane angličtina namiesto slovenčina.'
+
+		await getGrip(page, 'Angličtina').press('ArrowUp')
+		await expect(dialog).toContainText(message)
+		await dialog.getByRole('button', { name: 'Nie, vrátiť' }).click()
+		await expect(dialog).toBeHidden()
+		await expectRowOrder(page, ['sk', 'en'])
+		await expect(getBaseBadge(page, 'sk')).toBeVisible()
+		expect(puts).toEqual([])
+		expect((await listLanguages(api, project.id)).map(({ tag, isBase }) => ({ tag, isBase }))).toEqual([
+			{ tag: 'sk', isBase: true },
+			{ tag: 'en', isBase: false },
+		])
+
+		await getGrip(page, 'Angličtina').press('ArrowUp')
+		await expect(dialog).toContainText(message)
+		const saved = waitForLanguagesResponse(page, project.id, 'PUT')
+		await dialog.getByRole('button', { name: 'Áno, zmeniť' }).click()
+		expect((await saved).status()).toBe(200)
+
+		await expect(dialog).toBeHidden()
+		await expect(page.getByText('Základný jazyk je teraz Angličtina.')).toBeVisible()
+		await expectRowOrder(page, ['en', 'sk'])
+		await expect(getBaseBadge(page, 'en')).toBeVisible()
+		await expect(getTable(page).getByText('Základný', { exact: true })).toHaveCount(1)
+		await expect(getRemoveButton(page, 'Angličtina')).toBeDisabled()
+		expect((await listLanguages(api, project.id)).map(({ tag, isBase }) => ({ tag, isBase }))).toEqual([
+			{ tag: 'en', isBase: true },
+			{ tag: 'sk', isBase: false },
+		])
 	})
 })
 

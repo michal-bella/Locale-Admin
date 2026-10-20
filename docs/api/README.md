@@ -34,6 +34,9 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `GET`    | `/api/projects/:projectId/members`                              | členovia projektu (člen, ADMIN), [detail](./projects.md)                                                    |
 | `POST`   | `/api/projects/:projectId/members`                              | pridanie existujúceho používateľa do projektu (ADMIN), [detail](./projects.md)                              |
 | `DELETE` | `/api/projects/:projectId/members/:userId`                      | odobranie člena z projektu (ADMIN), [detail](./projects.md)                                                 |
+| `GET`    | `/api/projects/:projectId/dashboard`                            | štatistiky kľúčov a prekladov projektu (člen, ADMIN), [detail](./dashboard.md)                              |
+| `GET`    | `/api/projects/:projectId/activity`                             | feed aktivity projektu, stránkovanie kurzorom (člen, ADMIN), [detail](./dashboard.md)                       |
+| `GET`    | `/api/projects/:projectId/activity/daily`                       | denné súčty zmien a najaktívnejší členovia (člen, ADMIN), [detail](./dashboard.md)                          |
 | `GET`    | `/api/projects/:projectId/translations`                         | zoznam prekladov projektu (člen, ADMIN), [detail](./translations.md)                                        |
 | `PUT`    | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | uloženie prekladu kľúča v jazyku (člen, ADMIN), [detail](./translations.md)                                 |
 | `PATCH`  | `/api/projects/:projectId/keys/:keyId`                          | úprava kľúča: názov, popis, plurál (iba ADMIN), [detail](./translations.md)                                 |

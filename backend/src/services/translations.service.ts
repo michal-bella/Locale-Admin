@@ -40,13 +40,13 @@ type ItemRow = {
 	untranslated: boolean
 }
 
-type EditorRow = { id: string; email: string; firstName: string | null; lastName: string | null }
+export type EditorRow = { id: string; email: string; firstName: string | null; lastName: string | null }
 
 type CellRow = Pick<Translation, 'keyId' | 'languageId' | 'value' | 'updatedAt'> & { updatedBy: EditorRow | null }
 
-const EDITOR_SELECT = { select: { id: true, email: true, firstName: true, lastName: true } } as const
+export const EDITOR_SELECT = { select: { id: true, email: true, firstName: true, lastName: true } } as const
 
-const toEditor = ({ id, email, firstName, lastName }: EditorRow): TranslationEditor => ({
+export const toEditor = ({ id, email, firstName, lastName }: EditorRow): TranslationEditor => ({
 	id,
 	name: [firstName, lastName].filter(Boolean).join(' ') || email,
 })

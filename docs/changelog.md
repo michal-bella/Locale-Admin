@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Prehľad projektu – čítacie endpointy (2026-10-20)
+
+- API: `GET /api/projects/:projectId/dashboard` (kľúče, nové kľúče za 30 dní, preložené kľúče, vyplnené bunky, slová základného jazyka), `GET …/activity` (feed udalostí s kurzorom) a `GET …/activity/daily` (denné súčty `count` za 7 / 30 / 90 dní v zóne používateľa, top 5 členov), pre každého člena a `ADMIN` ([API](./api/dashboard.md))
+- shared: `dashboardResponseSchema` v `packages/shared/src/dashboard.ts`; `activityEventSchema`, `activityListQuerySchema`, `activityListResponseSchema`, `ACTIVITY_RANGES`, `activityDailyQuerySchema` a `activityDailyResponseSchema` v `packages/shared/src/activity.ts`
+
 ### Prehľad projektu – zápis udalostí (2026-10-20)
 
 - databáza: nová tabuľka `ActivityEvent` (enum `ACTIVITY_TYPE`), migrácia `activity_event` doplnila každému projektu udalosť `PROJECT_CREATED` ([Databáza](./database.md#activityevent), [ADR 0005](./decisions/0005-activity-events.md))

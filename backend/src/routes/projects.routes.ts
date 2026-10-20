@@ -3,6 +3,8 @@ import { Router } from 'express'
 import { ROLE } from '@locale/shared'
 
 import { type Config } from '../config/env'
+import { createGetActivityDailyController, createListActivityController } from '../controllers/activity.controller'
+import { createGetDashboardController } from '../controllers/dashboard.controller'
 import { createExportController } from '../controllers/exports.controller'
 import { createImportController, createPreviewImportController } from '../controllers/imports.controller'
 import {
@@ -50,6 +52,9 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.get('/:projectId/members', requireProjectAccess, createListProjectMembersController(prisma))
 	router.post('/:projectId/members', requireProjectAccess, requireRole(ROLE.ADMIN), createAddProjectMemberController(prisma))
 	router.delete('/:projectId/members/:userId', requireProjectAccess, requireRole(ROLE.ADMIN), createRemoveProjectMemberController(prisma))
+	router.get('/:projectId/dashboard', requireProjectAccess, createGetDashboardController(prisma))
+	router.get('/:projectId/activity', requireProjectAccess, createListActivityController(prisma))
+	router.get('/:projectId/activity/daily', requireProjectAccess, createGetActivityDailyController(prisma))
 	router.get('/:projectId/translations', requireProjectAccess, createListTranslationsController(prisma))
 	router.put('/:projectId/keys/:keyId/translations/:languageId', requireProjectAccess, createUpdateTranslationController(prisma))
 	router.patch('/:projectId/keys/:keyId', requireProjectAccess, requireRole(ROLE.ADMIN), createUpdateTranslationKeyController(prisma))

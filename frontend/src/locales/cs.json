@@ -407,7 +407,8 @@
 			"summary_few": "Zobrazeno {{shown}} z {{count}} klíčů",
 			"summary_many": "Zobrazeno {{shown}} z {{count}} klíčů",
 			"summary_other": "Zobrazeno {{shown}} z {{count}} klíčů"
-		}
+		},
+		"exportButton": "Exportovat"
 	},
 	"importModal": {
 		"title": "Importovat překlady",
@@ -518,6 +519,56 @@
 		"successOverwritten_few": "{{count}} přepsané",
 		"successOverwritten_many": "{{count}} přepsaných",
 		"successOverwritten_other": "{{count}} přepsaných"
+	},
+	"exportModal": {
+		"title": "Exportovat překlady",
+		"description": "Vyberte jazyky a formát výstupního souboru.",
+		"close": "Zavřít",
+		"cancel": "Zrušit",
+		"submit": "Exportovat CSV",
+		"success": "Překlady se stáhly do souboru {{fileName}}.",
+		"format": {
+			"label": "Formát výstupu",
+			"soon": "Brzy",
+			"description": {
+				"JSON": "Pro webové aplikace",
+				"CSV": "Univerzální tabulka",
+				"XLSX": "Microsoft Excel",
+				"ARB": "Flutter aplikace"
+			}
+		},
+		"languages": {
+			"label": "Jazyky",
+			"required": "Vyberte alespoň jeden jazyk."
+		},
+		"status": {
+			"label": "Stav",
+			"ALL": "Všechny",
+			"TRANSLATED": "Přeložené",
+			"UNTRANSLATED": "Nepřeložené"
+		},
+		"fileName": {
+			"label": "Název souboru",
+			"required": "Zadejte název souboru.",
+			"invalid": "Název souboru nesmí obsahovat znaky \\ / : * ? \" < > |.",
+			"tooLong": "Název souboru může mít nejvýše {{max}} znaků."
+		},
+		"issues": {
+			"value": {
+				"SEMICOLON": "„{{key}}“: překlad {{language}} obsahuje středník (;).",
+				"LINE_BREAK": "„{{key}}“: překlad {{language}} obsahuje nový řádek.",
+				"SECTION_MARKER": "„{{key}}“: překlad {{language}} obsahuje text ve tvaru --název--."
+			},
+			"row": {
+				"SEMICOLON": "Klíč „{{key}}“ obsahuje středník (;).",
+				"LINE_BREAK": "Klíč „{{key}}“ obsahuje nový řádek.",
+				"SECTION_MARKER": "„{{key}}“: řádek obsahuje text ve tvaru --název--, který by se načetl jako nová sekce."
+			},
+			"more_one": "… a ještě {{count}} další.",
+			"more_few": "… a ještě {{count}} další.",
+			"more_many": "… a ještě {{count}} dalších.",
+			"more_other": "… a ještě {{count}} dalších."
+		}
 	},
 	"importIssues": {
 		"FILE_EMPTY": "Soubor je prázdný nebo obsahuje pouze hlavičku.",

@@ -405,7 +405,8 @@
 			"summary_few": "Showing {{shown}} of {{count}} keys",
 			"summary_many": "Showing {{shown}} of {{count}} keys",
 			"summary_other": "Showing {{shown}} of {{count}} keys"
-		}
+		},
+		"exportButton": "Export"
 	},
 	"importModal": {
 		"title": "Import translations",
@@ -516,6 +517,54 @@
 		"successOverwritten_few": "{{count}} overwritten",
 		"successOverwritten_many": "{{count}} overwritten",
 		"successOverwritten_other": "{{count}} overwritten"
+	},
+	"exportModal": {
+		"title": "Export translations",
+		"description": "Choose the languages and the format of the output file.",
+		"close": "Close",
+		"cancel": "Cancel",
+		"submit": "Export CSV",
+		"success": "Translations were downloaded to {{fileName}}.",
+		"format": {
+			"label": "Output format",
+			"soon": "Coming soon",
+			"description": {
+				"JSON": "For web apps",
+				"CSV": "Universal spreadsheet",
+				"XLSX": "Microsoft Excel",
+				"ARB": "Flutter apps"
+			}
+		},
+		"languages": {
+			"label": "Languages",
+			"required": "Select at least one language."
+		},
+		"status": {
+			"label": "Status",
+			"ALL": "All",
+			"TRANSLATED": "Translated",
+			"UNTRANSLATED": "Untranslated"
+		},
+		"fileName": {
+			"label": "File name",
+			"required": "Enter a file name.",
+			"invalid": "The file name cannot contain \\ / : * ? \" < > |.",
+			"tooLong": "The file name can have at most {{max}} characters."
+		},
+		"issues": {
+			"value": {
+				"SEMICOLON": "“{{key}}”: the {{language}} translation contains a semicolon (;).",
+				"LINE_BREAK": "“{{key}}”: the {{language}} translation contains a line break.",
+				"SECTION_MARKER": "“{{key}}”: the {{language}} translation contains text like --name--."
+			},
+			"row": {
+				"SEMICOLON": "The key “{{key}}” contains a semicolon (;).",
+				"LINE_BREAK": "The key “{{key}}” contains a line break.",
+				"SECTION_MARKER": "“{{key}}”: the row contains text like --name--, which would be read as a new section."
+			},
+			"more_one": "… and {{count}} more.",
+			"more_other": "… and {{count}} more."
+		}
 	},
 	"importIssues": {
 		"FILE_EMPTY": "The file is empty or contains only the header.",

@@ -164,7 +164,7 @@ describe('TranslationsPage', () => {
 		expect(screen.getByText('Spravujte texty a preklady vášho projektu na jednom mieste.')).toBeInTheDocument()
 		expect(screen.getAllByText('Booking Web').length).toBeGreaterThan(0)
 		expect(screen.getByRole('button', { name: 'Importovať' })).toBeEnabled()
-		expect(screen.queryByRole('button', { name: 'Exportovať' })).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Exportovať' })).toBeEnabled()
 
 		expect(screen.getByText('248')).toBeInTheDocument()
 		expect(screen.getByText('221')).toBeInTheDocument()

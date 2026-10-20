@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Export prekladov do CSV – frontend (2026-10-20)
+
+- frontend: tlačidlo **Exportovať** v hlavičke stránky Preklady otvára modál **Exportovať preklady** (Figma 3:2768): formát CSV (JSON, XLSX, ARB neaktívne „Čoskoro“), jazyky (predvolene všetky), stav, názov súboru (predvolene `translations`), zoznam hodnôt, ktoré export zablokovali ([Frontend](./frontend.md#modál-exportovať-preklady))
+
 ### Export prekladov do CSV – záťažové testy (2026-10-20)
 
 - testy: k6 záťažové testy exportu proti samostatnému stacku s 2 replikami po 2 GB (`scripts/load/`): 1, 3, 100 súbežných, projekt s 50 000 kľúčmi, 3 vlny po 100 a prerušené sťahovania; pamäť repliky max. 280 MiB, žiadny leak ani 5xx ([Testovanie](./testing.md#záťažové-testy-exportu))

@@ -14,7 +14,8 @@ import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguage
 import { useProjectSettingsQuery } from '@/api/projectSettings/projectSettingsQuery'
 import { useTranslationsQuery } from '@/api/translations/translationsQuery'
 import { useUpdateTranslationMutation } from '@/api/translations/useUpdateTranslationMutation'
-import { Upload } from '@/components/Icons'
+import ExportModal from '@/components/ExportModal/ExportModal'
+import { Download, Upload } from '@/components/Icons'
 import ImportModal from '@/components/ImportModal/ImportModal'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import TranslationStats from '@/components/TranslationStats/TranslationStats'
@@ -32,7 +33,7 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
  * user's preference (`me.preferences.translationsView`): `EXTENDED` lists every language of the project and the API decides the row status
  * by all of them (no language ids in the query); `?languages=` narrows its columns to the base language plus the chosen ones without changing
  * the row status. `COMPACT` is the Figma source → target pair. Either view lays its languages side by side or stacked, also a preference
- * (`me.preferences.translationsLayout`). Without Exportovať, Posledný sync and the Na kontrolu card. Importovať opens `ImportModal`.
+ * (`me.preferences.translationsLayout`). Without Posledný sync and the Na kontrolu card. Importovať opens `ImportModal`, Exportovať `ExportModal`.
  */
 const TranslationsPage = () => {
 	const { t } = useTranslation()
@@ -47,6 +48,7 @@ const TranslationsPage = () => {
 	const languagesQuery = useProjectLanguagesQuery(projectId)
 	const languages = languagesQuery.data ?? []
 	const [importOpened, importModal] = useDisclosure(false)
+	const [exportOpened, exportModal] = useDisclosure(false)
 	const importButtonRef = useRef<HTMLButtonElement>(null)
 
 	// Importovať in the empty state is gone once the import added keys, so Mantine has nothing to return the focus to; the header button
@@ -155,9 +157,14 @@ const TranslationsPage = () => {
 					description={t('translationsPage.description')}
 					titleSize='h2'
 				/>
-				<Button ref={importButtonRef} variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
-					{t('translationsPage.importButton')}
-				</Button>
+				<div className='flex gap-2'>
+					<Button ref={importButtonRef} variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
+						{t('translationsPage.importButton')}
+					</Button>
+					<Button leftSection={<Download aria-hidden />} onClick={exportModal.open}>
+						{t('translationsPage.exportButton')}
+					</Button>
+				</div>
 			</div>
 			{!isError && (
 				<TranslationStats
@@ -224,6 +231,7 @@ const TranslationsPage = () => {
 				/>
 			)}
 			<ImportModal projectId={projectId} opened={importOpened} onClose={closeImport} />
+			<ExportModal projectId={projectId} opened={exportOpened} onClose={exportModal.close} />
 		</div>
 	)
 }

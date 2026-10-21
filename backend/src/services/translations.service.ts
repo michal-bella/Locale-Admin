@@ -105,6 +105,9 @@ const EXTENDED_VIEW: ViewSql = {
 	translationMatches: (condition) => Prisma.sql`EXISTS (SELECT 1 FROM "Translation" x WHERE x."keyId" = k.id AND ${condition})`,
 }
 
+/** A key with a cell whose placeholders differ from the base language (`Translation.placeholderWarning`, see lib/placeholderWarnings). */
+const HAS_WARNING_SQL = Prisma.sql`EXISTS (SELECT 1 FROM "Translation" w WHERE w."keyId" = k.id AND w."placeholderWarning")`
+
 const UPDATED_WITHIN_INTERVAL: Record<TranslationsUpdatedWithin, string> = { DAY: '1 day', WEEK: '7 days', MONTH: '30 days' }
 
 const orderBy = (sort: TranslationsSort, view: ViewSql): Prisma.Sql => {
@@ -164,7 +167,7 @@ const assertProjectLanguages = async (prisma: PrismaClient, projectId: string, l
  * items carry a cell for every language either way. `stats`, `namespaces` and `editors` ignore the filters.
  */
 export const listTranslations = async (prisma: PrismaClient, projectId: string, query: TranslationsQuery): Promise<TranslationsResponse> => {
-	const { sourceLanguageId, targetLanguageId, search, status, namespace, updatedById, updatedWithin, sort, page, pageSize } = query
+	const { sourceLanguageId, targetLanguageId, search, status, namespace, updatedById, updatedWithin, warnings, sort, page, pageSize } = query
 	if (sourceLanguageId !== undefined && targetLanguageId !== undefined) {
 		await assertProjectLanguages(prisma, projectId, [sourceLanguageId, targetLanguageId])
 	}
@@ -180,6 +183,9 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	}
 	if (namespace !== undefined) {
 		conditions.push(Prisma.sql`k.namespace = ${namespace}`)
+	}
+	if (warnings) {
+		conditions.push(HAS_WARNING_SQL)
 	}
 	if (updatedById !== undefined || updatedWithin !== undefined) {
 		const updated = [
@@ -197,8 +203,9 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 			ORDER BY ${orderBy(sort, view)}
 			LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
 		prisma.$queryRaw<[{ total: number }]>`SELECT count(*)::int AS total FROM ${from}`,
-		prisma.$queryRaw<[{ totalKeys: number; translated: number }]>`
-			SELECT count(*)::int AS "totalKeys", (count(*) FILTER (WHERE NOT ${view.untranslated}))::int AS translated
+		prisma.$queryRaw<[{ totalKeys: number; translated: number; warnings: number }]>`
+			SELECT count(*)::int AS "totalKeys", (count(*) FILTER (WHERE NOT ${view.untranslated}))::int AS translated,
+				(count(*) FILTER (WHERE ${HAS_WARNING_SQL}))::int AS warnings
 			FROM "TranslationKey" k ${view.joins}
 			WHERE k."projectId" = ${projectId}::uuid`,
 		prisma.translationKey.findMany({ where: { projectId }, distinct: ['namespace'], select: { namespace: true }, orderBy: { namespace: 'asc' } }),
@@ -226,7 +233,7 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 		total: count.total,
 		page,
 		pageSize,
-		stats: { totalKeys: stats.totalKeys, translated: stats.translated, untranslated: stats.totalKeys - stats.translated },
+		stats: { totalKeys: stats.totalKeys, translated: stats.translated, untranslated: stats.totalKeys - stats.translated, warnings: stats.warnings },
 		namespaces: namespaces.map((row) => row.namespace),
 		editors: editors
 			.map((row) => ({ ...toEditor(row), edits: row.edits }))

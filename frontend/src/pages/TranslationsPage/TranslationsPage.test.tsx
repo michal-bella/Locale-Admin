@@ -100,7 +100,7 @@ const response = (overrides: Partial<TranslationsResponse> = {}): TranslationsRe
 	total: ITEMS.length,
 	page: 1,
 	pageSize: 20,
-	stats: { totalKeys: 248, translated: 221, untranslated: 27 },
+	stats: { totalKeys: 248, translated: 221, untranslated: 27, warnings: 0 },
 	namespaces: ['loc', 'paths'],
 	editors: [],
 	...overrides,
@@ -527,7 +527,7 @@ describe('TranslationsPage', () => {
 	})
 
 	it('shows the empty state with Importovať that opens the import modal for a project without keys', async () => {
-		mockPage({ translations: response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0 }, namespaces: [] }) })
+		mockPage({ translations: response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 }, namespaces: [] }) })
 		renderApp(PAGE_PATH)
 
 		expect(await findVisibleText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeInTheDocument()
@@ -544,7 +544,7 @@ describe('TranslationsPage', () => {
 	it('shows an EDITOR Exportovať but no Importovať, also not in the empty state', async () => {
 		mockPage({
 			user: EDITOR_USER,
-			translations: response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0 }, namespaces: [] }),
+			translations: response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 }, namespaces: [] }),
 		})
 		renderApp(PAGE_PATH)
 
@@ -707,7 +707,9 @@ describe('TranslationsPage', () => {
 		mockPage({
 			translations: () => ({
 				status: 200,
-				data: hasKeys ? response() : response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0 }, namespaces: [] }),
+				data: hasKeys
+					? response()
+					: response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 }, namespaces: [] }),
 			}),
 		})
 		renderApp(PAGE_PATH)

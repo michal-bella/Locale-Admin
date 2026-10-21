@@ -44,18 +44,19 @@ Položka nesie bunku pre každý jazyk projektu v oboch zobrazeniach. Ktoré zob
 
 Parametre v query (schéma `translationsQuerySchema`). Prázdny reťazec znamená „bez filtra“.
 
-| Parameter          | Typ    | Povinný | Popis                                                                                                                                                                 |
-| ------------------ | ------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sourceLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk projektu, ktorého text je zdroj; vždy spolu s `targetLanguageId`                                                                          |
-| `targetLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk, pre ktorý sa počíta stav a `stats`; môže byť rovnaký ako zdroj                                                                           |
-| `search`           | string | nie     | max. 200 znakov, orezaný; podreťazec bez ohľadu na veľkosť písmen a diakritiku (`unaccent`, „vlastni“ nájde „vlastní“ aj naopak) v kľúči a hodnotách (viď zobrazenie) |
-| `status`           | enum   | nie     | `TRANSLATED` alebo `UNTRANSLATED`                                                                                                                                     |
-| `namespace`        | string | nie     | presná zhoda namespace                                                                                                                                                |
-| `updatedById`      | UUID   | nie     | iba kľúče, ktorých preklad (kompaktné: cieľový, rozšírené: ktorýkoľvek jazyk) naposledy uložil tento používateľ                                                       |
-| `updatedWithin`    | enum   | nie     | `DAY`, `WEEK`, `MONTH`: preklad zmenený za posledných 24 hodín, 7 alebo 30 dní; spolu s `updatedById` musí obe podmienky splniť ten istý preklad                      |
-| `sort`             | enum   | nie     | `UNTRANSLATED_FIRST` (predvolené), `KEY`, `UPDATED`                                                                                                                   |
-| `page`             | číslo  | nie     | od 1, predvolene 1                                                                                                                                                    |
-| `pageSize`         | číslo  | nie     | 1 až 100, predvolene 20                                                                                                                                               |
+| Parameter          | Typ    | Povinný | Popis                                                                                                                                                                                    |
+| ------------------ | ------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sourceLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk projektu, ktorého text je zdroj; vždy spolu s `targetLanguageId`                                                                                             |
+| `targetLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk, pre ktorý sa počíta stav a `stats`; môže byť rovnaký ako zdroj                                                                                              |
+| `search`           | string | nie     | max. 200 znakov, orezaný; podreťazec bez ohľadu na veľkosť písmen a diakritiku (`unaccent`, „vlastni“ nájde „vlastní“ aj naopak) v kľúči a hodnotách (viď zobrazenie)                    |
+| `status`           | enum   | nie     | `TRANSLATED` alebo `UNTRANSLATED`                                                                                                                                                        |
+| `namespace`        | string | nie     | presná zhoda namespace                                                                                                                                                                   |
+| `updatedById`      | UUID   | nie     | iba kľúče, ktorých preklad (kompaktné: cieľový, rozšírené: ktorýkoľvek jazyk) naposledy uložil tento používateľ                                                                          |
+| `updatedWithin`    | enum   | nie     | `DAY`, `WEEK`, `MONTH`: preklad zmenený za posledných 24 hodín, 7 alebo 30 dní; spolu s `updatedById` musí obe podmienky splniť ten istý preklad                                         |
+| `warnings`         | `true` | nie     | iba kľúče, ktoré majú aspoň jednu bunku s upozornením na premenné (`Translation.placeholderWarning`, viď [databáza](../database.md#translation)); v URL aj `1`, iná hodnota = bez filtra |
+| `sort`             | enum   | nie     | `UNTRANSLATED_FIRST` (predvolené), `KEY`, `UPDATED`                                                                                                                                      |
+| `page`             | číslo  | nie     | od 1, predvolene 1                                                                                                                                                                       |
+| `pageSize`         | číslo  | nie     | 1 až 100, predvolene 20                                                                                                                                                                  |
 
 Znaky `%`, `_` a `\` vo vyhľadávaní sa berú doslovne. Hodnoty idú do SQL iba ako parametre.
 
@@ -77,7 +78,7 @@ Schéma `translationsResponseSchema`.
 | `total`      | číslo    | počet kľúčov, ktoré spĺňajú filtre (stránka za koncom vráti `items: []` a správny `total`)                                                                                                                                |
 | `page`       | číslo    | aktuálna stránka                                                                                                                                                                                                          |
 | `pageSize`   | číslo    | veľkosť stránky                                                                                                                                                                                                           |
-| `stats`      | objekt   | `{ totalKeys, translated, untranslated }` podľa stavu riadku cez všetky kľúče projektu, **bez filtrov**                                                                                                                   |
+| `stats`      | objekt   | `{ totalKeys, translated, untranslated, warnings }` podľa stavu riadku cez všetky kľúče projektu, **bez filtrov**; `warnings` je počet kľúčov s aspoň jednou bunkou s upozornením na premenné                             |
 | `namespaces` | string[] | všetky namespace projektu, zoradené (aj prázdny `""`, ak ho nejaký kľúč má)                                                                                                                                               |
 | `editors`    | objekt[] | `{ id, name }` každého člena projektu a každého ďalšieho používateľa, ktorý uložil niektorý preklad projektu; zoradené podľa počtu prekladov, ktoré naposledy upravil (najviac prvý), potom podľa mena; filtre ho nemenia |
 
@@ -123,7 +124,7 @@ Položka `items[]`:
 	"total": 1,
 	"page": 1,
 	"pageSize": 20,
-	"stats": { "totalKeys": 30, "translated": 18, "untranslated": 12 },
+	"stats": { "totalKeys": 30, "translated": 18, "untranslated": 12, "warnings": 2 },
 	"namespaces": ["loc", "paths"],
 	"editors": [{ "id": "6c1f…", "name": "Michal Bella" }]
 }

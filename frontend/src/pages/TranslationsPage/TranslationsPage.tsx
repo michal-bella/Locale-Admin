@@ -183,7 +183,7 @@ const TranslationsPage = () => {
 			</div>
 			{!isError && (
 				<TranslationStats
-					stats={isPending ? undefined : (data?.stats ?? { totalKeys: 0, translated: 0, untranslated: 0 })}
+					stats={isPending ? undefined : (data?.stats ?? { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 })}
 					status={search.status}
 					// The cards count every key of the project, so a card drops the other row filters to show exactly its number.
 					onStatusChange={(value) =>

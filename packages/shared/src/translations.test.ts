@@ -20,6 +20,13 @@ describe('translationsQuerySchema', () => {
 		).toEqual({ sourceLanguageId: SOURCE_ID, targetLanguageId: TARGET_ID, sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 20 })
 	})
 
+	it('reads the warnings flag from the URL and drops anything else', () => {
+		expect(translationsQuerySchema.parse({ warnings: '1' })).toMatchObject({ warnings: true })
+		expect(translationsQuerySchema.parse({ warnings: 'true' })).toMatchObject({ warnings: true })
+		expect(translationsQuerySchema.parse({ warnings: '' }).warnings).toBeUndefined()
+		expect(translationsQuerySchema.parse({ warnings: 'false' }).warnings).toBeUndefined()
+	})
+
 	it('coerces numbers from query strings and trims search', () => {
 		const query = translationsQuerySchema.parse({ sourceLanguageId: SOURCE_ID, targetLanguageId: TARGET_ID, search: ' order ', page: '3', pageSize: '100' })
 		expect(query).toMatchObject({ search: 'order', page: 3, pageSize: 100 })

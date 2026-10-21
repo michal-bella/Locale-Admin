@@ -183,7 +183,10 @@ const TranslationsPage = () => {
 				<TranslationStats
 					stats={isPending ? undefined : (data?.stats ?? { totalKeys: 0, translated: 0, untranslated: 0 })}
 					status={search.status}
-					onStatusChange={(value) => updateSearch({ status: value })}
+					// The cards count every key of the project, so a card drops the other row filters to show exactly its number.
+					onStatusChange={(value) =>
+						updateSearch({ search: undefined, namespace: undefined, updatedBy: undefined, updatedWithin: undefined, status: value })
+					}
 				/>
 			)}
 			{/* The view controls sit close above the card they configure; only the filters inside it stick. */}

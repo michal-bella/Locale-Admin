@@ -30,6 +30,8 @@ const DashboardPage = () => {
 	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { projectSlug } = useParams({ from: '/_authenticated/_app/projects/$projectSlug/dashboard' })
 	const { data: me } = useMeQuery()
+	// A VISITOR cannot open Jazyky and Členovia (403), so the links there are not shown.
+	const canManageProject = me?.role !== ROLE.VISITOR
 	const { data: project } = useProjectSettingsQuery(projectId)
 	const dashboardQuery = useDashboardQuery(projectId)
 	const languagesQuery = useProjectLanguagesQuery(projectId)
@@ -104,7 +106,11 @@ const DashboardPage = () => {
 						hint={members && t('dashboardPage.stats.admins', { count: members.filter((member) => member.role === ROLE.ADMIN).length })}
 						icon={Users}
 						tone='brand'
-						link={{ label: t('dashboardPage.stats.showMembers'), to: '/projects/$projectSlug/members', params: { projectSlug } }}
+						link={
+							canManageProject
+								? { label: t('dashboardPage.stats.showMembers'), to: '/projects/$projectSlug/members', params: { projectSlug } }
+								: undefined
+						}
 					/>
 				</section>
 			)}
@@ -120,7 +126,7 @@ const DashboardPage = () => {
 				</div>
 			)}
 			<div className='grid grid-cols-1 gap-5 lg:grid-cols-[11fr_9fr]'>
-				<LanguageStatus projectId={projectId} projectSlug={projectSlug} manageable={me?.role !== ROLE.VISITOR} />
+				<LanguageStatus projectId={projectId} projectSlug={projectSlug} manageable={canManageProject} />
 				<ActivityFeed projectId={projectId} projectSlug={projectSlug} />
 			</div>
 			<DailyActivity projectId={projectId} />

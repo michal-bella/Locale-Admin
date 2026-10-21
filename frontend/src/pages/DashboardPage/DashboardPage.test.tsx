@@ -194,13 +194,16 @@ describe('DashboardPage', () => {
 		expect(screen.getByRole('link', { name: 'Spravovať jazyky' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/languages`)
 	})
 
-	it('hides Spravovať jazyky from a VISITOR and keeps the links to Preklady', async () => {
+	it('hides Spravovať jazyky and Zobraziť členov from a VISITOR and keeps the links to Preklady', async () => {
 		signedInAs(VISITOR_USER, routes())
 		renderApp(PAGE_PATH)
 
 		const list = within(await screen.findByRole('list', { name: 'Stav jazykov' }))
 		expect(list.getByRole('link', { name: /^Angličtina: zobraziť nepreložené kľúče/ })).toBeInTheDocument()
 		expect(screen.queryByRole('link', { name: 'Spravovať jazyky' })).not.toBeInTheDocument()
+		const members = await findCard('Členovia')
+		await waitFor(() => expect(text(members)).toContain('administrátor'))
+		expect(within(members).queryByRole('link', { name: 'Zobraziť členov' })).not.toBeInTheDocument()
 		expect(screen.getByRole('link', { name: 'Otvoriť preklady' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/translations`)
 	})
 

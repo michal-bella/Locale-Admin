@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Oprava: Zobraziť členov pre Návštevníka (2026-10-21)
+
+- frontend: karta Členovia na Prehľade nemá pre Návštevníka odkaz **Zobraziť členov** (stránka Členovia je preň 403) ([Frontend](./frontend.md#stránka-prehľad-projektu))
+
 ### Rola Návštevník – E2E a dokumentácia (2026-10-21)
 
 - e2e: `visitor.spec.ts` (sidebar, 403 stránky, read-only Preklady s axe skenom, export, 403 z API, zoznam projektov) a `createVisitor` v `support/users.ts`; prehľad rolí v [overview](./overview.md) ([Testovanie](./testing.md#e2e-testy-playwright))

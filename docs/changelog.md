@@ -10,6 +10,7 @@ notion_page_id:
 
 ### Banner upozornení na premenné (2026-10-21)
 
+- e2e: `translations.spec.ts` overí banner, filter `?warnings=true` aj jeho zrušenie na projekte z `import-sample.csv` ([Testovanie](./testing.md#e2e-testy-playwright))
 - frontend: stránka Preklady ukáže žltý banner s počtom kľúčov, ktorých premenné sa líšia od základného jazyka, a tlačidlom **Zobraziť upozornenia** (filter `?warnings=true`), resp. **Zrušiť filter upozornení** ([Frontend](./frontend.md#stránka-preklady))
 
 ### Upozornenia na premenné – filter a počet v API (2026-10-21)

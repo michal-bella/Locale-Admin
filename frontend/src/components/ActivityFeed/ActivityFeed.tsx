@@ -78,6 +78,8 @@ const ActivityFeed = ({ projectId, projectSlug }: ActivityFeedProps) => {
 				}
 				return t('dashboardPage.activity.events.keysImported', { changes: list(parts) })
 			}
+			case ACTIVITY_TYPE.KEY_CREATED:
+				return t('dashboardPage.activity.events.keyCreated', { key: event.payload.name })
 			case ACTIVITY_TYPE.KEY_UPDATED:
 				return t('dashboardPage.activity.events.keyUpdated', {
 					key: event.payload.name,

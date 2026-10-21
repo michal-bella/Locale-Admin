@@ -257,6 +257,7 @@
 		"title": "Překlady",
 		"description": "Spravujte texty a překlady svého projektu na jednom místě.",
 		"importButton": "Importovat",
+		"createKeyButton": "Přidat klíč",
 		"stats": {
 			"totalKeys": "Celkem klíčů",
 			"translated": "Přeložené",
@@ -398,6 +399,28 @@
 			"submit": "Uložit",
 			"success": "Klíč {{key}} byl uložen."
 		},
+		"createKeyModal": {
+			"title": "Přidat klíč",
+			"description": "Klíč přibude do existujícího namespace. Prázdné překlady zůstanou nepřeložené.",
+			"close": "Zavřít",
+			"name": {
+				"label": "Klíč",
+				"placeholder": "např. orders.empty.title"
+			},
+			"namespace": {
+				"label": "Namespace",
+				"description": "Pouze existující namespace projektu.",
+				"placeholder": "Vyberte namespace",
+				"empty": "Bez namespace"
+			},
+			"value": {
+				"base": "Základní jazyk – referenční text pro ostatní jazyky.",
+				"placeholder": "Volitelné"
+			},
+			"cancel": "Zrušit",
+			"submit": "Přidat",
+			"success": "Klíč {{key}} byl přidán."
+		},
 		"pagination": {
 			"pageSize": "Klíčů na stránku",
 			"label": "Stránkování",
@@ -486,6 +509,7 @@
 				"newKeyCount_few": "{{count}} nové klíče",
 				"newKeyCount_many": "{{count}} nového klíče",
 				"newKeyCount_other": "{{count}} nových klíčů",
+				"keyCreated": "nový klíč {{key}}",
 				"keyUpdated": "úprava klíče {{key}}: {{fields}}",
 				"translationUpdated": "úprava překladu {{key}} ({{language}})"
 			},

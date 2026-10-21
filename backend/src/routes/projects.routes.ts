@@ -28,6 +28,7 @@ import {
 import {
 	createListTranslationsController,
 	createUpdateTranslationController,
+	createCreateTranslationKeyController,
 	createUpdateTranslationKeyController,
 } from '../controllers/translations.controller'
 import { type PrismaClient } from '../lib/prisma'
@@ -57,6 +58,7 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.get('/:projectId/activity/daily', requireProjectAccess, createGetActivityDailyController(prisma))
 	router.get('/:projectId/translations', requireProjectAccess, createListTranslationsController(prisma))
 	router.put('/:projectId/keys/:keyId/translations/:languageId', requireProjectAccess, createUpdateTranslationController(prisma))
+	router.post('/:projectId/keys', requireProjectAccess, requireRole(ROLE.ADMIN), createCreateTranslationKeyController(prisma))
 	router.patch('/:projectId/keys/:keyId', requireProjectAccess, requireRole(ROLE.ADMIN), createUpdateTranslationKeyController(prisma))
 	router.get('/:projectId/export', requireProjectAccess, createExportController(prisma, config))
 	// The default JSON parser skips /imports*: every route under this prefix gets the 12 MB parser, after the access and role check.

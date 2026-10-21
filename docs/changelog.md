@@ -8,6 +8,12 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Ručné pridanie kľúča (2026-10-21)
+
+- API: `POST /api/projects/:projectId/keys` iba pre `ADMIN` pridá kľúč do existujúceho namespace projektu s voliteľnými hodnotami jazykov; neexistujúci namespace → 400 `VALIDATION_ERROR`, obsadený názov → 409 `TRANSLATION_KEY_TAKEN`, iné premenné ako základný jazyk → 400 `PLACEHOLDER_MISMATCH` s `languageId` ([API](./api/translations.md#post-apiprojectsprojectidkeys))
+- databáza: nová hodnota `KEY_CREATED` v enume `ACTIVITY_TYPE` (migrácia `activity_key_created`), Prehľad ju ukáže ako „nový kľúč …“ ([Databáza](./database.md))
+- frontend: tlačidlo **Pridať kľúč** na stránke Preklady (iba `ADMIN`, iba ak má projekt kľúče) otvorí modál s kľúčom, namespace a poľom pre každý jazyk; po uložení stránka vyhľadá nový kľúč ([Frontend](./frontend.md#modál-pridať-kľúč))
+
 ### Ovládanie zobrazenia prekladov oddelené od filtrov (2026-10-21)
 
 - frontend: zobrazenie, rozloženie, jazyky a **Len preklady** sú v samostatnom riadku nad kartou tabuľky (`TranslationsViewControls`) a odrolujú sa; v sticky hlavičke karty ostali iba filtre v jednom zalamovanom riadku ([Frontend](./frontend.md))

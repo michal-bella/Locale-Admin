@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Rola Návštevník – výber roly v aplikácii (2026-10-21)
+
+- frontend: modál Vytvoriť používateľa ponúka aj rolu **Návštevník** s popisom; select roly v detaile používateľa a na profile ju majú z enumu, `RoleBadge` ju ukáže tlmene ako Editora ([Frontend](./frontend.md#správa-používateľov))
+
 ### Rola Návštevník – obmedzenia API (2026-10-21)
 
 - API: `PUT /api/projects/:projectId/keys/:keyId/translations/:languageId` a `DELETE /api/projects/:projectId/membership` vrátia členovi s rolou `VISITOR` 403 `FORBIDDEN`; zoznam prekladov, Prehľad a export mu ostávajú ([API](./api/translations.md#put-apiprojectsprojectidkeyskeyidtranslationslanguageid), [projekty](./api/projects.md#delete-apiprojectsprojectidmembership))

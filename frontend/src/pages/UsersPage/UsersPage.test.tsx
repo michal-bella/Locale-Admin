@@ -278,6 +278,25 @@ describe('CreateUserModal', () => {
 		expect(JSON.parse(post?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password', role: 'ADMIN' })
 	})
 
+	it('offers Návštevník, explains it and sends VISITOR when picked', async () => {
+		const requests = signedInAs(ADMIN_USER, {
+			'GET /admin/users': usersResponse([JANA]),
+			'POST /admin/users': { status: 201, data: { ...NEW_USER, role: ROLE.VISITOR } },
+		})
+		renderApp('/admin/users')
+		const dialog = await openModal()
+
+		const group = within(dialog).getByRole('radiogroup', { name: 'Rola' })
+		expect(within(group).getAllByRole('radio')).toHaveLength(3)
+		fireEvent.click(within(group).getByRole('radio', { name: 'Návštevník' }))
+		expect(group).toHaveAccessibleDescription('Iba číta a exportuje preklady v projektoch, do ktorých ho pridá administrátor.')
+		fillAndSubmit(dialog, 'nova@firma.sk', 'long-enough-password')
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		const post = requests.find((request) => request.method === 'post')
+		expect(JSON.parse(post?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password', role: 'VISITOR' })
+	})
+
 	it('sends one request when the form is submitted twice while pending', async () => {
 		const posts = mockPendingCreate()
 		renderApp('/admin/users')

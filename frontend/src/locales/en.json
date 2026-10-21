@@ -271,6 +271,12 @@
 			"showMissing": "Show untranslated",
 			"showAll": "Show all"
 		},
+		"warnings": {
+			"message_one": "{{count}} key has variables that differ from the base language, for example after an import.",
+			"message_other": "{{count}} keys have variables that differ from the base language, for example after an import.",
+			"show": "Show warnings",
+			"clear": "Clear the warnings filter"
+		},
 		"toolbar": {
 			"search": {
 				"label": "Search key or translation",

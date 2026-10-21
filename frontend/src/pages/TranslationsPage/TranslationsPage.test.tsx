@@ -553,6 +553,40 @@ describe('TranslationsPage', () => {
 		expect(screen.queryByRole('button', { name: 'Importovať' })).not.toBeInTheDocument()
 	})
 
+	it('shows the warnings banner with the count, filters by warnings from it and clears the filter again', async () => {
+		const requests = mockPage({ translations: response({ stats: { totalKeys: 248, translated: 221, untranslated: 27, warnings: 3 } }) })
+		const router = renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		const banner = screen.getByRole('alert')
+		expect(banner).toHaveTextContent('3 kľúče majú premenné, ktoré sa líšia od základného jazyka, napríklad po importe.')
+		fireEvent.click(within(banner).getByRole('button', { name: 'Zobraziť upozornenia' }))
+		await waitFor(() => expect(router.state.location.search).toEqual({ warnings: true }))
+		await waitFor(() => expect(lastParams(requests)).toMatchObject({ warnings: true }))
+		expect(lastParams(requests)).toMatchObject({ page: 1 })
+
+		fireEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Zrušiť filter upozornení' }))
+		await waitFor(() => expect(router.state.location.search).toEqual({}))
+		await waitFor(() => expect(lastParams(requests).warnings).toBeUndefined())
+	})
+
+	it('shows no warnings banner when no key has a warning, unless the filter is on in the URL', async () => {
+		mockPage()
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+	})
+
+	it('keeps the banner with Zrušiť filter when the URL filter is on and nothing matches, and Zrušiť filtre drops it too', async () => {
+		mockPage({ translations: response({ items: [], total: 0 }) })
+		const router = renderApp(`${PAGE_PATH}?warnings=true`)
+
+		expect(await findVisibleText('Filtrom nezodpovedá žiadny kľúč.')).toBeInTheDocument()
+		expect(within(screen.getByRole('alert')).getByRole('button', { name: 'Zrušiť filter upozornení' })).toBeInTheDocument()
+		fireEvent.click(screen.getByRole('button', { name: 'Zrušiť filtre' }))
+		await waitFor(() => expect(router.state.location.search).toEqual({}))
+	})
+
 	it('shows the key description as an info icon with a tooltip instead of text under the key', async () => {
 		const [first, ...rest] = ITEMS
 		mockPage({ translations: response({ items: [{ ...(first as TranslationListItem), description: 'Shown above the order list' }, ...rest] }) })

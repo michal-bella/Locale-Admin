@@ -24,6 +24,7 @@ import TranslationsPagination from '@/components/TranslationsPagination/Translat
 import TranslationsTable from '@/components/TranslationsTable/TranslationsTable'
 import TranslationsToolbar from '@/components/TranslationsToolbar/TranslationsToolbar'
 import TranslationsViewControls from '@/components/TranslationsViewControls/TranslationsViewControls'
+import TranslationsWarningsBanner from '@/components/TranslationsWarningsBanner/TranslationsWarningsBanner'
 import { TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsPage.module.css'
@@ -80,6 +81,7 @@ const TranslationsPage = () => {
 		namespace: search.namespace,
 		updatedById: search.updatedBy,
 		updatedWithin: search.updatedWithin,
+		warnings: search.warnings,
 		sort,
 		page,
 		pageSize,
@@ -121,7 +123,8 @@ const TranslationsPage = () => {
 		}
 	}, [isPastEnd, lastPage, navigate])
 
-	const clearFilters = () => updateSearch({ search: undefined, status: undefined, namespace: undefined, updatedBy: undefined, updatedWithin: undefined })
+	const clearFilters = () =>
+		updateSearch({ search: undefined, status: undefined, namespace: undefined, updatedBy: undefined, updatedWithin: undefined, warnings: undefined })
 
 	const retry = async () => {
 		const languagesResult = languagesQuery.isError ? await languagesQuery.refetch() : languagesQuery
@@ -187,8 +190,23 @@ const TranslationsPage = () => {
 					status={search.status}
 					// The cards count every key of the project, so a card drops the other row filters to show exactly its number.
 					onStatusChange={(value) =>
-						updateSearch({ search: undefined, namespace: undefined, updatedBy: undefined, updatedWithin: undefined, status: value })
+						updateSearch({
+							search: undefined,
+							namespace: undefined,
+							updatedBy: undefined,
+							updatedWithin: undefined,
+							warnings: undefined,
+							status: value,
+						})
 					}
+				/>
+			)}
+			{!isError && !isPending && data && (data.stats.warnings > 0 || search.warnings) && (
+				<TranslationsWarningsBanner
+					count={data.stats.warnings}
+					active={search.warnings === true}
+					onShow={() => updateSearch({ warnings: true })}
+					onClear={() => updateSearch({ warnings: undefined })}
 				/>
 			)}
 			{/* The view controls sit close above the card they configure; only the filters inside it stick. */}
@@ -272,6 +290,7 @@ const TranslationsPage = () => {
 							status: undefined,
 							updatedBy: undefined,
 							updatedWithin: undefined,
+							warnings: undefined,
 						})
 					}
 				/>

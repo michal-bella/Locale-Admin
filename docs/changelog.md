@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Banner upozornení na premenné (2026-10-21)
+
+- frontend: stránka Preklady ukáže žltý banner s počtom kľúčov, ktorých premenné sa líšia od základného jazyka, a tlačidlom **Zobraziť upozornenia** (filter `?warnings=true`), resp. **Zrušiť filter upozornení** ([Frontend](./frontend.md#stránka-preklady))
+
 ### Upozornenia na premenné – filter a počet v API (2026-10-21)
 
 - API: `GET …/translations` má filter `warnings=true` (iba kľúče s bunkou s upozornením) a `stats.warnings` (počet takých kľúčov v projekte, bez filtrov) ([API](./api/translations.md#get-apiprojectsprojectidtranslations))

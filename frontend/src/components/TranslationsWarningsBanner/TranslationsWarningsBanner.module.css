@@ -1,0 +1,16 @@
+.root {
+	border: 1px solid var(--mantine-color-yellow-3);
+}
+
+[data-mantine-color-scheme='dark'] .root {
+	border-color: var(--mantine-color-yellow-8);
+}
+
+.message {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem 1rem;
+	color: var(--app-color-text-strong);
+}

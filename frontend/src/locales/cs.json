@@ -331,6 +331,7 @@
 			"key": "Klíč",
 			"status": "Stav",
 			"noGroup": "Bez skupiny",
+			"description": "Popis klíče: {{description}}",
 			"emptyValue": "Bez překladu",
 			"loadError": "Překlady se nepodařilo načíst.",
 			"retry": "Zkusit znovu",
@@ -421,7 +422,6 @@
 				"empty": "Bez namespace"
 			},
 			"value": {
-				"base": "Základní jazyk – referenční text pro ostatní jazyky.",
 				"placeholder": "Volitelné"
 			},
 			"cancel": "Zrušit",

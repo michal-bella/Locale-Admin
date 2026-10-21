@@ -329,6 +329,7 @@
 			"key": "Key",
 			"status": "Status",
 			"noGroup": "No group",
+			"description": "Key description: {{description}}",
 			"emptyValue": "No translation",
 			"loadError": "The translations could not be loaded.",
 			"retry": "Try again",
@@ -419,7 +420,6 @@
 				"empty": "No namespace"
 			},
 			"value": {
-				"base": "Base language – the reference text for the other languages.",
 				"placeholder": "Optional"
 			},
 			"cancel": "Cancel",

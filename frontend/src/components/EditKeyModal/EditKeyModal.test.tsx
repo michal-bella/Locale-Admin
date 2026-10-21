@@ -138,7 +138,7 @@ describe('EditKeyModal', () => {
 		renderApp(PAGE_PATH)
 		await screen.findByText('dashboard.welcome')
 		const edit = screen.getByRole('button', { name: 'Upraviť kľúč dashboard.welcome' })
-		expect(screen.getByText('Greeting on the dashboard')).toBeInTheDocument()
+		expect(screen.getByRole('img', { name: 'Popis kľúča: Greeting on the dashboard' })).toBeInTheDocument()
 
 		// Keyboard users see the tooltip too.
 		fireEvent.focus(edit)
@@ -150,7 +150,7 @@ describe('EditKeyModal', () => {
 		renderApp(PAGE_PATH)
 		await screen.findByText('dashboard.welcome')
 		expect(screen.queryByRole('button', { name: /Upraviť kľúč/ })).not.toBeInTheDocument()
-		expect(screen.getByText('Greeting on the dashboard')).toBeInTheDocument()
+		expect(screen.getByRole('img', { name: 'Popis kľúča: Greeting on the dashboard' })).toBeInTheDocument()
 	})
 
 	it('opens with the key, the description and the plural setting of the key', async () => {

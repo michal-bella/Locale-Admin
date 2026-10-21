@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vite-plus/test'
 import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { installUnauthorizedInterceptor } from '@/api/unauthorizedInterceptor'
-import { ADMIN_USER, apiError, EDITOR_USER, mockApi, projectListRoute, signedInAs, signedOut } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, mockApi, projectListRoute, signedInAs, signedOut, VISITOR_USER } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 describe('route guards', () => {
@@ -61,6 +61,38 @@ describe('route guards', () => {
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Preklady' })).toBeInTheDocument()
 		expect(router.state.location.pathname).toBe(`/projects/${project.slug}/translations`)
+	})
+
+	describe('VISITOR', () => {
+		const project = { id: '00000000-0000-4000-8000-000000000602', name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C' }
+		const routes = {
+			...projectListRoute(project),
+			[`GET /projects/${project.id}/settings`]: { status: 200, data: { ...project, protectVariables: true, baseLanguageId: null } },
+			[`GET /projects/${project.id}/languages`]: { status: 200, data: [] },
+		}
+
+		it.each(['settings', 'languages', 'members'])('shows the 403 page on the project %s page and keeps the URL', async (page) => {
+			const requests = signedInAs(VISITOR_USER, routes)
+			const router = renderApp(`/projects/${project.slug}/${page}`)
+
+			expect(await screen.findByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeInTheDocument()
+			expect(router.state.location.pathname).toBe(`/projects/${project.slug}/${page}`)
+			expect(requests.some((request) => request.url === `/projects/${project.id}/members`)).toBe(false)
+		})
+
+		it('opens the translations and the dashboard', async () => {
+			signedInAs(VISITOR_USER, routes)
+			renderApp(`/projects/${project.slug}/translations`)
+
+			expect(await screen.findByRole('heading', { level: 1, name: 'Preklady' })).toBeInTheDocument()
+		})
+
+		it('shows the 403 page on /admin/users', async () => {
+			signedInAs(VISITOR_USER)
+			renderApp('/admin/users')
+
+			expect(await screen.findByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeInTheDocument()
+		})
 	})
 
 	it('shows the users page to an ADMIN', async () => {

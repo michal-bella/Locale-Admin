@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { ROLE } from '@locale/shared'
 
+import { useMeQuery } from '@/api/auth/meQuery'
 import { useDashboardQuery } from '@/api/dashboard/dashboardQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
@@ -28,6 +29,7 @@ const DashboardPage = () => {
 	const { t, i18n } = useTranslation()
 	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { projectSlug } = useParams({ from: '/_authenticated/_app/projects/$projectSlug/dashboard' })
+	const { data: me } = useMeQuery()
 	const { data: project } = useProjectSettingsQuery(projectId)
 	const dashboardQuery = useDashboardQuery(projectId)
 	const languagesQuery = useProjectLanguagesQuery(projectId)
@@ -118,7 +120,7 @@ const DashboardPage = () => {
 				</div>
 			)}
 			<div className='grid grid-cols-1 gap-5 lg:grid-cols-[11fr_9fr]'>
-				<LanguageStatus projectId={projectId} projectSlug={projectSlug} />
+				<LanguageStatus projectId={projectId} projectSlug={projectSlug} manageable={me?.role !== ROLE.VISITOR} />
 				<ActivityFeed projectId={projectId} projectSlug={projectSlug} />
 			</div>
 			<DailyActivity projectId={projectId} />

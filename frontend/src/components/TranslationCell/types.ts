@@ -8,6 +8,6 @@ export type TranslationCellProps = {
 	pluralTag?: string
 	/** See `TranslationValue`. */
 	reference?: string
-	/** Opens the edit modal for this key and language. */
-	onClick: () => void
+	/** Opens the edit modal for this key and language; without it the cell is plain text (a VISITOR). */
+	onClick?: () => void
 }

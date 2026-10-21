@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Rola Návštevník – obmedzenia v aplikácii (2026-10-21)
+
+- frontend: Návštevník má v projekte iba Preklady a Prehľad (sidebar, guard 403 na Nastavenia, Jazyky a Členovia), tabuľka prekladov je iba na čítanie (bunky sú text, modál Upraviť preklad sa neotvára), ostáva mu filtrovanie, zobrazenie a **Exportovať**; na Prehľade nemá Spravovať jazyky, v zozname projektov nemá Nastavenia ani Opustiť projekt ([Frontend](./frontend.md#guardy))
+
 ### Rola Návštevník – výber roly v aplikácii (2026-10-21)
 
 - frontend: modál Vytvoriť používateľa ponúka aj rolu **Návštevník** s popisom; select roly v detaile používateľa a na profile ju majú z enumu, `RoleBadge` ju ukáže tlmene ako Editora ([Frontend](./frontend.md#správa-používateľov))

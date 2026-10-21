@@ -7,7 +7,7 @@ import { type ProjectListItem, type ProjectSettings, SUPPORTED_LANGUAGES } from 
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
-import { ADMIN_USER, apiError, EDITOR_USER, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, signedInAs, VISITOR_USER } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const BOOKING: ProjectListItem = {
@@ -203,6 +203,16 @@ describe('ProjectsPage list', () => {
 		expect(list.getByRole('button', { name: 'Opustiť projekt Booking Web' })).toBeInTheDocument()
 		expect(list.getByRole('link', { name: 'Nastavenia projektu Demo project' })).toHaveAttribute('href', `/projects/${DEMO.slug}/settings`)
 		expect(list.queryByRole('button', { name: 'Opustiť projekt Demo project' })).not.toBeInTheDocument()
+	})
+
+	it('shows a VISITOR neither Nastavenia nor Opustiť projekt', async () => {
+		signedInAs(VISITOR_USER, { 'GET /projects': projectsResponse([BOOKING]) })
+		renderApp('/')
+
+		const list = within(await waitFor(getList))
+		expect(list.getByRole('link', { name: 'Booking Web' })).toBeInTheDocument()
+		expect(list.queryByRole('link', { name: /^Nastavenia projektu/ })).not.toBeInTheDocument()
+		expect(list.queryByRole('button', { name: /^Opustiť projekt/ })).not.toBeInTheDocument()
 	})
 
 	it('opens the project settings from the settings icon', async () => {

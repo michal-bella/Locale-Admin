@@ -10,43 +10,44 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 
 ## Endpointy
 
-| Metóda   | Cesta                                                           | Popis                                                                                                       |
-| -------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/api/health`                                                   | stav backendu a databázy, [detail](./health.md)                                                             |
-| `POST`   | `/api/auth/login`                                               | prihlásenie, session cookie, [detail](./auth.md)                                                            |
-| `POST`   | `/api/auth/logout`                                              | odhlásenie, [detail](./auth.md)                                                                             |
-| `GET`    | `/api/auth/me`                                                  | prihlásený používateľ, [detail](./auth.md)                                                                  |
-| `GET`    | `/api/admin/projects`                                           | všetky projekty s počtami (ADMIN), [detail](./admin-projects.md)                                            |
-| `DELETE` | `/api/admin/projects/:projectId`                                | zmazanie projektu (ADMIN), [detail](./admin-projects.md)                                                    |
-| `GET`    | `/api/admin/users`                                              | zoznam všetkých používateľov (ADMIN), [detail](./admin-users.md)                                            |
-| `GET`    | `/api/admin/users/:id`                                          | detail používateľa s jeho projektmi (ADMIN), [detail](./admin-users.md)                                     |
-| `POST`   | `/api/admin/users`                                              | vytvorenie používateľa s rolou (ADMIN), [detail](./admin-users.md)                                          |
-| `DELETE` | `/api/admin/users/:id`                                          | odstránenie používateľa (ADMIN), [detail](./admin-users.md)                                                 |
-| `GET`    | `/api/projects`                                                 | projekty používateľa (ADMIN všetky), [detail](./projects.md)                                                |
-| `POST`   | `/api/projects`                                                 | vytvorenie projektu, [detail](./projects.md)                                                                |
-| `DELETE` | `/api/projects/:projectId/membership`                           | opustenie projektu, [detail](./projects.md)                                                                 |
-| `GET`    | `/api/projects/:projectId/settings`                             | nastavenia projektu (člen, ADMIN), [detail](./projects.md)                                                  |
-| `PATCH`  | `/api/projects/:projectId/settings`                             | uloženie nastavení projektu, základný jazyk iba ADMIN, [detail](./projects.md)                              |
-| `GET`    | `/api/projects/:projectId/languages`                            | jazyky projektu (člen, ADMIN), [detail](./project-languages.md)                                             |
-| `POST`   | `/api/projects/:projectId/languages`                            | pridanie jazyka do projektu (člen, ADMIN), [detail](./project-languages.md)                                 |
-| `PUT`    | `/api/projects/:projectId/languages/order`                      | poradie jazykov projektu, prvý je základný (člen, ADMIN), [detail](./project-languages.md)                  |
-| `DELETE` | `/api/projects/:projectId/languages/:languageId`                | odobratie jazyka z projektu (člen, ADMIN), [detail](./project-languages.md)                                 |
-| `GET`    | `/api/projects/:projectId/members`                              | členovia projektu (člen, ADMIN), [detail](./projects.md)                                                    |
-| `POST`   | `/api/projects/:projectId/members`                              | pridanie existujúceho používateľa do projektu (ADMIN), [detail](./projects.md)                              |
-| `DELETE` | `/api/projects/:projectId/members/:userId`                      | odobranie člena z projektu (ADMIN), [detail](./projects.md)                                                 |
-| `GET`    | `/api/projects/:projectId/dashboard`                            | štatistiky kľúčov a prekladov projektu (člen, ADMIN), [detail](./dashboard.md)                              |
-| `GET`    | `/api/projects/:projectId/activity`                             | feed aktivity projektu, stránkovanie kurzorom (člen, ADMIN), [detail](./dashboard.md)                       |
-| `GET`    | `/api/projects/:projectId/activity/daily`                       | denné súčty zmien a najaktívnejší členovia (člen, ADMIN), [detail](./dashboard.md)                          |
-| `GET`    | `/api/projects/:projectId/translations`                         | zoznam prekladov projektu (člen, ADMIN), [detail](./translations.md)                                        |
-| `PUT`    | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | uloženie prekladu kľúča v jazyku (člen, ADMIN), [detail](./translations.md)                                 |
-| `POST`   | `/api/projects/:projectId/keys`                                 | ručné pridanie kľúča do existujúceho namespace (iba ADMIN), [detail](./translations.md)                     |
-| `PATCH`  | `/api/projects/:projectId/keys/:keyId`                          | úprava kľúča: názov, popis, plurál (iba ADMIN), [detail](./translations.md)                                 |
-| `POST`   | `/api/projects/:projectId/imports/preview`                      | kontrola súboru pred importom, nič nezapíše (iba ADMIN), [detail](./imports.md)                             |
-| `POST`   | `/api/projects/:projectId/imports`                              | import súboru do projektu (iba ADMIN), [detail](./imports.md)                                               |
-| `GET`    | `/api/projects/:projectId/export`                               | export prekladov do CSV (člen, ADMIN), [detail](./exports.md)                                               |
-| `GET`    | `/api/profile`                                                  | profil prihláseného používateľa, [detail](./profile.md)                                                     |
-| `PATCH`  | `/api/profile`                                                  | úprava mena a priezviska, [detail](./profile.md)                                                            |
-| `PATCH`  | `/api/profile/preferences`                                      | zobrazenie a rozloženie stránky Preklady (`translationsView`, `translationsLayout`), [detail](./profile.md) |
+| Metóda   | Cesta                                                           | Popis                                                                                                          |
+| -------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/health`                                                   | stav backendu a databázy, [detail](./health.md)                                                                |
+| `POST`   | `/api/auth/login`                                               | prihlásenie, session cookie, [detail](./auth.md)                                                               |
+| `POST`   | `/api/auth/logout`                                              | odhlásenie, [detail](./auth.md)                                                                                |
+| `GET`    | `/api/auth/me`                                                  | prihlásený používateľ, [detail](./auth.md)                                                                     |
+| `GET`    | `/api/admin/projects`                                           | všetky projekty s počtami (ADMIN), [detail](./admin-projects.md)                                               |
+| `DELETE` | `/api/admin/projects/:projectId`                                | zmazanie projektu (ADMIN), [detail](./admin-projects.md)                                                       |
+| `GET`    | `/api/admin/users`                                              | zoznam všetkých používateľov (ADMIN), [detail](./admin-users.md)                                               |
+| `GET`    | `/api/admin/users/:id`                                          | detail používateľa s jeho projektmi (ADMIN), [detail](./admin-users.md)                                        |
+| `POST`   | `/api/admin/users`                                              | vytvorenie používateľa s rolou (ADMIN), [detail](./admin-users.md)                                             |
+| `DELETE` | `/api/admin/users/:id`                                          | odstránenie používateľa (ADMIN), [detail](./admin-users.md)                                                    |
+| `GET`    | `/api/projects`                                                 | projekty používateľa (ADMIN všetky), [detail](./projects.md)                                                   |
+| `POST`   | `/api/projects`                                                 | vytvorenie projektu, [detail](./projects.md)                                                                   |
+| `DELETE` | `/api/projects/:projectId/membership`                           | opustenie projektu, [detail](./projects.md)                                                                    |
+| `GET`    | `/api/projects/:projectId/settings`                             | nastavenia projektu (člen, ADMIN), [detail](./projects.md)                                                     |
+| `PATCH`  | `/api/projects/:projectId/settings`                             | uloženie nastavení projektu, základný jazyk iba ADMIN, [detail](./projects.md)                                 |
+| `GET`    | `/api/projects/:projectId/languages`                            | jazyky projektu (člen, ADMIN), [detail](./project-languages.md)                                                |
+| `POST`   | `/api/projects/:projectId/languages`                            | pridanie jazyka do projektu (člen, ADMIN), [detail](./project-languages.md)                                    |
+| `PUT`    | `/api/projects/:projectId/languages/order`                      | poradie jazykov projektu, prvý je základný (člen, ADMIN), [detail](./project-languages.md)                     |
+| `DELETE` | `/api/projects/:projectId/languages/:languageId`                | odobratie jazyka z projektu (člen, ADMIN), [detail](./project-languages.md)                                    |
+| `GET`    | `/api/projects/:projectId/members`                              | členovia projektu (člen, ADMIN), [detail](./projects.md)                                                       |
+| `POST`   | `/api/projects/:projectId/members`                              | pridanie existujúceho používateľa do projektu (ADMIN), [detail](./projects.md)                                 |
+| `DELETE` | `/api/projects/:projectId/members/:userId`                      | odobranie člena z projektu (ADMIN), [detail](./projects.md)                                                    |
+| `GET`    | `/api/projects/:projectId/dashboard`                            | štatistiky kľúčov a prekladov projektu (člen, ADMIN), [detail](./dashboard.md)                                 |
+| `GET`    | `/api/projects/:projectId/activity`                             | feed aktivity projektu, stránkovanie kurzorom (člen, ADMIN), [detail](./dashboard.md)                          |
+| `GET`    | `/api/projects/:projectId/activity/daily`                       | denné súčty zmien a najaktívnejší členovia (člen, ADMIN), [detail](./dashboard.md)                             |
+| `GET`    | `/api/projects/:projectId/translations`                         | zoznam prekladov projektu (člen, ADMIN), [detail](./translations.md)                                           |
+| `PUT`    | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | uloženie prekladu kľúča v jazyku (člen, ADMIN), [detail](./translations.md)                                    |
+| `POST`   | `/api/projects/:projectId/keys`                                 | ručné pridanie kľúča do existujúceho namespace (iba ADMIN), [detail](./translations.md)                        |
+| `PATCH`  | `/api/projects/:projectId/keys/:keyId`                          | úprava kľúča: názov, popis, plurál (iba ADMIN), [detail](./translations.md)                                    |
+| `POST`   | `/api/projects/:projectId/imports/preview`                      | kontrola súboru pred importom, nič nezapíše (iba ADMIN), [detail](./imports.md)                                |
+| `POST`   | `/api/projects/:projectId/imports`                              | import súboru do projektu (iba ADMIN), [detail](./imports.md)                                                  |
+| `GET`    | `/api/projects/:projectId/export`                               | export prekladov do CSV (člen, ADMIN), [detail](./exports.md)                                                  |
+| `GET`    | `/api/projects/:projectId/export/check`                         | upozornenia na premenné pred exportom (člen, ADMIN), [detail](./exports.md#kontrola-pred-exportom-exportcheck) |
+| `GET`    | `/api/profile`                                                  | profil prihláseného používateľa, [detail](./profile.md)                                                        |
+| `PATCH`  | `/api/profile`                                                  | úprava mena a priezviska, [detail](./profile.md)                                                               |
+| `PATCH`  | `/api/profile/preferences`                                      | zobrazenie a rozloženie stránky Preklady (`translationsView`, `translationsLayout`), [detail](./profile.md)    |
 
 ## Chybový kontrakt
 

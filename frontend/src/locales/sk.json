@@ -713,6 +713,16 @@
 			"more_few": "… a ešte {{count}} ďalšie.",
 			"more_many": "… a ešte {{count}} ďalších.",
 			"more_other": "… a ešte {{count}} ďalších."
+		},
+		"warnings": {
+			"title_one": "{{count}} upozornenie",
+			"title_few": "{{count}} upozornenia",
+			"title_many": "{{count}} upozornení",
+			"title_other": "{{count}} upozornení",
+			"description": "Tieto preklady majú iné premenné ako základný jazyk. Export prebehne aj tak, ale pred ním ich odporúčame opraviť.",
+			"item": "„{{key}}“ ({{language}}): {{details}}.",
+			"missing": "chýba {{list}}",
+			"extra": "navyše {{list}}"
 		}
 	},
 	"importIssues": {

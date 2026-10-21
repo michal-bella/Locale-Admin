@@ -8,9 +8,10 @@ notion_page_id:
 
 Stiahnutie prekladov projektu ako súbor CSV alebo XLSX; JSON a ARB prídu neskôr. Exportovať môže každý člen projektu aj `ADMIN` (importovať iba `ADMIN`). Schémy sú v `packages/shared/src/exports.ts`, plán v `docs/plans/translations-export.md`.
 
-| Metóda | Cesta                             | Prístup            | Popis                             |
-| ------ | --------------------------------- | ------------------ | --------------------------------- |
-| `GET`  | `/api/projects/:projectId/export` | člen alebo `ADMIN` | CSV s prekladmi vybraných jazykov |
+| Metóda | Cesta                                   | Prístup            | Popis                                 |
+| ------ | --------------------------------------- | ------------------ | ------------------------------------- |
+| `GET`  | `/api/projects/:projectId/export`       | člen alebo `ADMIN` | CSV s prekladmi vybraných jazykov     |
+| `GET`  | `/api/projects/:projectId/export/check` | člen alebo `ADMIN` | upozornenia na premenné pred exportom |
 
 Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). Je to `GET`, nič nemení, CSRF hlavičky netreba.
 
@@ -84,6 +85,12 @@ Limit je v pamäti procesu, pri 2 podoch teda naraz bežia najviac 4 exporty. Va
 | `SECTION_MARKER` | riadok obsahuje `--x--` (aj cez hranicu polí); kontroluje sa len pri riadku bez ostatných chýb                                                                   | `null`                          |
 
 Kontrolujú sa iba exportované kľúče a jazyky (po filtri stavu). Medzera na začiatku alebo konci hodnoty export neblokuje, skript ju len oreže (rovnako ako náš import).
+
+## Kontrola pred exportom (`/export/check`)
+
+`GET /api/projects/:projectId/export/check?languageIds=…&status=…` (schéma `exportCheckQuerySchema`, rovnaké parametre ako export bez `format`) vráti hodnoty, ktorých premenné sa líšia od základného jazyka. Je to iba informácia: export prebehne aj s nimi, modál ich ukáže ako upozornenie. Kontrolujú sa tie isté kľúče ako pri exporte (filter stavu cez vybrané jazyky) a iba vybrané nezákladné jazyky; referencia je hodnota základného jazyka aj vtedy, keď základný jazyk nie je medzi exportovanými, alebo názov kľúča, ak je základný jazyk prázdny a názov premenné obsahuje (rovnako ako kontrola pri úprave a importe). Prázdna hodnota sa nekontroluje.
+
+Odpoveď 200 (`exportCheckResponseSchema`): `{ warnings, total }`, `warnings` najviac 50 (`EXPORT_ISSUES_MAX`) v poradí súboru, položka `{ keyId, namespace, key, languageTag, missing, extra }` (`missing` sú premenné základného jazyka, ktoré hodnota nemá, `extra` tie, ktoré základný jazyk nemá – typicky preklep). Chyby ako pri exporte: 400 `VALIDATION_ERROR` / `EXPORT_LANGUAGES_INVALID`, 401, 404.
 
 ## Chyby
 

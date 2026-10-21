@@ -41,6 +41,36 @@ export type ExportQuery = z.infer<typeof exportQuerySchema>
 
 export type ExportQueryInput = z.input<typeof exportQuerySchema>
 
+/** Query of `GET /api/projects/:projectId/export/check`: the languages and status of the planned export, no format. */
+export const exportCheckQuerySchema = exportQuerySchema.omit({ format: true })
+
+export type ExportCheckQuery = z.infer<typeof exportCheckQuerySchema>
+
+export type ExportCheckQueryInput = z.input<typeof exportCheckQuerySchema>
+
+/**
+ * A value whose placeholders differ from the base language (the base value, or the key name when the base is empty and the name has
+ * placeholders): `missing` are placeholders of the base the value lacks, `extra` the ones the base does not have (typos).
+ */
+export const exportWarningSchema = z.object({
+	keyId: z.uuid(),
+	namespace: z.string(),
+	key: z.string(),
+	languageTag: z.string(),
+	missing: z.array(z.string()),
+	extra: z.array(z.string()),
+})
+
+export type ExportWarning = z.infer<typeof exportWarningSchema>
+
+/** Body of `200 GET …/export/check`: the first `EXPORT_ISSUES_MAX` warnings in file order and their total count. The export runs anyway. */
+export const exportCheckResponseSchema = z.object({
+	warnings: z.array(exportWarningSchema),
+	total: z.number().int().nonnegative(),
+})
+
+export type ExportCheckResponse = z.infer<typeof exportCheckResponseSchema>
+
 /**
  * What would break the CSV for `convert-csv-to-json` of GoodRequest/i18nextJsonToCsv: it splits rows on `;`,
  * lines on a line break, takes any line with `--name--` in it for a new namespace section, and reads a namespace

@@ -6,7 +6,15 @@ import ExcelJS from 'exceljs'
 import request from 'supertest'
 import { describe, expect, it, vi } from 'vitest'
 
-import { ERROR_CODE, EXPORT_ISSUES_MAX, ROLE, errorResponseSchema, exportValueUnsafeDetailsSchema, importResultSchema } from '@locale/shared'
+import {
+	ERROR_CODE,
+	EXPORT_ISSUES_MAX,
+	ROLE,
+	errorResponseSchema,
+	exportCheckResponseSchema,
+	exportValueUnsafeDetailsSchema,
+	importResultSchema,
+} from '@locale/shared'
 
 import { EXPORT_BATCH_SIZE } from '../src/services/exports.service'
 
@@ -475,5 +483,100 @@ describe('GET /api/projects/:projectId/export', () => {
 				blocked.restore()
 			}
 		})
+	})
+})
+
+const check = (app: App, cookie: string, projectId: string, query: Record<string, string>) =>
+	request(app).get(`/api/projects/${projectId}/export/check`).query(query).set('Cookie', cookie)
+
+const checkOk = async (...args: Parameters<typeof check>) => {
+	const res = await check(...args)
+	expect(res.status).toBe(200)
+	return exportCheckResponseSchema.strict().parse(res.body)
+}
+
+describe('GET /api/projects/:projectId/export/check', () => {
+	it('lists values whose placeholders differ from the base language, in file order, never the base itself', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app)
+		const margin = await createKey(project.id, 'loc', 'margin', {
+			[sk.id]: 'Marža {{ percentage }} ({{ amount }})',
+			[en.id]: 'Margin {{ perecentage }}',
+			[cs.id]: 'Marže {{percentage}} ({{amount}})',
+		})
+		const hello = await createKey(project.id, 'loc', 'hello', { [sk.id]: 'Ahoj {{name}}', [en.id]: 'Hello', [cs.id]: null })
+		const plain = await createKey(project.id, '', 'plain', { [sk.id]: 'Áno', [en.id]: 'Yes {{extra}}' })
+
+		const body = await checkOk(app, cookie, project.id, { languageIds: `${sk.id},${en.id},${cs.id}` })
+		expect(body).toEqual({
+			warnings: [
+				{ keyId: plain.id, namespace: '', key: 'plain', languageTag: 'en', missing: [], extra: ['{{extra}}'] },
+				{ keyId: hello.id, namespace: 'loc', key: 'hello', languageTag: 'en', missing: ['{{name}}'], extra: [] },
+				{ keyId: margin.id, namespace: 'loc', key: 'margin', languageTag: 'en', missing: ['{{percentage}}', '{{amount}}'], extra: ['{{perecentage}}'] },
+			],
+			total: 3,
+		})
+	})
+
+	it('uses the base language as the reference even when it is not exported, and the key name when the base is empty', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const greeting = await createKey(project.id, 'loc', 'greeting', { [sk.id]: 'Ahoj {{name}}', [en.id]: 'Hello' })
+		const named = await createKey(project.id, 'loc', 'Zostáva {{count}} dní', { [en.id]: 'Days left' })
+		await createKey(project.id, 'loc', 'free', { [en.id]: 'Anything {{x}}' })
+
+		const body = await checkOk(app, cookie, project.id, { languageIds: en.id })
+		expect(body.warnings.map((warning) => [warning.keyId, warning.missing])).toEqual([
+			[named.id, ['{{count}}']],
+			[greeting.id, ['{{name}}']],
+		])
+	})
+
+	it('checks only the keys the status keeps and only the exported languages', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app)
+		await createKey(project.id, 'loc', 'done', { [sk.id]: 'A {{a}}', [en.id]: 'A', [cs.id]: 'A' })
+		await createKey(project.id, 'loc', 'open', { [sk.id]: 'B {{b}}', [en.id]: 'B' })
+
+		expect(
+			(await checkOk(app, cookie, project.id, { languageIds: `${sk.id},${en.id},${cs.id}`, status: 'TRANSLATED' })).warnings.map((w) => [
+				w.key,
+				w.languageTag,
+			]),
+		).toEqual([
+			['done', 'en'],
+			['done', 'cs'],
+		])
+		expect(
+			(await checkOk(app, cookie, project.id, { languageIds: `${sk.id},${en.id},${cs.id}`, status: 'UNTRANSLATED' })).warnings.map((w) => w.key),
+		).toEqual(['open'])
+		expect((await checkOk(app, cookie, project.id, { languageIds: `${sk.id},${cs.id}` })).warnings.map((w) => [w.key, w.languageTag])).toEqual([
+			['done', 'cs'],
+		])
+	})
+
+	it('caps the list at EXPORT_ISSUES_MAX and keeps the total', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		await Promise.all(
+			Array.from({ length: EXPORT_ISSUES_MAX + 3 }, (_, index) =>
+				createKey(project.id, 'loc', `k${String(index).padStart(3, '0')}`, { [sk.id]: 'A {{a}}', [en.id]: 'A' }),
+			),
+		)
+
+		const body = await checkOk(app, cookie, project.id, { languageIds: `${sk.id},${en.id}` })
+		expect(body.warnings).toHaveLength(EXPORT_ISSUES_MAX)
+		expect(body.total).toBe(EXPORT_ISSUES_MAX + 3)
+	})
+
+	it('returns 400 for a language of another project, 404 to a non-member and 401 without a session', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie } = await setup(app)
+		const other = await setup(app, { member: false })
+
+		expectErrorCode(await check(app, cookie, project.id, { languageIds: other.sk.id }), 400, ERROR_CODE.EXPORT_LANGUAGES_INVALID)
+		expectErrorCode(await check(app, cookie, project.id, {}), 400, ERROR_CODE.VALIDATION_ERROR)
+		expectErrorCode(await check(app, other.cookie, other.project.id, { languageIds: other.sk.id }), 404, ERROR_CODE.NOT_FOUND)
+		expectErrorCode(await request(app).get(`/api/projects/${project.id}/export/check`).query({ languageIds: sk.id }), 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
 	})
 })

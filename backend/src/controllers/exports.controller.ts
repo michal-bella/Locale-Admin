@@ -2,13 +2,13 @@ import { once } from 'node:events'
 
 import { type RequestHandler } from 'express'
 
-import { ERROR_CODE, EXPORT_FILE_NAME_DEFAULT, type ExportFormat, exportQuerySchema } from '@locale/shared'
+import { ERROR_CODE, EXPORT_FILE_NAME_DEFAULT, type ExportCheckResponse, exportCheckQuerySchema, type ExportFormat, exportQuerySchema } from '@locale/shared'
 
 import { type Config } from '../config/env'
 import { createConcurrencyLimiter } from '../lib/concurrencyLimiter'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
-import { exportTranslations } from '../services/exports.service'
+import { checkExport, exportTranslations } from '../services/exports.service'
 
 const CONTENT_TYPES: Record<ExportFormat, string> = {
 	CSV: 'text/csv; charset=utf-8',
@@ -94,3 +94,10 @@ export const createExportController = (prisma: PrismaClient, config: Config): Re
 		}
 	}
 }
+
+export const createExportCheckController =
+	(prisma: PrismaClient): RequestHandler<{ projectId: string }> =>
+	async (req, res) => {
+		const body: ExportCheckResponse = await checkExport(prisma, req.params.projectId, exportCheckQuerySchema.parse(req.query))
+		res.status(200).json(body)
+	}

@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
-import { type Language, type ProjectSettings, SUPPORTED_LANGUAGES, type TranslationsResponse } from '@locale/shared'
+import { type ExportCheckResponse, type Language, type ProjectSettings, SUPPORTED_LANGUAGES, type TranslationsResponse } from '@locale/shared'
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
@@ -48,13 +48,21 @@ const CSV = 'Keys; sk ; en ; de-AT \n--loc--\n Áno; Áno; Yes; Ja\n'
 
 type MockResponse = { status: number; data?: unknown; headers?: Record<string, string> }
 
-const mockPage = (exportResponse: MockResponse = { status: 200, data: new Blob([CSV], { type: 'text/csv' }) }) =>
+const CHECK_URL = `${EXPORT_URL}/check`
+
+const NO_WARNINGS: ExportCheckResponse = { warnings: [], total: 0 }
+
+const mockPage = (
+	exportResponse: MockResponse = { status: 200, data: new Blob([CSV], { type: 'text/csv' }) },
+	checkResponse: MockResponse = { status: 200, data: NO_WARNINGS },
+) =>
 	signedInAs(ADMIN_USER, {
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [SLOVAK, ENGLISH, GERMAN] },
 		[`GET /projects/${PROJECT.id}/translations`]: { status: 200, data: TRANSLATIONS },
 		[`GET ${EXPORT_URL}`]: exportResponse,
+		[`GET ${CHECK_URL}`]: checkResponse,
 	})
 
 const jsonBlob = (body: unknown) => new Blob([JSON.stringify(body)], { type: 'application/json' })
@@ -218,6 +226,51 @@ describe('ExportModal', () => {
 		expect(within(alert).getByText('… a ešte 5 ďalších.')).toBeInTheDocument()
 		expect(downloads).toEqual([])
 		expect(screen.getByRole('dialog', { name: 'Exportovať preklady' })).toBeInTheDocument()
+	})
+
+	it('warns about placeholder mismatches of the selected languages and still exports', async () => {
+		const warning = { keyId: '00000000-0000-4000-8000-000000000501', namespace: 'loc', key: 'margin' }
+		const requests = mockPage(undefined, {
+			status: 200,
+			data: {
+				warnings: [
+					{ ...warning, languageTag: 'en', missing: ['{{percentage}}'], extra: ['{{perecentage}}'] },
+					{ ...warning, languageTag: 'de-AT', missing: ['{{percentage}}'], extra: [] },
+				],
+				total: 52,
+			} satisfies ExportCheckResponse,
+		})
+		renderApp(PAGE_PATH)
+		const dialog = await openModal()
+
+		expect(await within(dialog).findByText('52 upozornení')).toBeInTheDocument()
+		expect(
+			within(dialog).getByText('Tieto preklady majú iné premenné ako základný jazyk. Export prebehne aj tak, ale pred ním ich odporúčame opraviť.'),
+		).toBeInTheDocument()
+		expect(
+			within(dialog)
+				.getAllByRole('listitem')
+				.map((item) => item.textContent),
+		).toEqual(['„loc / margin“ (angličtina): chýba {{percentage}}, navyše {{perecentage}}.', '„loc / margin“ (nemčina (Rakúsko)): chýba {{percentage}}.'])
+		expect(within(dialog).getByText('… a ešte 50 ďalších.')).toBeInTheDocument()
+		const checks = () => requests.filter((request) => request.url === CHECK_URL)
+		expect(checks().at(-1)?.params).toEqual({ languageIds: `${SLOVAK.id},${ENGLISH.id},${GERMAN.id}`, status: 'ALL' })
+
+		// A changed selection checks again with the new languages and status.
+		fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Angličtina' }))
+		fireEvent.click(within(dialog).getByRole('radio', { name: 'Nepreložené' }))
+		await waitFor(() => expect(checks().at(-1)?.params).toEqual({ languageIds: `${SLOVAK.id},${GERMAN.id}`, status: 'UNTRANSLATED' }))
+
+		submit(dialog)
+		await waitFor(() => expect(downloads).toEqual(['translations.csv']))
+	})
+
+	it('shows no warning block when the check finds nothing', async () => {
+		mockPage()
+		renderApp(PAGE_PATH)
+		const dialog = await openModal()
+		await within(dialog).findByRole('checkbox', { name: 'Slovenčina' })
+		expect(within(dialog).queryByText(/upozorn/)).not.toBeInTheDocument()
 	})
 
 	it('shows the translated 429 when too many exports run', async () => {

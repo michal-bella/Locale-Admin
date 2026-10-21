@@ -9,7 +9,7 @@ import classes from './PluralForms.module.css'
 import { type PluralFormsProps } from './types'
 
 /** Read-only plural forms of a value stacked like Tolgee: a form chip and the text with `#` and `{{…}}` chips; a missing form shows the empty text. */
-const PluralForms = ({ value, tag }: PluralFormsProps) => {
+const PluralForms = ({ value, tag, basePlaceholders }: PluralFormsProps) => {
 	const { t } = useTranslation()
 	const forms = parsePluralForms(value)
 	return (
@@ -20,7 +20,7 @@ const PluralForms = ({ value, tag }: PluralFormsProps) => {
 					<span key={form} className={classes.form}>
 						<PluralFormChip form={form} />
 						{text ? (
-							<TranslationText value={text} pluralHash />
+							<TranslationText value={text} pluralHash basePlaceholders={basePlaceholders} />
 						) : (
 							<Text component='span' className={classes.empty}>
 								{t('translationsPage.table.emptyValue')}

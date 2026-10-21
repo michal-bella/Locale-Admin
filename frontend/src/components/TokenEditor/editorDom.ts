@@ -13,6 +13,9 @@ export type ChipClassNames = Record<Exclude<Token['type'], 'text'>, string | und
 
 export type ChipTitles = Partial<Record<Exclude<Token['type'], 'text'>, string>>
 
+/** Extra class and title of one chip, e.g. the warning of a placeholder the base language lacks. */
+export type ChipDecoration = { className: string; title: string }
+
 const isChip = (node: Node): node is HTMLElement => node instanceof HTMLElement && node.hasAttribute(TOKEN_ATTRIBUTE)
 
 const isFiller = (node: Node) => node instanceof HTMLElement && node.hasAttribute(FILLER_ATTRIBUTE)
@@ -55,7 +58,13 @@ export const serialize = (root: Node): string =>
 		.join('')
 
 /** Rebuilds the editor content: text nodes and chips, ZWSP where a caret could not be placed otherwise, a filler `<br>` after a trailing newline. */
-export const render = (root: HTMLElement, tokens: Token[], classNames: ChipClassNames, titles: ChipTitles = {}) => {
+export const render = (
+	root: HTMLElement,
+	tokens: Token[],
+	classNames: ChipClassNames,
+	titles: ChipTitles = {},
+	decorate?: (token: Token) => ChipDecoration | undefined,
+) => {
 	root.replaceChildren()
 	let previousWasChip = true
 	for (const token of tokens) {
@@ -71,7 +80,11 @@ export const render = (root: HTMLElement, tokens: Token[], classNames: ChipClass
 		chip.setAttribute(TOKEN_ATTRIBUTE, token.value)
 		chip.setAttribute('contenteditable', 'false')
 		chip.className = classNames[token.type] ?? ''
-		const title = titles[token.type]
+		const decoration = decorate?.(token)
+		if (decoration) {
+			chip.classList.add(decoration.className)
+		}
+		const title = decoration?.title ?? titles[token.type]
 		if (title) {
 			chip.title = title
 		}

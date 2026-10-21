@@ -7,6 +7,8 @@ export type TokenEditorProps = {
 	label: string
 	/** Also treats `#` (the number of an ICU plural form) as a chip. */
 	pluralHash?: boolean
+	/** Normalized placeholders of the base language; a placeholder chip outside the set gets a warning style and title. */
+	basePlaceholders?: Set<string>
 	describedBy?: string
 	invalid?: boolean
 	readOnly?: boolean

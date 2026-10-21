@@ -6,6 +6,8 @@ export type TranslationCellProps = {
 	label: string
 	/** Set for a plural key: BCP 47 tag of the language of the cell. */
 	pluralTag?: string
+	/** See `TranslationValue`. */
+	reference?: string
 	/** Opens the edit modal for this key and language. */
 	onClick: () => void
 }

@@ -2,10 +2,11 @@ import { type ClipboardEvent, type KeyboardEvent, useImperativeHandle, useLayout
 import { useTranslation } from 'react-i18next'
 
 import textClasses from '@/components/TranslationText/TranslationText.module.css'
+import { isUnknownPlaceholder } from '@/components/TranslationText/isUnknownPlaceholder'
 
 import classes from './TokenEditor.module.css'
-import { type ChipClassNames, type ChipTitles, render, selectionOffsets, serialize, setCaret } from './editorDom'
-import { tokenize, tokenRanges } from './tokens'
+import { type ChipClassNames, type ChipDecoration, type ChipTitles, render, selectionOffsets, serialize, setCaret } from './editorDom'
+import { type Token, tokenize, tokenRanges } from './tokens'
 import { type TokenEditorProps } from './types'
 
 const CHIP_CLASS_NAMES: ChipClassNames = { placeholder: textClasses.chip, hash: textClasses.chip, tag: classes.tag }
@@ -20,6 +21,7 @@ const TokenEditor = ({
 	onChange,
 	label,
 	pluralHash = false,
+	basePlaceholders,
 	describedBy,
 	invalid = false,
 	readOnly = false,
@@ -40,13 +42,17 @@ const TokenEditor = ({
 
 	const tokens = (text: string) => tokenize(text, { tags: true, hash: pluralHash })
 	const chipTitles: ChipTitles = { hash: t('translationsPage.plural.hash') }
+	const decorate = (token: Token): ChipDecoration | undefined =>
+		token.type === 'placeholder' && isUnknownPlaceholder(token.value, basePlaceholders)
+			? { className: textClasses.chipWarning ?? '', title: t('translationsPage.editor.unknownVariable') }
+			: undefined
 
 	const commit = (next: string, caret: number) => {
 		const root = rootRef.current
 		if (!root) {
 			return
 		}
-		render(root, tokens(next), CHIP_CLASS_NAMES, chipTitles)
+		render(root, tokens(next), CHIP_CLASS_NAMES, chipTitles, decorate)
 		renderedRef.current = next
 		setCaret(root, Math.min(caret, next.length))
 		onChange(next)
@@ -55,7 +61,7 @@ const TokenEditor = ({
 	useLayoutEffect(() => {
 		const root = rootRef.current
 		if (root && renderedRef.current !== value) {
-			render(root, tokens(value), CHIP_CLASS_NAMES, chipTitles)
+			render(root, tokens(value), CHIP_CLASS_NAMES, chipTitles, decorate)
 			renderedRef.current = value
 			if (root.ownerDocument.activeElement === root) {
 				setCaret(root, value.length)

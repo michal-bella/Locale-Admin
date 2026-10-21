@@ -17,3 +17,19 @@
 	color: var(--app-color-eyebrow);
 	white-space: nowrap;
 }
+
+/* A variable the base language does not have: most likely a typo. The editor chips reuse it. */
+.chipWarning {
+	border-color: color-mix(in srgb, var(--app-color-warning-text) 40%, transparent);
+	background-color: var(--app-color-warning-bg);
+	color: var(--app-color-warning-text);
+}
+
+/* Variables of the base language the value lacks; sits after the text. */
+.missing {
+	display: inline-flex;
+	align-items: center;
+	margin-inline-start: 0.25rem;
+	color: var(--app-color-warning-text);
+	vertical-align: text-bottom;
+}

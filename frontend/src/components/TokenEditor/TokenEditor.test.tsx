@@ -55,6 +55,15 @@ describe('TokenEditor', () => {
 		expect(field).toHaveTextContent('Hi {{name}}, <b>bold</b>')
 	})
 
+	it('marks a placeholder chip the base language does not have with a warning class and title', () => {
+		const { field } = renderEditor('Margin {{ perecentage }} of {{ amount }}', { basePlaceholders: new Set(['{{amount}}']) })
+		const [typo, known] = Array.from(field.querySelectorAll(`[${TOKEN_ATTRIBUTE}]`))
+		expect(typo?.className).toMatch(/chipWarning/)
+		expect(typo).toHaveAttribute('title', 'Premenná nie je v základnom jazyku – skontrolujte preklep.')
+		expect(known?.className).not.toMatch(/chipWarning/)
+		expect(known).not.toHaveAttribute('title')
+	})
+
 	it('reports typed text and turns a typed placeholder into a chip', () => {
 		const { field, onChange } = renderEditor('Hello')
 		field.textContent = 'Hello {{name}}'

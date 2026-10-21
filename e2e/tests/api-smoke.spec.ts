@@ -436,6 +436,8 @@ test.describe('/api/projects/:projectId/translations', () => {
 		const project = await createProject(request, 'smoke-tr', ['sk', 'en'])
 		const languages = await listLanguages(request, project.id)
 		const [sk, en] = languages
+		// The creator is the only member and no translation has an editor yet, so `editors` lists just them.
+		const me = (await (await request.get('/api/auth/me')).json()) as { id: string }
 		await insertTranslationKeys(project.id, languages, [
 			{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky', en: null } },
 			{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte, {{name}}', en: 'Welcome, {{name}}' } },
@@ -489,7 +491,7 @@ test.describe('/api/projects/:projectId/translations', () => {
 			pageSize: 20,
 			stats: { totalKeys: 4, translated: 2, untranslated: 2 },
 			namespaces: ['loc', 'paths'],
-			editors: [],
+			editors: [{ id: me.id, name: expect.any(String) }],
 		})
 		const updatedAt = body.items[0]!.translations[en!.id]!.updatedAt!
 		expect(new Date(updatedAt).toISOString()).toBe(updatedAt)

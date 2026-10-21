@@ -8,23 +8,23 @@ notion_page_id:
 
 Zoznam projektov pre index stránku, vytvorenie a opustenie projektu, nastavenia projektu a jeho členovia. Schémy sú v `packages/shared/src/projects.ts` a `packages/shared/src/projectSettings.ts`.
 
-| Metóda   | Cesta                                      | Prístup            | Popis                                         |
-| -------- | ------------------------------------------ | ------------------ | --------------------------------------------- |
-| `GET`    | `/api/projects`                            | prihlásený         | projekty používateľa (ADMIN všetky)           |
-| `POST`   | `/api/projects`                            | prihlásený         | vytvorí projekt, tvorca sa stane členom       |
-| `PUT`    | `/api/projects/order`                      | prihlásený         | uloží vlastné poradie projektov používateľa   |
-| `DELETE` | `/api/projects/:projectId/membership`      | člen               | opustí projekt                                |
-| `GET`    | `/api/projects/:projectId/settings`        | člen alebo `ADMIN` | nastavenia projektu                           |
-| `PATCH`  | `/api/projects/:projectId/settings`        | člen alebo `ADMIN` | uloží nastavenia (základný jazyk iba `ADMIN`) |
-| `GET`    | `/api/projects/:projectId/members`         | člen alebo `ADMIN` | členovia projektu                             |
-| `POST`   | `/api/projects/:projectId/members`         | člen alebo `ADMIN` | vytvorí nového používateľa `EDITOR` a člena   |
-| `DELETE` | `/api/projects/:projectId/members/:userId` | člen alebo `ADMIN` | odoberie člena z projektu, účet ostane        |
+| Metóda   | Cesta                                      | Prístup                 | Popis                                         |
+| -------- | ------------------------------------------ | ----------------------- | --------------------------------------------- |
+| `GET`    | `/api/projects`                            | prihlásený              | projekty používateľa (ADMIN všetky)           |
+| `POST`   | `/api/projects`                            | prihlásený              | vytvorí projekt, tvorca sa stane členom       |
+| `PUT`    | `/api/projects/order`                      | prihlásený              | uloží vlastné poradie projektov používateľa   |
+| `DELETE` | `/api/projects/:projectId/membership`      | člen `EDITOR` / `ADMIN` | opustí projekt                                |
+| `GET`    | `/api/projects/:projectId/settings`        | člen alebo `ADMIN`      | nastavenia projektu                           |
+| `PATCH`  | `/api/projects/:projectId/settings`        | člen alebo `ADMIN`      | uloží nastavenia (základný jazyk iba `ADMIN`) |
+| `GET`    | `/api/projects/:projectId/members`         | člen alebo `ADMIN`      | členovia projektu                             |
+| `POST`   | `/api/projects/:projectId/members`         | člen alebo `ADMIN`      | vytvorí nového používateľa `EDITOR` a člena   |
+| `DELETE` | `/api/projects/:projectId/members/:userId` | člen alebo `ADMIN`      | odoberie člena z projektu, účet ostane        |
 
 Celý router je za `requireAuth`: bez session vráti 401 `AUTH_UNAUTHENTICATED`. Mutácie potrebujú CSRF hlavičku a JSON telo (aj `DELETE` posiela `{}`), inak 403 `CSRF_REJECTED` (viď [auth](./auth.md#csrf)).
 
 ## Prístup k projektu
 
-Cesty s `:projectId` sú za `requireProjectAccess` (`middleware/projectAccess.middleware.ts`). Pustí `ADMIN`-a k akémukoľvek projektu a `EDITOR`-a iba k projektu, kde má záznam `ProjectMember`. Inak, aj pri neexistujúcom projekte alebo `projectId`, ktoré nie je UUID, vráti 404 `NOT_FOUND`, aby sa neprezradilo, že projekt existuje. Projektové role zatiaľ nie sú, všetci členovia majú rovnaké práva.
+Cesty s `:projectId` sú za `requireProjectAccess` (`middleware/projectAccess.middleware.ts`). Pustí `ADMIN`-a k akémukoľvek projektu a `EDITOR`-a či `VISITOR`-a iba k projektu, kde má záznam `ProjectMember`. Inak, aj pri neexistujúcom projekte alebo `projectId`, ktoré nie je UUID, vráti 404 `NOT_FOUND`, aby sa neprezradilo, že projekt existuje. Projektové role zatiaľ nie sú, všetci členovia majú rovnaké práva.
 
 ## GET /api/projects
 
@@ -93,11 +93,12 @@ Uloží poradie projektov na indexe `/` (drag and drop) iba pre prihláseného p
 
 ## DELETE /api/projects/:projectId/membership
 
-Zmaže členstvo prihláseného používateľa. Posledný člen projekt opustiť nemôže. Zámok riadku projektu (`SELECT … FOR UPDATE`) zaručí, že ani dvaja poslední členovia naraz neodídu obaja.
+Zmaže členstvo prihláseného používateľa. Člen s rolou `VISITOR` projekt opustiť nemôže (403 `FORBIDDEN`), z projektu ho odoberie `ADMIN`. Posledný člen projekt opustiť nemôže. Zámok riadku projektu (`SELECT … FOR UPDATE`) zaručí, že ani dvaja poslední členovia naraz neodídu obaja.
 
 | HTTP | `code`        | Kedy                                                         |
 | ---- | ------------- | ------------------------------------------------------------ |
 | 204  |               | členstvo zmazané                                             |
+| 403  | `FORBIDDEN`   | člen s rolou `VISITOR`                                       |
 | 404  | `NOT_FOUND`   | projekt neexistuje alebo používateľ nie je členom (aj ADMIN) |
 | 409  | `LAST_MEMBER` | používateľ je posledný člen projektu                         |
 

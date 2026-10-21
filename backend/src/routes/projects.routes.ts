@@ -43,7 +43,7 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.get('/', createListProjectsController(prisma))
 	router.post('/', requireRole(ROLE.ADMIN), createCreateProjectController(prisma))
 	router.put('/order', createReorderProjectsController(prisma))
-	router.delete('/:projectId/membership', requireProjectAccess, createLeaveProjectController(prisma))
+	router.delete('/:projectId/membership', requireProjectAccess, requireRole(ROLE.ADMIN, ROLE.EDITOR), createLeaveProjectController(prisma))
 	router.get('/:projectId/settings', requireProjectAccess, createGetProjectSettingsController(prisma))
 	router.patch('/:projectId/settings', requireProjectAccess, requireRole(ROLE.ADMIN), createUpdateProjectSettingsController(prisma))
 	router.get('/:projectId/languages', requireProjectAccess, createListProjectLanguagesController(prisma))
@@ -57,7 +57,12 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.get('/:projectId/activity', requireProjectAccess, createListActivityController(prisma))
 	router.get('/:projectId/activity/daily', requireProjectAccess, createGetActivityDailyController(prisma))
 	router.get('/:projectId/translations', requireProjectAccess, createListTranslationsController(prisma))
-	router.put('/:projectId/keys/:keyId/translations/:languageId', requireProjectAccess, createUpdateTranslationController(prisma))
+	router.put(
+		'/:projectId/keys/:keyId/translations/:languageId',
+		requireProjectAccess,
+		requireRole(ROLE.ADMIN, ROLE.EDITOR),
+		createUpdateTranslationController(prisma),
+	)
 	router.post('/:projectId/keys', requireProjectAccess, requireRole(ROLE.ADMIN), createCreateTranslationKeyController(prisma))
 	router.patch('/:projectId/keys/:keyId', requireProjectAccess, requireRole(ROLE.ADMIN), createUpdateTranslationKeyController(prisma))
 	router.get('/:projectId/export', requireProjectAccess, createExportController(prisma, config))

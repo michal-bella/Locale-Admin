@@ -343,6 +343,14 @@ describe('GET /api/projects/:projectId/export', () => {
 		expectErrorCode(await exportCsv(app, cookie, project.id, { languageIds: sk.id, format: 'JSON' }), 400, ERROR_CODE.VALIDATION_ERROR)
 	})
 
+	it('lets a VISITOR member export', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie } = await setup(app, { role: ROLE.VISITOR })
+		await createKey(project.id, 'loc', 'a', { [sk.id]: 'A' })
+
+		expect(await exportOk(app, cookie, project.id, { languageIds: sk.id })).toBe('Keys; sk \n--loc--\n a; A\n')
+	})
+
 	it('returns 404 to a non-member and 401 without a session', async () => {
 		const app = createTestApp()
 		const { project, sk, cookie } = await setup(app, { member: false })

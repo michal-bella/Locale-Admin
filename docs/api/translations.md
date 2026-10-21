@@ -8,12 +8,12 @@ notion_page_id:
 
 Zoznam kľúčov projektu s prekladmi vo všetkých jazykoch pre stránku Preklady (rozšírené zobrazenie so všetkými jazykmi alebo kompaktné zdrojový → cieľový jazyk), úprava jedného prekladu a úprava kľúča (názov, popis, plurál). Schémy sú v `packages/shared/src/translations.ts`, dátový model v [Databáza](../database.md#translationkey).
 
-| Metóda  | Cesta                                                           | Prístup            | Popis                                             |
-| ------- | --------------------------------------------------------------- | ------------------ | ------------------------------------------------- |
-| `GET`   | `/api/projects/:projectId/translations`                         | člen alebo `ADMIN` | stránkovaný zoznam kľúčov, štatistika a namespace |
-| `PUT`   | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | člen alebo `ADMIN` | uloženie prekladu kľúča v jednom jazyku           |
-| `POST`  | `/api/projects/:projectId/keys`                                 | iba `ADMIN`        | ručné pridanie kľúča do existujúceho namespace    |
-| `PATCH` | `/api/projects/:projectId/keys/:keyId`                          | iba `ADMIN`        | premenovanie kľúča, popis, plurálové formy        |
+| Metóda  | Cesta                                                           | Prístup                     | Popis                                             |
+| ------- | --------------------------------------------------------------- | --------------------------- | ------------------------------------------------- |
+| `GET`   | `/api/projects/:projectId/translations`                         | člen alebo `ADMIN`          | stránkovaný zoznam kľúčov, štatistika a namespace |
+| `PUT`   | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | `ADMIN` alebo člen `EDITOR` | uloženie prekladu kľúča v jednom jazyku           |
+| `POST`  | `/api/projects/:projectId/keys`                                 | iba `ADMIN`                 | ručné pridanie kľúča do existujúceho namespace    |
+| `PATCH` | `/api/projects/:projectId/keys/:keyId`                          | iba `ADMIN`                 | premenovanie kľúča, popis, plurálové formy        |
 
 Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). `PUT`, `POST` a `PATCH` prechádzajú CSRF kontrolou (`Content-Type: application/json` a `X-Requested-With: XMLHttpRequest`).
 
@@ -139,7 +139,7 @@ Položka `items[]`:
 
 ## PUT /api/projects/:projectId/keys/:keyId/translations/:languageId
 
-Uloží preklad kľúča `keyId` v jazyku `languageId` (základný aj ostatné jazyky). Riadok `Translation` sa vytvorí alebo prepíše (upsert), `updatedById` je prihlásený používateľ, `updatedAt` čas uloženia.
+Uloží preklad kľúča `keyId` v jazyku `languageId` (základný aj ostatné jazyky). Iba `ADMIN` alebo člen s rolou `EDITOR`; člen `VISITOR` preklady iba číta a dostane 403 `FORBIDDEN`. Riadok `Translation` sa vytvorí alebo prepíše (upsert), `updatedById` je prihlásený používateľ, `updatedAt` čas uloženia.
 
 Telo (schéma `updateTranslationRequestSchema`):
 
@@ -182,6 +182,7 @@ Schéma `updateTranslationResponseSchema`, rovnaký tvar ako `target` v zozname:
 | 400  | `PLACEHOLDER_MISMATCH`      | premenné sa líšia od základného jazyka (viď vyššie), `details: { missing, extra }`                                                                                                         |
 | 401  | `AUTH_UNAUTHENTICATED`      | bez session                                                                                                                                                                                |
 | 403  | `CSRF_REJECTED`             | bez `X-Requested-With` alebo JSON tela                                                                                                                                                     |
+| 403  | `FORBIDDEN`                 | člen s rolou `VISITOR`                                                                                                                                                                     |
 | 404  | `NOT_FOUND`                 | projekt mimo prístupu, alebo `languageId` nie je UUID / nie je jazyk tohto projektu                                                                                                        |
 | 404  | `TRANSLATION_KEY_NOT_FOUND` | `keyId` nie je UUID alebo nie je kľúč tohto projektu                                                                                                                                       |
 

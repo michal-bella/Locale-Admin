@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Rola Návštevník – obmedzenia API (2026-10-21)
+
+- API: `PUT /api/projects/:projectId/keys/:keyId/translations/:languageId` a `DELETE /api/projects/:projectId/membership` vrátia členovi s rolou `VISITOR` 403 `FORBIDDEN`; zoznam prekladov, Prehľad a export mu ostávajú ([API](./api/translations.md#put-apiprojectsprojectidkeyskeyidtranslationslanguageid), [projekty](./api/projects.md#delete-apiprojectsprojectidmembership))
+
 ### Rola Návštevník – kontrakt a databáza (2026-10-21)
 
 - shared + databáza: nová globálna rola `VISITOR` v enume `ROLE` (migrácia `visitor_role`); `POST /api/admin/users`, `PATCH /api/admin/users/:id` a `PATCH /api/profile` ju prijmú, posledný `ADMIN` sa ňou nemôže stať (409 `LAST_ADMIN`) ([API](./api/admin-users.md), [Databáza](./database.md)). Obmedzenia pre rolu (iba Preklady a Prehľad, bez úprav) pribudnú v ďalších míľnikoch plánu [`visitor-role`](./plans/visitor-role.md)

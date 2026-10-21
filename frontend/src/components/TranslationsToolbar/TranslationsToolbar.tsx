@@ -87,6 +87,8 @@ const TranslationsToolbar = ({ search, status, namespace, sort, updatedBy, updat
 				leftSection={status && <TranslationStatusBadge status={status} />}
 				leftSectionWidth={status ? 'auto' : undefined}
 				leftSectionProps={{ className: status ? classes.statusBadgeSection : undefined }}
+				// Select only defaults the right section to `none`; without this a click on the badge never reaches the input.
+				leftSectionPointerEvents='none'
 				classNames={{ input: status ? classes.statusInputWithBadge : undefined }}
 				allowDeselect={false}
 				withScrollArea={false}

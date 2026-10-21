@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Upozornenia na premenné – uložený príznak (2026-10-21)
+
+- databáza: `Translation.placeholderWarning` (migrácia `translation_placeholder_warning`) drží, či sa premenné bunky líšia od základného jazyka; prepočítava sa pri úprave, Pridať kľúč, premenovaní, importe a zmene základného jazyka, staré riadky dopočíta seed pri štarte ([Databáza](./database.md#translation)). Banner a filter na stránke Preklady prídu v ďalších míľnikoch plánu [`translation-warnings`](./plans/translation-warnings.md)
+
 ### Základný jazyk vetného kľúča, popis kľúča ako ikona (2026-10-21)
 
 - API: pri `PUT …/translations/:languageId` a `POST …/keys` sa aj hodnota základného jazyka porovná s premennými v názve kľúča, keď ich názov obsahuje (vetný kľúč `Cena ({{symbol}})`); kľúče bez premenných v názve sa v základnom jazyku nekontrolujú ([API](./api/translations.md#ochrana-premenných))

@@ -21,6 +21,7 @@ import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
 import { parseCsv } from '../lib/import/csvParser'
 import { type ParsedFile } from '../lib/import/parsedFile'
+import { recomputePlaceholderWarnings } from '../lib/placeholderWarnings'
 import { type PrismaClient } from '../lib/prisma'
 
 type KeyRow = { id: string; namespace: string; name: string; pluralVariable: string | null; languageId: string | null; value: string | null }
@@ -329,6 +330,8 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 					SET value = EXCLUDED.value, "updatedById" = EXCLUDED."updatedById", "updatedAt" = EXCLUDED."updatedAt"
 					WHERE "Translation".value IS DISTINCT FROM EXCLUDED.value`
 			}
+
+			await recomputePlaceholderWarnings(tx, [...createdKeyIds.values(), ...writes.map(({ keyId }) => keyId)])
 
 			if (createdKeyIds.size > 0 || writes.length > 0) {
 				const writtenLanguageIds = new Set(writes.map(({ languageId }) => languageId))

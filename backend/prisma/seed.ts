@@ -1,4 +1,5 @@
 import { formatEnvError, seedEnvSchema } from '../src/config/env'
+import { seedPlaceholderWarnings } from '../src/lib/placeholderWarnings'
 import { createPrismaClient } from '../src/lib/prisma'
 import { SEED_ADMIN_EMAIL, SEED_LANGUAGE_TAGS, SEED_PROJECT, SEED_TRANSLATIONS, seedAdmin, seedProject } from '../src/services/seed.service'
 
@@ -18,6 +19,8 @@ try {
 			? `Seed: project ${SEED_PROJECT.slug} with languages ${SEED_LANGUAGE_TAGS.join(', ')} and ${SEED_TRANSLATIONS.length} translation keys created`
 			: 'Seed: project already exists, nothing changed',
 	)
+	const recomputed = await seedPlaceholderWarnings(prisma)
+	console.info(recomputed > 0 ? `Seed: placeholder warnings computed for ${recomputed} translation keys` : 'Seed: placeholder warnings up to date')
 } catch (error) {
 	console.error('Seed failed.', error)
 	process.exitCode = 1

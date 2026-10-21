@@ -29,6 +29,7 @@ import {
 import { Prisma, type Translation } from '../generated/prisma/client'
 import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
+import { recomputePlaceholderWarnings } from '../lib/placeholderWarnings'
 import { type PrismaClient } from '../lib/prisma'
 
 import { isPrismaError } from './projects.service'
@@ -298,6 +299,7 @@ export const updateTranslation = async (
 				payload: { keyId, namespace: key.namespace, name: key.name, languageTag: language.tag, oldValue, newValue: updated.value },
 			})
 		}
+		await recomputePlaceholderWarnings(tx, [keyId])
 		return updated
 	})
 	return {
@@ -361,6 +363,9 @@ export const updateTranslationKey = async (
 				throw err
 			})
 		const fields = ACTIVITY_KEY_FIELDS.filter((field) => updated[field] !== key[field])
+		if (updated.name !== key.name || pluralVariable !== key.pluralVariable) {
+			await recomputePlaceholderWarnings(tx, [keyId])
+		}
 		if (fields.length > 0) {
 			await recordActivity(tx, {
 				projectId,
@@ -452,6 +457,7 @@ export const createTranslationKey = async (
 				}
 				throw err
 			})
+		await recomputePlaceholderWarnings(tx, [key.id])
 		await recordActivity(tx, {
 			projectId,
 			userId,

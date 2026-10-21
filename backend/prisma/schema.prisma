@@ -152,6 +152,9 @@ model Translation {
   updatedById String?         @db.Uuid
   updatedBy   User?           @relation(fields: [updatedById], references: [id], onDelete: SetNull)
   updatedAt   DateTime        @updatedAt
+  /// `true` when the value's placeholders differ from the reference (base value, else a key name with placeholders), `false` when checked
+  /// and fine (always for the base language), `null` for rows the services have not computed yet (the seed fills them on start).
+  placeholderWarning Boolean?
 
   @@id([keyId, languageId])
   @@index([languageId])

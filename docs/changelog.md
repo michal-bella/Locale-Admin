@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Ochrana premenných počíta výskyty, vlajky v exporte (2026-10-21)
+
+- shared + API: `comparePlaceholders` porovnáva aj počet výskytov každej premennej (pri pluráli najvyšší počet vo forme), takže preklad s premennou navyše oproti základnému jazyku, napr. `({{count}}) … ({{count}})`, vráti 400 `PLACEHOLDER_MISMATCH` s `extra`; rovnako sa správa upozornenie pri importe a kontrola pred exportom ([API](./api/translations.md#ochrana-premenných))
+- frontend: modál Exportovať preklady má pri každom jazyku vlajku ([Frontend](./frontend.md#modál-exportovať-preklady))
+
 ### Oprava: Zobraziť členov pre Návštevníka (2026-10-21)
 
 - frontend: karta Členovia na Prehľade nemá pre Návštevníka odkaz **Zobraziť členov** (stránka Členovia je preň 403) ([Frontend](./frontend.md#stránka-prehľad-projektu))

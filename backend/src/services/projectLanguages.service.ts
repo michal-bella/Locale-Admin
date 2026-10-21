@@ -14,6 +14,7 @@ import {
 import { type Prisma, type ProjectLanguage } from '../generated/prisma/client'
 import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
+import { recomputeProjectPlaceholderWarnings } from '../lib/placeholderWarnings'
 import { type PrismaClient } from '../lib/prisma'
 
 import { isPrismaError } from './projects.service'
@@ -77,6 +78,8 @@ export const setBaseLanguage = async (
 			type: ACTIVITY_TYPE.BASE_LANGUAGE_CHANGED,
 			payload: { fromTag: from?.tag ?? null, toTag: language.tag },
 		})
+		// Every cell of the project is now compared with another language.
+		await recomputeProjectPlaceholderWarnings(tx, projectId)
 	}
 	return true
 }

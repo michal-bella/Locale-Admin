@@ -273,6 +273,14 @@
 			"showMissing": "Zobraziť nepreložené",
 			"showAll": "Zobraziť všetky"
 		},
+		"warnings": {
+			"message_one": "{{count}} kľúč má premenné, ktoré sa líšia od základného jazyka, napríklad po importe.",
+			"message_few": "{{count}} kľúče majú premenné, ktoré sa líšia od základného jazyka, napríklad po importe.",
+			"message_many": "{{count}} kľúčov má premenné, ktoré sa líšia od základného jazyka, napríklad po importe.",
+			"message_other": "{{count}} kľúčov má premenné, ktoré sa líšia od základného jazyka, napríklad po importe.",
+			"show": "Zobraziť upozornenia",
+			"clear": "Zrušiť filter upozornení"
+		},
 		"toolbar": {
 			"search": {
 				"label": "Hľadať kľúč alebo preklad",

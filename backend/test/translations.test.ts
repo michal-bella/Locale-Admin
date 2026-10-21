@@ -137,7 +137,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			total: 4,
 			page: 1,
 			pageSize: 20,
-			stats: { totalKeys: 4, translated: 2, untranslated: 2 },
+			stats: { totalKeys: 4, translated: 2, untranslated: 2, warnings: 0 },
 			namespaces: ['loc', 'paths'],
 			editors: [{ id: user.id, name: user.email }],
 		})
@@ -233,6 +233,31 @@ describe('GET /api/projects/:projectId/translations', () => {
 
 		const unknown = await listOk(app, cookie, project.id, { ...query, namespace: 'unknown' })
 		expect(unknown).toMatchObject({ items: [], total: 0, stats })
+	})
+
+	it('filters by warnings and counts keys with a placeholder warning in stats, ignoring the other filters', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const bad = await createKey(project.id, 'loc', 'items', { [sk.id]: '{{count}} ks', [en.id]: 'pcs' })
+		const fine = await createKey(project.id, 'loc', 'ok', { [sk.id]: '{{count}} ks', [en.id]: '{{count}} pcs' })
+		const alsoBad = await createKey(project.id, 'paths', 'orders', { [sk.id]: '{{a}}', [en.id]: '{{b}}' })
+		await getTestPrisma().translation.updateMany({ where: { keyId: { in: [bad.id, alsoBad.id] }, languageId: en.id }, data: { placeholderWarning: true } })
+		await getTestPrisma().translation.updateMany({ where: { placeholderWarning: null }, data: { placeholderWarning: false } })
+
+		const all = await listOk(app, cookie, project.id, { sourceLanguageId: sk.id, targetLanguageId: en.id })
+		expect(all.stats).toMatchObject({ totalKeys: 3, warnings: 2 })
+		expect(all.items.map(({ name }) => name).sort()).toEqual(['items', 'ok', 'orders'])
+
+		const flagged = await listOk(app, cookie, project.id, { sourceLanguageId: sk.id, targetLanguageId: en.id, warnings: 'true' })
+		expect(flagged.items.map(({ name }) => name).sort()).toEqual(['items', 'orders'])
+		expect(flagged.total).toBe(2)
+		expect(flagged.stats).toMatchObject({ totalKeys: 3, warnings: 2 })
+
+		const narrowed = await listOk(app, cookie, project.id, { warnings: '1', namespace: 'paths' })
+		expect(narrowed.items.map(({ name }) => name)).toEqual(['orders'])
+		expect(narrowed.stats.warnings).toBe(2)
+		expect((await listOk(app, cookie, project.id, { warnings: 'false' })).total).toBe(3)
+		expect(fine.id).toBeDefined()
 	})
 
 	it('searches case- and diacritics-insensitively in the key, the source and the target and treats % and _ literally', async () => {
@@ -346,7 +371,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			total: 0,
 			page: 1,
 			pageSize: 20,
-			stats: { totalKeys: 0, translated: 0, untranslated: 0 },
+			stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 },
 			namespaces: [],
 			editors: [{ id: user.id, name: user.email }],
 		})
@@ -370,7 +395,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			])
 			expect(Object.keys(body.items[0]?.translations ?? {}).sort()).toEqual([sk.id, en.id, ru.id].sort())
 			expect(body.items[0]?.translations[ru.id]).toEqual({ value: null, status: 'UNTRANSLATED', updatedAt: null, updatedBy: null })
-			expect(body.stats).toEqual({ totalKeys: 3, translated: 1, untranslated: 2 })
+			expect(body.stats).toEqual({ totalKeys: 3, translated: 1, untranslated: 2, warnings: 0 })
 			expect(names(await listOk(app, cookie, project.id, { status: 'UNTRANSLATED' }))).toEqual(['noRow', 'nullValue'])
 			expect(names(await listOk(app, cookie, project.id, { status: 'TRANSLATED' }))).toEqual(['full'])
 		})
@@ -417,7 +442,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 				total: 0,
 				page: 1,
 				pageSize: 20,
-				stats: { totalKeys: 0, translated: 0, untranslated: 0 },
+				stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 },
 				namespaces: [],
 				editors: [],
 			})

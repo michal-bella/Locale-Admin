@@ -72,7 +72,7 @@ const mockPage = ({
 		total: items.length,
 		page: 1,
 		pageSize: 20,
-		stats: { totalKeys: items.length, translated: items.length, untranslated: 0 },
+		stats: { totalKeys: items.length, translated: items.length, untranslated: 0, warnings: 0 },
 		namespaces,
 		editors: [],
 	}

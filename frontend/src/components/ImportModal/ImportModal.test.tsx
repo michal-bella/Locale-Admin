@@ -51,7 +51,7 @@ const TRANSLATIONS: TranslationsResponse = {
 	total: 0,
 	page: 1,
 	pageSize: 20,
-	stats: { totalKeys: 4, translated: 4, untranslated: 0 },
+	stats: { totalKeys: 4, translated: 4, untranslated: 0, warnings: 0 },
 	namespaces: ['common'],
 	editors: [],
 }

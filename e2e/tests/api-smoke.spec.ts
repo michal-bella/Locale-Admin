@@ -489,7 +489,7 @@ test.describe('/api/projects/:projectId/translations', () => {
 			total: 4,
 			page: 1,
 			pageSize: 20,
-			stats: { totalKeys: 4, translated: 2, untranslated: 2 },
+			stats: { totalKeys: 4, translated: 2, untranslated: 2, warnings: 0 },
 			namespaces: ['loc', 'paths'],
 			editors: [{ id: me.id, name: expect.any(String) }],
 		})
@@ -507,7 +507,7 @@ test.describe('/api/projects/:projectId/translations', () => {
 				{ name: 'dashboard.welcome', status: 'TRANSLATED', translations: { [sk!.id]: cell('Vitajte, {{name}}'), [en!.id]: cell('Welcome, {{name}}') } },
 			],
 			total: 4,
-			stats: { totalKeys: 4, translated: 1, untranslated: 3 },
+			stats: { totalKeys: 4, translated: 1, untranslated: 3, warnings: 0 },
 			namespaces: ['loc', 'paths'],
 		})
 		const extendedFiltered = await request.get(url, { params: { status: 'TRANSLATED' } })
@@ -597,7 +597,7 @@ test.describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId
 		})
 		expect(new Date(body.updatedAt).toISOString()).toBe(body.updatedAt)
 		expect(await targetOf(welcome.keyId)).toEqual(body)
-		expect(await list()).toMatchObject({ stats: { totalKeys: 2, translated: 1, untranslated: 1 } })
+		expect(await list()).toMatchObject({ stats: { totalKeys: 2, translated: 1, untranslated: 1, warnings: 0 } })
 
 		const created = await request.put(translationApi(project.id, home.keyId, en!.id), { data: { value: 'Home' }, headers: MUTATION_HEADERS })
 		expect(created.status()).toBe(200)
@@ -610,7 +610,7 @@ test.describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId
 			updatedAt: expect.any(String),
 			updatedBy: { id: expect.any(String), name: expect.any(String) },
 		})
-		expect(await list()).toMatchObject({ stats: { totalKeys: 2, translated: 1, untranslated: 1 } })
+		expect(await list()).toMatchObject({ stats: { totalKeys: 2, translated: 1, untranslated: 1, warnings: 0 } })
 
 		const mismatch = await request.put(url, { data: { value: 'Welcome back, {{user}}' }, headers: MUTATION_HEADERS })
 		expect(mismatch.status()).toBe(400)
@@ -832,7 +832,10 @@ test.describe('/api/projects/:projectId/imports', () => {
 			translationsUpdated: 0,
 			skippedColumns: 1,
 		})
-		expect(await (await translations()).json()).toMatchObject({ stats: { totalKeys: 10, translated: 7, untranslated: 3 }, namespaces: ['loc', 'paths'] })
+		expect(await (await translations()).json()).toMatchObject({
+			stats: { totalKeys: 10, translated: 7, untranslated: 3, warnings: 0 },
+			namespaces: ['loc', 'paths'],
+		})
 
 		const broken = { fileName: 'import-broken.csv', content: readFixture(BROKEN_CSV) }
 		for (const url of [importPreviewApi(project.id), importApi(project.id)]) {

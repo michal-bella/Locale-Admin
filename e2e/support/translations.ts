@@ -79,7 +79,7 @@ export type TranslationsResponse = {
 	total: number
 	page: number
 	pageSize: number
-	stats: { totalKeys: number; translated: number; untranslated: number }
+	stats: { totalKeys: number; translated: number; untranslated: number; warnings: number }
 	namespaces: string[]
 }
 

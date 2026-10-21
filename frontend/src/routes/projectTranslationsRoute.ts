@@ -25,6 +25,8 @@ export const translationsSearchSchema = z.object({
 	languages: z.array(z.enum(LANGUAGE_TAGS)).min(1).optional().catch(undefined),
 	updatedBy: z.uuid().optional().catch(undefined),
 	updatedWithin: translationsUpdatedWithinSchema.optional().catch(undefined),
+	/** Only keys with a placeholder warning (`?warnings=true`), turned on from the warnings banner. */
+	warnings: z.literal(true).optional().catch(undefined),
 	/** Hides the key and status columns. */
 	translationsOnly: z.literal(true).optional().catch(undefined),
 	page: z.number().int().min(1).optional().catch(undefined),

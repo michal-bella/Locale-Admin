@@ -1,6 +1,7 @@
 import { type APIRequestContext, expect, type Page, test } from '@playwright/test'
 
 import { ANONYMOUS } from '../support/auth'
+import { importSample } from '../support/imports'
 import { listLanguages } from '../support/languages'
 import { getMainNavigation } from '../support/layout'
 import { createProject } from '../support/projects'
@@ -270,6 +271,40 @@ test('no results show Zrušiť filtre, which clears search and status but keeps 
 })
 
 // The view is saved on the user, so these tests sign in as their own ADMIN and leave the shared one in EXTENDED.
+test('a yellow banner counts the keys with a placeholder warning and its button filters the table by them', async ({ page, request }) => {
+	// import-sample.csv: only cart.items differs (cs „Máte položek“ without {{count}}); en {{ name }} normalizes to the base {{name}}.
+	const project = await createProject(request, 'tr-warnings', ['sk', 'en', 'cs'])
+	await importSample(request, project.id, { sk: 'sk', en: 'en', cs: 'cs' })
+	await openTranslations(page, project)
+
+	const banner = page.getByRole('alert')
+	await expect(banner).toContainText('1 kľúč má premenné, ktoré sa líšia od základného jazyka, napríklad po importe.')
+	await expect(getTranslationRows(page)).toHaveCount(10)
+
+	await banner.getByRole('button', { name: 'Zobraziť upozornenia' }).click()
+	await expect(page).toHaveURL(translationsPath(project, '?warnings=true'))
+	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+	await expectKeys(getTranslationRows(page), ['cart.items'])
+	await expect(getShownCount(page, 'Zobrazených 1 z 1 kľúča')).toBeVisible()
+	await expect(getTranslationRow(page, 'cart.items').getByRole('img', { name: /^Chýba/ })).toBeVisible()
+
+	await page.reload()
+	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+	await expectKeys(getTranslationRows(page), ['cart.items'])
+
+	await page.getByRole('alert').getByRole('button', { name: 'Zrušiť filter upozornení' }).click()
+	await expect(page).toHaveURL(translationsPath(project))
+	await expect(getTranslationRows(page)).toHaveCount(10)
+})
+
+test('a project whose placeholders all match has no warnings banner', async ({ page, request }) => {
+	const project = await createProjectWithKeys(request, 'tr-no-warnings', KEYS)
+	await openTranslations(page, project)
+
+	await expect(getTranslationRows(page)).toHaveCount(KEYS.length)
+	await expect(page.getByRole('alert')).toHaveCount(0)
+})
+
 test.describe('view switch', () => {
 	test.use({ storageState: ANONYMOUS })
 

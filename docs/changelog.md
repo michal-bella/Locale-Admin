@@ -8,6 +8,19 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Banner upozornení na premenné (2026-10-21)
+
+- e2e: `translations.spec.ts` overí banner, filter `?warnings=true` aj jeho zrušenie na projekte z `import-sample.csv` ([Testovanie](./testing.md#e2e-testy-playwright))
+- frontend: stránka Preklady ukáže žltý banner s počtom kľúčov, ktorých premenné sa líšia od základného jazyka, a tlačidlom **Zobraziť upozornenia** (filter `?warnings=true`), resp. **Zrušiť filter upozornení** ([Frontend](./frontend.md#stránka-preklady))
+
+### Upozornenia na premenné – filter a počet v API (2026-10-21)
+
+- API: `GET …/translations` má filter `warnings=true` (iba kľúče s bunkou s upozornením) a `stats.warnings` (počet takých kľúčov v projekte, bez filtrov) ([API](./api/translations.md#get-apiprojectsprojectidtranslations))
+
+### Upozornenia na premenné – uložený príznak (2026-10-21)
+
+- databáza: `Translation.placeholderWarning` (migrácia `translation_placeholder_warning`) drží, či sa premenné bunky líšia od základného jazyka; prepočítava sa pri úprave, Pridať kľúč, premenovaní, importe a zmene základného jazyka, staré riadky dopočíta seed pri štarte ([Databáza](./database.md#translation)). Banner a filter na stránke Preklady prídu v ďalších míľnikoch plánu [`translation-warnings`](./plans/translation-warnings.md)
+
 ### Základný jazyk vetného kľúča, popis kľúča ako ikona (2026-10-21)
 
 - API: pri `PUT …/translations/:languageId` a `POST …/keys` sa aj hodnota základného jazyka porovná s premennými v názve kľúča, keď ich názov obsahuje (vetný kľúč `Cena ({{symbol}})`); kľúče bez premenných v názve sa v základnom jazyku nekontrolujú ([API](./api/translations.md#ochrana-premenných))

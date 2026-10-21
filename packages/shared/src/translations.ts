@@ -64,6 +64,8 @@ export const translationsQuerySchema = z
 		namespace: z.preprocess(emptyToUndefined, z.string().optional()),
 		updatedById: z.preprocess(emptyToUndefined, z.uuid().optional()),
 		updatedWithin: z.preprocess(emptyToUndefined, translationsUpdatedWithinSchema.optional()),
+		/** `true` (also `'true'` or `'1'` in the URL) lists only keys with a cell whose placeholders differ from the base language. */
+		warnings: z.preprocess((value) => (value === true || value === 'true' || value === '1' ? true : undefined), z.literal(true).optional()),
 		sort: z.preprocess(emptyToUndefined, translationsSortSchema.default('UNTRANSLATED_FIRST')),
 		page: z.coerce.number().int().min(1).default(1),
 		pageSize: z.coerce.number().int().min(1).max(TRANSLATIONS_PAGE_SIZE_MAX).default(TRANSLATIONS_PAGE_SIZE_DEFAULT),
@@ -173,7 +175,8 @@ export type TranslationListItem = z.infer<typeof translationListItemSchema>
 
 /**
  * Body of `GET /api/projects/:projectId/translations`. `total` counts keys matching the filters; `stats` count every key
- * of the project by the row status of the query (target language, or every language), ignoring filters. `namespaces`
+ * of the project by the row status of the query (target language, or every language), ignoring filters; `stats.warnings` counts keys with a
+ * placeholder warning the same way. `namespaces`
  * lists every namespace of the project, sorted. `editors` lists every member of the project and every other user who changed one of its translations, most translations last edited by them first, then by name.
  */
 export const translationsResponseSchema = z.object({
@@ -185,6 +188,8 @@ export const translationsResponseSchema = z.object({
 		totalKeys: z.number().int().nonnegative(),
 		translated: z.number().int().nonnegative(),
 		untranslated: z.number().int().nonnegative(),
+		/** Keys with at least one cell whose placeholders differ from the base language (`Translation.placeholderWarning`), ignoring filters. */
+		warnings: z.number().int().nonnegative(),
 	}),
 	namespaces: z.array(z.string()),
 	editors: z.array(translationEditorSchema),

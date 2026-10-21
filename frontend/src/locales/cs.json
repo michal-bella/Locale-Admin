@@ -273,6 +273,14 @@
 			"showMissing": "Zobrazit nepřeložené",
 			"showAll": "Zobrazit všechny"
 		},
+		"warnings": {
+			"message_one": "{{count}} klíč má proměnné, které se liší od základního jazyka, například po importu.",
+			"message_few": "{{count}} klíče mají proměnné, které se liší od základního jazyka, například po importu.",
+			"message_many": "{{count}} klíčů má proměnné, které se liší od základního jazyka, například po importu.",
+			"message_other": "{{count}} klíčů má proměnné, které se liší od základního jazyka, například po importu.",
+			"show": "Zobrazit upozornění",
+			"clear": "Zrušit filtr upozornění"
+		},
 		"toolbar": {
 			"search": {
 				"label": "Hledat klíč nebo překlad",

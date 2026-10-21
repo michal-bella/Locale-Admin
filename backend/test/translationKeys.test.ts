@@ -345,6 +345,32 @@ describe('POST /api/projects/:projectId/keys', () => {
 		expect((await post(app, cookie, project.id, body)).status).toBe(201)
 	})
 
+	it('returns 400 PLACEHOLDER_MISMATCH with the base language when the base value of a sentence key differs from the name', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		await createKey(project.id, 'existing')
+		const name = 'Cena ({{symbol}})'
+
+		const res = await post(app, cookie, project.id, {
+			namespace: 'loc',
+			name,
+			translations: { [sk.id]: 'Cena ({{symbol}}) ({{symbol}})', [en.id]: 'Price ({{symbol}})' },
+		})
+
+		expectErrorCode(res, 400, ERROR_CODE.PLACEHOLDER_MISMATCH)
+		expect(detailsOf(res)).toEqual({ missing: [], extra: ['{{symbol}}'], languageId: sk.id })
+		expect(await keysOf(project.id)).toHaveLength(1)
+		expect(
+			(
+				await post(app, cookie, project.id, {
+					namespace: 'loc',
+					name,
+					translations: { [sk.id]: 'Cena s DPH ({{symbol}})', [en.id]: 'Price ({{symbol}})' },
+				})
+			).status,
+		).toBe(201)
+	})
+
 	it('returns 403 FORBIDDEN to a member, 404 NOT_FOUND to a non-member EDITOR and 201 to an ADMIN who is not a member', async () => {
 		const app = createTestApp()
 		const member = await setup(app, { role: ROLE.EDITOR })

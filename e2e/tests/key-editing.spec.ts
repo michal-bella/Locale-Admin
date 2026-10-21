@@ -167,7 +167,7 @@ test.describe('locked tokens', () => {
 })
 
 test.describe('Edit key modal', () => {
-	test('ADMIN renames a key (PATCH { name } only), a taken name is a field error, a description shows under the key', async ({
+	test('ADMIN renames a key (PATCH { name } only), a taken name is a field error, a description shows as an info icon with a tooltip', async ({
 		page,
 		request,
 		browserName,
@@ -227,7 +227,11 @@ test.describe('Edit key modal', () => {
 		expect(described.status()).toBe(200)
 		expect(described.request().postDataJSON()).toEqual({ description: 'Odkaz v hlavnom menu' })
 		await expect(taken).toHaveCount(0)
-		await expect(getTranslationRow(page, 'menu.start').getByText('Odkaz v hlavnom menu', { exact: true })).toBeVisible()
+		const info = getTranslationRow(page, 'menu.start').getByRole('img', { name: 'Popis kľúča: Odkaz v hlavnom menu' })
+		await expect(info).toBeVisible()
+		await expect(getTranslationRow(page, 'menu.start').getByText('Odkaz v hlavnom menu', { exact: true })).toHaveCount(0)
+		await info.hover()
+		await expect(page.getByRole('tooltip')).toHaveText('Odkaz v hlavnom menu')
 		expect(await itemOf(request, project.id, 'menu.start')).toMatchObject({ description: 'Odkaz v hlavnom menu', plural: null, group: 'loc:menu' })
 
 		const unchanged = await openEditKeyModal(page, 'menu.start')
@@ -238,7 +242,7 @@ test.describe('Edit key modal', () => {
 
 		await page.reload()
 		await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
-		await expect(getTranslationRow(page, 'menu.start').getByText('Odkaz v hlavnom menu', { exact: true })).toBeVisible()
+		await expect(getTranslationRow(page, 'menu.start').getByRole('img', { name: 'Popis kľúča: Odkaz v hlavnom menu' })).toBeVisible()
 	})
 
 	test.describe('as an EDITOR', () => {

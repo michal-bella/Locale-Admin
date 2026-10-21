@@ -231,6 +231,23 @@ describe('CreateKeyModal', () => {
 		expect(dialog.closest('.mantine-Modal-root')?.getAttribute('style') ?? '').toContain('--modal-size: calc(45rem')
 	})
 
+	it('marks the base language with the Základný badge instead of a description', async () => {
+		mockPage()
+		renderApp(PAGE_PATH)
+		const dialog = await openModal()
+
+		const slovak = within(dialog).getByLabelText(/slovenčina/i)
+		expect(within(slovak.closest('.mantine-InputWrapper-root') as HTMLElement).getByText('Základný')).toBeInTheDocument()
+		expect(within(dialog).queryByText(/referenčný text/)).not.toBeInTheDocument()
+		expect(
+			within(
+				within(dialog)
+					.getByLabelText(/angličtina/i)
+					.closest('.mantine-InputWrapper-root') as HTMLElement,
+			).queryByText('Základný'),
+		).toBeNull()
+	})
+
 	it('keeps one column with up to four languages', async () => {
 		mockPage()
 		renderApp(PAGE_PATH)

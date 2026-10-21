@@ -20,15 +20,15 @@ Router `/api/profile` je za `requireAuth`, rola sa nekontroluje. Bez session vr�
 
 Schéma `profileSchema` = `AuthUser` (viď [auth](./auth.md#odpoveď-authuser)) a navyše `passwordChangedAt`. Hash hesla sa nikdy nevracia.
 
-| Pole                | Typ                | Popis                                                                               |
-| ------------------- | ------------------ | ----------------------------------------------------------------------------------- |
-| `id`                | UUID               | ID používateľa                                                                      |
-| `email`             | string             | normalizovaný email (malé písmená)                                                  |
-| `role`              | `ADMIN` / `EDITOR` | globálna rola                                                                       |
-| `firstName`         | string / `null`    | meno, `null` ak ešte nie je vyplnené                                                |
-| `lastName`          | string / `null`    | priezvisko, `null` ak ešte nie je vyplnené                                          |
-| `preferences`       | objekt             | `{ translationsView, translationsLayout }` (viď [auth](./auth.md#odpoveď-authuser)) |
-| `passwordChangedAt` | string (ISO 8601)  | posledná zmena hesla, napr. `2026-10-12T08:30:00.000Z`                              |
+| Pole                | Typ                            | Popis                                                                               |
+| ------------------- | ------------------------------ | ----------------------------------------------------------------------------------- |
+| `id`                | UUID                           | ID používateľa                                                                      |
+| `email`             | string                         | normalizovaný email (malé písmená)                                                  |
+| `role`              | `ADMIN` / `EDITOR` / `VISITOR` | globálna rola                                                                       |
+| `firstName`         | string / `null`                | meno, `null` ak ešte nie je vyplnené                                                |
+| `lastName`          | string / `null`                | priezvisko, `null` ak ešte nie je vyplnené                                          |
+| `preferences`       | objekt                         | `{ translationsView, translationsLayout }` (viď [auth](./auth.md#odpoveď-authuser)) |
+| `passwordChangedAt` | string (ISO 8601)              | posledná zmena hesla, napr. `2026-10-12T08:30:00.000Z`                              |
 
 ```json
 {
@@ -60,7 +60,7 @@ Telo (schéma `updateProfileRequestSchema`):
 ```
 
 - `firstName` aj `lastName` sú povinné, po `trim()` majú 1 až 100 znakov (`PERSON_NAME_MAX_LENGTH`). Ukladajú sa orezané.
-- `role` (`ADMIN` / `EDITOR`) je voliteľná. Rovnaká ako aktuálna rola sa ignoruje; inú môže poslať iba `ADMIN` (inak 403 `FORBIDDEN`) a iba keď ostane aspoň jeden ďalší `ADMIN` (inak 409 `LAST_ADMIN`). Nová rola platí hneď aj pre `GET /api/auth/me` a oprávnenia ďalších požiadaviek.
+- `role` (`ADMIN` / `EDITOR` / `VISITOR`) je voliteľná. Rovnaká ako aktuálna rola sa ignoruje; inú môže poslať iba `ADMIN` (inak 403 `FORBIDDEN`) a iba keď ostane aspoň jeden ďalší `ADMIN` (inak 409 `LAST_ADMIN`). Nová rola platí hneď aj pre `GET /api/auth/me` a oprávnenia ďalších požiadaviek.
 - Pole `email` a ďalšie v tele sa ignorujú (schéma ich nemá).
 - Mení iba prihláseného používateľa. Pri úspechu vráti `200` s novým `Profile`; nové meno vracia hneď aj `GET /api/auth/me`.
 
@@ -69,7 +69,7 @@ Telo (schéma `updateProfileRequestSchema`):
 | 200  |                        | profil uložený, telo `Profile`                                   |
 | 400  | `VALIDATION_ERROR`     | nevalidné telo, `details` podľa polí (viď nižšie)                |
 | 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                   |
-| 403  | `FORBIDDEN`            | `EDITOR` poslal inú rolu, než má                                 |
+| 403  | `FORBIDDEN`            | `EDITOR` alebo `VISITOR` poslal inú rolu, než má                 |
 | 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo (viď [auth](./auth.md#csrf)) |
 | 409  | `LAST_ADMIN`           | posledný `ADMIN` sa chce vzdať roly                              |
 

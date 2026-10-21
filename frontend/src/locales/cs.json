@@ -13,7 +13,8 @@
 	},
 	"roles": {
 		"ADMIN": "Administrátor",
-		"EDITOR": "Editor"
+		"EDITOR": "Editor",
+		"VISITOR": "Návštěvník"
 	},
 	"notFoundPage": {
 		"eyebrow": "Chyba 404",
@@ -167,7 +168,8 @@
 				"label": "Role",
 				"description": {
 					"ADMIN": "Spravuje systém, uživatele a všechny projekty.",
-					"EDITOR": "Překládá pouze v projektech, do kterých ho přidá administrátor."
+					"EDITOR": "Překládá pouze v projektech, do kterých ho přidá administrátor.",
+					"VISITOR": "Pouze čte a exportuje překlady v projektech, do kterých ho přidá administrátor."
 				}
 			},
 			"cancel": "Zrušit",

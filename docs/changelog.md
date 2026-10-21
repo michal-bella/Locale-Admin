@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Rola Návštevník – kontrakt a databáza (2026-10-21)
+
+- shared + databáza: nová globálna rola `VISITOR` v enume `ROLE` (migrácia `visitor_role`); `POST /api/admin/users`, `PATCH /api/admin/users/:id` a `PATCH /api/profile` ju prijmú, posledný `ADMIN` sa ňou nemôže stať (409 `LAST_ADMIN`) ([API](./api/admin-users.md), [Databáza](./database.md)). Obmedzenia pre rolu (iba Preklady a Prehľad, bez úprav) pribudnú v ďalších míľnikoch plánu [`visitor-role`](./plans/visitor-role.md)
+
 ### Upozornenia na premenné pred exportom (2026-10-21)
 
 - API: `GET /api/projects/:projectId/export/check` vráti hodnoty vybraných jazykov, ktorých premenné sa líšia od základného jazyka (`{ warnings, total }`, max. 50) ([API](./api/exports.md#kontrola-pred-exportom-exportcheck))

@@ -124,7 +124,7 @@ Unikátna trojica (`projectId`, `namespace`, `name`): ten istý kľúč môže b
 
 Plurálový kľúč (`pluralVariable` nie je `null`) ukladá v každom jazyku jednu ICU správu `{count, plural, one {# položka} few {# položky} other {# položiek}}` (`serializePluralValue` v `packages/shared/src/plurals.ts`). Zapnutie, vypnutie alebo premenovanie premennej cez `PATCH …/keys/:keyId` prepíše hodnoty vo všetkých jazykoch (viď [API: preklady](./api/translations.md#plurálové-formy)).
 
-Kľúče vytvára iba import (API na založenie jedného kľúča nie je); názov, popis a plurál upraví `ADMIN` cez `PATCH /api/projects/:projectId/keys/:keyId`. Dĺžka `name` je obmedzená na 2 000 **bajtov** v UTF-8 (`IMPORT_KEY_MAX_BYTES`, chyba `KEY_TOO_LONG`) a `namespace` na 100 znakov (`IMPORT_NAMESPACE_MAX_LENGTH`), lebo riadok btree indexu unesie najviac ~2,7 kB: 2 000 znakov v cyrilike (≈ 4 kB) by pri zápise skončilo chybou 500. Kľúč s 2 000 bajtmi a 100-znakovým namespace sa do indexu zmestí (overené integračným testom). Zmazanie projektu zmaže kľúče aj preklady kaskádou; kľúče, ktoré v importovanom súbore chýbajú, sa nemažú.
+Kľúče vytvára import alebo `ADMIN` ručne cez `POST /api/projects/:projectId/keys`, vždy do namespace, ktorý projekt už má (nový namespace vzniká iba importom); názov, popis a plurál upraví `ADMIN` cez `PATCH /api/projects/:projectId/keys/:keyId`. Dĺžka `name` je obmedzená na 2 000 **bajtov** v UTF-8 (`IMPORT_KEY_MAX_BYTES`, chyba `KEY_TOO_LONG`) a `namespace` na 100 znakov (`IMPORT_NAMESPACE_MAX_LENGTH`), lebo riadok btree indexu unesie najviac ~2,7 kB: 2 000 znakov v cyrilike (≈ 4 kB) by pri zápise skončilo chybou 500. Kľúč s 2 000 bajtmi a 100-znakovým namespace sa do indexu zmestí (overené integračným testom). Zmazanie projektu zmaže kľúče aj preklady kaskádou; kľúče, ktoré v importovanom súbore chýbajú, sa nemažú.
 
 ### Translation
 
@@ -175,6 +175,7 @@ Udalosť zapisuje helper `recordActivity(tx, …)` (`backend/src/lib/activity.ts
 | `MEMBER_ADDED`          | `POST …/members`                                                                                                       | `{ member: { id, firstName, lastName, email } }`                                 |
 | `MEMBER_REMOVED`        | `DELETE …/members/:userId` aj `DELETE …/membership` (odchod)                                                           | `{ member, left }` – `left` je `true`, keď člen odišiel sám                      |
 | `KEYS_IMPORTED`         | `POST …/imports`, ak vytvoril kľúč alebo zapísal hodnotu; jedna udalosť za import                                      | `{ keysCreated, translationsCreated, translationsUpdated, languageTags }`        |
+| `KEY_CREATED`           | `POST …/keys` (ručné pridanie kľúča)                                                                                   | `{ keyId, namespace, name, languageTags }` – jazyky s vyplnenou hodnotou         |
 | `KEY_UPDATED`           | `PATCH …/keys/:keyId`, iba ak sa zmenil názov, popis alebo plurál                                                      | `{ keyId, namespace, name, fields }` – `name` je nový názov                      |
 | `TRANSLATION_UPDATED`   | `PUT …/translations/:languageId`, iba ak sa uložená hodnota zmenila                                                    | `{ keyId, namespace, name, languageTag, oldValue, newValue }` (`null` = prázdne) |
 

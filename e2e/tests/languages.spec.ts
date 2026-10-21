@@ -209,18 +209,37 @@ test.describe('ADMIN reorders languages', () => {
 test.describe('member', () => {
 	test.use({ storageState: ANONYMOUS })
 
-	test('adds and removes languages in an own project but gets 404 for a foreign one', async ({ page, playwright, baseURL }) => {
+	test('cannot add, remove or reorder languages in an own project and gets 404 for a foreign one', async ({ page, playwright, baseURL }) => {
 		const editor = await createEditor(playwright.request, baseURL)
 		await loginViaUi(page, editor)
 		await expectLoggedInHome(page)
 
-		const added = await page.request.post(projectLanguagesApi(editor.projectId), { data: { tag: 'hr' }, headers: MUTATION_HEADERS })
-		expect(added.status()).toBe(201)
-		const { id } = (await added.json()) as Language
-		const removed = await page.request.delete(`${projectLanguagesApi(editor.projectId)}/${id}`, { data: {}, headers: MUTATION_HEADERS })
-		expect(removed.status()).toBe(204)
+		const forbidden = await page.request.post(projectLanguagesApi(editor.projectId), { data: { tag: 'hr' }, headers: MUTATION_HEADERS })
+		expect(forbidden.status()).toBe(403)
+		expect((await readApiError(forbidden)).code).toBe('FORBIDDEN')
+		await page.goto(`/projects/${editor.projectSlug}/languages`)
+		await expect(page.getByRole('heading', { level: 1, name: 'Jazyky' })).toBeVisible()
+		await expect(page.getByRole('button', { name: 'Pridať jazyk', exact: true })).toHaveCount(0)
+		const table = page.getByRole('table', { name: 'Zoznam jazykov' })
+		await expect(table).toHaveAttribute('aria-busy', 'false')
+		await expect(table.getByRole('button', { name: /^Odobrať jazyk/ })).toHaveCount(0)
+		await expect(table.getByRole('button', { name: /^Presunúť jazyk/ })).toHaveCount(0)
 
 		const admin = await newAdminApi(playwright.request)
+		const added = await admin.post(projectLanguagesApi(editor.projectId), { data: { tag: 'hr' }, headers: MUTATION_HEADERS })
+		expect(added.status()).toBe(201)
+		const { id } = (await added.json()) as Language
+		const forbiddenRemove = await page.request.delete(`${projectLanguagesApi(editor.projectId)}/${id}`, { data: {}, headers: MUTATION_HEADERS })
+		expect(forbiddenRemove.status()).toBe(403)
+		expect((await readApiError(forbiddenRemove)).code).toBe('FORBIDDEN')
+		const languages = await listLanguages(page.request, editor.projectId)
+		const forbiddenOrder = await page.request.put(`${projectLanguagesApi(editor.projectId)}/order`, {
+			data: { languageIds: languages.map(({ id }) => id).reverse() },
+			headers: MUTATION_HEADERS,
+		})
+		expect(forbiddenOrder.status()).toBe(403)
+		expect((await readApiError(forbiddenOrder)).code).toBe('FORBIDDEN')
+
 		const foreign = await createProject(admin, 'languages-foreign')
 		await admin.dispose()
 		const response = await page.request.get(projectLanguagesApi(foreign.id))

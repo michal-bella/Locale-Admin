@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { IMPORT_KEY_MAX_BYTES } from './imports'
+import { IMPORT_KEY_MAX_BYTES, IMPORT_NAMESPACE_MAX_LENGTH } from './imports'
 import { PLURAL_VARIABLE_DEFAULT, PLURAL_VARIABLE_MAX_LENGTH, PLURAL_VARIABLE_PATTERN } from './plurals'
 
 export const TRANSLATIONS_PAGE_SIZE_DEFAULT = 20
@@ -207,12 +207,14 @@ export const TRANSLATION_VALUE_MAX_LENGTH = 10_000
  * Body of `PUT /api/projects/:projectId/keys/:keyId/translations/:languageId`. An empty or whitespace-only
  * value is stored as `null` (untranslated); `""` never reaches the database.
  */
+const translationValueSchema = z
+	.string()
+	.max(TRANSLATION_VALUE_MAX_LENGTH)
+	.nullable()
+	.transform((value) => (value === null || value.trim() === '' ? null : value))
+
 export const updateTranslationRequestSchema = z.object({
-	value: z
-		.string()
-		.max(TRANSLATION_VALUE_MAX_LENGTH)
-		.nullable()
-		.transform((value) => (value === null || value.trim() === '' ? null : value)),
+	value: translationValueSchema,
 })
 
 export type UpdateTranslationRequest = z.infer<typeof updateTranslationRequestSchema>
@@ -229,10 +231,35 @@ export const updateTranslationResponseSchema = z.object({
 
 export type UpdateTranslationResponse = z.infer<typeof updateTranslationResponseSchema>
 
-/** `details` of 400 `PLACEHOLDER_MISMATCH`: placeholders of the base language missing in or extra to the value. */
+/**
+ * Body of `POST /api/projects/:projectId/keys` (global ADMIN only): a key added by hand, e.g. one that came up in development after the
+ * sheet was locked. `namespace` must be one the project already has (400 `VALIDATION_ERROR` on `namespace` otherwise). `translations` maps
+ * `ProjectLanguage.id` to a value; an empty value or a language left out stays untranslated. A name taken in the namespace gives 409
+ * `TRANSLATION_KEY_TAKEN`.
+ */
+export const createTranslationKeyRequestSchema = z.object({
+	namespace: z.string().max(IMPORT_NAMESPACE_MAX_LENGTH),
+	name: translationKeyNameSchema,
+	translations: z.record(z.uuid(), translationValueSchema).default({}),
+})
+
+export type CreateTranslationKeyRequest = z.infer<typeof createTranslationKeyRequestSchema>
+
+export type CreateTranslationKeyRequestInput = z.input<typeof createTranslationKeyRequestSchema>
+
+/** Body of `201 POST …/keys`: the new key as in the list, without translations. */
+export const createTranslationKeyResponseSchema = updateTranslationKeyResponseSchema
+
+export type CreateTranslationKeyResponse = z.infer<typeof createTranslationKeyResponseSchema>
+
+/**
+ * `details` of 400 `PLACEHOLDER_MISMATCH`: placeholders of the base language missing in or extra to the value. `POST …/keys` adds the
+ * `languageId` whose value differs, since it saves several languages at once.
+ */
 export const placeholderMismatchDetailsSchema = z.object({
 	missing: z.array(z.string()),
 	extra: z.array(z.string()),
+	languageId: z.uuid().optional(),
 })
 
 export type PlaceholderMismatchDetails = z.infer<typeof placeholderMismatchDetailsSchema>

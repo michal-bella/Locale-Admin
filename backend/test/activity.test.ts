@@ -51,7 +51,7 @@ const createKey = (projectId: string, name: string, values: Record<string, strin
 describe('activity events', () => {
 	it('records the project creation and nothing for a taken slug', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app, ROLE.EDITOR)
+		const { user, cookie } = await login(app, ROLE.ADMIN)
 
 		const res = await send(app, cookie, 'post', '/projects', { name: 'Web', slug: 'web', languageTags: ['sk', 'en'] }, 201)
 		await send(app, cookie, 'post', '/projects', { name: 'Iný', slug: 'web', languageTags: ['sk'] }, 409)

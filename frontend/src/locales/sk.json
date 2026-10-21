@@ -5,6 +5,9 @@
 		"copyright": "© {{year}} Locale"
 	},
 	"documentTitle": "{{page}} – Locale",
+	"baseLanguage": {
+		"hint": "Jazyk, z ktorého sa prekladá. Pri úprave prekladu sa zobrazuje ako predloha a podľa neho sa kontrolujú premenné v ostatných jazykoch."
+	},
 	"notification": {
 		"close": "Zavrieť notifikáciu"
 	},
@@ -26,6 +29,7 @@
 		"list": {
 			"label": "Zoznam projektov",
 			"empty": "Zatiaľ nemáte žiadny projekt. Vytvorte prvý.",
+			"emptyEditor": "Zatiaľ nie ste v žiadnom projekte. Do projektu vás pridá administrátor.",
 			"loadError": "Zoznam projektov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
 			"settings": "Nastavenia",
@@ -257,6 +261,7 @@
 		"title": "Preklady",
 		"description": "Spravujte texty a preklady vášho projektu na jednom mieste.",
 		"importButton": "Importovať",
+		"createKeyButton": "Pridať kľúč",
 		"stats": {
 			"totalKeys": "Celkom kľúčov",
 			"translated": "Preložené",
@@ -398,6 +403,28 @@
 			"submit": "Uložiť",
 			"success": "Kľúč {{key}} bol uložený."
 		},
+		"createKeyModal": {
+			"title": "Pridať kľúč",
+			"description": "Kľúč pribudne do existujúceho namespace. Prázdne preklady ostanú nepreložené.",
+			"close": "Zavrieť",
+			"name": {
+				"label": "Kľúč",
+				"placeholder": "napr. orders.empty.title"
+			},
+			"namespace": {
+				"label": "Namespace",
+				"description": "Iba existujúci namespace projektu.",
+				"placeholder": "Vyberte namespace",
+				"empty": "Bez namespace"
+			},
+			"value": {
+				"base": "Základný jazyk – referenčný text pre ostatné jazyky.",
+				"placeholder": "Voliteľné"
+			},
+			"cancel": "Zrušiť",
+			"submit": "Pridať",
+			"success": "Kľúč {{key}} bol pridaný."
+		},
 		"pagination": {
 			"pageSize": "Kľúčov na stranu",
 			"label": "Stránkovanie",
@@ -467,6 +494,7 @@
 			"deletedUser": "Odstránený používateľ",
 			"open": "Zobraziť v prekladoch",
 			"openLabel": "Zobraziť zmeny používateľa {{name}} v prekladoch",
+			"openKeyLabel": "Zobraziť preklad {{key}} v prekladoch",
 			"events": {
 				"projectCreated": "vytvorenie projektu {{name}}",
 				"projectUpdated": "zmena nastavení projektu: {{fields}}",
@@ -486,6 +514,7 @@
 				"newKeyCount_few": "{{count}} nové kľúče",
 				"newKeyCount_many": "{{count}} nových kľúčov",
 				"newKeyCount_other": "{{count}} nových kľúčov",
+				"keyCreated": "nový kľúč {{key}}",
 				"keyUpdated": "úprava kľúča {{key}}: {{fields}}",
 				"translationUpdated": "úprava prekladu {{key}} ({{language}})"
 			},
@@ -858,6 +887,7 @@
 		"eyebrow": "Lokalizácia",
 		"title": "Jazyky",
 		"description": "Jazyky, do ktorých sa projekt prekladá. Poradie zmeníte potiahnutím – v tomto poradí sa zobrazia stĺpce v prekladoch a jazyk na prvom mieste je základný.",
+		"descriptionEditor": "Jazyky, do ktorých sa projekt prekladá. V tomto poradí sa zobrazia stĺpce v prekladoch a jazyk na prvom mieste je základný.",
 		"addButton": "Pridať jazyk",
 		"table": {
 			"move": "Presunúť",
@@ -969,6 +999,7 @@
 	"sidebar": {
 		"label": "Hlavná navigácia",
 		"allProjects": "Všetky projekty",
+		"backToProject": "Späť na projekt",
 		"languages": "Jazyky",
 		"admin": "Správa",
 		"adminProjects": "Projekty",

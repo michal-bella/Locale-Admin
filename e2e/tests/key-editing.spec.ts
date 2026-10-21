@@ -1,7 +1,7 @@
 import { type APIRequestContext, expect, type Locator, type Page, type Request, test } from '@playwright/test'
 
 import { MUTATION_HEADERS, readApiError } from '../support/api'
-import { STORAGE_STATE } from '../support/auth'
+import { ANONYMOUS, expectLoggedInHome, loginViaUi } from '../support/auth'
 import { importSample } from '../support/imports'
 import { listLanguages, newAdminApi } from '../support/languages'
 import { createProject, getProjectSettings, projectSettingsApi } from '../support/projects'
@@ -29,16 +29,14 @@ import {
 	submitEditKey,
 	translationKeyApi,
 } from '../support/translations'
+import { addMember, createMember } from '../support/users'
 
 const SK = 'slovenčina'
 
-/**
- * `import-sample.csv` with sk (base) and en, `cs` skipped; see `SAMPLE` in `support/imports.ts`. `api` creates the project and
- * becomes its member; only an ADMIN imports, so an EDITOR passes the ADMIN context as `importer`.
- */
-const seedProject = async (api: APIRequestContext, label: string, importer: APIRequestContext = api) => {
+/** `import-sample.csv` with sk (base) and en, `cs` skipped; see `SAMPLE` in `support/imports.ts`. The ADMIN of `api` creates the project and becomes its member. */
+const seedProject = async (api: APIRequestContext, label: string) => {
 	const project = await createProject(api, label, ['sk', 'en'])
-	await importSample(importer, project.id, { sk: 'sk', en: 'en', cs: null })
+	await importSample(api, project.id, { sk: 'sk', en: 'en', cs: null })
 	return project
 }
 
@@ -244,11 +242,21 @@ test.describe('Edit key modal', () => {
 	})
 
 	test.describe('as an EDITOR', () => {
-		test.use({ storageState: STORAGE_STATE.EDITOR })
+		test.use({ storageState: ANONYMOUS })
 
-		test('a member sees no Upraviť kľúč button and PATCH returns 403 FORBIDDEN', async ({ page, request, playwright }) => {
+		// Its own member: adding the shared EDITOR to another project would change which project other specs see as theirs.
+		test('a member sees no Upraviť kľúč button and PATCH returns 403 FORBIDDEN', async ({ page, playwright, baseURL }) => {
+			const member = await createMember(playwright.request, baseURL)
 			const admin = await newAdminApi(playwright.request)
-			const project = await seedProject(request, 'edit-key-member', admin).finally(() => admin.dispose())
+			const project = await seedProject(admin, 'edit-key-member')
+				.then(async (created) => {
+					await addMember(admin, created.id, member.id)
+					return created
+				})
+				.finally(() => admin.dispose())
+			await loginViaUi(page, member)
+			await expectLoggedInHome(page)
+			const request = page.request
 			await openTranslations(page, project)
 			await expect(getTranslationRows(page)).toHaveCount(10)
 			await expect(page.getByRole('button', { name: /^Upraviť kľúč / })).toHaveCount(0)

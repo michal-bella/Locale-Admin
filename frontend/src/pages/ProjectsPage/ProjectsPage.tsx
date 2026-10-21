@@ -3,17 +3,20 @@ import { useDisclosure } from '@mantine/hooks'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type ProjectListItem } from '@locale/shared'
+import { type ProjectListItem, ROLE } from '@locale/shared'
 
+import { useMeQuery } from '@/api/auth/meQuery'
 import CreateProjectModal from '@/components/CreateProjectModal/CreateProjectModal'
 import { Plus } from '@/components/Icons'
 import LeaveProjectModal from '@/components/LeaveProjectModal/LeaveProjectModal'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import ProjectsList from '@/components/ProjectsList/ProjectsList'
 
-/** Index page: projects of the user (ADMIN sees all), create a project, leave a project or open it. */
+/** Index page: projects of the user (ADMIN sees all and creates projects), leave a project or open it. */
 const ProjectsPage = () => {
 	const { t } = useTranslation()
+	const { data: user } = useMeQuery()
+	const isAdmin = user?.role === ROLE.ADMIN
 	const [createOpened, createModal] = useDisclosure(false)
 	const [leaveOpened, leaveModal] = useDisclosure(false)
 	const [leaving, setLeaving] = useState<ProjectListItem | null>(null)
@@ -27,12 +30,14 @@ const ProjectsPage = () => {
 		<div className='mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-8'>
 			<div className='flex flex-wrap items-end justify-between gap-4'>
 				<PageIntro eyebrow={t('projectsPage.eyebrow')} title={t('projectsPage.title')} description={t('projectsPage.description')} titleSize='h2' />
-				<Button leftSection={<Plus aria-hidden />} onClick={createModal.open}>
-					{t('projectsPage.createButton')}
-				</Button>
+				{isAdmin && (
+					<Button leftSection={<Plus aria-hidden />} onClick={createModal.open}>
+						{t('projectsPage.createButton')}
+					</Button>
+				)}
 			</div>
 			<ProjectsList onLeave={openLeave} />
-			<CreateProjectModal opened={createOpened} onClose={createModal.close} />
+			{isAdmin && <CreateProjectModal opened={createOpened} onClose={createModal.close} />}
 			<LeaveProjectModal opened={leaveOpened} project={leaving} onClose={leaveModal.close} onLeft={leaveModal.close} />
 		</div>
 	)

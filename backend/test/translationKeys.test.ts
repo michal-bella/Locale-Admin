@@ -4,6 +4,9 @@ import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 
 import {
+	ACTIVITY_TYPE,
+	createTranslationKeyResponseSchema,
+	type CreateTranslationKeyRequestInput,
 	ERROR_CODE,
 	ROLE,
 	errorResponseSchema,
@@ -236,5 +239,133 @@ describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		expectErrorCode(await request(app).patch(url).set(CSRF_HEADERS).send({ name: 'b' }), 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
 		expectErrorCode(await request(app).patch(url).set('Cookie', cookie).send({ name: 'b' }), 403, ERROR_CODE.CSRF_REJECTED)
 		expect((await findKey(key.id)).name).toBe('a')
+	})
+})
+
+const post = (app: App, cookie: string, projectId: string, body: CreateTranslationKeyRequestInput | Record<string, unknown>) =>
+	request(app).post(`/api/projects/${projectId}/keys`).set('Cookie', cookie).set(CSRF_HEADERS).send(body)
+
+const detailsOf = (res: request.Response) => errorResponseSchema.parse(res.body).error.details
+
+const keysOf = (projectId: string) => getTestPrisma().translationKey.findMany({ where: { projectId }, select: { namespace: true, name: true } })
+
+describe('POST /api/projects/:projectId/keys', () => {
+	it('creates a key in an existing namespace with the filled values only, records KEY_CREATED and the list shows it', async () => {
+		const app = createTestApp()
+		const { user, project, sk, en, cookie } = await setup(app)
+		await createKey(project.id, 'existing')
+
+		const res = await post(app, cookie, project.id, {
+			namespace: 'loc',
+			name: ' orders.empty.title ',
+			translations: { [sk.id]: 'Žiadne objednávky', [en.id]: '' },
+		})
+
+		expect(res.status).toBe(201)
+		const key = createTranslationKeyResponseSchema.strict().parse(res.body)
+		expect(key).toEqual({ keyId: key.keyId, namespace: 'loc', name: 'orders.empty.title', group: 'loc:orders.empty', description: null, plural: null })
+		expect(await values(key.keyId)).toEqual({ [sk.id]: 'Žiadne objednávky' })
+		expect(await updatedBy(key.keyId)).toEqual({ [sk.id]: user.id })
+		const events = await getTestPrisma().activityEvent.findMany({ where: { projectId: project.id }, select: { type: true, payload: true, userId: true } })
+		expect(events).toEqual([
+			{
+				type: ACTIVITY_TYPE.KEY_CREATED,
+				payload: { keyId: key.keyId, namespace: 'loc', name: 'orders.empty.title', languageTags: ['sk'] },
+				userId: user.id,
+			},
+		])
+
+		const list = await request(app).get(`/api/projects/${project.id}/translations`).query({ search: 'orders.empty' }).set('Cookie', cookie)
+		const item = translationsResponseSchema.parse(list.body).items[0]
+		expect(item?.translations[sk.id]?.value).toBe('Žiadne objednávky')
+		expect(item?.translations[en.id]).toEqual({ value: null, status: 'UNTRANSLATED', updatedAt: null, updatedBy: null })
+	})
+
+	it('accepts the empty namespace only when the project has keys in it', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await setup(app)
+		await createKey(project.id, 'existing', { namespace: '' })
+
+		expect((await post(app, cookie, project.id, { namespace: '', name: 'Ahoj' })).status).toBe(201)
+		expect(await keysOf(project.id)).toEqual(expect.arrayContaining([{ namespace: '', name: 'Ahoj' }]))
+	})
+
+	it('returns 400 VALIDATION_ERROR on namespace for a namespace the project does not have, also with no keys at all', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await setup(app)
+		const empty = await post(app, cookie, project.id, { namespace: 'loc', name: 'a' })
+		expectErrorCode(empty, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(detailsOf(empty)).toEqual([{ path: 'namespace', code: 'INVALID' }])
+
+		await createKey(project.id, 'existing', { namespace: 'loc' })
+		const res = await post(app, cookie, project.id, { namespace: 'new', name: 'a' })
+		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(detailsOf(res)).toEqual([{ path: 'namespace', code: 'INVALID' }])
+		expect(await keysOf(project.id)).toEqual([{ namespace: 'loc', name: 'existing' }])
+	})
+
+	it('returns 400 VALIDATION_ERROR for a missing name, a too long name and a language of another project', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await setup(app)
+		const other = await setup(app)
+		await createKey(project.id, 'existing')
+
+		const missing = await post(app, cookie, project.id, { namespace: 'loc', name: '  ' })
+		expect(detailsOf(missing)).toEqual([{ path: 'name', code: 'REQUIRED' }])
+		const tooLong = await post(app, cookie, project.id, { namespace: 'loc', name: 'é'.repeat(1001) })
+		expect(detailsOf(tooLong)).toEqual([{ path: 'name', code: 'INVALID' }])
+		const foreign = await post(app, cookie, project.id, { namespace: 'loc', name: 'a', translations: { [other.sk.id]: 'Ahoj' } })
+		expectErrorCode(foreign, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(detailsOf(foreign)).toEqual([{ path: `translations.${other.sk.id}`, code: 'INVALID' }])
+		expect(await keysOf(project.id)).toHaveLength(1)
+	})
+
+	it('returns 409 TRANSLATION_KEY_TAKEN for a name used in the namespace and creates the same name in another one', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await setup(app)
+		await createKey(project.id, 'a', { namespace: 'loc' })
+		await createKey(project.id, 'b', { namespace: 'paths' })
+
+		expectErrorCode(await post(app, cookie, project.id, { namespace: 'loc', name: 'a' }), 409, ERROR_CODE.TRANSLATION_KEY_TAKEN)
+		expect((await post(app, cookie, project.id, { namespace: 'paths', name: 'a' })).status).toBe(201)
+	})
+
+	it('returns 400 PLACEHOLDER_MISMATCH with the language when protection is on and allows it when off', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		await createKey(project.id, 'existing')
+		const body = { namespace: 'loc', name: 'greeting', translations: { [sk.id]: 'Ahoj {{name}}', [en.id]: 'Hello' } }
+
+		const res = await post(app, cookie, project.id, body)
+		expectErrorCode(res, 400, ERROR_CODE.PLACEHOLDER_MISMATCH)
+		expect(detailsOf(res)).toEqual({ missing: ['{{name}}'], extra: [], languageId: en.id })
+		expect(await keysOf(project.id)).toHaveLength(1)
+
+		await getTestPrisma().project.update({ where: { id: project.id }, data: { protectVariables: false } })
+		expect((await post(app, cookie, project.id, body)).status).toBe(201)
+	})
+
+	it('returns 403 FORBIDDEN to a member, 404 NOT_FOUND to a non-member EDITOR and 201 to an ADMIN who is not a member', async () => {
+		const app = createTestApp()
+		const member = await setup(app, { role: ROLE.EDITOR })
+		const outsider = await setup(app, { role: ROLE.EDITOR, member: false })
+		const admin = await setup(app, { role: ROLE.ADMIN, member: false })
+		await Promise.all([member, outsider, admin].map(({ project }) => createKey(project.id, 'existing')))
+
+		expectErrorCode(await post(app, member.cookie, member.project.id, { namespace: 'loc', name: 'b' }), 403, ERROR_CODE.FORBIDDEN)
+		expectErrorCode(await post(app, outsider.cookie, outsider.project.id, { namespace: 'loc', name: 'b' }), 404, ERROR_CODE.NOT_FOUND)
+		expect((await post(app, admin.cookie, admin.project.id, { namespace: 'loc', name: 'b' })).status).toBe(201)
+		expect(await keysOf(member.project.id)).toHaveLength(1)
+	})
+
+	it('returns 401 AUTH_UNAUTHENTICATED without a session and 403 CSRF_REJECTED without X-Requested-With', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await setup(app)
+		await createKey(project.id, 'existing')
+		const url = `/api/projects/${project.id}/keys`
+
+		expectErrorCode(await request(app).post(url).set(CSRF_HEADERS).send({ namespace: 'loc', name: 'b' }), 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
+		expectErrorCode(await request(app).post(url).set('Cookie', cookie).send({ namespace: 'loc', name: 'b' }), 403, ERROR_CODE.CSRF_REJECTED)
+		expect(await keysOf(project.id)).toHaveLength(1)
 	})
 })

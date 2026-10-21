@@ -96,7 +96,7 @@ describe('GET /api/projects/:projectId/languages', () => {
 
 	it('counts the keys with a value per language and the keys of the project, without other projects', async () => {
 		const app = createTestApp()
-		const { project, cookie } = await loginToProject(app)
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 		const other = await getTestPrisma().project.create({ data: { name: 'B', slug: `b-${randomUUID().slice(0, 8)}` } })
 		const sk = await createLanguageRow(project.id, 'sk', true)
 		const en = await createLanguageRow(project.id, 'en', false, 1)
@@ -168,7 +168,7 @@ describe('GET /api/projects/:projectId/languages', () => {
 describe('POST /api/projects/:projectId/languages', () => {
 	it('makes the first language of the project the base, a further one not', async () => {
 		const app = createTestApp()
-		const { project, cookie } = await loginToProject(app)
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 		const other = await getTestPrisma().project.create({ data: { name: 'B', slug: 'b' } })
 		await createLanguageRow(other.id, 'sk', true)
 
@@ -183,7 +183,7 @@ describe('POST /api/projects/:projectId/languages', () => {
 
 	it('puts a new language last', async () => {
 		const app = createTestApp()
-		const { project, cookie } = await loginToProject(app)
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 		await createLanguageRow(project.id, 'sk', true, 0)
 		await createLanguageRow(project.id, 'ru', false, 4)
 
@@ -193,7 +193,7 @@ describe('POST /api/projects/:projectId/languages', () => {
 
 	it('returns 400 for a tag outside the catalog and 409 LANGUAGE_TAKEN for a tag already in the project', async () => {
 		const app = createTestApp()
-		const { project, cookie } = await loginToProject(app)
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 		await createLanguageRow(project.id, 'sk', true)
 
 		const invalid = await postLanguage(app, cookie, project.id, { tag: 'fr' })
@@ -205,7 +205,7 @@ describe('POST /api/projects/:projectId/languages', () => {
 
 	it('makes exactly one of two concurrent first languages the base', async () => {
 		const app = createTestApp()
-		const { project, cookie } = await loginToProject(app)
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 
 		const responses = await Promise.all([postLanguage(app, cookie, project.id, { tag: 'sk' }), postLanguage(app, cookie, project.id, { tag: 'en' })])
 
@@ -213,10 +213,18 @@ describe('POST /api/projects/:projectId/languages', () => {
 		expect(await getTestPrisma().projectLanguage.count({ where: { projectId: project.id, isBase: true } })).toBe(1)
 	})
 
+	it('returns 403 FORBIDDEN to an EDITOR member and adds nothing', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await loginToProject(app)
+
+		expectErrorCode(await postLanguage(app, cookie, project.id, { tag: 'sk' }), 403, ERROR_CODE.FORBIDDEN)
+		expect(await getTestPrisma().projectLanguage.count()).toBe(0)
+	})
+
 	it('returns 404 NOT_FOUND to an EDITOR who is not a member and 403 CSRF_REJECTED without the header', async () => {
 		const app = createTestApp()
 		const outsider = await loginToProject(app, ROLE.EDITOR, { member: false })
-		const member = await loginToProject(app)
+		const member = await loginToProject(app, ROLE.ADMIN)
 
 		expectErrorCode(await postLanguage(app, outsider.cookie, outsider.project.id, { tag: 'sk' }), 404, ERROR_CODE.NOT_FOUND)
 		expectErrorCode(
@@ -231,7 +239,7 @@ describe('POST /api/projects/:projectId/languages', () => {
 describe('PUT /api/projects/:projectId/languages/order', () => {
 	it('saves the order, makes the first language the base and returns the list in the new order', async () => {
 		const app = createTestApp()
-		const { project, cookie } = await loginToProject(app)
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 		const sk = await createLanguageRow(project.id, 'sk', true, 0)
 		const en = await createLanguageRow(project.id, 'en', false, 1)
 		const ru = await createLanguageRow(project.id, 'ru', false, 2)
@@ -251,7 +259,7 @@ describe('PUT /api/projects/:projectId/languages/order', () => {
 
 	it('keeps the base when the first language stays', async () => {
 		const app = createTestApp()
-		const { project, cookie } = await loginToProject(app)
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 		const sk = await createLanguageRow(project.id, 'sk', true, 0)
 		const en = await createLanguageRow(project.id, 'en', false, 1)
 		const ru = await createLanguageRow(project.id, 'ru', false, 2)
@@ -266,7 +274,7 @@ describe('PUT /api/projects/:projectId/languages/order', () => {
 		{ name: 'an unknown id', ids: (sk: string, en: string) => [sk, en, randomUUID()] },
 	])('returns 400 VALIDATION_ERROR and writes nothing for $name', async ({ ids }) => {
 		const app = createTestApp()
-		const { project, cookie } = await loginToProject(app)
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 		const sk = await createLanguageRow(project.id, 'sk', true, 0)
 		const en = await createLanguageRow(project.id, 'en', false, 1)
 		const foreign = await createLanguageRow((await getTestPrisma().project.create({ data: { name: 'B', slug: 'b' } })).id, 'ru', true)
@@ -278,9 +286,19 @@ describe('PUT /api/projects/:projectId/languages/order', () => {
 		expect(await tagsInOrder(project.id)).toEqual(['sk*', 'en'])
 	})
 
-	it('returns 400 VALIDATION_ERROR for duplicate ids and an empty list', async () => {
+	it('returns 403 FORBIDDEN to an EDITOR member and keeps the order', async () => {
 		const app = createTestApp()
 		const { project, cookie } = await loginToProject(app)
+		const sk = await createLanguageRow(project.id, 'sk', true, 0)
+		const en = await createLanguageRow(project.id, 'en', false, 1)
+
+		expectErrorCode(await putOrder(app, cookie, project.id, { languageIds: [en.id, sk.id] }), 403, ERROR_CODE.FORBIDDEN)
+		expect(await tagsInOrder(project.id)).toEqual(['sk*', 'en'])
+	})
+
+	it('returns 400 VALIDATION_ERROR for duplicate ids and an empty list', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 		const sk = await createLanguageRow(project.id, 'sk', true, 0)
 
 		expectErrorCode(await putOrder(app, cookie, project.id, { languageIds: [sk.id, sk.id] }), 400, ERROR_CODE.VALIDATION_ERROR)
@@ -290,7 +308,7 @@ describe('PUT /api/projects/:projectId/languages/order', () => {
 	it('returns 404 NOT_FOUND to an EDITOR who is not a member and 403 CSRF_REJECTED without the header', async () => {
 		const app = createTestApp()
 		const outsider = await loginToProject(app, ROLE.EDITOR, { member: false })
-		const member = await loginToProject(app)
+		const member = await loginToProject(app, ROLE.ADMIN)
 		const sk = await createLanguageRow(member.project.id, 'sk', true)
 
 		expectErrorCode(await putOrder(app, outsider.cookie, outsider.project.id, { languageIds: [sk.id] }), 404, ERROR_CODE.NOT_FOUND)
@@ -308,7 +326,7 @@ describe('PUT /api/projects/:projectId/languages/order', () => {
 describe('DELETE /api/projects/:projectId/languages/:languageId', () => {
 	it('removes a language that is not the base', async () => {
 		const app = createTestApp()
-		const { project, cookie } = await loginToProject(app)
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 		await createLanguageRow(project.id, 'sk', true)
 		const en = await createLanguageRow(project.id, 'en')
 
@@ -318,9 +336,18 @@ describe('DELETE /api/projects/:projectId/languages/:languageId', () => {
 		expect((await getTestPrisma().projectLanguage.findMany({ where: { projectId: project.id } })).map(({ tag }) => tag)).toEqual(['sk'])
 	})
 
-	it('returns 409 LANGUAGE_IS_BASE for the base language', async () => {
+	it('returns 403 FORBIDDEN to an EDITOR member and keeps the language', async () => {
 		const app = createTestApp()
 		const { project, cookie } = await loginToProject(app)
+		const language = await createLanguageRow(project.id, 'en')
+
+		expectErrorCode(await deleteLanguage(app, cookie, project.id, language.id), 403, ERROR_CODE.FORBIDDEN)
+		expect(await getTestPrisma().projectLanguage.count()).toBe(1)
+	})
+
+	it('returns 409 LANGUAGE_IS_BASE for the base language', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 		const sk = await createLanguageRow(project.id, 'sk', true)
 
 		expectErrorCode(await deleteLanguage(app, cookie, project.id, sk.id), 409, ERROR_CODE.LANGUAGE_IS_BASE)
@@ -336,7 +363,7 @@ describe('DELETE /api/projects/:projectId/languages/:languageId', () => {
 		{ name: 'an id that is not a UUID', id: () => Promise.resolve('not-a-uuid') },
 	])('returns 404 NOT_FOUND for $name', async ({ id }) => {
 		const app = createTestApp()
-		const { project, cookie } = await loginToProject(app)
+		const { project, cookie } = await loginToProject(app, ROLE.ADMIN)
 		const languageId = await id()
 		const before = await getTestPrisma().projectLanguage.count()
 

@@ -57,7 +57,7 @@ const UserPage = () => {
 							{t('userPage.notFound.title')}
 						</Text>
 						<Text size='xs'>{t('userPage.notFound.description')}</Text>
-						<ButtonLink to='/admin/users' variant='default' mt='md'>
+						<ButtonLink to='/admin/users' search variant='default' mt='md'>
 							{t('userPage.notFound.back')}
 						</ButtonLink>
 					</div>
@@ -109,7 +109,7 @@ const UserPage = () => {
 				onClose={deleteModal.close}
 				onDeleted={() => {
 					deleteModal.close()
-					void navigate({ to: '/admin/users' })
+					void navigate({ to: '/admin/users', search: true })
 				}}
 			/>
 		</div>

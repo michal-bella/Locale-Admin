@@ -64,12 +64,13 @@ Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema
 
 ## POST /api/projects
 
-Telo (schéma `createProjectRequestSchema`): `{ "name": "Booking Web", "slug": "booking-web", "languageTags": ["sk", "en"] }`. Validácia `name` a `slug` je rovnaká ako pri nastaveniach. `languageTags` sú tagy z katalógu, aspoň jeden a bez duplicít (`REQUIRED` / `INVALID`); prvý je základný jazyk. Farba a ochrana premenných dostanú defaulty. Projekt, jeho jazyky aj členstvo tvorcu vzniknú naraz.
+Telo (schéma `createProjectRequestSchema`): `{ "name": "Booking Web", "slug": "booking-web", "languageTags": ["sk", "en"] }`. Validácia `name` a `slug` je rovnaká ako pri nastaveniach. `languageTags` sú tagy z katalógu, aspoň jeden a bez duplicít (`REQUIRED` / `INVALID`); prvý je základný jazyk. Farba a ochrana premenných dostanú defaulty. Projekt, jeho jazyky aj členstvo tvorcu vzniknú naraz. Iba `ADMIN`.
 
 | HTTP | `code`             | Kedy                                                                                              |
 | ---- | ------------------ | ------------------------------------------------------------------------------------------------- |
 | 201  |                    | telo `ProjectListItem` s `isMember: true`, `keyCount: 0`, `translatedCount: 0` a `memberCount: 1` |
 | 400  | `VALIDATION_ERROR` | nevalidné telo, `details` podľa polí                                                              |
+| 403  | `FORBIDDEN`        | volajúci nie je `ADMIN`                                                                           |
 | 409  | `SLUG_TAKEN`       | projekt s týmto slugom už existuje                                                                |
 
 ## PUT /api/projects/order
@@ -125,7 +126,7 @@ Vráti `200 ProjectSettings`, inak 404 `NOT_FOUND` (viď [Prístup k projektu](#
 
 ### PATCH /api/projects/:projectId/settings
 
-Telo (schéma `updateProjectSettingsRequestSchema`):
+Iba `ADMIN`; člen `EDITOR` nastavenia iba číta (`GET`). Telo (schéma `updateProjectSettingsRequestSchema`):
 
 ```json
 { "name": "B2B Admin", "slug": "b2b-admin", "primaryColor": "#E83E8C", "protectVariables": true, "baseLanguageId": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11" }
@@ -140,6 +141,7 @@ Telo (schéma `updateProjectSettingsRequestSchema`):
 | ---- | ------------------ | ------------------------------------------------------------- |
 | 200  |                    | nastavenia uložené, telo `ProjectSettings`                    |
 | 400  | `VALIDATION_ERROR` | nevalidné telo alebo neexistujúci jazyk, `details` podľa polí |
+| 403  | `FORBIDDEN`        | volajúci nie je `ADMIN`                                       |
 | 404  | `NOT_FOUND`        | viď [Prístup k projektu](#prístup-k-projektu)                 |
 | 409  | `SLUG_TAKEN`       | slug má iný projekt                                           |
 

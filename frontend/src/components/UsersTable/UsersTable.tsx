@@ -144,6 +144,7 @@ const UsersTable = () => {
 							label={t('usersPage.table.openLabel', { email: user.email })}
 							to='/admin/users/$userId'
 							params={{ userId: user.id }}
+							search
 						/>
 						{user.id !== me?.id && (
 							<RowAction

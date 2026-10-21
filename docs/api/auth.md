@@ -102,7 +102,7 @@ Pri logoute a pri neplatnej session backend cookie zmaže (`Set-Cookie` s prázd
 
 ## Oprávnenia
 
-`requireRole(ROLE.ADMIN)` vráti 403 `FORBIDDEN` prihlásenému používateľovi bez požadovanej roly (neprihlásený dostane 401 už z `requireAuth`). Vo fáze 1 ho používajú všetky endpointy `/api/admin/*` (router `admin.routes.ts`, viď [admin-users.md](./admin-users.md)).
+`requireRole(ROLE.ADMIN)` vráti 403 `FORBIDDEN` prihlásenému používateľovi bez požadovanej roly (neprihlásený dostane 401 už z `requireAuth`). Používajú ho všetky endpointy `/api/admin/*` (router `admin.routes.ts`, viď [admin-users.md](./admin-users.md)) a v projekte vytvorenie projektu, zmena nastavení, pridanie, odobratie a poradie jazykov, správa členov, úprava kľúča a import.
 
 ## CSRF
 

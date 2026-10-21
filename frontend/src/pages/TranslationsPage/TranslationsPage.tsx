@@ -14,14 +14,16 @@ import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguage
 import { useProjectSettingsQuery } from '@/api/projectSettings/projectSettingsQuery'
 import { useTranslationsQuery } from '@/api/translations/translationsQuery'
 import { useUpdateTranslationMutation } from '@/api/translations/useUpdateTranslationMutation'
+import CreateKeyModal from '@/components/CreateKeyModal/CreateKeyModal'
 import ExportModal from '@/components/ExportModal/ExportModal'
-import { Download, Upload } from '@/components/Icons'
+import { Download, Plus, Upload } from '@/components/Icons'
 import ImportModal from '@/components/ImportModal/ImportModal'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import TranslationStats from '@/components/TranslationStats/TranslationStats'
 import TranslationsPagination from '@/components/TranslationsPagination/TranslationsPagination'
 import TranslationsTable from '@/components/TranslationsTable/TranslationsTable'
 import TranslationsToolbar from '@/components/TranslationsToolbar/TranslationsToolbar'
+import TranslationsViewControls from '@/components/TranslationsViewControls/TranslationsViewControls'
 import { TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsPage.module.css'
@@ -50,6 +52,7 @@ const TranslationsPage = () => {
 	const languages = languagesQuery.data ?? []
 	const [importOpened, importModal] = useDisclosure(false)
 	const [exportOpened, exportModal] = useDisclosure(false)
+	const [createKeyOpened, createKeyModal] = useDisclosure(false)
 	const importButtonRef = useRef<HTMLButtonElement>(null)
 
 	// Importovať in the empty state is gone once the import added keys, so Mantine has nothing to return the focus to; the header button
@@ -87,6 +90,7 @@ const TranslationsPage = () => {
 			: null
 	const translationsQuery = useTranslationsQuery(projectId, listQuery)
 	const data = translationsQuery.data
+	const namespaces = data?.namespaces ?? []
 	const updateTranslation = useUpdateTranslationMutation(projectId, listQuery)
 	const [savedAnnouncement, setSavedAnnouncement] = useState('')
 
@@ -159,6 +163,12 @@ const TranslationsPage = () => {
 					titleSize='h2'
 				/>
 				<div className='flex gap-2'>
+					{/* A key goes into an existing namespace, so a project without keys starts with an import. */}
+					{isAdmin && namespaces.length > 0 && (
+						<Button variant='default' leftSection={<Plus aria-hidden />} onClick={createKeyModal.open}>
+							{t('translationsPage.createKeyButton')}
+						</Button>
+					)}
 					{isAdmin && (
 						<Button ref={importButtonRef} variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
 							{t('translationsPage.importButton')}
@@ -173,53 +183,62 @@ const TranslationsPage = () => {
 				<TranslationStats
 					stats={isPending ? undefined : (data?.stats ?? { totalKeys: 0, translated: 0, untranslated: 0 })}
 					status={search.status}
-					onStatusChange={(value) => updateSearch({ status: value })}
+					// The cards count every key of the project, so a card drops the other row filters to show exactly its number.
+					onStatusChange={(value) =>
+						updateSearch({ search: undefined, namespace: undefined, updatedBy: undefined, updatedWithin: undefined, status: value })
+					}
 				/>
 			)}
-			<div className={classes.card}>
-				<div className={classes.toolbar}>
-					<TranslationsToolbar
-						search={search.search}
-						status={search.status}
-						namespace={search.namespace}
-						sort={sort}
-						view={view}
-						onViewChange={(next) => changePreferences({ translationsView: next })}
-						isPreferenceSaving={updatePreferences.isPending}
-						layout={layout}
-						onLayoutChange={(next) => changePreferences({ translationsLayout: next })}
-						languages={languages}
-						sourceLanguage={sourceLanguage}
-						targetLanguage={targetLanguage}
-						shownLanguages={search.languages}
-						updatedBy={search.updatedBy}
-						updatedWithin={search.updatedWithin}
-						translationsOnly={search.translationsOnly}
-						editors={data?.editors ?? []}
-						namespaces={data?.namespaces ?? []}
-						// The shown languages and Len preklady change only the columns, so the page stays.
-						onChange={(patch) => updateSearch(patch, { resetPage: !('languages' in patch || 'translationsOnly' in patch) })}
-					/>
-				</div>
-				<TranslationsTable
-					projectId={projectId}
-					data={data}
-					isPending={isPending}
-					isError={isError}
-					error={languagesQuery.error ?? translationsQuery.error}
-					onRetry={retry}
-					isRetrying={languagesQuery.isRefetching || translationsQuery.isRefetching}
+			{/* The view controls sit close above the card they configure; only the filters inside it stick. */}
+			<div className='flex flex-col gap-3'>
+				<TranslationsViewControls
 					view={view}
+					onViewChange={(next) => changePreferences({ translationsView: next })}
+					isPreferenceSaving={updatePreferences.isPending}
 					layout={layout}
-					languages={tableLanguages}
+					onLayoutChange={(next) => changePreferences({ translationsLayout: next })}
+					languages={languages}
 					sourceLanguage={sourceLanguage}
 					targetLanguage={targetLanguage}
-					onClearFilters={clearFilters}
-					onImport={importModal.open}
-					showGroups={sort !== 'UPDATED'}
+					shownLanguages={search.languages}
 					translationsOnly={search.translationsOnly}
-					onSave={saveTranslation}
+					// The shown languages and Len preklady change only the columns, so the page stays; the pair changes what counts as untranslated.
+					onChange={(patch) => updateSearch(patch, { resetPage: !('languages' in patch || 'translationsOnly' in patch) })}
 				/>
+				<div className={classes.card}>
+					<div className={classes.toolbar}>
+						<TranslationsToolbar
+							search={search.search}
+							status={search.status}
+							namespace={search.namespace}
+							sort={sort}
+							updatedBy={search.updatedBy}
+							updatedWithin={search.updatedWithin}
+							editors={data?.editors ?? []}
+							namespaces={namespaces}
+							onChange={(patch) => updateSearch(patch)}
+						/>
+					</div>
+					<TranslationsTable
+						projectId={projectId}
+						data={data}
+						isPending={isPending}
+						isError={isError}
+						error={languagesQuery.error ?? translationsQuery.error}
+						onRetry={retry}
+						isRetrying={languagesQuery.isRefetching || translationsQuery.isRefetching}
+						view={view}
+						layout={layout}
+						languages={tableLanguages}
+						sourceLanguage={sourceLanguage}
+						targetLanguage={targetLanguage}
+						onClearFilters={clearFilters}
+						onImport={importModal.open}
+						showGroups={sort !== 'UPDATED'}
+						translationsOnly={search.translationsOnly}
+						onSave={saveTranslation}
+					/>
+				</div>
 			</div>
 			<VisuallyHidden role='status'>{resultsAnnouncement}</VisuallyHidden>
 			<VisuallyHidden role='status'>{savedAnnouncement}</VisuallyHidden>
@@ -234,6 +253,26 @@ const TranslationsPage = () => {
 				/>
 			)}
 			{isAdmin && <ImportModal projectId={projectId} opened={importOpened} onClose={closeImport} />}
+			{isAdmin && (
+				<CreateKeyModal
+					projectId={projectId}
+					languages={languages}
+					namespaces={namespaces}
+					defaultNamespace={search.namespace}
+					opened={createKeyOpened}
+					onClose={createKeyModal.close}
+					// Shows the new key whatever page or filters were on; an empty namespace means no namespace filter.
+					onCreated={(key) =>
+						updateSearch({
+							search: key.name,
+							namespace: key.namespace || undefined,
+							status: undefined,
+							updatedBy: undefined,
+							updatedWithin: undefined,
+						})
+					}
+				/>
+			)}
 			<ExportModal projectId={projectId} opened={exportOpened} onClose={exportModal.close} />
 		</div>
 	)

@@ -11,7 +11,7 @@ import { type VariableProtectionSectionProps } from './types'
 const VARIABLE_EXAMPLE = '{{ variable }}'
 
 /** "Ochrana dynamických segmentov" (Figma 3:1631). The setting is only stored until the translation editor exists. */
-const VariableProtectionSection = ({ control }: VariableProtectionSectionProps) => {
+const VariableProtectionSection = ({ control, disabled = false }: VariableProtectionSectionProps) => {
 	const { t } = useTranslation()
 
 	return (
@@ -28,6 +28,7 @@ const VariableProtectionSection = ({ control }: VariableProtectionSectionProps) 
 							label={t('projectSettingsPage.variables.protect.label', { example: VARIABLE_EXAMPLE })}
 							description={t('projectSettingsPage.variables.protect.description')}
 							checked={field.value}
+							disabled={disabled}
 							onChange={(event) => field.onChange(event.currentTarget.checked)}
 							onBlur={field.onBlur}
 							withThumbIndicator={false}

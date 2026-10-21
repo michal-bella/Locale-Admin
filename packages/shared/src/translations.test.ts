@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { toValidationIssues, VALIDATION_CODE } from './errors'
 import {
+	createTranslationKeyRequestSchema,
 	translationGroup,
 	translationListItemSchema,
 	translationsQuerySchema,
@@ -98,6 +99,32 @@ describe('updateTranslationRequestSchema', () => {
 	it('rejects a missing value and a value over the limit', () => {
 		expect(updateTranslationRequestSchema.safeParse({}).success).toBe(false)
 		expect(updateTranslationRequestSchema.safeParse({ value: 'x'.repeat(10_001) }).success).toBe(false)
+	})
+})
+
+describe('createTranslationKeyRequestSchema', () => {
+	it('trims the name, keeps the namespace as is and stores empty values as null', () => {
+		expect(
+			createTranslationKeyRequestSchema.parse({ namespace: 'loc', name: ' orders.empty ', translations: { [SOURCE_ID]: 'Prázdne', [TARGET_ID]: ' ' } }),
+		).toEqual({
+			namespace: 'loc',
+			name: 'orders.empty',
+			translations: { [SOURCE_ID]: 'Prázdne', [TARGET_ID]: null },
+		})
+		expect(createTranslationKeyRequestSchema.parse({ namespace: '', name: 'Ahoj' })).toEqual({ namespace: '', name: 'Ahoj', translations: {} })
+	})
+
+	it('reports a missing name, a namespace over the limit and a language that is not an id', () => {
+		const result = createTranslationKeyRequestSchema.safeParse({ namespace: 'x'.repeat(101), name: '  ', translations: { sk: 'Ahoj' } })
+		expect(result.success).toBe(false)
+		const issues = toValidationIssues(result.error!)
+		expect(issues).toEqual(
+			expect.arrayContaining([
+				{ path: 'namespace', code: VALIDATION_CODE.TOO_LONG, params: { max: 100 } },
+				{ path: 'name', code: VALIDATION_CODE.REQUIRED },
+			]),
+		)
+		expect(issues.some((issue) => issue.path.startsWith('translations'))).toBe(true)
 	})
 })
 

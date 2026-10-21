@@ -114,7 +114,7 @@ test('ADMIN creates a member who logs in and has no Používatelia', async ({ pa
 	const memberPage = await context.newPage()
 	await loginViaUi(memberPage, credentials)
 	await expectLoggedInHome(memberPage)
-	await expect(memberPage.getByText('Zatiaľ nemáte žiadny projekt. Vytvorte prvý.')).toBeVisible()
+	await expect(memberPage.getByText('Zatiaľ nie ste v žiadnom projekte. Do projektu vás pridá administrátor.')).toBeVisible()
 	await expect(memberPage.getByRole('link', { name: 'Používatelia' })).toHaveCount(0)
 	await context.close()
 })

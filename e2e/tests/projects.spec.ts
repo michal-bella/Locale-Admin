@@ -1,10 +1,9 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
 
-import { MUTATION_HEADERS } from '../support/api'
 import { ANONYMOUS, expectLoggedInHome, loginViaUi } from '../support/auth'
 import { newAdminApi } from '../support/languages'
 import { createProject, listProjects, newTestProjectInput } from '../support/projects'
-import { addMember, createEditor, createMember } from '../support/users'
+import { addMember, createEditor, createMember, createProjectOf } from '../support/users'
 
 /** Mantine MultiSelect also renders a hidden input with the same label; the visible one opens the options. */
 const pickLanguages = async (page: Page, dialog: Locator, ...options: string[]) => {
@@ -31,7 +30,7 @@ const leaveFromList = async (page: Page, name: string) => {
 test.describe('member', () => {
 	test.use({ storageState: ANONYMOUS })
 
-	test('sees only own projects, creates one and lands in its settings', async ({ page, playwright, baseURL }) => {
+	test('sees only own projects and cannot create one', async ({ page, playwright, baseURL }) => {
 		const editor = await createEditor(playwright.request, baseURL)
 		await loginViaUi(page, editor)
 		await expectLoggedInHome(page)
@@ -44,7 +43,52 @@ test.describe('member', () => {
 			'href',
 			`/projects/${editor.projectSlug}/settings`,
 		)
+		await expect(page.getByRole('button', { name: 'Nový projekt' })).toHaveCount(0)
+	})
 
+	test('the last member cannot leave; after another member joins, leaving removes the project from the list', async ({ page, playwright, baseURL }) => {
+		const editor = await createEditor(playwright.request, baseURL)
+		await loginViaUi(page, editor)
+		await expectLoggedInHome(page)
+		const adminApi = await newAdminApi(playwright.request)
+		const project = await createProjectOf(adminApi, 'leave', editor.id)
+		await adminApi.dispose()
+		await page.reload()
+
+		const dialog = await leaveFromList(page, project.name)
+		await expect(page.getByText('Projekt musí mať aspoň jedného člena.')).toBeVisible()
+		await expect(dialog).toBeVisible()
+		await dialog.getByRole('button', { name: 'Zrušiť' }).click()
+		await expect(dialog).toBeHidden()
+
+		const admin = await newAdminApi(playwright.request)
+		await addMember(admin, project.id, (await createMember(playwright.request, baseURL)).id)
+		await admin.dispose()
+
+		await leaveFromList(page, project.name)
+		await expect(page.getByText(`Opustili ste projekt ${project.name}.`)).toBeVisible()
+		await expect(getList(page).getByRole('link', { name: project.name, exact: true })).toHaveCount(0)
+		await expect(getProjectItems(page)).toHaveCount(1)
+	})
+})
+
+test.describe('ADMIN', () => {
+	test('sees a project it is not a member of, without Opustiť projekt', async ({ page, playwright, baseURL }) => {
+		const member = await createMember(playwright.request, baseURL)
+		const adminApi = await newAdminApi(playwright.request)
+		const foreign = await createProjectOf(adminApi, 'foreign-ui', member.id)
+		await adminApi.dispose()
+
+		await page.goto('/')
+		await expect(page.getByRole('button', { name: `Opustiť projekt ${foreign.name}`, exact: true })).toHaveCount(0)
+		await page.getByRole('link', { name: `Nastavenia projektu ${foreign.name}`, exact: true }).click()
+		await expect(page).toHaveURL(`/projects/${foreign.slug}/settings`)
+		await expect(page.getByRole('button', { name: 'Uložiť zmeny' })).toBeVisible()
+		await expect(page.getByRole('button', { name: 'Opustiť projekt' })).toHaveCount(0)
+	})
+
+	test('creates a project and lands in its settings', async ({ page }) => {
+		await page.goto('/')
 		const { name, slug } = newTestProjectInput('ui')
 		await page.getByRole('button', { name: 'Nový projekt' }).click()
 		const dialog = page.getByRole('dialog', { name: 'Nový projekt' })
@@ -70,15 +114,14 @@ test.describe('member', () => {
 			.getByRole('button', { name: `Prepnúť projekt, aktuálny ${name}` })
 			.click()
 		await page.getByRole('menu').getByRole('menuitem', { name: 'Všetky projekty' }).click()
-		await expect(getProjectItems(page)).toHaveCount(2)
+		await expect(getList(page).getByRole('link', { name, exact: true })).toBeVisible()
 	})
 
-	test('a taken slug shows 409 at the slug field', async ({ page, playwright, baseURL }) => {
+	test('a taken slug shows 409 at the slug field', async ({ page, playwright }) => {
 		const api = await newAdminApi(playwright.request)
 		const taken = await createProject(api, 'taken-ui')
 		await api.dispose()
-		await loginViaUi(page, await createEditor(playwright.request, baseURL))
-		await expectLoggedInHome(page)
+		await page.goto('/')
 
 		await page.getByRole('button', { name: 'Nový projekt' }).click()
 		const dialog = page.getByRole('dialog', { name: 'Nový projekt' })
@@ -100,46 +143,5 @@ test.describe('member', () => {
 		await expect(slug).toHaveAttribute('aria-invalid', 'true')
 		await expect(slug).toHaveAccessibleDescription(/Projekt s týmto slugom už existuje\./)
 		await expect(dialog).toBeVisible()
-	})
-
-	test('the last member cannot leave; after another member joins, leaving removes the project from the list', async ({ page, playwright, baseURL }) => {
-		const editor = await createEditor(playwright.request, baseURL)
-		await loginViaUi(page, editor)
-		await expectLoggedInHome(page)
-		const project = await createProject(page.request, 'leave')
-		await page.reload()
-
-		const dialog = await leaveFromList(page, project.name)
-		await expect(page.getByText('Projekt musí mať aspoň jedného člena.')).toBeVisible()
-		await expect(dialog).toBeVisible()
-		await dialog.getByRole('button', { name: 'Zrušiť' }).click()
-		await expect(dialog).toBeHidden()
-
-		const admin = await newAdminApi(playwright.request)
-		await addMember(admin, project.id, (await createMember(playwright.request, baseURL)).id)
-		await admin.dispose()
-
-		await leaveFromList(page, project.name)
-		await expect(page.getByText(`Opustili ste projekt ${project.name}.`)).toBeVisible()
-		await expect(getList(page).getByRole('link', { name: project.name, exact: true })).toHaveCount(0)
-		await expect(getProjectItems(page)).toHaveCount(1)
-	})
-})
-
-test.describe('ADMIN', () => {
-	test('sees a project it is not a member of, without Opustiť projekt', async ({ page, playwright, baseURL }) => {
-		const editor = await createEditor(playwright.request, baseURL)
-		const editorApi = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
-		const login = await editorApi.post('/api/auth/login', { data: { email: editor.email, password: editor.password }, headers: MUTATION_HEADERS })
-		expect(login.status()).toBe(200)
-		const foreign = await createProject(editorApi, 'foreign-ui')
-		await editorApi.dispose()
-
-		await page.goto('/')
-		await expect(page.getByRole('button', { name: `Opustiť projekt ${foreign.name}`, exact: true })).toHaveCount(0)
-		await page.getByRole('link', { name: `Nastavenia projektu ${foreign.name}`, exact: true }).click()
-		await expect(page).toHaveURL(`/projects/${foreign.slug}/settings`)
-		await expect(page.getByRole('button', { name: 'Uložiť zmeny' })).toBeVisible()
-		await expect(page.getByRole('button', { name: 'Opustiť projekt' })).toHaveCount(0)
 	})
 })

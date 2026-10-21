@@ -5,6 +5,9 @@
 		"copyright": "© {{year}} Locale"
 	},
 	"documentTitle": "{{page}} – Locale",
+	"baseLanguage": {
+		"hint": "The language translations start from. It is shown as the reference when editing a translation, and the variables of other languages are checked against it."
+	},
 	"notification": {
 		"close": "Close notification"
 	},
@@ -26,6 +29,7 @@
 		"list": {
 			"label": "Project list",
 			"empty": "You have no projects yet. Create the first one.",
+			"emptyEditor": "You are not in any project yet. An administrator will add you to one.",
 			"loadError": "The project list could not be loaded.",
 			"retry": "Try again",
 			"settings": "Settings",
@@ -255,6 +259,7 @@
 		"title": "Translations",
 		"description": "Manage the texts and translations of your project in one place.",
 		"importButton": "Import",
+		"createKeyButton": "Add key",
 		"stats": {
 			"totalKeys": "Total keys",
 			"translated": "Translated",
@@ -396,6 +401,28 @@
 			"submit": "Save",
 			"success": "Key {{key}} has been saved."
 		},
+		"createKeyModal": {
+			"title": "Add key",
+			"description": "The key goes into an existing namespace. Empty translations stay untranslated.",
+			"close": "Close",
+			"name": {
+				"label": "Key",
+				"placeholder": "e.g. orders.empty.title"
+			},
+			"namespace": {
+				"label": "Namespace",
+				"description": "Only an existing namespace of the project.",
+				"placeholder": "Choose a namespace",
+				"empty": "No namespace"
+			},
+			"value": {
+				"base": "Base language – the reference text for the other languages.",
+				"placeholder": "Optional"
+			},
+			"cancel": "Cancel",
+			"submit": "Add",
+			"success": "Key {{key}} was added."
+		},
 		"pagination": {
 			"pageSize": "Keys per page",
 			"label": "Pagination",
@@ -461,6 +488,7 @@
 			"deletedUser": "Deleted user",
 			"open": "Show in translations",
 			"openLabel": "Show changes by {{name}} in translations",
+			"openKeyLabel": "Show the translation {{key}} in translations",
 			"events": {
 				"projectCreated": "created the project {{name}}",
 				"projectUpdated": "changed project settings: {{fields}}",
@@ -476,6 +504,7 @@
 				"translationCount_other": "{{count}} translations",
 				"newKeyCount_one": "{{count}} new key",
 				"newKeyCount_other": "{{count}} new keys",
+				"keyCreated": "new key {{key}}",
 				"keyUpdated": "edited the key {{key}}: {{fields}}",
 				"translationUpdated": "edited the translation {{key}} ({{language}})"
 			},
@@ -840,6 +869,7 @@
 		"eyebrow": "Localization",
 		"title": "Languages",
 		"description": "Languages the project is translated into. Drag them to change the order: the translation columns follow it and the first language is the base.",
+		"descriptionEditor": "Languages the project is translated into. The translation columns follow this order and the first language is the base.",
 		"addButton": "Add language",
 		"table": {
 			"move": "Move",
@@ -951,6 +981,7 @@
 	"sidebar": {
 		"label": "Main navigation",
 		"allProjects": "All projects",
+		"backToProject": "Back to project",
 		"languages": "Languages",
 		"admin": "Administration",
 		"adminProjects": "Projects",

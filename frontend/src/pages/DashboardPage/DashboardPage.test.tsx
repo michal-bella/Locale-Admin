@@ -14,6 +14,7 @@ import {
 	type ProjectSettings,
 	ROLE,
 	SUPPORTED_LANGUAGES,
+	TRANSLATIONS_SEARCH_MAX_LENGTH,
 } from '@locale/shared'
 
 import queryClient from '@/api/queryClient'
@@ -261,7 +262,7 @@ describe('DashboardPage', () => {
 		expect(activity.queryByText('English message that must not be shown')).not.toBeInTheDocument()
 	})
 
-	it('groups events by day, links edits and imports to Preklady and names a deleted user', async () => {
+	it('groups events by day, links an edit to its key and an import to the changes of its user in Preklady and names a deleted user', async () => {
 		const edit = event({
 			type: ACTIVITY_TYPE.TRANSLATION_UPDATED,
 			payload: { keyId: '00000000-0000-4000-8000-000000000501', namespace: 'loc', name: 'a.b', languageTag: 'en', oldValue: null, newValue: 'B' },
@@ -283,9 +284,9 @@ describe('DashboardPage', () => {
 		const activity = await findActivity()
 		const today = within(await activity.findByRole('list', { name: 'Dnes' }))
 		expect(today.getByText(/^pred 1\sh$/)).toBeInTheDocument()
-		const editLink = searchOf(today.getByRole('link', { name: 'Zobraziť zmeny používateľa Martin Kováč v prekladoch' }))
+		const editLink = searchOf(today.getByRole('link', { name: 'Zobraziť preklad a.b v prekladoch' }))
 		expect(editLink.pathname).toBe(`/projects/${PROJECT.slug}/translations`)
-		expect(Object.fromEntries(editLink.searchParams)).toEqual({ updatedBy: MARTIN.id, updatedWithin: 'DAY' })
+		expect(Object.fromEntries(editLink.searchParams)).toEqual({ search: 'a.b', namespace: 'loc' })
 
 		const yesterday = within(activity.getByRole('list', { name: 'Včera' }))
 		const importLink = searchOf(yesterday.getByRole('link', { name: 'Zobraziť zmeny používateľa Lucia Tichá v prekladoch' }))
@@ -294,6 +295,36 @@ describe('DashboardPage', () => {
 		const older = within(activity.getByRole('list', { name: '10. 10. 2026' }))
 		expect(older.getAllByText('Odstránený používateľ')).toHaveLength(2)
 		expect(older.queryByRole('link')).not.toBeInTheDocument()
+	})
+
+	it('links an edit by a deleted user to its key, and an edit of a key too long for the search to the changes of its user', async () => {
+		const longName = 'k'.repeat(TRANSLATIONS_SEARCH_MAX_LENGTH + 1)
+		const byDeleted = event(
+			{
+				type: ACTIVITY_TYPE.TRANSLATION_UPDATED,
+				payload: { keyId: '00000000-0000-4000-8000-000000000501', namespace: 'paths', name: 'a.b', languageTag: 'en', oldValue: null, newValue: 'B' },
+			},
+			undefined,
+			null,
+		)
+		const longKey = event({
+			type: ACTIVITY_TYPE.TRANSLATION_UPDATED,
+			payload: { keyId: '00000000-0000-4000-8000-000000000502', namespace: 'loc', name: longName, languageTag: 'en', oldValue: null, newValue: 'B' },
+		})
+		signedInAs(EDITOR_USER, routes({ [`GET ${API}/activity`]: { status: 200, data: activityPage([byDeleted, longKey]) } }))
+		renderApp(PAGE_PATH)
+
+		const activity = await findActivity()
+		expect(Object.fromEntries(searchOf(await activity.findByRole('link', { name: 'Zobraziť preklad a.b v prekladoch' })).searchParams)).toEqual({
+			search: 'a.b',
+			namespace: 'paths',
+		})
+		expect(Object.fromEntries(searchOf(activity.getByRole('link', { name: 'Zobraziť zmeny používateľa Martin Kováč v prekladoch' })).searchParams)).toEqual(
+			{
+				updatedBy: MARTIN.id,
+				updatedWithin: 'DAY',
+			},
+		)
 	})
 
 	it('loads the next page of the activity with the cursor', async () => {

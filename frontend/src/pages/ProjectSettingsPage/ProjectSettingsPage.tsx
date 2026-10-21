@@ -18,7 +18,7 @@ import classes from './ProjectSettingsPage.module.css'
 /** Heights of the two cards in Figma 3:1557 (the first one with the base language row), used for the loading skeletons. */
 const SKELETON_HEIGHTS = [330, 152]
 
-/** Figma 3:1557 without the breadcrumbs and help icon, plus the base language and "Opustiť projekt". Members and ADMIN. */
+/** Figma 3:1557 without the breadcrumbs and help icon, plus the base language and "Opustiť projekt". An ADMIN edits, a member only sees and leaves. */
 const ProjectSettingsPage = () => {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
@@ -69,6 +69,7 @@ const ProjectSettingsPage = () => {
 				settings={settingsQuery.data}
 				languages={languagesQuery.data}
 				isMember={isMember}
+				readOnly={!isAdmin}
 				onLeft={() => void navigate({ to: '/' })}
 				onSaved={({ slug }) => {
 					if (slug !== projectSlug) {

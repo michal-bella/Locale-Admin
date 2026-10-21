@@ -219,11 +219,20 @@ describe('ProjectsPage list', () => {
 		expect(await screen.findByLabelText('Názov projektu')).toHaveValue('Booking Web')
 	})
 
-	it('shows the empty state', async () => {
-		signedInAs(EDITOR_USER, { 'GET /projects': projectsResponse([]) })
+	it('shows the empty state with Nový projekt to an ADMIN', async () => {
+		signedInAs(ADMIN_USER, { 'GET /projects': projectsResponse([]) })
 		renderApp('/')
 
 		expect(await screen.findByText('Zatiaľ nemáte žiadny projekt. Vytvorte prvý.')).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Nový projekt' })).toBeInTheDocument()
+	})
+
+	it('hides Nový projekt from an EDITOR and says an administrator adds them to a project', async () => {
+		signedInAs(EDITOR_USER, { 'GET /projects': projectsResponse([]) })
+		renderApp('/')
+
+		expect(await screen.findByText('Zatiaľ nie ste v žiadnom projekte. Do projektu vás pridá administrátor.')).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Nový projekt' })).not.toBeInTheDocument()
 	})
 
 	it('shows the translated load error and retries', async () => {
@@ -260,7 +269,7 @@ describe('LeaveProjectModal from the list', () => {
 		expect(dialog).toHaveTextContent('Naozaj chcete opustiť projekt Booking Web?')
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Opustiť projekt' }))
 
-		expect(await screen.findByText('Zatiaľ nemáte žiadny projekt. Vytvorte prvý.')).toBeInTheDocument()
+		expect(await screen.findByText('Zatiaľ nie ste v žiadnom projekte. Do projektu vás pridá administrátor.')).toBeInTheDocument()
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Opustili ste projekt Booking Web.' }))
 		expect(requests.filter((request) => request.method === 'delete')).toHaveLength(1)
@@ -296,7 +305,7 @@ describe('LeaveProjectModal from the list', () => {
 
 describe('CreateProjectModal', () => {
 	it('suggests the slug from the name until the slug is edited', async () => {
-		signedInAs(EDITOR_USER, { 'GET /projects': projectsResponse([]) })
+		signedInAs(ADMIN_USER, { 'GET /projects': projectsResponse([]) })
 		renderApp('/')
 		const dialog = within(await openCreate())
 
@@ -309,7 +318,7 @@ describe('CreateProjectModal', () => {
 	})
 
 	it('shows client validation errors without sending a request', async () => {
-		const requests = signedInAs(EDITOR_USER, { 'GET /projects': projectsResponse([]) })
+		const requests = signedInAs(ADMIN_USER, { 'GET /projects': projectsResponse([]) })
 		renderApp('/')
 		const dialog = within(await openCreate())
 
@@ -323,7 +332,7 @@ describe('CreateProjectModal', () => {
 	})
 
 	it('maps 409 SLUG_TAKEN to the slug field and keeps the modal open', async () => {
-		signedInAs(EDITOR_USER, { 'GET /projects': projectsResponse([]), 'POST /projects': apiError(409, 'SLUG_TAKEN') })
+		signedInAs(ADMIN_USER, { 'GET /projects': projectsResponse([]), 'POST /projects': apiError(409, 'SLUG_TAKEN') })
 		renderApp('/')
 		const dialog = within(await openCreate())
 
@@ -337,7 +346,7 @@ describe('CreateProjectModal', () => {
 	})
 
 	it('selects every language after the picked ones, so the first pick stays the base, and clears them again', async () => {
-		const requests = signedInAs(EDITOR_USER, {
+		const requests = signedInAs(ADMIN_USER, {
 			'GET /projects': () => projectsResponse([]),
 			'POST /projects': { status: 201, data: BOOKING },
 			[`GET /projects/${BOOKING.id}/settings`]: { status: 200, data: settingsOf(BOOKING) },
@@ -360,7 +369,7 @@ describe('CreateProjectModal', () => {
 	})
 
 	it('keeps the picked language first when selecting every language', async () => {
-		const requests = signedInAs(EDITOR_USER, {
+		const requests = signedInAs(ADMIN_USER, {
 			'GET /projects': () => projectsResponse([]),
 			'POST /projects': { status: 201, data: BOOKING },
 			[`GET /projects/${BOOKING.id}/settings`]: { status: 200, data: settingsOf(BOOKING) },
@@ -380,7 +389,7 @@ describe('CreateProjectModal', () => {
 	})
 
 	it('shows the flag in a picked language pill and clears the picks with the clear button', async () => {
-		signedInAs(EDITOR_USER, { 'GET /projects': () => projectsResponse([]) })
+		signedInAs(ADMIN_USER, { 'GET /projects': () => projectsResponse([]) })
 		renderApp('/')
 		const dialog = within(await openCreate())
 		await pickLanguages('Slovak – slovenčina – sk')
@@ -397,7 +406,7 @@ describe('CreateProjectModal', () => {
 	it('creates the project, notifies and opens its settings', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		let projects: ProjectListItem[] = []
-		const requests = signedInAs(EDITOR_USER, {
+		const requests = signedInAs(ADMIN_USER, {
 			'GET /projects': () => projectsResponse(projects),
 			'POST /projects': () => {
 				projects = [BOOKING]

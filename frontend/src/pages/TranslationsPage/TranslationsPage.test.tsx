@@ -256,6 +256,20 @@ describe('TranslationsPage', () => {
 		expect(requests().some((request) => (request.params as Record<string, unknown>).search === 'obj')).toBe(false)
 	})
 
+	it('drops the search and the other row filters when a stat card is clicked, keeps sort and view settings', async () => {
+		mockPage()
+		const router = renderApp(`${PAGE_PATH}?search=madar&namespace=loc&updatedWithin=WEEK&sort=KEY&page=2`)
+		await screen.findByText('orders.empty.title')
+		expect(screen.getByRole('textbox', { name: 'Hľadať kľúč alebo preklad' })).toHaveValue('madar')
+
+		fireEvent.click(screen.getByRole('button', { name: 'Zobraziť nepreložené' }))
+		await waitFor(() => expect(router.state.location.search).toEqual({ status: 'UNTRANSLATED', sort: 'KEY' }))
+		expect(screen.getByRole('textbox', { name: 'Hľadať kľúč alebo preklad' })).toHaveValue('')
+
+		fireEvent.click(screen.getByRole('button', { name: 'Zobraziť všetky' }))
+		await waitFor(() => expect(router.state.location.search).toEqual({ sort: 'KEY' }))
+	})
+
 	it('writes status, namespace, sort and languages to the URL', async () => {
 		const requests = mockPage({ languages: [SLOVAK, CZECH, ENGLISH] })
 		const router = renderApp(`${PAGE_PATH}?page=2`)

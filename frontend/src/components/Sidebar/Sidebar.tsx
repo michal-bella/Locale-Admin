@@ -1,6 +1,6 @@
 import { ActionIcon, AppShell, Burger, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
-import { Link, type LinkProps, useMatch } from '@tanstack/react-router'
+import { Link, type LinkProps, useMatch, useSearch } from '@tanstack/react-router'
 import { type ComponentType, type SVGProps, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -18,6 +18,7 @@ import { type SidebarProps } from './types'
 type NavItemProps = {
 	to: LinkProps['to']
 	params?: LinkProps['params']
+	search?: LinkProps['search']
 	icon: ComponentType<SVGProps<SVGSVGElement>>
 	iconClassName?: string
 	label: string
@@ -25,10 +26,10 @@ type NavItemProps = {
 	onNavigate: () => void
 }
 
-const NavItem = ({ to, params, icon: Icon, iconClassName = '', label, compact, onNavigate }: NavItemProps) => (
+const NavItem = ({ to, params, search, icon: Icon, iconClassName = '', label, compact, onNavigate }: NavItemProps) => (
 	<li>
 		<Tooltip label={label} position='right' disabled={!compact}>
-			<Link to={to} params={params} activeOptions={{ exact: to === '/' }} className={classes.link} onClick={onNavigate}>
+			<Link to={to} params={params} search={search} activeOptions={{ exact: to === '/' }} className={classes.link} onClick={onNavigate}>
 				{({ isActive }) => (
 					<>
 						<Icon aria-hidden className={`${classes.icon} ${iconClassName}`} />
@@ -43,7 +44,7 @@ const NavItem = ({ to, params, icon: Icon, iconClassName = '', label, compact, o
 
 /**
  * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Preklady,
- * Prehľad, Nastavenia projektu, Jazyky and Členovia (Preklady stay first, Prehľad is not the project's landing page), outside one: Všetky projekty. ADMIN also sees Projekty and Používatelia under SPRÁVA.
+ * Prehľad, Nastavenia projektu, Jazyky and Členovia (Preklady stay first, Prehľad is not the project's landing page), outside one: Späť na projekt when an admin page was opened from a project (`?from=`), else Všetky projekty. ADMIN also sees Projekty and Používatelia under SPRÁVA.
  * From `md` the button at the bottom switches to the compact sidebar: logo, project avatar and icons with tooltips.
  */
 const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps) => {
@@ -52,6 +53,8 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 	const projectMatch = useMatch({ from: '/_authenticated/_app/projects/$projectSlug', shouldThrow: false })
 	const projectSlug = projectMatch?.params.projectSlug
 	const projectId = projectMatch?.loaderData?.projectId
+	const { from: fromProjectSlug } = useSearch({ strict: false })
+	const adminSearch = { from: projectSlug ?? fromProjectSlug }
 	// Only reads the cache: the project route loads the settings, and a project the user cannot open must not be refetched here.
 	const { data: project } = useQuery({ ...projectSettingsQueryOptions(projectId ?? ''), enabled: false })
 	const adminLabelId = useId()
@@ -119,14 +122,26 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 					</ul>
 				) : (
 					<ul className={classes.list}>
-						<NavItem
-							to='/'
-							icon={ArrowRight}
-							iconClassName='rotate-180'
-							label={t('sidebar.allProjects')}
-							compact={isCompact}
-							onNavigate={onClose}
-						/>
+						{fromProjectSlug ? (
+							<NavItem
+								to='/projects/$projectSlug'
+								params={{ projectSlug: fromProjectSlug }}
+								icon={ArrowRight}
+								iconClassName='rotate-180'
+								label={t('sidebar.backToProject')}
+								compact={isCompact}
+								onNavigate={onClose}
+							/>
+						) : (
+							<NavItem
+								to='/'
+								icon={ArrowRight}
+								iconClassName='rotate-180'
+								label={t('sidebar.allProjects')}
+								compact={isCompact}
+								onNavigate={onClose}
+							/>
+						)}
 					</ul>
 				)}
 				{isAdmin && (
@@ -140,8 +155,15 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 							</p>
 						)}
 						<ul aria-labelledby={adminLabelId} className={classes.list}>
-							<NavItem to='/admin/projects' icon={Shield} label={t('sidebar.adminProjects')} compact={isCompact} onNavigate={onClose} />
-							<NavItem to='/admin/users' icon={Users} label={t('sidebar.users')} compact={isCompact} onNavigate={onClose} />
+							<NavItem
+								to='/admin/projects'
+								search={adminSearch}
+								icon={Shield}
+								label={t('sidebar.adminProjects')}
+								compact={isCompact}
+								onNavigate={onClose}
+							/>
+							<NavItem to='/admin/users' search={adminSearch} icon={Users} label={t('sidebar.users')} compact={isCompact} onNavigate={onClose} />
 						</ul>
 					</>
 				)}

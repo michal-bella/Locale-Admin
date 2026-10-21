@@ -54,18 +54,24 @@
 	color: var(--app-color-muted);
 }
 
-/* Figma 64 × 22 px. Mantine's transparent 1 px border and symmetric padding left the 9 px caps about 1 px above the middle;
-   the 1 px top padding centres them. Line-height stays 1.5 because the label clips overflow and would cut off Á and Ý. */
+/* Figma 64 × 22 px, without Mantine's transparent 1 px border. */
 .badge {
 	flex-shrink: 0;
 	height: 1.375rem;
-	padding: 1px 0.5rem 0;
+	padding: 0 0.5rem;
 	border: 0;
 	background-color: var(--app-color-brand-tint);
 	font-size: var(--mantine-font-size-4xs);
 	font-weight: 700;
 	line-height: 1.5;
 	color: var(--app-color-eyebrow);
+}
+
+/* The label box is trimmed to the cap height, so the grid centres the caps and not the font's line box (a padding nudge depends on the font's metrics).
+   Overflow is visible because the trimmed box would clip the accents of Á and Ý. Browsers without `text-box` keep the line box, off by under 1 px. */
+.badgeLabel {
+	overflow: visible;
+	text-box: trim-both cap alphabetic;
 }
 
 .count {

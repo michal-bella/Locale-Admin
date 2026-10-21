@@ -4,4 +4,5 @@ import { type UpdateProjectSettingsRequest } from '@locale/shared'
 
 export type VariableProtectionSectionProps = {
 	control: Control<UpdateProjectSettingsRequest>
+	disabled?: boolean
 }

@@ -11,6 +11,7 @@ import { type Language, type LanguageListItem } from '@locale/shared'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import { useReorderProjectLanguagesMutation } from '@/api/projectLanguages/useReorderProjectLanguagesMutation'
+import BaseLanguageHint from '@/components/BaseLanguageHint/BaseLanguageHint'
 import ChangeBaseLanguageModal from '@/components/ChangeBaseLanguageModal/ChangeBaseLanguageModal'
 import { GripVertical, Plus, Trash } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
@@ -23,7 +24,7 @@ const SKELETON_ROWS = 3
 
 const SORT_ANIMATION_MS = 150
 
-const COLUMN_COUNT = 4
+const COLUMN_COUNT_WITHOUT_ACTIONS = 3
 
 // Rounded down, so 100 % means every key is translated.
 const toPercent = (part: number, total: number) => (total === 0 ? 0 : Math.floor((part / total) * 100))
@@ -35,8 +36,9 @@ const toPercent = (part: number, total: number) => (total === 0 ? 0 : Math.floor
  * while the grip has the focus, as in the project list. The first language is the base, so a move that changes it waits for a confirmation;
  * "Nie" puts the rows back.
  */
-const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps) => {
+const LanguagesTable = ({ projectId, onAdd, onDelete, reorderable = false, ref }: LanguagesTableProps) => {
 	const { t, i18n } = useTranslation()
+	const columnCount = onDelete ? COLUMN_COUNT_WITHOUT_ACTIONS + 1 : COLUMN_COUNT_WITHOUT_ACTIONS
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectLanguagesQuery(projectId)
 	const tableRef = useRef<HTMLTableElement>(null)
 	const mergedRef = useMergedRef(tableRef, ref)
@@ -141,7 +143,7 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 		}
 	})
 
-	const canReorder = (data?.length ?? 0) > 1
+	const canReorder = reorderable && (data?.length ?? 0) > 1
 
 	useEffect(() => {
 		const body = bodyRef.current
@@ -194,7 +196,7 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr className={classes.tr}>
-			<Table.Td colSpan={COLUMN_COUNT} className={`${classes.td} ${classes.state}`}>
+			<Table.Td colSpan={columnCount} className={`${classes.td} ${classes.state}`}>
 				{content}
 			</Table.Td>
 		</Table.Tr>
@@ -204,7 +206,7 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 		if (isPending) {
 			return Array.from({ length: SKELETON_ROWS }, (_, index) => (
 				<Table.Tr key={index} className={classes.tr}>
-					<Table.Td colSpan={COLUMN_COUNT} className={classes.td}>
+					<Table.Td colSpan={columnCount} className={classes.td}>
 						<div className='flex items-center gap-3'>
 							<Skeleton circle height={40} />
 							<Skeleton height={12} width='30%' radius='sm' />
@@ -230,9 +232,11 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 			return stateRow(
 				<div className='flex flex-col items-center gap-4'>
 					<Text size='sm'>{t('languagesPage.table.empty')}</Text>
-					<Button leftSection={<Plus aria-hidden />} onClick={(event) => onAdd(event.currentTarget)}>
-						{t('languagesPage.addButton')}
-					</Button>
+					{onAdd && (
+						<Button leftSection={<Plus aria-hidden />} onClick={(event) => onAdd(event.currentTarget)}>
+							{t('languagesPage.addButton')}
+						</Button>
+					)}
 				</div>,
 			)
 		}
@@ -277,9 +281,11 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 										{languageName(language)}
 									</Text>
 									{language.isBase && (
-										<Badge radius='xl' className={classes.badge}>
-											{t('languagesPage.table.base')}
-										</Badge>
+										<BaseLanguageHint>
+											<Badge radius='xl' classNames={{ root: classes.badge, label: classes.badgeLabel }}>
+												{t('languagesPage.table.base')}
+											</Badge>
+										</BaseLanguageHint>
 									)}
 								</div>
 								<Text component='span' className={classes.meta}>
@@ -305,16 +311,18 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 							{translatedOf(language)}
 						</Text>
 					</Table.Td>
-					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-						<RowAction
-							icon={Trash}
-							tooltip={t('languagesPage.table.delete')}
-							label={t('languagesPage.table.deleteLabel', { name: languageName(language) })}
-							danger
-							disabled={language.isBase}
-							onClick={(event) => onDelete(language, event.currentTarget)}
-						/>
-					</Table.Td>
+					{onDelete && (
+						<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
+							<RowAction
+								icon={Trash}
+								tooltip={t('languagesPage.table.delete')}
+								label={t('languagesPage.table.deleteLabel', { name: languageName(language) })}
+								danger
+								disabled={language.isBase}
+								onClick={(event) => onDelete(language, event.currentTarget)}
+							/>
+						</Table.Td>
+					)}
 				</Table.Tr>
 			)
 		})
@@ -328,9 +336,11 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, ref }: LanguagesTableProps
 						<Table.Th className={classes.th}>{t('languagesPage.table.language')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.translatedColumn} ${classes.wideOnly}`}>{t('languagesPage.table.translated')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.coverageColumn} ${classes.tabletUp}`}>{t('languagesPage.table.coverage')}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
-							<VisuallyHidden>{t('languagesPage.table.actionsColumn')}</VisuallyHidden>
-						</Table.Th>
+						{onDelete && (
+							<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
+								<VisuallyHidden>{t('languagesPage.table.actionsColumn')}</VisuallyHidden>
+							</Table.Th>
+						)}
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody ref={bodyRef}>{renderBody()}</Table.Tbody>

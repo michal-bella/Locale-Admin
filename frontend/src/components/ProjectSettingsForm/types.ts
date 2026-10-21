@@ -13,6 +13,8 @@ export type ProjectSettingsFormProps = {
 	onCancel?: () => void
 	/** Replaces the error notification when the project was deleted meanwhile (the edit modal on Projekty closes itself). */
 	onNotFound?: () => void
+	/** Every field and "Uložiť zmeny" disabled, "Opustiť projekt" stays: only an ADMIN changes the settings. */
+	readOnly?: boolean
 	/** Moves focus to the first field when it turns true (after a successful retry replaced the focused retry button). */
 	focusFirstField?: boolean
 }

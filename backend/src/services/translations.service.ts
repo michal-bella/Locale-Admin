@@ -264,8 +264,11 @@ export const updateTranslation = async (
 		])
 	}
 
-	if (value !== null && !language.isBase && key.project.protectVariables) {
-		const base = await prisma.translation.findFirst({ where: { keyId, language: { projectId, isBase: true } }, select: { value: true } })
+	if (value !== null && key.project.protectVariables) {
+		// The base language is the source of truth, so it is only checked against its own key name (a sentence key names its variables).
+		const base = language.isBase
+			? null
+			: await prisma.translation.findFirst({ where: { keyId, language: { projectId, isBase: true } }, select: { value: true } })
 		const reference = base?.value ?? (placeholders(key.name).size > 0 ? key.name : null)
 		if (reference !== null) {
 			const { missing, extra } = comparePlaceholders(reference, value)
@@ -405,18 +408,25 @@ export const createTranslationKey = async (
 	})
 
 	if (project.protectVariables) {
-		const reference = values.find((language) => language.isBase)?.value ?? (placeholders(name).size > 0 ? name : null)
-		if (reference !== null) {
-			for (const language of values.filter((item) => !item.isBase)) {
-				const { missing, extra } = comparePlaceholders(reference, language.value)
-				if (missing.length > 0 || extra.length > 0) {
-					throw new AppError(400, ERROR_CODE.PLACEHOLDER_MISMATCH, 'Placeholders differ from the base language', {
-						missing,
-						extra,
-						languageId: language.id,
-					})
-				}
+		const base = values.find((language) => language.isBase)
+		const nameReference = placeholders(name).size > 0 ? name : null
+		const mismatch = (reference: string, language: (typeof values)[number]) => {
+			const { missing, extra } = comparePlaceholders(reference, language.value)
+			if (missing.length > 0 || extra.length > 0) {
+				throw new AppError(400, ERROR_CODE.PLACEHOLDER_MISMATCH, 'Placeholders differ from the base language', {
+					missing,
+					extra,
+					languageId: language.id,
+				})
 			}
+		}
+		// A sentence key names its variables, so the base value must match the name; the other languages then follow the base value.
+		if (base && nameReference !== null) {
+			mismatch(nameReference, base)
+		}
+		const reference = base?.value ?? nameReference
+		if (reference !== null) {
+			values.filter((item) => !item.isBase).forEach((language) => mismatch(reference, language))
 		}
 	}
 

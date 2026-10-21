@@ -1,4 +1,4 @@
-import { Button, Skeleton, Table, Text } from '@mantine/core'
+import { Button, Skeleton, Table, Text, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { Fragment, type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -10,7 +10,7 @@ import getApiErrorCode from '@/api/getApiErrorCode'
 import BaseLanguageHint from '@/components/BaseLanguageHint/BaseLanguageHint'
 import EditKeyModal from '@/components/EditKeyModal/EditKeyModal'
 import EditTranslationModal from '@/components/EditTranslationModal/EditTranslationModal'
-import { Edit, Upload } from '@/components/Icons'
+import { Edit, Info, Upload } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import RowAction from '@/components/RowAction/RowAction'
 import TranslationCell from '@/components/TranslationCell/TranslationCell'
@@ -23,6 +23,9 @@ import classes from './TranslationsTable.module.css'
 import { type TranslationsTableProps } from './types'
 
 const SKELETON_ROWS = 5
+
+// Like the warning icons: not focusable, so touch opens the hint and Tab still goes from cell to cell.
+const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
 
 const EMPTY_CELL: TranslationCellData = { value: null, status: 'UNTRANSLATED', updatedAt: null, updatedBy: null }
 
@@ -176,6 +179,17 @@ const TranslationsTable = ({
 							<Text component='span' className={classes.key}>
 								{item.name}
 							</Text>
+							{item.description && (
+								<Tooltip label={item.description} events={TOOLTIP_EVENTS} multiline w={260}>
+									<span
+										role='img'
+										aria-label={t('translationsPage.table.description', { description: item.description })}
+										className={classes.descriptionIcon}
+									>
+										<Info aria-hidden />
+									</span>
+								</Tooltip>
+							)}
 							{isAdmin && (
 								<span className={classes.editAction}>
 									<RowAction
@@ -187,11 +201,6 @@ const TranslationsTable = ({
 								</span>
 							)}
 						</div>
-						{item.description && (
-							<span className={classes.description} title={item.description}>
-								{item.description}
-							</span>
-						)}
 						<span className={classes.meta}>
 							<span>{item.group || t('translationsPage.table.noGroup')}</span>
 							{updatedAt && (

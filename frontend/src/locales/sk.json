@@ -331,6 +331,7 @@
 			"key": "Kľúč",
 			"status": "Stav",
 			"noGroup": "Bez skupiny",
+			"description": "Popis kľúča: {{description}}",
 			"emptyValue": "Bez prekladu",
 			"loadError": "Preklady sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
@@ -421,7 +422,6 @@
 				"empty": "Bez namespace"
 			},
 			"value": {
-				"base": "Základný jazyk – referenčný text pre ostatné jazyky.",
 				"placeholder": "Voliteľné"
 			},
 			"cancel": "Zrušiť",

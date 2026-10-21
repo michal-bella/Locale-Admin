@@ -146,16 +146,11 @@ th.stickyEnd {
 	margin-block: -0.5rem;
 }
 
-.description {
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
-	padding-top: 0.125rem;
-	font-size: var(--mantine-font-size-3xs);
-	line-height: 1.5;
-	color: var(--app-color-text-secondary);
-	overflow: hidden;
-	overflow-wrap: anywhere;
+.descriptionIcon {
+	display: inline-flex;
+	flex-shrink: 0;
+	margin-top: 0.0625rem;
+	color: var(--app-color-muted);
 }
 
 .key {

@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Základný jazyk vetného kľúča, popis kľúča ako ikona (2026-10-21)
+
+- API: pri `PUT …/translations/:languageId` a `POST …/keys` sa aj hodnota základného jazyka porovná s premennými v názve kľúča, keď ich názov obsahuje (vetný kľúč `Cena ({{symbol}})`); kľúče bez premenných v názve sa v základnom jazyku nekontrolujú ([API](./api/translations.md#ochrana-premenných))
+- frontend: popis kľúča sa v tabuľke prekladov neukazuje ako text, ale ako ikona (i) s tooltipom; v modáli Pridať kľúč má základný jazyk badge **Základný** vedľa názvu namiesto popisu pod labelom ([Frontend](./frontend.md#stránka-preklady))
+
 ### Pridať kľúč v dvoch stĺpcoch (2026-10-21)
 
 - frontend: modál Pridať kľúč má od piatich jazykov šírku 720 px a nad telefónom dva stĺpce (Kľúč vedľa Namespace, jazyky po dvoch) ([Frontend](./frontend.md#modál-pridať-kľúč))

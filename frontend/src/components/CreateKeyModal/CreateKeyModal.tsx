@@ -12,7 +12,9 @@ import getApiErrorDetails from '@/api/getApiErrorDetails'
 import getPlaceholderMismatch from '@/api/getPlaceholderMismatch'
 import { useCreateTranslationKeyMutation } from '@/api/translations/useCreateTranslationKeyMutation'
 import AppModal from '@/components/AppModal/AppModal'
+import BaseLanguageHint from '@/components/BaseLanguageHint/BaseLanguageHint'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
+import tableClasses from '@/components/TranslationsTable/TranslationsTable.module.css'
 
 import { type CreateKeyModalProps } from './types'
 
@@ -193,9 +195,13 @@ const CreateKeyModal = ({ projectId, languages, namespaces, defaultNamespace, op
 							<span className='inline-flex items-center gap-2'>
 								<LanguageFlag code={language.flagCode} size='xs' />
 								<span className='capitalize'>{t(`languageNames.${language.tag}`)}</span>
+								{language.isBase && (
+									<BaseLanguageHint>
+										<span className={tableClasses.baseBadge}>{t('translationsPage.table.base')}</span>
+									</BaseLanguageHint>
+								)}
 							</span>
 						}
-						description={language.isBase ? t('translationsPage.createKeyModal.value.base') : undefined}
 						placeholder={t('translationsPage.createKeyModal.value.placeholder')}
 						maxLength={TRANSLATION_VALUE_MAX_LENGTH}
 						autosize

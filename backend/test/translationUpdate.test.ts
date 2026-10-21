@@ -146,7 +146,7 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 		expect(placeholderDetails(res)).toEqual({ missing: ['{{count}}'], extra: [] })
 	})
 
-	it('never blocks editing the base language and skips the check when the base value is null or missing', async () => {
+	it('never blocks editing the base language of a path key and skips the check when the base value is null or missing', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie } = await setup(app)
 		const withBase = await createKey(project.id, 'a', { [sk.id]: 'Máte {{count}} položiek', [en.id]: 'You have {{count}} items' })
@@ -156,6 +156,19 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 		expect(await putOk(app, cookie, project.id, withBase.id, sk.id, 'Máte {{total}} položiek')).toMatchObject({ value: 'Máte {{total}} položiek' })
 		expect(await putOk(app, cookie, project.id, nullBase.id, en.id, '{{anything}}')).toMatchObject({ status: 'TRANSLATED' })
 		expect(await putOk(app, cookie, project.id, noBase.id, en.id, '{{anything}}')).toMatchObject({ status: 'TRANSLATED' })
+	})
+
+	it('checks the base language of a sentence key against the placeholders of the key name', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie } = await setup(app)
+		const key = await createKey(project.id, 'Cena do vrátane DPH ({{symbol}})', { [sk.id]: 'Cena do vrátane DPH ({{symbol}})' })
+
+		const res = await put(app, cookie, project.id, key.id, sk.id, 'Cena ({{symbol}}) Cena ({{symbol}})')
+
+		expectErrorCode(res, 400, ERROR_CODE.PLACEHOLDER_MISMATCH)
+		expect(placeholderDetails(res)).toEqual({ missing: [], extra: ['{{symbol}}'] })
+		expect(await findRow(key.id, sk.id)).toMatchObject({ value: 'Cena do vrátane DPH ({{symbol}})' })
+		expect(await putOk(app, cookie, project.id, key.id, sk.id, 'Cena vrátane DPH ({{ symbol }})')).toMatchObject({ status: 'TRANSLATED' })
 	})
 
 	it('takes the placeholders from the key name when the base value is null or missing', async () => {

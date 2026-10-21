@@ -553,6 +553,19 @@ describe('TranslationsPage', () => {
 		expect(screen.queryByRole('button', { name: 'Importovať' })).not.toBeInTheDocument()
 	})
 
+	it('shows the key description as an info icon with a tooltip instead of text under the key', async () => {
+		const [first, ...rest] = ITEMS
+		mockPage({ translations: response({ items: [{ ...(first as TranslationListItem), description: 'Shown above the order list' }, ...rest] }) })
+		renderApp(PAGE_PATH)
+		const row = await waitFor(() => getRow('orders.empty.title'))
+
+		const icon = within(row).getByRole('img', { name: 'Popis kľúča: Shown above the order list' })
+		expect(within(row).queryByText('Shown above the order list')).not.toBeInTheDocument()
+		fireEvent.mouseEnter(icon)
+		expect(await screen.findByRole('tooltip')).toHaveTextContent('Shown above the order list')
+		expect(within(getRow('dashboard.welcome')).queryByRole('img', { name: /^Popis kľúča/ })).not.toBeInTheDocument()
+	})
+
 	it('shows a VISITOR only Exportovať, text cells that open nothing, and the filters', async () => {
 		const requests = mockPage({ user: VISITOR_USER })
 		renderApp(PAGE_PATH)

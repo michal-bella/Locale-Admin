@@ -24,8 +24,6 @@ import { type TranslationsTableProps } from './types'
 
 const SKELETON_ROWS = 5
 
-const MIN_COLUMN_WIDTH = 96
-
 // Like the warning icons: not focusable, so touch opens the hint and Tab still goes from cell to cell.
 const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
 
@@ -72,6 +70,7 @@ const TranslationsTable = ({
 	const [editingTranslation, setEditingTranslation] = useState<Editing | null>(null)
 	const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
 	const [resizing, setResizing] = useState<string | null>(null)
+	const defaultWidths = useRef<Record<string, number>>({})
 	const baseLanguage = languages.find((language) => language.isBase)
 	const isExtended = view === 'EXTENDED'
 	const isStacked = layout === 'STACKED'
@@ -83,6 +82,7 @@ const TranslationsTable = ({
 	const tdClass = `${classes.td} ${isStacked ? classes.tdStacked : ''}`
 
 	// Excel-like column resizing; the widths live only here, so a refresh brings the defaults back.
+	// A column can only grow: the width it had before the first drag is its minimum.
 	const startResize = (column: string, event: ReactPointerEvent<HTMLElement>) => {
 		if (event.button !== 0) {
 			return
@@ -90,8 +90,9 @@ const TranslationsTable = ({
 		event.preventDefault()
 		const startX = event.clientX
 		const startWidth = event.currentTarget.parentElement?.getBoundingClientRect().width ?? 0
+		const minWidth = (defaultWidths.current[column] ??= startWidth)
 		const move = (moveEvent: PointerEvent) => {
-			setColumnWidths((widths) => ({ ...widths, [column]: Math.max(MIN_COLUMN_WIDTH, startWidth + moveEvent.clientX - startX) }))
+			setColumnWidths((widths) => ({ ...widths, [column]: Math.max(minWidth, startWidth + moveEvent.clientX - startX) }))
 		}
 		const stop = () => {
 			window.removeEventListener('pointermove', move)
@@ -398,11 +399,9 @@ const TranslationsTable = ({
 					<Table.Tr>
 						{!translationsOnly && (
 							<Table.Th
-								className={`${classes.th} ${isColumns ? `${classes.keyColumnExtended} ${classes.stickyStart}` : classes.keyColumn} ${isStacked ? classes.thStacked : classes.resizable}`}
-								style={isStacked ? undefined : columnStyle('key')}
+								className={`${classes.th} ${isColumns ? `${classes.keyColumnExtended} ${classes.stickyStart}` : classes.keyColumn} ${isStacked ? classes.thStacked : ''}`}
 							>
 								{t('translationsPage.table.key')}
-								{!isStacked && resizeHandle('key')}
 							</Table.Th>
 						)}
 						{isStacked ? (

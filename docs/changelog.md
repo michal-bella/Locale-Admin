@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Pridať kľúč v dvoch stĺpcoch (2026-10-21)
+
+- frontend: modál Pridať kľúč má od piatich jazykov šírku 720 px a nad telefónom dva stĺpce (Kľúč vedľa Namespace, jazyky po dvoch) ([Frontend](./frontend.md#modál-pridať-kľúč))
+
 ### Ochrana premenných počíta výskyty, vlajky v exporte (2026-10-21)
 
 - shared + API: `comparePlaceholders` porovnáva aj počet výskytov každej premennej (pri pluráli najvyšší počet vo forme), takže preklad s premennou navyše oproti základnému jazyku, napr. `({{count}}) … ({{count}})`, vráti 400 `PLACEHOLDER_MISMATCH` s `extra`; rovnako sa správa upozornenie pri importe a kontrola pred exportom ([API](./api/translations.md#ochrana-premenných))

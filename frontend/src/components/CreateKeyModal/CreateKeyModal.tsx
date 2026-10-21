@@ -30,6 +30,9 @@ type FormValues = z.infer<typeof formSchema>
 
 const EMPTY_VALUES: FormValues = { name: '', namespace: null, translations: {} }
 
+/** From this many languages the fields go into two columns above the phone breakpoint, so the form does not scroll for ages. */
+const TWO_COLUMNS_FROM = 5
+
 /**
  * "Pridať kľúč" (ADMIN only): a key added by hand into one of the existing namespaces, e.g. one that came up in development after the sheet
  * was locked. Every language of the project has an optional value; an empty one stays untranslated.
@@ -57,6 +60,8 @@ const CreateKeyModal = ({ projectId, languages, namespaces, defaultNamespace, op
 		defaultValues: EMPTY_VALUES,
 	})
 	const fallbackNamespace = defaultNamespace ?? (namespaces.length === 1 ? namespaces[0] : undefined)
+	const twoColumns = languages.length >= TWO_COLUMNS_FROM
+	const gridClass = `grid grid-cols-1 gap-4 ${twoColumns ? 'sm:grid-cols-2' : ''}`
 
 	const resetAndClose = () => {
 		reset(EMPTY_VALUES)
@@ -127,6 +132,7 @@ const CreateKeyModal = ({ projectId, languages, namespaces, defaultNamespace, op
 			description={t('translationsPage.createKeyModal.description')}
 			closeLabel={t('translationsPage.createKeyModal.close')}
 			isPending={isPending}
+			size={twoColumns ? 720 : undefined}
 			onSubmit={(event) => void onSubmit(event)}
 			footer={
 				<>
@@ -139,63 +145,67 @@ const CreateKeyModal = ({ projectId, languages, namespaces, defaultNamespace, op
 				</>
 			}
 		>
-			<TextInput
-				data-autofocus
-				required
-				label={t('translationsPage.createKeyModal.name.label')}
-				placeholder={t('translationsPage.createKeyModal.name.placeholder')}
-				error={errors.name?.message}
-				{...register('name')}
-			/>
-			<Controller
-				control={control}
-				name='namespace'
-				render={({ field }) => {
-					const value = field.value ?? fallbackNamespace
-					return (
-						<Select
-							required
-							label={t('translationsPage.createKeyModal.namespace.label')}
-							description={t('translationsPage.createKeyModal.namespace.description')}
-							placeholder={t('translationsPage.createKeyModal.namespace.placeholder')}
-							data={namespaces.map((namespace) => ({
-								value: namespace === '' ? EMPTY_NAMESPACE : namespace,
-								label: namespace === '' ? t('translationsPage.createKeyModal.namespace.empty') : namespace,
-							}))}
-							value={value === undefined ? null : value === '' ? EMPTY_NAMESPACE : value}
-							onChange={(next) => {
-								field.onChange(next === EMPTY_NAMESPACE ? '' : next)
-								clearErrors('namespace')
-							}}
-							onBlur={field.onBlur}
-							ref={field.ref}
-							error={errors.namespace?.message}
-							allowDeselect={false}
-							searchable
-							comboboxProps={{ withinPortal: true }}
-						/>
-					)
-				}}
-			/>
-			{languages.map((language) => (
-				<Textarea
-					key={language.id}
-					label={
-						<span className='inline-flex items-center gap-2'>
-							<LanguageFlag code={language.flagCode} size='xs' />
-							<span className='capitalize'>{t(`languageNames.${language.tag}`)}</span>
-						</span>
-					}
-					description={language.isBase ? t('translationsPage.createKeyModal.value.base') : undefined}
-					placeholder={t('translationsPage.createKeyModal.value.placeholder')}
-					maxLength={TRANSLATION_VALUE_MAX_LENGTH}
-					autosize
-					minRows={1}
-					maxRows={4}
-					error={errors.translations?.[language.id]?.message}
-					{...register(`translations.${language.id}`)}
+			<div className={gridClass} data-columns={twoColumns ? 2 : 1}>
+				<TextInput
+					data-autofocus
+					required
+					label={t('translationsPage.createKeyModal.name.label')}
+					placeholder={t('translationsPage.createKeyModal.name.placeholder')}
+					error={errors.name?.message}
+					{...register('name')}
 				/>
-			))}
+				<Controller
+					control={control}
+					name='namespace'
+					render={({ field }) => {
+						const value = field.value ?? fallbackNamespace
+						return (
+							<Select
+								required
+								label={t('translationsPage.createKeyModal.namespace.label')}
+								description={t('translationsPage.createKeyModal.namespace.description')}
+								placeholder={t('translationsPage.createKeyModal.namespace.placeholder')}
+								data={namespaces.map((namespace) => ({
+									value: namespace === '' ? EMPTY_NAMESPACE : namespace,
+									label: namespace === '' ? t('translationsPage.createKeyModal.namespace.empty') : namespace,
+								}))}
+								value={value === undefined ? null : value === '' ? EMPTY_NAMESPACE : value}
+								onChange={(next) => {
+									field.onChange(next === EMPTY_NAMESPACE ? '' : next)
+									clearErrors('namespace')
+								}}
+								onBlur={field.onBlur}
+								ref={field.ref}
+								error={errors.namespace?.message}
+								allowDeselect={false}
+								searchable
+								comboboxProps={{ withinPortal: true }}
+							/>
+						)
+					}}
+				/>
+			</div>
+			<div className={gridClass}>
+				{languages.map((language) => (
+					<Textarea
+						key={language.id}
+						label={
+							<span className='inline-flex items-center gap-2'>
+								<LanguageFlag code={language.flagCode} size='xs' />
+								<span className='capitalize'>{t(`languageNames.${language.tag}`)}</span>
+							</span>
+						}
+						description={language.isBase ? t('translationsPage.createKeyModal.value.base') : undefined}
+						placeholder={t('translationsPage.createKeyModal.value.placeholder')}
+						maxLength={TRANSLATION_VALUE_MAX_LENGTH}
+						autosize
+						minRows={1}
+						maxRows={4}
+						error={errors.translations?.[language.id]?.message}
+						{...register(`translations.${language.id}`)}
+					/>
+				))}
+			</div>
 		</AppModal>
 	)
 }

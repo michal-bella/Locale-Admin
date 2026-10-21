@@ -60,7 +60,12 @@ const WELCOME: TranslationListItem = {
 
 type MockResponse = { status: number; data?: unknown }
 
-const mockPage = ({ user = ADMIN_USER, namespaces = ['loc', 'paths'], post }: { user?: AuthUser; namespaces?: string[]; post?: MockResponse } = {}) => {
+const mockPage = ({
+	user = ADMIN_USER,
+	namespaces = ['loc', 'paths'],
+	languages = [SLOVAK, ENGLISH],
+	post,
+}: { user?: AuthUser; namespaces?: string[]; languages?: Language[]; post?: MockResponse } = {}) => {
 	const items = namespaces.length > 0 ? [WELCOME] : []
 	const translations: TranslationsResponse = {
 		items,
@@ -74,7 +79,7 @@ const mockPage = ({ user = ADMIN_USER, namespaces = ['loc', 'paths'], post }: { 
 	const requests = signedInAs(user, {
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
-		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [SLOVAK, ENGLISH] },
+		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: languages },
 		[`GET ${TRANSLATIONS_URL}`]: { status: 200, data: translations },
 		[`POST ${KEYS_URL}`]: (config: InternalAxiosRequestConfig) => {
 			if (post) {
@@ -209,6 +214,30 @@ describe('CreateKeyModal', () => {
 
 		expect(await within(dialog).findByText('Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}.')).toBeInTheDocument()
 		expect(within(dialog).getByLabelText(/angličtina/i)).toHaveAttribute('aria-invalid', 'true')
+	})
+
+	it('puts the fields into two columns from five languages and keeps one column below', async () => {
+		mockPage({ languages: [SLOVAK, ENGLISH, toLanguage('cs', 3), toLanguage('de-AT', 4), toLanguage('hu', 5)] })
+		renderApp(PAGE_PATH)
+		const dialog = await openModal()
+
+		const grids = dialog.querySelectorAll('[data-columns="2"], [data-columns="1"]')
+		expect(grids).toHaveLength(1)
+		expect(grids[0]).toHaveAttribute('data-columns', '2')
+		expect(grids[0]).toHaveClass('sm:grid-cols-2')
+		for (const language of [/slovenčina/i, /čeština/i, /angličtina/i, /nemčina/i, /maďarčina/i]) {
+			expect(within(dialog).getByLabelText(language)).toBeInTheDocument()
+		}
+		expect(dialog.closest('.mantine-Modal-root')?.getAttribute('style') ?? '').toContain('--modal-size: calc(45rem')
+	})
+
+	it('keeps one column with up to four languages', async () => {
+		mockPage()
+		renderApp(PAGE_PATH)
+		const dialog = await openModal()
+
+		expect(dialog.querySelector('[data-columns]')).toHaveAttribute('data-columns', '1')
+		expect(dialog.querySelector('[data-columns]')).not.toHaveClass('sm:grid-cols-2')
 	})
 
 	it('resets the form when reopened after cancel', async () => {

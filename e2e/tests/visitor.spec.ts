@@ -55,6 +55,7 @@ test('sees only Preklady and Prehľad in the sidebar and the 403 page on the oth
 	await expect(page.getByRole('link', { name: 'Otvoriť preklady' })).toBeVisible()
 	await expect(page.getByRole('list', { name: 'Stav jazykov' }).getByRole('listitem')).toHaveCount(2)
 	await expect(page.getByRole('link', { name: 'Spravovať jazyky' })).toHaveCount(0)
+	await expect(page.getByRole('link', { name: 'Zobraziť členov' })).toHaveCount(0)
 
 	for (const forbidden of ['settings', 'languages', 'members']) {
 		await expectForbidden(page, projectPath(visitor, forbidden))

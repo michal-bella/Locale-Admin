@@ -143,10 +143,7 @@ const CreateUserModal = ({ opened, onClose, defaultRole = ROLE.EDITOR, onCreated
 											disabled={isPending}
 											value={field.value}
 											onChange={field.onChange}
-											data={[
-												{ value: ROLE.ADMIN, label: t('roles.ADMIN') },
-												{ value: ROLE.EDITOR, label: t('roles.EDITOR') },
-											]}
+											data={Object.values(ROLE).map((value) => ({ value, label: t(`roles.${value}`) }))}
 										/>
 									)}
 								/>

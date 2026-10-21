@@ -20,7 +20,7 @@ const SKELETON_ROWS = 3
  * Stav jazykov of Figma 3:596: every language of the project in project order with its translated share. A row other than the base
  * opens Preklady with that language's untranslated keys: `target` for the compact view, `languages` for the extended one.
  */
-const LanguageStatus = ({ projectId, projectSlug }: LanguageStatusProps) => {
+const LanguageStatus = ({ projectId, projectSlug, manageable }: LanguageStatusProps) => {
 	const { t, i18n } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectLanguagesQuery(projectId)
 
@@ -124,9 +124,11 @@ const LanguageStatus = ({ projectId, projectSlug }: LanguageStatusProps) => {
 			title={t('dashboardPage.languages.title')}
 			description={t('dashboardPage.languages.description')}
 			action={
-				<Link to='/projects/$projectSlug/languages' params={{ projectSlug }} className={classes.link}>
-					{t('dashboardPage.languages.manage')}
-				</Link>
+				manageable && (
+					<Link to='/projects/$projectSlug/languages' params={{ projectSlug }} className={classes.link}>
+						{t('dashboardPage.languages.manage')}
+					</Link>
+				)
 			}
 		>
 			<div aria-busy={isPending}>{renderBody()}</div>

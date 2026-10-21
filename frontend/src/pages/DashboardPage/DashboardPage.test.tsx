@@ -19,7 +19,7 @@ import {
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
-import { ADMIN_USER, apiError, EDITOR_USER, type MockRoutes, projectListRoute, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, type MockRoutes, projectListRoute, signedInAs, VISITOR_USER } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const PROJECT: ProjectSettings = {
@@ -192,6 +192,16 @@ describe('DashboardPage', () => {
 		expect(JSON.parse(url.searchParams.get('languages') ?? '')).toEqual(['en'])
 		expect(url.searchParams.get('status')).toBe('UNTRANSLATED')
 		expect(screen.getByRole('link', { name: 'Spravovať jazyky' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/languages`)
+	})
+
+	it('hides Spravovať jazyky from a VISITOR and keeps the links to Preklady', async () => {
+		signedInAs(VISITOR_USER, routes())
+		renderApp(PAGE_PATH)
+
+		const list = within(await screen.findByRole('list', { name: 'Stav jazykov' }))
+		expect(list.getByRole('link', { name: /^Angličtina: zobraziť nepreložené kľúče/ })).toBeInTheDocument()
+		expect(screen.queryByRole('link', { name: 'Spravovať jazyky' })).not.toBeInTheDocument()
+		expect(screen.getByRole('link', { name: 'Otvoriť preklady' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/translations`)
 	})
 
 	it.each<[string, ActivityEventData]>([

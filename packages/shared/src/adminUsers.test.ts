@@ -14,6 +14,12 @@ describe('createUserRequestSchema', () => {
 		})
 	})
 
+	it('accepts every global role', () => {
+		for (const role of Object.values(ROLE)) {
+			expect(createUserRequestSchema.safeParse({ email: 'jana@firma.sk', password: 'password1', role }).success).toBe(true)
+		}
+	})
+
 	it('maps missing fields, an invalid email, a short password and an unknown role to shared codes', () => {
 		const missing = createUserRequestSchema.safeParse({})
 		expect(missing.success ? [] : toValidationIssues(missing.error)).toEqual([

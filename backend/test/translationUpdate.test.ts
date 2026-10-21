@@ -245,6 +245,18 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 		expect(await putOk(app, admin.cookie, admin.project.id, adminKey.id, admin.en.id, 'A')).toMatchObject({ value: 'A' })
 	})
 
+	it('returns 403 FORBIDDEN to a VISITOR member and writes nothing', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app, { role: ROLE.VISITOR })
+		const key = await createKey(project.id, 'a', { [sk.id]: 'A' })
+
+		expectErrorCode(await put(app, cookie, project.id, key.id, en.id, 'B'), 403, ERROR_CODE.FORBIDDEN)
+		expect(await findRow(key.id, en.id)).toBeNull()
+		const list = await request(app).get(`/api/projects/${project.id}/translations`).set('Cookie', cookie)
+		expect(list.status).toBe(200)
+		expect(translationsResponseSchema.parse(list.body).items.map(({ name }) => name)).toEqual(['a'])
+	})
+
 	it('returns 401 AUTH_UNAUTHENTICATED without a session and 403 CSRF_REJECTED without X-Requested-With', async () => {
 		const app = createTestApp()
 		const { project, en, cookie } = await setup(app)

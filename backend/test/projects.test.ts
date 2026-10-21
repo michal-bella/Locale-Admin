@@ -297,6 +297,18 @@ describe('DELETE /api/projects/:projectId/membership', () => {
 		expectErrorCode(res, 404, ERROR_CODE.NOT_FOUND)
 	})
 
+	it('returns 403 FORBIDDEN to a VISITOR member and keeps the membership', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app, ROLE.VISITOR)
+		const { user: other } = await createUser()
+		const project = await createProjectRow('A', 'a', [user.id, other.id])
+
+		const res = await leave(app, cookie, project.id)
+
+		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
+		expect(await getTestPrisma().projectMember.count({ where: { projectId: project.id } })).toBe(2)
+	})
+
 	it('returns 403 CSRF_REJECTED without X-Requested-With', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await login(app)

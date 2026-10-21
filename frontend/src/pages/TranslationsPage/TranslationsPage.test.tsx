@@ -18,7 +18,15 @@ import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
 import i18n from '@/lib/i18n'
-import { ADMIN_USER as EXTENDED_ADMIN, apiError, EDITOR_USER as EXTENDED_EDITOR, type MockRoutes, projectListRoute, signedInAs } from '@/test/mockApi'
+import {
+	ADMIN_USER as EXTENDED_ADMIN,
+	apiError,
+	EDITOR_USER as EXTENDED_EDITOR,
+	type MockRoutes,
+	projectListRoute,
+	signedInAs,
+	VISITOR_USER as EXTENDED_VISITOR,
+} from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -50,6 +58,7 @@ const compact = (user: AuthUser): AuthUser => ({ ...user, preferences: { ...user
 const ADMIN_USER = compact(EXTENDED_ADMIN)
 
 const EDITOR_USER = compact(EXTENDED_EDITOR)
+const VISITOR_USER = compact(EXTENDED_VISITOR)
 
 const TRANSLATIONS_URL = `/projects/${PROJECT.id}/translations`
 
@@ -542,6 +551,26 @@ describe('TranslationsPage', () => {
 		expect(await findVisibleText('Projekt zatiaľ nemá žiadne kľúče. Pridá ich administrátor importom súboru.')).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: 'Exportovať' })).toBeEnabled()
 		expect(screen.queryByRole('button', { name: 'Importovať' })).not.toBeInTheDocument()
+	})
+
+	it('shows a VISITOR only Exportovať, text cells that open nothing, and the filters', async () => {
+		const requests = mockPage({ user: VISITOR_USER })
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		expect(screen.getByRole('button', { name: 'Exportovať' })).toBeEnabled()
+		expect(screen.queryByRole('button', { name: 'Importovať' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Pridať kľúč' })).not.toBeInTheDocument()
+		const body = getTable().querySelector('tbody')
+		expect(body?.querySelectorAll('button, a, input, textarea, select, [tabindex]')).toHaveLength(0)
+		const cell = screen.getByText('Preklad kľúča orders.empty.title, angličtina:').closest('[data-status]')
+		expect(cell?.tagName).toBe('DIV')
+		expect(cell).toHaveAttribute('data-status', 'UNTRANSLATED')
+		fireEvent.click(cell as HTMLElement)
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+		await pickOption('Stav', 'Nepreložené')
+		await waitFor(() => expect(lastParams(requests)).toMatchObject({ status: 'UNTRANSLATED' }))
 	})
 
 	it('shows the empty state without asking for translations when the project has no languages', async () => {

@@ -12,6 +12,7 @@ describe('updateProfileRequestSchema', () => {
 			role: ROLE.ADMIN,
 		})
 		expect(updateProfileRequestSchema.parse({ firstName: 'Martin', lastName: 'Kováč' })).toEqual({ firstName: 'Martin', lastName: 'Kováč' })
+		expect(updateProfileRequestSchema.safeParse({ firstName: 'Martin', lastName: 'Kováč', role: ROLE.VISITOR }).success).toBe(true)
 		expect(updateProfileRequestSchema.safeParse({ firstName: 'Martin', lastName: 'Kováč', role: 'OWNER' }).success).toBe(false)
 	})
 

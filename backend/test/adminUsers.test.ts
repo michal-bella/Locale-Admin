@@ -157,7 +157,7 @@ describe('GET /api/admin/users/:id', () => {
 })
 
 describe('POST /api/admin/users', () => {
-	it.each([ROLE.ADMIN, ROLE.EDITOR])('creates a %s with a normalized email', async (role) => {
+	it.each(Object.values(ROLE))('creates a %s with a normalized email', async (role) => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
 		const before = Date.now()
@@ -316,12 +316,12 @@ describe('PATCH /api/admin/users/:id', () => {
 		expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).body).toMatchObject({ role: ROLE.EDITOR })
 	})
 
-	it('returns 409 LAST_ADMIN when the only admin would become an editor and keeps the role', async () => {
+	it.each([ROLE.EDITOR, ROLE.VISITOR])('returns 409 LAST_ADMIN when the only admin would become a %s and keeps the role', async (role) => {
 		const app = createTestApp()
 		const { user: admin } = await createUser({ role: ROLE.ADMIN })
 		const cookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
 
-		const res = await patchUser(app, cookie, admin.id, { role: ROLE.EDITOR })
+		const res = await patchUser(app, cookie, admin.id, { role })
 
 		expectErrorCode(res, 409, ERROR_CODE.LAST_ADMIN)
 		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: admin.id } })).role).toBe(ROLE.ADMIN)

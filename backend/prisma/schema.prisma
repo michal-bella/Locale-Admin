@@ -10,6 +10,7 @@ datasource db {
 enum ROLE {
   ADMIN
   EDITOR
+  VISITOR
 }
 
 enum TRANSLATIONS_VIEW {

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import { type ProjectSettings } from '@locale/shared'
 
-import { ADMIN_USER, EDITOR_USER, projectListRoute, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, EDITOR_USER, projectListRoute, signedInAs, VISITOR_USER } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const PROJECT: ProjectSettings = {
@@ -56,6 +56,20 @@ describe('Sidebar', () => {
 		expect(project.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/languages`)
 		expect(project.getByRole('link', { name: 'Členovia' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/members`)
 		await waitFor(() => expect(project.getByRole('link', { name: 'Nastavenia' })).toHaveAttribute('aria-current', 'page'))
+		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
+	})
+
+	it('shows only Preklady and Prehľad to a VISITOR inside a project', async () => {
+		signedInAs(VISITOR_USER, {
+			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
+			[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [] },
+			...projectListRoute(PROJECT),
+		})
+		renderApp(`/projects/${PROJECT.slug}/translations`)
+
+		const navigation = await findNavigation()
+		const project = within(await navigation.findByRole('list', { name: 'Booking Web' }))
+		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Preklady', 'Prehľad'])
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
 

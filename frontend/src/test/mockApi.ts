@@ -29,6 +29,15 @@ export const EDITOR_USER: AuthUser = {
 	preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
 }
 
+export const VISITOR_USER: AuthUser = {
+	id: '00000000-0000-4000-8000-000000000003',
+	email: 'peter.hostak@firma.sk',
+	role: ROLE.VISITOR,
+	firstName: 'Peter',
+	lastName: 'Hosťák',
+	preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
+}
+
 export const apiError = (status: number, code: string, extra: { details?: unknown; headers?: Record<string, string> } = {}): MockResponse => ({
 	status,
 	data: { error: { code, message: 'English message that must not be shown', details: extra.details } },

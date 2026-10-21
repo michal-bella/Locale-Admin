@@ -24,6 +24,8 @@ export type TranslationsTableProps = {
 	showGroups: boolean
 	/** Hides the key and status columns, so the translations get the whole width. */
 	translationsOnly?: boolean
+	/** A VISITOR: cells are plain text and `EditTranslationModal` is not rendered. */
+	readOnly?: boolean
 	/** Saves the value of a key in a language; rejects with the API error (see `EditTranslationModal`). */
 	onSave: (keyId: string, languageId: string, value: string | null) => Promise<unknown>
 }

@@ -36,6 +36,7 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
  * by all of them (no language ids in the query); `?languages=` narrows its columns to the base language plus the chosen ones without changing
  * the row status. `COMPACT` is the Figma source → target pair. Either view lays its languages side by side or stacked, also a preference
  * (`me.preferences.translationsLayout`). Without Posledný sync and the Na kontrolu card. Importovať (ADMIN only) opens `ImportModal`, Exportovať (every member) `ExportModal`.
+ * A VISITOR gets the table read-only: cells are text and there is no edit modal.
  */
 const TranslationsPage = () => {
 	const { t } = useTranslation()
@@ -45,6 +46,7 @@ const TranslationsPage = () => {
 	const { data: project } = useProjectSettingsQuery(projectId)
 	const { data: me } = useMeQuery()
 	const isAdmin = me?.role === ROLE.ADMIN
+	const isVisitor = me?.role === ROLE.VISITOR
 	const view: TranslationsView = me?.preferences.translationsView ?? 'EXTENDED'
 	const layout: TranslationsLayout = me?.preferences.translationsLayout ?? 'COLUMNS'
 	const updatePreferences = useUpdatePreferencesMutation()
@@ -236,6 +238,7 @@ const TranslationsPage = () => {
 						onImport={importModal.open}
 						showGroups={sort !== 'UPDATED'}
 						translationsOnly={search.translationsOnly}
+						readOnly={isVisitor}
 						onSave={saveTranslation}
 					/>
 				</div>

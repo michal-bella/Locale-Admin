@@ -1444,6 +1444,37 @@ describe('TranslationsPage extended view', () => {
 		expect(within(table).getAllByText('loc:orders.empty')[0]?.className).toMatch(/groupLabel/)
 	})
 
+	it('resizes a column by dragging the handle in its header, not below the minimum, and keeps the widths out of the URL', async () => {
+		mockPage({ user: EXTENDED_ADMIN, languages: [SLOVAK, ENGLISH] })
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		const header = screen.getByRole('columnheader', { name: 'angličtina' })
+		const handle = header.querySelector('[data-resize-handle]')
+		if (!handle) {
+			throw new Error('Resize handle not found')
+		}
+		expect(handle).toHaveAttribute('aria-hidden', 'true')
+		expect(header.style.width).toBe('')
+
+		// jsdom lays nothing out, so the header starts at 0 px and the width equals the dragged distance.
+		fireEvent.pointerDown(handle, { button: 0, clientX: 100 })
+		expect(getTable().parentElement).toHaveAttribute('data-resizing', ENGLISH.id)
+		fireEvent.pointerMove(window, { clientX: 400 })
+		expect(header.style.width).toBe('300px')
+		expect(header.style.minWidth).toBe('300px')
+		fireEvent.pointerMove(window, { clientX: 120 })
+		expect(header.style.width).toBe('96px')
+		fireEvent.pointerUp(window)
+		expect(getTable().parentElement).not.toHaveAttribute('data-resizing')
+		fireEvent.pointerMove(window, { clientX: 600 })
+		expect(header.style.width).toBe('96px')
+
+		expect(screen.getByRole('columnheader', { name: 'Kľúč' }).style.width).toBe('')
+		expect(window.location.search).toBe('')
+		expect(screen.getByRole('columnheader', { name: 'angličtina' })).toHaveTextContent('angličtina')
+	})
+
 	it('stacks every language in one editable column with the STACKED layout preference', async () => {
 		const user: AuthUser = { ...EXTENDED_ADMIN, preferences: { ...EXTENDED_ADMIN.preferences, translationsLayout: 'STACKED' } }
 		mockPage({ user, languages: [SLOVAK, ENGLISH, CZECH] })

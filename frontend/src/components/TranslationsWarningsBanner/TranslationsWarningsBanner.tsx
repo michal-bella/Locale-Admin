@@ -21,7 +21,7 @@ const TranslationsWarningsBanner = ({ count, active, onShow, onClear }: Translat
 					{t('translationsPage.warnings.clear')}
 				</Button>
 			) : (
-				<Button color='yellow' size='xs' onClick={onShow}>
+				<Button color='yellow' autoContrast size='xs' onClick={onShow}>
 					{t('translationsPage.warnings.show')}
 				</Button>
 			)}

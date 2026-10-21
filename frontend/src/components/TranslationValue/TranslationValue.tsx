@@ -24,7 +24,7 @@ const TranslationValue = ({ value, pluralTag, reference }: TranslationValueProps
 		)
 	}
 	const basePlaceholders = reference === undefined ? undefined : placeholders(reference)
-	const missing = basePlaceholders ? comparePlaceholders(basePlaceholders, value).missing : []
+	const missing = reference === undefined ? [] : comparePlaceholders(reference, value).missing
 	return (
 		<>
 			{pluralTag ? (

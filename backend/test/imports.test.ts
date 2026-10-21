@@ -152,7 +152,7 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 		expect(await getTestPrisma().translation.findMany({ orderBy: { languageId: 'asc' } })).toEqual(translationsBefore)
 	})
 
-	it('compares placeholders as sets without inner spaces, in both directions', async () => {
+	it('compares placeholders without inner spaces, in both directions, and counts a repeated one as extra', async () => {
 		const app = createTestApp()
 		const { project, cookie } = await setup(app)
 
@@ -164,6 +164,7 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 		])
 
 		expect(body.warnings).toEqual([
+			{ code: 'PLACEHOLDER_MISMATCH', line: 2, column: 4, params: { tag: 'cs', key: 'a', namespace: '', missing: '', extra: '{{count}}' } },
 			{ code: 'PLACEHOLDER_MISMATCH', line: 3, column: 2, params: { tag: 'en', key: 'b', namespace: '', missing: '{{b}}', extra: '' } },
 			{ code: 'PLACEHOLDER_MISMATCH', line: 3, column: 4, params: { tag: 'cs', key: 'b', namespace: '', missing: '{{a}}, {{b}}', extra: '{{c}}' } },
 			{ code: 'PLACEHOLDER_MISMATCH', line: 4, column: 2, params: { tag: 'en', key: 'c', namespace: '', missing: '{{x}}', extra: '' } },

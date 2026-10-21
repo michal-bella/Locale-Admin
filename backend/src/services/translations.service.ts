@@ -268,7 +268,7 @@ export const updateTranslation = async (
 		const base = await prisma.translation.findFirst({ where: { keyId, language: { projectId, isBase: true } }, select: { value: true } })
 		const reference = base?.value ?? (placeholders(key.name).size > 0 ? key.name : null)
 		if (reference !== null) {
-			const { missing, extra } = comparePlaceholders(placeholders(reference), value)
+			const { missing, extra } = comparePlaceholders(reference, value)
 			if (missing.length > 0 || extra.length > 0) {
 				throw new AppError(400, ERROR_CODE.PLACEHOLDER_MISMATCH, 'Placeholders differ from the base language', { missing, extra })
 			}
@@ -408,7 +408,7 @@ export const createTranslationKey = async (
 		const reference = values.find((language) => language.isBase)?.value ?? (placeholders(name).size > 0 ? name : null)
 		if (reference !== null) {
 			for (const language of values.filter((item) => !item.isBase)) {
-				const { missing, extra } = comparePlaceholders(placeholders(reference), language.value)
+				const { missing, extra } = comparePlaceholders(reference, language.value)
 				if (missing.length > 0 || extra.length > 0) {
 					throw new AppError(400, ERROR_CODE.PLACEHOLDER_MISMATCH, 'Placeholders differ from the base language', {
 						missing,

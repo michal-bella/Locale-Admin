@@ -212,13 +212,12 @@ export const checkExport = async (prisma: PrismaClient, projectId: string, query
 					if (reference === null) {
 						continue
 					}
-					const basePlaceholders = placeholders(reference)
 					languages.forEach((language, index) => {
 						const value = row.values[index]
 						if (language.isBase || value === null || value === undefined) {
 							return
 						}
-						const { missing, extra } = comparePlaceholders(basePlaceholders, value)
+						const { missing, extra } = comparePlaceholders(reference, value)
 						if (missing.length === 0 && extra.length === 0) {
 							return
 						}

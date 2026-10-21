@@ -1,5 +1,5 @@
 .search {
-	flex: 1 1 12rem;
+	flex: 2 1 16rem;
 }
 
 .search svg {
@@ -31,96 +31,10 @@
 	color: transparent;
 }
 
-.languageSelect {
-	width: 7rem;
-}
-
-.languages {
-	flex: 0 0 15rem;
-	min-width: 12rem;
-}
-
-/* Mantine keeps 100 px for the (unused) search field next to the pills, which pushes the second pill to a new line. */
-.languagesField {
-	flex: 1 1 1rem;
-	min-width: 1rem;
-}
-
-.pointer {
-	cursor: pointer;
-}
-
-.switch {
-	flex-shrink: 0;
-	padding-inline: 0.25rem;
-	white-space: nowrap;
-}
-
-.optionHint {
-	color: var(--app-color-muted);
-}
-
-.optionCheck {
-	margin-inline-start: auto;
-	color: var(--mantine-primary-color-filled);
-}
-
-.languagePill {
-	padding-inline-start: 0.25rem;
-	font-weight: 600;
-}
-
-.languagePillLabel {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.25rem;
-}
-
-.arrow {
-	flex-shrink: 0;
-	color: var(--app-color-muted);
-}
-
-/* Same height and font as the selects (44 px from the theme), so the row stays on one baseline. */
-.view {
-	--sc-font-size: var(--mantine-font-size-xs);
-	height: 2.75rem;
-}
-
-.viewLabel {
-	display: flex;
-	align-items: center;
-	height: 100%;
-}
-
-/* Icon-only options; the tooltip and the hidden label name them. */
-.layout {
-	flex-shrink: 0;
-	height: 2.75rem;
-}
-
-.layoutLabel {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 1.75rem;
-	height: 100%;
-}
-
-/* Below Tailwind's sm breakpoint every control takes the full width, the language pair splits it in two. */
+/* Below Tailwind's sm breakpoint every filter takes the full width. */
 @media (max-width: 39.99em) {
 	.search,
-	.select,
-	.languages {
+	.select {
 		flex-basis: 100%;
-	}
-
-	.view {
-		width: 100%;
-	}
-
-	.languageSelect {
-		flex: 1;
-		width: auto;
 	}
 }

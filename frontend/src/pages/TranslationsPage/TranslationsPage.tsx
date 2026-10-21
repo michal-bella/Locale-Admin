@@ -22,6 +22,7 @@ import TranslationStats from '@/components/TranslationStats/TranslationStats'
 import TranslationsPagination from '@/components/TranslationsPagination/TranslationsPagination'
 import TranslationsTable from '@/components/TranslationsTable/TranslationsTable'
 import TranslationsToolbar from '@/components/TranslationsToolbar/TranslationsToolbar'
+import TranslationsViewControls from '@/components/TranslationsViewControls/TranslationsViewControls'
 import { TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsPage.module.css'
@@ -176,50 +177,56 @@ const TranslationsPage = () => {
 					onStatusChange={(value) => updateSearch({ status: value })}
 				/>
 			)}
-			<div className={classes.card}>
-				<div className={classes.toolbar}>
-					<TranslationsToolbar
-						search={search.search}
-						status={search.status}
-						namespace={search.namespace}
-						sort={sort}
-						view={view}
-						onViewChange={(next) => changePreferences({ translationsView: next })}
-						isPreferenceSaving={updatePreferences.isPending}
-						layout={layout}
-						onLayoutChange={(next) => changePreferences({ translationsLayout: next })}
-						languages={languages}
-						sourceLanguage={sourceLanguage}
-						targetLanguage={targetLanguage}
-						shownLanguages={search.languages}
-						updatedBy={search.updatedBy}
-						updatedWithin={search.updatedWithin}
-						translationsOnly={search.translationsOnly}
-						editors={data?.editors ?? []}
-						namespaces={data?.namespaces ?? []}
-						// The shown languages and Len preklady change only the columns, so the page stays.
-						onChange={(patch) => updateSearch(patch, { resetPage: !('languages' in patch || 'translationsOnly' in patch) })}
-					/>
-				</div>
-				<TranslationsTable
-					projectId={projectId}
-					data={data}
-					isPending={isPending}
-					isError={isError}
-					error={languagesQuery.error ?? translationsQuery.error}
-					onRetry={retry}
-					isRetrying={languagesQuery.isRefetching || translationsQuery.isRefetching}
+			{/* The view controls sit close above the card they configure; only the filters inside it stick. */}
+			<div className='flex flex-col gap-3'>
+				<TranslationsViewControls
 					view={view}
+					onViewChange={(next) => changePreferences({ translationsView: next })}
+					isPreferenceSaving={updatePreferences.isPending}
 					layout={layout}
-					languages={tableLanguages}
+					onLayoutChange={(next) => changePreferences({ translationsLayout: next })}
+					languages={languages}
 					sourceLanguage={sourceLanguage}
 					targetLanguage={targetLanguage}
-					onClearFilters={clearFilters}
-					onImport={importModal.open}
-					showGroups={sort !== 'UPDATED'}
+					shownLanguages={search.languages}
 					translationsOnly={search.translationsOnly}
-					onSave={saveTranslation}
+					// The shown languages and Len preklady change only the columns, so the page stays; the pair changes what counts as untranslated.
+					onChange={(patch) => updateSearch(patch, { resetPage: !('languages' in patch || 'translationsOnly' in patch) })}
 				/>
+				<div className={classes.card}>
+					<div className={classes.toolbar}>
+						<TranslationsToolbar
+							search={search.search}
+							status={search.status}
+							namespace={search.namespace}
+							sort={sort}
+							updatedBy={search.updatedBy}
+							updatedWithin={search.updatedWithin}
+							editors={data?.editors ?? []}
+							namespaces={data?.namespaces ?? []}
+							onChange={(patch) => updateSearch(patch)}
+						/>
+					</div>
+					<TranslationsTable
+						projectId={projectId}
+						data={data}
+						isPending={isPending}
+						isError={isError}
+						error={languagesQuery.error ?? translationsQuery.error}
+						onRetry={retry}
+						isRetrying={languagesQuery.isRefetching || translationsQuery.isRefetching}
+						view={view}
+						layout={layout}
+						languages={tableLanguages}
+						sourceLanguage={sourceLanguage}
+						targetLanguage={targetLanguage}
+						onClearFilters={clearFilters}
+						onImport={importModal.open}
+						showGroups={sort !== 'UPDATED'}
+						translationsOnly={search.translationsOnly}
+						onSave={saveTranslation}
+					/>
+				</div>
 			</div>
 			<VisuallyHidden role='status'>{resultsAnnouncement}</VisuallyHidden>
 			<VisuallyHidden role='status'>{savedAnnouncement}</VisuallyHidden>

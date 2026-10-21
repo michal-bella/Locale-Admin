@@ -1,12 +1,16 @@
 ---
 title: 'Changelog'
-updated: 2026-10-20
+updated: 2026-10-21
 notion_page_id:
 ---
 
 # Changelog
 
 ## Po fáze 1
+
+### Ovládanie zobrazenia prekladov oddelené od filtrov (2026-10-21)
+
+- frontend: zobrazenie, rozloženie, jazyky a **Len preklady** sú v samostatnom riadku nad kartou tabuľky (`TranslationsViewControls`) a odrolujú sa; v sticky hlavičke karty ostali iba filtre v jednom zalamovanom riadku ([Frontend](./frontend.md))
 
 ### Kompaktný sidebar (2026-10-21)
 

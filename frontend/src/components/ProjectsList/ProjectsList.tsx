@@ -72,6 +72,7 @@ const ProjectProgress = ({ project }: { project: ProjectListItem }) => {
 const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	const { t, i18n } = useTranslation()
 	const { data: user } = useMeQuery()
+	const isVisitor = user?.role === ROLE.VISITOR
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectsQuery()
 	const listRef = useRef<HTMLUListElement>(null)
 	const [retrySucceeded, setRetrySucceeded] = useState(false)
@@ -294,38 +295,41 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 								})}
 							</ul>
 						</div>
-						<div className='flex shrink-0 items-center gap-1'>
-							<Tooltip label={t('projectsPage.list.settings')}>
-								<ActionIcon
-									renderRoot={(props) => <Link {...props} to='/projects/$projectSlug/settings' params={{ projectSlug: project.slug }} />}
-									variant='transparent'
-									size={32}
-									radius='md'
-									aria-label={t('projectsPage.list.settingsLabel', { name: project.name })}
-									className={classes.action}
-								>
-									<Settings aria-hidden />
-								</ActionIcon>
-							</Tooltip>
-							{project.isMember ? (
-								<Tooltip label={t('projectsPage.list.leave')}>
+						{/* A VISITOR cannot open the settings nor leave a project (403 from both), so the row has no actions. */}
+						{!isVisitor && (
+							<div className='flex shrink-0 items-center gap-1'>
+								<Tooltip label={t('projectsPage.list.settings')}>
 									<ActionIcon
+										renderRoot={(props) => <Link {...props} to='/projects/$projectSlug/settings' params={{ projectSlug: project.slug }} />}
 										variant='transparent'
 										size={32}
 										radius='md'
-										aria-label={t('projectsPage.list.leaveLabel', { name: project.name })}
+										aria-label={t('projectsPage.list.settingsLabel', { name: project.name })}
 										className={classes.action}
-										data-variant='danger'
-										onClick={() => onLeave(project)}
 									>
-										<LogOut aria-hidden />
+										<Settings aria-hidden />
 									</ActionIcon>
 								</Tooltip>
-							) : (
-								// Keeps the settings icons of all rows in one column.
-								<span aria-hidden className='size-8' />
-							)}
-						</div>
+								{project.isMember ? (
+									<Tooltip label={t('projectsPage.list.leave')}>
+										<ActionIcon
+											variant='transparent'
+											size={32}
+											radius='md'
+											aria-label={t('projectsPage.list.leaveLabel', { name: project.name })}
+											className={classes.action}
+											data-variant='danger'
+											onClick={() => onLeave(project)}
+										>
+											<LogOut aria-hidden />
+										</ActionIcon>
+									</Tooltip>
+								) : (
+									// Keeps the settings icons of all rows in one column.
+									<span aria-hidden className='size-8' />
+								)}
+							</div>
+						)}
 					</li>
 				))}
 			</ul>

@@ -18,14 +18,14 @@ Prihlásenie emailom a heslom, server-side session v Postgrese (tabuľka `Sessio
 
 Schéma `authUserSchema`. Rovnaké telo vracia `POST /api/auth/login` aj `GET /api/auth/me`. Hash hesla, token ani jeho hash sa nikdy nevracajú.
 
-| Pole          | Typ                 | Popis                                                                                                                                                                                                                    |
-| ------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`          | UUID                | ID používateľa                                                                                                                                                                                                           |
-| `email`       | string              | normalizovaný email (malé písmená)                                                                                                                                                                                       |
-| `role`        | `ADMIN` / `EDITOR`  | globálna rola                                                                                                                                                                                                            |
-| `firstName`   | string alebo `null` | meno, upravuje sa na obrazovke Môj profil ([`PATCH /api/profile`](./profile.md))                                                                                                                                         |
-| `lastName`    | string alebo `null` | priezvisko                                                                                                                                                                                                               |
-| `preferences` | objekt              | `{ translationsView: "EXTENDED" \| "COMPACT", translationsLayout: "COLUMNS" \| "STACKED" }`, zobrazenie a rozloženie stránky Preklady, mení [`PATCH /api/profile/preferences`](./profile.md#patch-apiprofilepreferences) |
+| Pole          | Typ                            | Popis                                                                                                                                                                                                                    |
+| ------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`          | UUID                           | ID používateľa                                                                                                                                                                                                           |
+| `email`       | string                         | normalizovaný email (malé písmená)                                                                                                                                                                                       |
+| `role`        | `ADMIN` / `EDITOR` / `VISITOR` | globálna rola                                                                                                                                                                                                            |
+| `firstName`   | string alebo `null`            | meno, upravuje sa na obrazovke Môj profil ([`PATCH /api/profile`](./profile.md))                                                                                                                                         |
+| `lastName`    | string alebo `null`            | priezvisko                                                                                                                                                                                                               |
+| `preferences` | objekt                         | `{ translationsView: "EXTENDED" \| "COMPACT", translationsLayout: "COLUMNS" \| "STACKED" }`, zobrazenie a rozloženie stránky Preklady, mení [`PATCH /api/profile/preferences`](./profile.md#patch-apiprofilepreferences) |
 
 ```json
 {
@@ -102,7 +102,7 @@ Pri logoute a pri neplatnej session backend cookie zmaže (`Set-Cookie` s prázd
 
 ## Oprávnenia
 
-`requireRole(ROLE.ADMIN)` vráti 403 `FORBIDDEN` prihlásenému používateľovi bez požadovanej roly (neprihlásený dostane 401 už z `requireAuth`). Používajú ho všetky endpointy `/api/admin/*` (router `admin.routes.ts`, viď [admin-users.md](./admin-users.md)) a v projekte vytvorenie projektu, zmena nastavení, pridanie, odobratie a poradie jazykov, správa členov, úprava kľúča a import.
+`requireRole(ROLE.ADMIN)` vráti 403 `FORBIDDEN` prihlásenému používateľovi bez požadovanej roly (neprihlásený dostane 401 už z `requireAuth`). Používajú ho všetky endpointy `/api/admin/*` (router `admin.routes.ts`, viď [admin-users.md](./admin-users.md)) a v projekte vytvorenie projektu, zmena nastavení, pridanie, odobratie a poradie jazykov, správa členov, úprava kľúča a import. `requireRole(ROLE.ADMIN, ROLE.EDITOR)` chráni uloženie prekladu a opustenie projektu: člen s rolou `VISITOR` preklady iba číta, filtruje a exportuje.
 
 ## CSRF
 

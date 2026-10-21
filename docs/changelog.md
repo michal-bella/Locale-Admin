@@ -8,6 +8,26 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Rola Návštevník – E2E a dokumentácia (2026-10-21)
+
+- e2e: `visitor.spec.ts` (sidebar, 403 stránky, read-only Preklady s axe skenom, export, 403 z API, zoznam projektov) a `createVisitor` v `support/users.ts`; prehľad rolí v [overview](./overview.md) ([Testovanie](./testing.md#e2e-testy-playwright))
+
+### Rola Návštevník – obmedzenia v aplikácii (2026-10-21)
+
+- frontend: Návštevník má v projekte iba Preklady a Prehľad (sidebar, guard 403 na Nastavenia, Jazyky a Členovia), tabuľka prekladov je iba na čítanie (bunky sú text, modál Upraviť preklad sa neotvára), ostáva mu filtrovanie, zobrazenie a **Exportovať**; na Prehľade nemá Spravovať jazyky, v zozname projektov nemá Nastavenia ani Opustiť projekt ([Frontend](./frontend.md#guardy))
+
+### Rola Návštevník – výber roly v aplikácii (2026-10-21)
+
+- frontend: modál Vytvoriť používateľa ponúka aj rolu **Návštevník** s popisom; select roly v detaile používateľa a na profile ju majú z enumu, `RoleBadge` ju ukáže tlmene ako Editora ([Frontend](./frontend.md#správa-používateľov))
+
+### Rola Návštevník – obmedzenia API (2026-10-21)
+
+- API: `PUT /api/projects/:projectId/keys/:keyId/translations/:languageId` a `DELETE /api/projects/:projectId/membership` vrátia členovi s rolou `VISITOR` 403 `FORBIDDEN`; zoznam prekladov, Prehľad a export mu ostávajú ([API](./api/translations.md#put-apiprojectsprojectidkeyskeyidtranslationslanguageid), [projekty](./api/projects.md#delete-apiprojectsprojectidmembership))
+
+### Rola Návštevník – kontrakt a databáza (2026-10-21)
+
+- shared + databáza: nová globálna rola `VISITOR` v enume `ROLE` (migrácia `visitor_role`); `POST /api/admin/users`, `PATCH /api/admin/users/:id` a `PATCH /api/profile` ju prijmú, posledný `ADMIN` sa ňou nemôže stať (409 `LAST_ADMIN`) ([API](./api/admin-users.md), [Databáza](./database.md)). Obmedzenia pre rolu (iba Preklady a Prehľad, bez úprav) pribudnú v ďalších míľnikoch plánu [`visitor-role`](./plans/visitor-role.md)
+
 ### Upozornenia na premenné pred exportom (2026-10-21)
 
 - API: `GET /api/projects/:projectId/export/check` vráti hodnoty vybraných jazykov, ktorých premenné sa líšia od základného jazyka (`{ warnings, total }`, max. 50) ([API](./api/exports.md#kontrola-pred-exportom-exportcheck))

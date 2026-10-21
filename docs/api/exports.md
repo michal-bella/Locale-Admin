@@ -6,7 +6,7 @@ notion_page_id:
 
 # Export prekladov (`/api/projects/:projectId/export`)
 
-Stiahnutie prekladov projektu ako súbor CSV alebo XLSX; JSON a ARB prídu neskôr. Exportovať môže každý člen projektu aj `ADMIN` (importovať iba `ADMIN`). Schémy sú v `packages/shared/src/exports.ts`, plán v `docs/plans/translations-export.md`.
+Stiahnutie prekladov projektu ako súbor CSV alebo XLSX; JSON a ARB prídu neskôr. Exportovať môže každý člen projektu (aj `VISITOR`) aj `ADMIN` (importovať iba `ADMIN`). Schémy sú v `packages/shared/src/exports.ts`, plán v `docs/plans/translations-export.md`.
 
 | Metóda | Cesta                                   | Prístup            | Popis                                 |
 | ------ | --------------------------------------- | ------------------ | ------------------------------------- |

@@ -54,6 +54,7 @@ const TranslationsTable = ({
 	onImport,
 	showGroups,
 	translationsOnly = false,
+	readOnly = false,
 	onSave,
 }: TranslationsTableProps) => {
 	const { t, i18n } = useTranslation()
@@ -131,7 +132,7 @@ const TranslationsTable = ({
 			label={t('translationsPage.editor.label', { key: item.name, language: t(`languageNames.${language.tag}`) })}
 			pluralTag={item.plural ? language.tag : undefined}
 			reference={referenceFor(item, language)}
-			onClick={() => openTranslation(item, language)}
+			onClick={readOnly ? undefined : () => openTranslation(item, language)}
 		/>
 	)
 
@@ -384,16 +385,18 @@ const TranslationsTable = ({
 				<Table.Tbody>{renderBody()}</Table.Tbody>
 			</Table>
 			{isAdmin && <EditKeyModal projectId={projectId} item={editing} opened={editOpened} onClose={editModal.close} />}
-			<EditTranslationModal
-				item={editingTranslation?.item ?? null}
-				language={editingTranslation?.language ?? null}
-				baseLanguage={baseLanguage}
-				opened={translationOpened}
-				onClose={translationModal.close}
-				onSave={onSave}
-				onNext={nextUntranslated && (() => setEditingTranslation({ ...nextUntranslated, viaNext: true }))}
-				focusOnSwitch={editingTranslation?.viaNext}
-			/>
+			{!readOnly && (
+				<EditTranslationModal
+					item={editingTranslation?.item ?? null}
+					language={editingTranslation?.language ?? null}
+					baseLanguage={baseLanguage}
+					opened={translationOpened}
+					onClose={translationModal.close}
+					onSave={onSave}
+					onNext={nextUntranslated && (() => setEditingTranslation({ ...nextUntranslated, viaNext: true }))}
+					focusOnSwitch={editingTranslation?.viaNext}
+				/>
+			)}
 		</div>
 	)
 }

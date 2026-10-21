@@ -5,6 +5,6 @@ export const readApiError = async (response: { json: () => Promise<unknown> }) =
 /** Headers every mutation needs to pass the CSRF check. */
 export const MUTATION_HEADERS = { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } as const
 
-export type Role = 'ADMIN' | 'EDITOR'
+export type Role = 'ADMIN' | 'EDITOR' | 'VISITOR'
 
 export type AdminUser = { id: string; email: string; role: Role; projectCount: number; createdAt: string }

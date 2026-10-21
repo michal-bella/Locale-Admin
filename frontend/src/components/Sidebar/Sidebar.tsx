@@ -44,7 +44,7 @@ const NavItem = ({ to, params, search, icon: Icon, iconClassName = '', label, co
 
 /**
  * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Preklady,
- * Prehľad, Nastavenia projektu, Jazyky and Členovia (Preklady stay first, Prehľad is not the project's landing page), outside one: Späť na projekt when an admin page was opened from a project (`?from=`), else Všetky projekty. ADMIN also sees Projekty and Používatelia under SPRÁVA.
+ * Prehľad, Nastavenia projektu, Jazyky and Členovia (Preklady stay first, Prehľad is not the project's landing page; a VISITOR sees only the first two), outside one: Späť na projekt when an admin page was opened from a project (`?from=`), else Všetky projekty. ADMIN also sees Projekty and Používatelia under SPRÁVA.
  * From `md` the button at the bottom switches to the compact sidebar: logo, project avatar and icons with tooltips.
  */
 const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps) => {
@@ -59,6 +59,7 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 	const { data: project } = useQuery({ ...projectSettingsQueryOptions(projectId ?? ''), enabled: false })
 	const adminLabelId = useId()
 	const isAdmin = user?.role === ROLE.ADMIN
+	const canManageProject = user?.role !== ROLE.VISITOR
 	// The burger opens the sidebar only below `md`, where it must show the labels.
 	const isCompact = compact && !opened
 	const toggleLabel = isCompact ? t('sidebar.expand') : t('sidebar.collapse')
@@ -95,30 +96,34 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 							compact={isCompact}
 							onNavigate={onClose}
 						/>
-						<NavItem
-							to='/projects/$projectSlug/settings'
-							params={{ projectSlug }}
-							icon={Settings}
-							label={t('sidebar.projectSettings')}
-							compact={isCompact}
-							onNavigate={onClose}
-						/>
-						<NavItem
-							to='/projects/$projectSlug/languages'
-							params={{ projectSlug }}
-							icon={Globe}
-							label={t('sidebar.languages')}
-							compact={isCompact}
-							onNavigate={onClose}
-						/>
-						<NavItem
-							to='/projects/$projectSlug/members'
-							params={{ projectSlug }}
-							icon={Users}
-							label={t('sidebar.members')}
-							compact={isCompact}
-							onNavigate={onClose}
-						/>
+						{canManageProject && (
+							<>
+								<NavItem
+									to='/projects/$projectSlug/settings'
+									params={{ projectSlug }}
+									icon={Settings}
+									label={t('sidebar.projectSettings')}
+									compact={isCompact}
+									onNavigate={onClose}
+								/>
+								<NavItem
+									to='/projects/$projectSlug/languages'
+									params={{ projectSlug }}
+									icon={Globe}
+									label={t('sidebar.languages')}
+									compact={isCompact}
+									onNavigate={onClose}
+								/>
+								<NavItem
+									to='/projects/$projectSlug/members'
+									params={{ projectSlug }}
+									icon={Users}
+									label={t('sidebar.members')}
+									compact={isCompact}
+									onNavigate={onClose}
+								/>
+							</>
+						)}
 					</ul>
 				) : (
 					<ul className={classes.list}>

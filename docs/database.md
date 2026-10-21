@@ -17,7 +17,7 @@ PostgreSQL 17, Prisma 7 s driver adapterom `@prisma/adapter-pg`. Schéma je v `b
 | `id`                     | UUID                       | PK                                                                                                                                                       |
 | `email`                  | string, unique             | uložený normalizovaný (`trim()` + malé písmená)                                                                                                          |
 | `passwordHash`           | string                     | argon2id, nikdy sa nevracia v API                                                                                                                        |
-| `role`                   | enum `ROLE`                | `ADMIN` alebo `EDITOR`, default `EDITOR`; nastavuje ho `POST /api/admin/users` (jediná cesta, ako používateľ vzniká)                                     |
+| `role`                   | enum `ROLE`                | `ADMIN`, `EDITOR` alebo `VISITOR` (iba číta a exportuje), default `EDITOR`; nastavuje ho `POST /api/admin/users` (jediná cesta, ako používateľ vzniká)   |
 | `firstName`, `lastName`  | string, nullable           | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                                                                                   |
 | `isActive`               | boolean                    | default `true`, neaktívny user sa neprihlási                                                                                                             |
 | `translationsView`       | enum `TRANSLATIONS_VIEW`   | `EXTENDED` (default, všetky jazyky vedľa seba) alebo `COMPACT` (zdrojový → cieľový); preferencia stránky Preklady, mení `PATCH /api/profile/preferences` |
@@ -84,7 +84,7 @@ Každý projekt má vlastné jazyky a vlastný základný jazyk (`ProjectLanguag
 
 ### ProjectMember
 
-Členstvo používateľa v projekte. Určuje, ktoré projekty vidí `EDITOR` a ku ktorým má prístup (`ADMIN` má prístup ku všetkým). Vzniká pri vytvorení projektu (tvorca), pridaním existujúceho používateľa na stránke Členovia (iba `ADMIN`) a zo seedu; zaniká akciou Opustiť projekt, odobratím členom `ADMIN`-om alebo kaskádou pri zmazaní používateľa či projektu.
+Členstvo používateľa v projekte. Určuje, ktoré projekty vidí `EDITOR` a `VISITOR` a ku ktorým majú prístup (`ADMIN` má prístup ku všetkým). Vzniká pri vytvorení projektu (tvorca), pridaním existujúceho používateľa na stránke Členovia (iba `ADMIN`) a zo seedu; zaniká akciou Opustiť projekt, odobratím členom `ADMIN`-om alebo kaskádou pri zmazaní používateľa či projektu.
 
 | Pole        | Typ      | Poznámka                                       |
 | ----------- | -------- | ---------------------------------------------- |

@@ -13,7 +13,8 @@
 	},
 	"roles": {
 		"ADMIN": "Administrator",
-		"EDITOR": "Editor"
+		"EDITOR": "Editor",
+		"VISITOR": "Visitor"
 	},
 	"notFoundPage": {
 		"eyebrow": "Error 404",
@@ -167,7 +168,8 @@
 				"label": "Role",
 				"description": {
 					"ADMIN": "Manages the system, users and every project.",
-					"EDITOR": "Translates only in the projects an administrator adds them to."
+					"EDITOR": "Translates only in the projects an administrator adds them to.",
+					"VISITOR": "Only reads and exports translations in the projects an administrator adds them to."
 				}
 			},
 			"cancel": "Cancel",

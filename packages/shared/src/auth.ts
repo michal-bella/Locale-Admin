@@ -4,10 +4,15 @@ import { emailSchema } from './email'
 import { PASSWORD_MAX_LENGTH } from './password'
 import { translationsLayoutSchema, translationsViewSchema } from './translations'
 
-/** Global role stored on `User.role`. Project roles are a different concept (later phases). */
+/**
+ * Global role stored on `User.role`. `ADMIN` manages everything, `EDITOR` translates in the projects they are a member of, `VISITOR`
+ * only reads, filters and exports translations in those projects (no edits, no project settings). Project roles are a different concept
+ * (later phases).
+ */
 export enum ROLE {
 	ADMIN = 'ADMIN',
 	EDITOR = 'EDITOR',
+	VISITOR = 'VISITOR',
 }
 
 /** Login only requires a password; the rules for new passwords would turn a wrong password into a 400 instead of a 401. */

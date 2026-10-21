@@ -13,6 +13,8 @@ import {
 	type ImportPreviewResponse,
 	type ImportRequest,
 	type ImportResult,
+	comparePlaceholders,
+	placeholders,
 } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
@@ -20,7 +22,6 @@ import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
 import { parseCsv } from '../lib/import/csvParser'
 import { type ParsedFile } from '../lib/import/parsedFile'
-import { comparePlaceholders, placeholders } from '../lib/placeholders'
 import { type PrismaClient } from '../lib/prisma'
 
 type KeyRow = { id: string; namespace: string; name: string; pluralVariable: string | null; languageId: string | null; value: string | null }

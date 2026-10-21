@@ -9,17 +9,19 @@ import {
 	type ExportFormat,
 	exportFormatSchema,
 	type ExportIssue,
+	type ExportWarning,
 	type ExportStatus,
 	exportStatusSchema,
 	type Language,
 } from '@locale/shared'
 
+import { useExportCheckQuery } from '@/api/exports/exportCheckQuery'
 import { useExportMutation } from '@/api/exports/useExportMutation'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import getExportUnsafeValues from '@/api/getExportUnsafeValues'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import AppModal from '@/components/AppModal/AppModal'
-import { Download } from '@/components/Icons'
+import { AlertTriangle, Download } from '@/components/Icons'
 import { downloadFile } from '@/lib/downloadFile'
 
 import classes from './ExportModal.module.css'
@@ -79,6 +81,10 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 		const name = t(`languageNames.${tag}`)
 		return name.charAt(0).toLocaleUpperCase(i18n.language) + name.slice(1)
 	}
+	// The project order of the languages, as the export sends them; the key of the check changes only with the selection.
+	const orderedIds = languages.filter((language) => languageIds.includes(language.id)).map((language) => language.id)
+	const check = useExportCheckQuery(projectId, { languageIds: orderedIds, status }, opened && orderedIds.length > 0)
+	const warnings = check.data && check.data.total > 0 ? check.data : null
 	const name = toFileName(fileName)
 	const extension = extensionOf(format)
 	const languagesError = submitted && languageIds.length === 0 ? t('exportModal.languages.required') : undefined
@@ -115,10 +121,8 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 			fileNameRef.current?.focus()
 			return
 		}
-		// The request keeps the project order of the languages, the server orders the columns the same way.
-		const ordered = languages.filter((language) => languageIds.includes(language.id)).map((language) => language.id)
 		exportMutation.mutate(
-			{ languageIds: ordered, status, format },
+			{ languageIds: orderedIds, status, format },
 			{
 				onSuccess: (blob) => {
 					const fullName = `${name}${extension}`
@@ -137,6 +141,18 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 			return t(`exportModal.issues.value.${issue.code}`, { key, language: language ? t(`languageNames.${language.tag}`) : issue.languageTag })
 		}
 		return t(`exportModal.issues.row.${issue.code}`, { key, namespace: issue.namespace })
+	}
+
+	const warningMessage = (warning: ExportWarning) => {
+		const key = warning.namespace ? `${warning.namespace} / ${warning.key}` : warning.key
+		const language = languages.find((item) => item.tag === warning.languageTag)
+		const details = [
+			warning.missing.length > 0 && t('exportModal.warnings.missing', { list: warning.missing.join(', ') }),
+			warning.extra.length > 0 && t('exportModal.warnings.extra', { list: warning.extra.join(', ') }),
+		]
+			.filter(Boolean)
+			.join(', ')
+		return t('exportModal.warnings.item', { key, language: language ? t(`languageNames.${language.tag}`) : warning.languageTag, details })
 	}
 
 	const unsafeValues = getExportUnsafeValues(exportMutation.error)
@@ -232,6 +248,23 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 				}
 				rightSectionWidth={56}
 			/>
+			{warnings && (
+				<div className={`${classes.warnings} flex flex-col gap-2`}>
+					<Text size='sm' fw={600} className={`${classes.warningsTitle} flex items-center gap-1`}>
+						<AlertTriangle aria-hidden />
+						{t('exportModal.warnings.title', { count: warnings.total })}
+					</Text>
+					<Text size='xs'>{t('exportModal.warnings.description')}</Text>
+					<ul className={classes.warningsList}>
+						{warnings.warnings.map((warning) => (
+							<li key={`${warning.keyId}:${warning.languageTag}`}>{warningMessage(warning)}</li>
+						))}
+					</ul>
+					{warnings.total > warnings.warnings.length && (
+						<Text size='xs'>{t('exportModal.issues.more', { count: warnings.total - warnings.warnings.length })}</Text>
+					)}
+				</div>
+			)}
 			{unsafeValues && (
 				<Alert ref={alertRef} tabIndex={-1} color='red' title={t('errors.EXPORT_VALUE_UNSAFE')}>
 					<ul className={classes.issues}>

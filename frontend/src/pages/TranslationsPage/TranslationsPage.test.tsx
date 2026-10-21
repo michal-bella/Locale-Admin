@@ -242,6 +242,31 @@ describe('TranslationsPage', () => {
 		expect(lastParams(requests)).toEqual({ sourceLanguageId: SLOVAK.id, targetLanguageId: ENGLISH.id, sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 25 })
 	})
 
+	it('marks a variable the base language does not have and a missing one, never in the base language', async () => {
+		mockPage({
+			translations: response({
+				items: [
+					item('loc', 'margin', 'Marža {{ percentage }} % ({{ amount }})', 'Margin {{ perecentage }}%'),
+					item('loc', 'greeting', 'Ahoj {{name}}', 'Hello {{name}}'),
+				],
+			}),
+		})
+		renderApp(PAGE_PATH)
+		await screen.findByText('margin')
+
+		const target = screen.getByRole('button', { name: /Preklad kľúča margin, angličtina/ })
+		const warning = within(target).getByText('{{ perecentage }}')
+		expect(warning.className).toMatch(/chipWarning/)
+		expect(within(target).getByRole('img', { name: 'Chýbajú: {{percentage}}, {{amount}}.' })).toBeInTheDocument()
+		fireEvent.mouseEnter(warning)
+		expect(await screen.findByRole('tooltip')).toHaveTextContent('Premenná nie je v základnom jazyku – skontrolujte preklep.')
+
+		// The base (source) value and a matching target get neither the chip nor the icon.
+		expect(screen.getByText('{{ percentage }}').className).not.toMatch(/chipWarning/)
+		screen.getAllByText('{{name}}').forEach((chip) => expect(chip.className).not.toMatch(/chipWarning/))
+		expect(screen.getAllByRole('img')).toHaveLength(1)
+	})
+
 	it('writes the search to the URL after typing stops and resets the page', async () => {
 		const requests = mockPage()
 		const router = renderApp(`${PAGE_PATH}?page=3`)

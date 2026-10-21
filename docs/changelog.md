@@ -8,6 +8,16 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Upozornenia na premenné pred exportom (2026-10-21)
+
+- API: `GET /api/projects/:projectId/export/check` vráti hodnoty vybraných jazykov, ktorých premenné sa líšia od základného jazyka (`{ warnings, total }`, max. 50) ([API](./api/exports.md#kontrola-pred-exportom-exportcheck))
+- frontend: modál Exportovať ukáže tieto nezhody ako žlté upozornenie so zoznamom kľúčov a jazykov; export neblokuje ([Frontend](./frontend.md#modál-exportovať-preklady))
+
+### Varovanie pri premennej, ktorú základný jazyk nemá (2026-10-21)
+
+- frontend: chip premennej, ktorá nie je v základnom jazyku (preklep ako `{{ perecentage }}`), je v tabuľke aj v editore modálu žltý s tooltipom „Premenná nie je v základnom jazyku – skontrolujte preklep.“; premenné základného jazyka, ktoré v preklade chýbajú, ukáže žltá ikona za textom ([Frontend](./frontend.md#stránka-preklady))
+- shared: `placeholders` a `comparePlaceholders` sa presunuli z `backend/src/lib/placeholders.ts` do `packages/shared/src/placeholders.ts`, aby FE porovnával rovnako ako API
+
 ### Ručné pridanie kľúča (2026-10-21)
 
 - API: `POST /api/projects/:projectId/keys` iba pre `ADMIN` pridá kľúč do existujúceho namespace projektu s voliteľnými hodnotami jazykov; neexistujúci namespace → 400 `VALIDATION_ERROR`, obsadený názov → 409 `TRANSLATION_KEY_TAKEN`, iné premenné ako základný jazyk → 400 `PLACEHOLDER_MISMATCH` s `languageId` ([API](./api/translations.md#post-apiprojectsprojectidkeys))

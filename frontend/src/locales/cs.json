@@ -351,6 +351,7 @@
 			"saved": "Uloženo: {{key}}",
 			"missing": "Chybí: {{list}}.",
 			"extra": "Navíc: {{list}}.",
+			"unknownVariable": "Proměnná není v základním jazyce – zkontrolujte překlep.",
 			"formLabel": "{{label}}, {{form}}",
 			"unbalancedBraces": "Závorky { a } musí být vyvážené.",
 			"tooLong": "Překlad je příliš dlouhý (max. 10 000 znaků celkem za všechny formy)."
@@ -712,6 +713,16 @@
 			"more_few": "… a ještě {{count}} další.",
 			"more_many": "… a ještě {{count}} dalších.",
 			"more_other": "… a ještě {{count}} dalších."
+		},
+		"warnings": {
+			"title_one": "{{count}} upozornění",
+			"title_few": "{{count}} upozornění",
+			"title_many": "{{count}} upozornění",
+			"title_other": "{{count}} upozornění",
+			"description": "Tyto překlady mají jiné proměnné než základní jazyk. Export proběhne i tak, ale doporučujeme je před ním opravit.",
+			"item": "„{{key}}“ ({{language}}): {{details}}.",
+			"missing": "chybí {{list}}",
+			"extra": "navíc {{list}}"
 		}
 	},
 	"importIssues": {

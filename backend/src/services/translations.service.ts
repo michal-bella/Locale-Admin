@@ -22,12 +22,13 @@ import {
 	type UpdateTranslationKeyRequest,
 	type UpdateTranslationKeyResponse,
 	type UpdateTranslationResponse,
+	comparePlaceholders,
+	placeholders,
 } from '@locale/shared'
 
 import { Prisma, type Translation } from '../generated/prisma/client'
 import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
-import { comparePlaceholders, placeholders } from '../lib/placeholders'
 import { type PrismaClient } from '../lib/prisma'
 
 import { isPrismaError } from './projects.service'

@@ -1,7 +1,8 @@
 import { type ExportIssue, type ExportIssueCode } from '@locale/shared'
 
 /** One key of the export with its values in the column order, `null` = untranslated. */
-export type ExportRow = { keyId: string; namespace: string; key: string; values: (string | null)[] }
+/** `base` is the base language value when the export check reads it as the reference; the writers ignore it. */
+export type ExportRow = { keyId: string; namespace: string; key: string; values: (string | null)[]; base?: string | null }
 
 const NULL_VALUE = 'null'
 

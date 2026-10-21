@@ -3,7 +3,7 @@ import { useDisclosure } from '@mantine/hooks'
 import { Fragment, type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type Language, ROLE, type TranslationCell as TranslationCellData, type TranslationListItem } from '@locale/shared'
+import { type Language, placeholders, ROLE, type TranslationCell as TranslationCellData, type TranslationListItem } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -116,11 +116,21 @@ const TranslationsTable = ({
 		</Table.Tr>
 	)
 
+	// What the API compares a value against: the base language value, or the key name when the base is empty and the name has placeholders.
+	const referenceFor = (item: TranslationListItem, language: Language): string | undefined => {
+		if (!baseLanguage || language.isBase) {
+			return undefined
+		}
+		const base = item.translations[baseLanguage.id]?.value ?? null
+		return base ?? (placeholders(item.name).size > 0 ? item.name : undefined)
+	}
+
 	const translationCell = (item: TranslationListItem, language: Language) => (
 		<TranslationCell
 			cell={item.translations[language.id] ?? EMPTY_CELL}
 			label={t('translationsPage.editor.label', { key: item.name, language: t(`languageNames.${language.tag}`) })}
 			pluralTag={item.plural ? language.tag : undefined}
+			reference={referenceFor(item, language)}
 			onClick={() => openTranslation(item, language)}
 		/>
 	)
@@ -210,7 +220,11 @@ const TranslationsTable = ({
 										<div className={classes.stackItem}>
 											<span className={classes.stackLanguage}>{languageLabel(sourceLanguage)}</span>
 											<span className={`${classes.sourceValue} ${classes.stackSource}`}>
-												<TranslationValue value={source.value} pluralTag={item.plural ? sourceLanguage.tag : undefined} />
+												<TranslationValue
+													value={source.value}
+													pluralTag={item.plural ? sourceLanguage.tag : undefined}
+													reference={referenceFor(item, sourceLanguage)}
+												/>
 											</span>
 										</div>
 									)}
@@ -229,7 +243,11 @@ const TranslationsTable = ({
 					<>
 						<Table.Td className={`${classes.td} ${classes.value}`}>
 							<span className={classes.sourceValue}>
-								<TranslationValue value={source.value} pluralTag={item.plural ? sourceLanguage?.tag : undefined} />
+								<TranslationValue
+									value={source.value}
+									pluralTag={item.plural ? sourceLanguage?.tag : undefined}
+									reference={sourceLanguage && referenceFor(item, sourceLanguage)}
+								/>
 							</span>
 						</Table.Td>
 						<Table.Td className={`${classes.td} ${classes.value}`}>{targetLanguage && translationCell(item, targetLanguage)}</Table.Td>

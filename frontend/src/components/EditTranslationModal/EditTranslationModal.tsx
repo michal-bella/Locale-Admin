@@ -13,6 +13,7 @@ import {
 	type TranslationListItem,
 	updateTranslationRequestSchema,
 	VALIDATION_CODE,
+	placeholders,
 } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -104,6 +105,9 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	const lockedHintId = useId()
 	const errorId = useId()
 	const baseValue = baseLanguage && baseLanguage.id !== language.id ? (item.translations[baseLanguage.id]?.value ?? null) : undefined
+	// Same reference as the API check: the base value, or the key name when the base is empty and the name has placeholders.
+	const reference = baseValue === undefined ? undefined : (baseValue ?? (placeholders(item.name).size > 0 ? item.name : undefined))
+	const basePlaceholders = reference === undefined ? undefined : placeholders(reference)
 
 	const composeValue = (): string | null => {
 		if (!plural) {
@@ -230,6 +234,7 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 			}}
 			label={plural ? t('translationsPage.editor.formLabel', { label, form: t(`translationsPage.plural.forms.${form}`) }) : label}
 			pluralHash={plural !== null}
+			basePlaceholders={basePlaceholders}
 			describedBy={describedBy}
 			invalid={isInvalid(form)}
 			readOnly={saving}

@@ -1,6 +1,17 @@
 import { type Writable } from 'node:stream'
 
-import { ERROR_CODE, EXPORT_ISSUES_MAX, type ExportIssue, type ExportQuery, type ExportStatus } from '@locale/shared'
+import {
+	comparePlaceholders,
+	ERROR_CODE,
+	EXPORT_ISSUES_MAX,
+	type ExportCheckQuery,
+	type ExportCheckResponse,
+	type ExportIssue,
+	type ExportQuery,
+	type ExportStatus,
+	type ExportWarning,
+	placeholders,
+} from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
 import { AppError } from '../lib/errors'
@@ -43,7 +54,7 @@ const matchesStatus = (row: ExportRow, status: ExportStatus) => status === 'ALL'
  * paging so memory does not grow with the project. The status is filtered here, after the batch is read: as an SQL
  * condition it would be evaluated for every remaining key of the project in every batch.
  */
-async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], status: ExportStatus): AsyncGenerator<ExportRow[]> {
+async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], status: ExportStatus, baseLanguageId?: string): AsyncGenerator<ExportRow[]> {
 	let last: KeyRow | undefined
 	for (;;) {
 		const after = last
@@ -58,8 +69,10 @@ async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], sta
 		if (keys.length === 0) {
 			return
 		}
+		// The base language value is read too when the check needs it as the reference but the export leaves the base out.
+		const readIds = baseLanguageId && !languageIds.includes(baseLanguageId) ? [...languageIds, baseLanguageId] : languageIds
 		const translations = await tx.translation.findMany({
-			where: { keyId: { in: keys.map((key) => key.id) }, languageId: { in: languageIds }, value: { not: null } },
+			where: { keyId: { in: keys.map((key) => key.id) }, languageId: { in: readIds }, value: { not: null } },
 			select: { keyId: true, languageId: true, value: true },
 		})
 		const values = new Map(translations.map((translation) => [`${translation.keyId}:${translation.languageId}`, translation.value]))
@@ -69,6 +82,7 @@ async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], sta
 				namespace: key.namespace,
 				key: key.name,
 				values: languageIds.map((languageId) => values.get(`${key.id}:${languageId}`) ?? null),
+				base: baseLanguageId === undefined ? null : (values.get(`${key.id}:${baseLanguageId}`) ?? null),
 			}))
 			.filter((row) => matchesStatus(row, status))
 		if (keys.length < EXPORT_BATCH_SIZE) {
@@ -168,5 +182,55 @@ export const exportTranslations = async (prisma: PrismaClient, projectId: string
 			return query.format === 'XLSX' ? writeXlsx(context) : writeCsv(context)
 		},
 		{ isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: timeoutMs + TRANSACTION_TIMEOUT_MARGIN_MS },
+	)
+}
+
+/**
+ * Placeholder mismatches the planned export would carry: every non-base exported value is compared with the base language value (or the
+ * key name when the base is empty and the name has placeholders), as the edit and import checks do. The same keys as the export
+ * (status over the exported languages); the base language is the reference even when it is not exported.
+ */
+export const checkExport = async (prisma: PrismaClient, projectId: string, query: ExportCheckQuery): Promise<ExportCheckResponse> => {
+	const languages = await prisma.projectLanguage.findMany({
+		where: { projectId, id: { in: query.languageIds } },
+		select: { id: true, tag: true, isBase: true },
+		orderBy: LANGUAGE_ORDER,
+	})
+	if (languages.length !== query.languageIds.length) {
+		throw new AppError(400, ERROR_CODE.EXPORT_LANGUAGES_INVALID, 'A language does not belong to the project')
+	}
+	const base = await prisma.projectLanguage.findFirst({ where: { projectId, isBase: true }, select: { id: true } })
+	const languageIds = languages.map((language) => language.id)
+
+	return prisma.$transaction(
+		async (tx) => {
+			const warnings: ExportWarning[] = []
+			let total = 0
+			for await (const rows of rowBatches(tx, projectId, languageIds, query.status, base?.id)) {
+				for (const row of rows) {
+					const reference = row.base ?? (placeholders(row.key).size > 0 ? row.key : null)
+					if (reference === null) {
+						continue
+					}
+					const basePlaceholders = placeholders(reference)
+					languages.forEach((language, index) => {
+						const value = row.values[index]
+						if (language.isBase || value === null || value === undefined) {
+							return
+						}
+						const { missing, extra } = comparePlaceholders(basePlaceholders, value)
+						if (missing.length === 0 && extra.length === 0) {
+							return
+						}
+						total += 1
+						if (warnings.length < EXPORT_ISSUES_MAX) {
+							warnings.push({ keyId: row.keyId, namespace: row.namespace, key: row.key, languageTag: language.tag, missing, extra })
+						}
+					})
+				}
+			}
+			return { warnings, total }
+		},
+		{ isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
 	)
 }

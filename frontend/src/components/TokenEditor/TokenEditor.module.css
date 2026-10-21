@@ -1,3 +1,7 @@
+.wrapper {
+	position: relative;
+}
+
 .root {
 	min-height: 2.625rem;
 	max-height: 13.5rem;
@@ -41,4 +45,10 @@
 	color: var(--app-color-text-secondary);
 	white-space: nowrap;
 	user-select: none;
+}
+
+/* Invisible target of the warning tooltip, placed over the hovered chip. */
+.warningAnchor {
+	position: absolute;
+	pointer-events: none;
 }

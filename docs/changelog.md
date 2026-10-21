@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Rola Návštevník – E2E a dokumentácia (2026-10-21)
+
+- e2e: `visitor.spec.ts` (sidebar, 403 stránky, read-only Preklady s axe skenom, export, 403 z API, zoznam projektov) a `createVisitor` v `support/users.ts`; prehľad rolí v [overview](./overview.md) ([Testovanie](./testing.md#e2e-testy-playwright))
+
 ### Rola Návštevník – obmedzenia v aplikácii (2026-10-21)
 
 - frontend: Návštevník má v projekte iba Preklady a Prehľad (sidebar, guard 403 na Nastavenia, Jazyky a Členovia), tabuľka prekladov je iba na čítanie (bunky sú text, modál Upraviť preklad sa neotvára), ostáva mu filtrovanie, zobrazenie a **Exportovať**; na Prehľade nemá Spravovať jazyky, v zozname projektov nemá Nastavenia ani Opustiť projekt ([Frontend](./frontend.md#guardy))

@@ -63,9 +63,24 @@ export const createEditor = (request: APIRequest, baseURL: string | undefined): 
 		return { ...user, projectId: project.id, projectSlug: project.slug }
 	})
 
+/** Creates a VISITOR who is a member of a new test project (sk base, en, no keys), as `createEditor`. */
+export const createVisitor = (request: APIRequest, baseURL: string | undefined): Promise<TestEditor> =>
+	withAdminApi(request, baseURL, async (api) => {
+		const project = await createProject(api, 'visitor')
+		const user = await postUser(api, 'VISITOR')
+		await addMember(api, project.id, user.id)
+		return { ...user, projectId: project.id, projectSlug: project.slug }
+	})
+
 /** Creates an ADMIN through `POST /api/admin/users` as the ADMIN. */
 export const createAdmin = (request: APIRequest, baseURL: string | undefined): Promise<TestUser> =>
 	withAdminApi(request, baseURL, (api) => postUser(api, 'ADMIN'))
+
+/** Signs the page in through `POST /api/auth/login` on `page.request`, which shares the cookies of the page. Use with `test.use({ storageState: ANONYMOUS })`. */
+export const loginViaApi = async (page: Page, { email, password }: Credentials) => {
+	const response = await page.request.post('/api/auth/login', { data: { email, password }, headers: MUTATION_HEADERS })
+	expect(response.status(), 'POST /api/auth/login').toBe(200)
+}
 
 /**
  * Creates an ADMIN and signs the page in as them through `POST /api/auth/login` on `page.request`, which shares the cookies of the page.
@@ -74,7 +89,6 @@ export const createAdmin = (request: APIRequest, baseURL: string | undefined): P
  */
 export const loginAsFreshAdmin = async (page: Page, request: APIRequest, baseURL: string | undefined) => {
 	const admin = await createAdmin(request, baseURL)
-	const response = await page.request.post('/api/auth/login', { data: { email: admin.email, password: admin.password }, headers: MUTATION_HEADERS })
-	expect(response.status(), 'POST /api/auth/login').toBe(200)
+	await loginViaApi(page, admin)
 	return admin
 }

@@ -1,6 +1,8 @@
 import {
 	ACTIVITY_KEY_FIELDS,
 	ACTIVITY_TYPE,
+	type CreateTranslationKeyRequest,
+	type CreateTranslationKeyResponse,
 	ERROR_CODE,
 	TRANSLATION_KEY_PATH_PATTERN,
 	VALIDATION_CODE,
@@ -372,3 +374,86 @@ export const updateTranslationKey = async (
 			plural: toPlural(updated.pluralVariable),
 		}
 	})
+
+/**
+ * Adds a key by hand into a namespace the project already has, with the given values (empty ones stay untranslated, no row).
+ * With variable protection on, every non-base value must keep the placeholders of the base value (or of a key name with
+ * placeholders when the base is empty). Writes `KEY_CREATED` with the languages that got a value.
+ */
+export const createTranslationKey = async (
+	prisma: PrismaClient,
+	{ projectId, userId }: { projectId: string; userId: string },
+	{ namespace, name, translations }: CreateTranslationKeyRequest,
+): Promise<CreateTranslationKeyResponse> => {
+	const project = await prisma.project.findUniqueOrThrow({
+		where: { id: projectId },
+		select: { protectVariables: true, languages: { select: { id: true, tag: true, isBase: true }, orderBy: { position: 'asc' } } },
+	})
+	const unknown = Object.keys(translations).filter((languageId) => !project.languages.some((language) => language.id === languageId))
+	if (unknown.length > 0) {
+		throw new AppError(
+			400,
+			ERROR_CODE.VALIDATION_ERROR,
+			'Language not found in the project',
+			unknown.map((languageId) => ({ path: `translations.${languageId}`, code: VALIDATION_CODE.INVALID })),
+		)
+	}
+	const values = project.languages.flatMap((language) => {
+		const value = translations[language.id] ?? null
+		return value === null ? [] : [{ ...language, value }]
+	})
+
+	if (project.protectVariables) {
+		const reference = values.find((language) => language.isBase)?.value ?? (placeholders(name).size > 0 ? name : null)
+		if (reference !== null) {
+			for (const language of values.filter((item) => !item.isBase)) {
+				const { missing, extra } = comparePlaceholders(placeholders(reference), language.value)
+				if (missing.length > 0 || extra.length > 0) {
+					throw new AppError(400, ERROR_CODE.PLACEHOLDER_MISMATCH, 'Placeholders differ from the base language', {
+						missing,
+						extra,
+						languageId: language.id,
+					})
+				}
+			}
+		}
+	}
+
+	return prisma.$transaction(async (tx) => {
+		// Waits for a running import, like a cell edit, so the import never meets a key created in the middle of it.
+		await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(hashtextextended(${`import:${projectId}`}, 0))`
+		if (!(await tx.translationKey.findFirst({ where: { projectId, namespace }, select: { id: true } }))) {
+			throw new AppError(400, ERROR_CODE.VALIDATION_ERROR, 'Namespace not found in the project', [{ path: 'namespace', code: VALIDATION_CODE.INVALID }])
+		}
+		const key = await tx.translationKey
+			.create({
+				data: {
+					projectId,
+					namespace,
+					name,
+					translations: { create: values.map(({ id, value }) => ({ languageId: id, value, updatedById: userId })) },
+				},
+				select: { id: true, namespace: true, name: true, description: true, pluralVariable: true },
+			})
+			.catch((err: unknown) => {
+				if (isPrismaError(err, 'P2002')) {
+					throw new AppError(409, ERROR_CODE.TRANSLATION_KEY_TAKEN, 'Translation key name is already taken in this namespace')
+				}
+				throw err
+			})
+		await recordActivity(tx, {
+			projectId,
+			userId,
+			type: ACTIVITY_TYPE.KEY_CREATED,
+			payload: { keyId: key.id, namespace: key.namespace, name: key.name, languageTags: values.map((language) => language.tag) },
+		})
+		return {
+			keyId: key.id,
+			namespace: key.namespace,
+			name: key.name,
+			group: translationGroup(key.namespace, key.name),
+			description: key.description,
+			plural: toPlural(key.pluralVariable),
+		}
+	})
+}

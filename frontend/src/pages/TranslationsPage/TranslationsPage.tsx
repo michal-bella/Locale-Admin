@@ -14,8 +14,9 @@ import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguage
 import { useProjectSettingsQuery } from '@/api/projectSettings/projectSettingsQuery'
 import { useTranslationsQuery } from '@/api/translations/translationsQuery'
 import { useUpdateTranslationMutation } from '@/api/translations/useUpdateTranslationMutation'
+import CreateKeyModal from '@/components/CreateKeyModal/CreateKeyModal'
 import ExportModal from '@/components/ExportModal/ExportModal'
-import { Download, Upload } from '@/components/Icons'
+import { Download, Plus, Upload } from '@/components/Icons'
 import ImportModal from '@/components/ImportModal/ImportModal'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import TranslationStats from '@/components/TranslationStats/TranslationStats'
@@ -51,6 +52,7 @@ const TranslationsPage = () => {
 	const languages = languagesQuery.data ?? []
 	const [importOpened, importModal] = useDisclosure(false)
 	const [exportOpened, exportModal] = useDisclosure(false)
+	const [createKeyOpened, createKeyModal] = useDisclosure(false)
 	const importButtonRef = useRef<HTMLButtonElement>(null)
 
 	// Importovať in the empty state is gone once the import added keys, so Mantine has nothing to return the focus to; the header button
@@ -88,6 +90,7 @@ const TranslationsPage = () => {
 			: null
 	const translationsQuery = useTranslationsQuery(projectId, listQuery)
 	const data = translationsQuery.data
+	const namespaces = data?.namespaces ?? []
 	const updateTranslation = useUpdateTranslationMutation(projectId, listQuery)
 	const [savedAnnouncement, setSavedAnnouncement] = useState('')
 
@@ -160,6 +163,12 @@ const TranslationsPage = () => {
 					titleSize='h2'
 				/>
 				<div className='flex gap-2'>
+					{/* A key goes into an existing namespace, so a project without keys starts with an import. */}
+					{isAdmin && namespaces.length > 0 && (
+						<Button variant='default' leftSection={<Plus aria-hidden />} onClick={createKeyModal.open}>
+							{t('translationsPage.createKeyButton')}
+						</Button>
+					)}
 					{isAdmin && (
 						<Button ref={importButtonRef} variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
 							{t('translationsPage.importButton')}
@@ -203,7 +212,7 @@ const TranslationsPage = () => {
 							updatedBy={search.updatedBy}
 							updatedWithin={search.updatedWithin}
 							editors={data?.editors ?? []}
-							namespaces={data?.namespaces ?? []}
+							namespaces={namespaces}
 							onChange={(patch) => updateSearch(patch)}
 						/>
 					</div>
@@ -241,6 +250,26 @@ const TranslationsPage = () => {
 				/>
 			)}
 			{isAdmin && <ImportModal projectId={projectId} opened={importOpened} onClose={closeImport} />}
+			{isAdmin && (
+				<CreateKeyModal
+					projectId={projectId}
+					languages={languages}
+					namespaces={namespaces}
+					defaultNamespace={search.namespace}
+					opened={createKeyOpened}
+					onClose={createKeyModal.close}
+					// Shows the new key whatever page or filters were on; an empty namespace means no namespace filter.
+					onCreated={(key) =>
+						updateSearch({
+							search: key.name,
+							namespace: key.namespace || undefined,
+							status: undefined,
+							updatedBy: undefined,
+							updatedWithin: undefined,
+						})
+					}
+				/>
+			)}
 			<ExportModal projectId={projectId} opened={exportOpened} onClose={exportModal.close} />
 		</div>
 	)

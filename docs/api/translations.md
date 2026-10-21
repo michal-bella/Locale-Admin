@@ -12,9 +12,10 @@ Zoznam kľúčov projektu s prekladmi vo všetkých jazykoch pre stránku Prekla
 | ------- | --------------------------------------------------------------- | ------------------ | ------------------------------------------------- |
 | `GET`   | `/api/projects/:projectId/translations`                         | člen alebo `ADMIN` | stránkovaný zoznam kľúčov, štatistika a namespace |
 | `PUT`   | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | člen alebo `ADMIN` | uloženie prekladu kľúča v jednom jazyku           |
+| `POST`  | `/api/projects/:projectId/keys`                                 | iba `ADMIN`        | ručné pridanie kľúča do existujúceho namespace    |
 | `PATCH` | `/api/projects/:projectId/keys/:keyId`                          | iba `ADMIN`        | premenovanie kľúča, popis, plurálové formy        |
 
-Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). `PUT` a `PATCH` prechádzajú CSRF kontrolou (`Content-Type: application/json` a `X-Requested-With: XMLHttpRequest`).
+Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). `PUT`, `POST` a `PATCH` prechádzajú CSRF kontrolou (`Content-Type: application/json` a `X-Requested-With: XMLHttpRequest`).
 
 ## Stav prekladu
 
@@ -191,6 +192,56 @@ curl -i -b cookies.txt -X PUT \
   -H "Content-Type: application/json" -H "X-Requested-With: XMLHttpRequest" \
   -d '{"value":"You have {{count}} items"}' \
   "http://localhost:8080/api/projects/<id projektu>/keys/<id kľúča>/translations/<id en>"
+```
+
+## POST /api/projects/:projectId/keys
+
+Pridá kľúč ručne, napr. keď po uzamknutí sheetu pri vývoji vznikne nový text. Iba globálny `ADMIN` (člen s rolou `EDITOR` dostane 403 `FORBIDDEN`; kto nemá k projektu prístup, dostane 404 `NOT_FOUND`). Kľúč patrí vždy do namespace, ktorý projekt už má (aspoň jeden jeho kľúč); nový namespace vzniká iba importom.
+
+Telo (schéma `createTranslationKeyRequestSchema`):
+
+| Pole           | Typ                                       | Popis                                                                                                                                                    |
+| -------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `namespace`    | string                                    | povinné, existujúci namespace projektu presne ako je uložený (aj `""`, ak má projekt kľúče bez namespace), max. 100 znakov                               |
+| `name`         | string                                    | povinné, orezané, neprázdne, max. 2 000 bajtov v UTF-8 (`IMPORT_KEY_MAX_BYTES`)                                                                          |
+| `translations` | objekt `{ [languageId]: string \| null }` | voliteľné; hodnoty v jazykoch projektu, max. 10 000 znakov; prázdna hodnota, `null` aj vynechaný jazyk = nepreložené (riadok `Translation` sa nevytvorí) |
+
+Pri zapnutej ochrane premenných (`protectVariables`) musí každá vyplnená hodnota nezákladného jazyka mať rovnaké premenné ako vyplnená hodnota základného jazyka (alebo ako názov kľúča, ak základný jazyk ostal prázdny a názov premenné obsahuje), inak 400 `PLACEHOLDER_MISMATCH` s `details` `{ missing, extra, languageId }` pre prvý jazyk v poradí projektu, ktorý sa líši. Kľúč aj hodnoty sa zapíšu v jednej transakcii s udalosťou `KEY_CREATED` ([databáza](../database.md)); vytvorenie čaká na prípadný bežiaci import projektu. Uložené hodnoty majú `updatedById` prihláseného administrátora.
+
+### Odpoveď 201
+
+Schéma `createTranslationKeyResponseSchema` (rovnaká ako odpoveď `PATCH`): nový kľúč ako v zozname, bez prekladov.
+
+```json
+{
+	"keyId": "6f1c…",
+	"namespace": "loc",
+	"name": "orders.empty.title",
+	"group": "loc:orders.empty",
+	"description": null,
+	"plural": null
+}
+```
+
+### Chyby
+
+| HTTP | `code`                  | Kedy                                                                                                                                                                   |
+| ---- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400  | `VALIDATION_ERROR`      | prázdny alebo pridlhý `name`; `namespace`, ktorý projekt nemá (`details: [{ path: "namespace", code: "INVALID" }]`); jazyk mimo projektu (`path: "translations.<id>"`) |
+| 400  | `PLACEHOLDER_MISMATCH`  | premenné hodnoty sa líšia od základného jazyka (viď vyššie)                                                                                                            |
+| 401  | `AUTH_UNAUTHENTICATED`  | bez session                                                                                                                                                            |
+| 403  | `FORBIDDEN`             | člen projektu bez globálnej role `ADMIN`                                                                                                                               |
+| 403  | `CSRF_REJECTED`         | bez `X-Requested-With` alebo JSON tela                                                                                                                                 |
+| 404  | `NOT_FOUND`             | projekt mimo prístupu                                                                                                                                                  |
+| 409  | `TRANSLATION_KEY_TAKEN` | kľúč s rovnakým `name` už v namespace existuje (unikátny index, nič sa nezapíše)                                                                                       |
+
+### Príklad (curl)
+
+```bash
+curl -i -b cookies.txt -X POST \
+  -H "Content-Type: application/json" -H "X-Requested-With: XMLHttpRequest" \
+  -d '{"namespace":"loc","name":"orders.empty.title","translations":{"<id jazyka sk>":"Žiadne objednávky"}}' \
+  "http://localhost:8080/api/projects/<id projektu>/keys"
 ```
 
 ## PATCH /api/projects/:projectId/keys/:keyId

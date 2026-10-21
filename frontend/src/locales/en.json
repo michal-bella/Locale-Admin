@@ -255,6 +255,7 @@
 		"title": "Translations",
 		"description": "Manage the texts and translations of your project in one place.",
 		"importButton": "Import",
+		"createKeyButton": "Add key",
 		"stats": {
 			"totalKeys": "Total keys",
 			"translated": "Translated",
@@ -396,6 +397,28 @@
 			"submit": "Save",
 			"success": "Key {{key}} has been saved."
 		},
+		"createKeyModal": {
+			"title": "Add key",
+			"description": "The key goes into an existing namespace. Empty translations stay untranslated.",
+			"close": "Close",
+			"name": {
+				"label": "Key",
+				"placeholder": "e.g. orders.empty.title"
+			},
+			"namespace": {
+				"label": "Namespace",
+				"description": "Only an existing namespace of the project.",
+				"placeholder": "Choose a namespace",
+				"empty": "No namespace"
+			},
+			"value": {
+				"base": "Base language – the reference text for the other languages.",
+				"placeholder": "Optional"
+			},
+			"cancel": "Cancel",
+			"submit": "Add",
+			"success": "Key {{key}} was added."
+		},
 		"pagination": {
 			"pageSize": "Keys per page",
 			"label": "Pagination",
@@ -476,6 +499,7 @@
 				"translationCount_other": "{{count}} translations",
 				"newKeyCount_one": "{{count}} new key",
 				"newKeyCount_other": "{{count}} new keys",
+				"keyCreated": "new key {{key}}",
 				"keyUpdated": "edited the key {{key}}: {{fields}}",
 				"translationUpdated": "edited the translation {{key}} ({{language}})"
 			},

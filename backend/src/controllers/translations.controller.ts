@@ -2,6 +2,8 @@ import { type RequestHandler } from 'express'
 import { z } from 'zod'
 
 import {
+	type CreateTranslationKeyResponse,
+	createTranslationKeyRequestSchema,
 	ERROR_CODE,
 	translationsQuerySchema,
 	updateTranslationKeyRequestSchema,
@@ -14,7 +16,7 @@ import {
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 import { getAuth } from '../middleware/auth.middleware'
-import { listTranslations, updateTranslation, updateTranslationKey } from '../services/translations.service'
+import { createTranslationKey, listTranslations, updateTranslation, updateTranslationKey } from '../services/translations.service'
 
 type Params = { projectId: string; keyId: string; languageId: string }
 
@@ -54,4 +56,12 @@ export const createUpdateTranslationKeyController =
 		const ids = { projectId: req.params.projectId, keyId, userId: getAuth(req).user.id }
 		const body: UpdateTranslationKeyResponse = await updateTranslationKey(prisma, ids, input)
 		res.status(200).json(body)
+	}
+
+export const createCreateTranslationKeyController =
+	(prisma: PrismaClient): RequestHandler<Pick<Params, 'projectId'>> =>
+	async (req, res) => {
+		const input = createTranslationKeyRequestSchema.parse(req.body)
+		const body: CreateTranslationKeyResponse = await createTranslationKey(prisma, { projectId: req.params.projectId, userId: getAuth(req).user.id }, input)
+		res.status(201).json(body)
 	}

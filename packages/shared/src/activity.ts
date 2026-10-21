@@ -12,6 +12,7 @@ export enum ACTIVITY_TYPE {
 	MEMBER_ADDED = 'MEMBER_ADDED',
 	MEMBER_REMOVED = 'MEMBER_REMOVED',
 	KEYS_IMPORTED = 'KEYS_IMPORTED',
+	KEY_CREATED = 'KEY_CREATED',
 	KEY_UPDATED = 'KEY_UPDATED',
 	TRANSLATION_UPDATED = 'TRANSLATION_UPDATED',
 }
@@ -59,6 +60,12 @@ export const activityEventDataSchema = z.discriminatedUnion('type', [
 		keysCreated: count,
 		translationsCreated: count,
 		translationsUpdated: count,
+		languageTags: z.array(languageTag),
+	}),
+	event(ACTIVITY_TYPE.KEY_CREATED, {
+		keyId: z.uuid(),
+		namespace: z.string(),
+		name: z.string(),
 		languageTags: z.array(languageTag),
 	}),
 	event(ACTIVITY_TYPE.KEY_UPDATED, {

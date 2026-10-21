@@ -14,7 +14,6 @@ import {
 	type ImportRequest,
 	type ImportResult,
 	comparePlaceholders,
-	placeholders,
 } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
@@ -160,7 +159,6 @@ export const previewImport = async (prisma: PrismaClient, projectId: string, fil
 		}
 
 		const baseValue = baseIndex === -1 ? null : (row.values[baseIndex] ?? null)
-		const basePlaceholders = baseValue === null ? undefined : placeholders(baseValue)
 		columns.forEach((column, index) => {
 			const value = row.values[index] ?? null
 			column.stats[value === null ? 'untranslated' : 'translations'] += 1
@@ -172,10 +170,10 @@ export const previewImport = async (prisma: PrismaClient, projectId: string, fil
 				}
 				return
 			}
-			if (value === null || basePlaceholders === undefined) {
+			if (value === null || baseValue === null) {
 				return
 			}
-			const { missing, extra } = comparePlaceholders(basePlaceholders, value)
+			const { missing, extra } = comparePlaceholders(baseValue, value)
 			if (missing.length > 0 || extra.length > 0) {
 				column.stats.warnings += 1
 				warnings.push({

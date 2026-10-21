@@ -22,6 +22,7 @@ import getExportUnsafeValues from '@/api/getExportUnsafeValues'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import AppModal from '@/components/AppModal/AppModal'
 import { AlertTriangle, Download } from '@/components/Icons'
+import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import { downloadFile } from '@/lib/downloadFile'
 
 import classes from './ExportModal.module.css'
@@ -214,6 +215,7 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 					{languages.map((language) => (
 						<Checkbox.Card key={language.id} value={language.id} disabled={isPending} className={classes.language}>
 							<Checkbox.Indicator size='xs' radius='xs' className={classes.indicator} />
+							<LanguageFlag code={language.flagCode} size='xs' />
 							<span className={classes.languageLabel}>{languageName(language.tag)}</span>
 						</Checkbox.Card>
 					))}

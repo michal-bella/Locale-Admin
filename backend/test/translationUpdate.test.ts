@@ -121,6 +121,18 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 		expect(await findRow(key.id, en.id)).toMatchObject({ value: 'old' })
 	})
 
+	it('returns 400 PLACEHOLDER_MISMATCH when a placeholder is repeated more often than in the base language', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const key = await createKey(project.id, 'requests', { [sk.id]: 'Zobraziť ďalšie žiadosti ({{remaining}})' })
+
+		const res = await put(app, cookie, project.id, key.id, en.id, 'Show more ({{remaining}}) of ({{remaining}})')
+
+		expectErrorCode(res, 400, ERROR_CODE.PLACEHOLDER_MISMATCH)
+		expect(placeholderDetails(res)).toEqual({ missing: [], extra: ['{{remaining}}'] })
+		expect(await findRow(key.id, en.id)).toBeNull()
+	})
+
 	it('treats {{ count }}, {{- count}} and {{count, number}} as the same placeholder', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie } = await setup(app)

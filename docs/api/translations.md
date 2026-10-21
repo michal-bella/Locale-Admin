@@ -155,14 +155,14 @@ Keď má kľúč zapnuté [plurálové formy](#plurálové-formy), hodnota iná 
 
 ### Ochrana premenných
 
-Keď má projekt zapnuté `protectVariables` (nastavenia projektu, predvolene zapnuté), hodnota v inom ako základnom jazyku musí obsahovať presne tie premenné, ktoré má hodnota kľúča v základnom jazyku: i18next `{{…}}` aj ICU argumenty `{name}` (aj `{name, number}`, `date`, `time`; plurálový argument `{count, plural, …}` premennou nie je, premenné v jeho formách áno). Premenná sa normalizuje rovnako ako pri [importe](./imports.md#upozornenia-import-prejde): bez medzier, bez úvodného `-` a bez časti od `,`, takže `{{ count }}`, `{{- count}}` aj `{{count, number}}` sú `{{count}}` a `{rating, number}` je `{rating}`. Kontrola sa preskočí, keď:
+Keď má projekt zapnuté `protectVariables` (nastavenia projektu, predvolene zapnuté), hodnota v inom ako základnom jazyku musí obsahovať presne tie premenné, ktoré má hodnota kľúča v základnom jazyku, a každú **rovnako veľa ráz** (`{{count}} ({{count}})` oproti `({{count}})` je premenná navyše; pri plurálovom kľúči sa počíta v každej forme zvlášť a berie sa najvyšší počet, takže jazyk s viac formami ako základný nie je nezhoda): i18next `{{…}}` aj ICU argumenty `{name}` (aj `{name, number}`, `date`, `time`; plurálový argument `{count, plural, …}` premennou nie je, premenné v jeho formách áno). Premenná sa normalizuje rovnako ako pri [importe](./imports.md#upozornenia-import-prejde): bez medzier, bez úvodného `-` a bez časti od `,`, takže `{{ count }}`, `{{- count}}` aj `{{count, number}}` sú `{{count}}` a `{rating, number}` je `{rating}`. Kontrola sa preskočí, keď:
 
 - sa upravuje základný jazyk (ten je zdrojom pravdy),
 - je `value` `null`,
 - kľúč nemá v základnom jazyku hodnotu (riadok chýba alebo je `null`) a ani jeho názov neobsahuje premenné; inak sa porovná s premennými v názve kľúča (veta ako `Cena do vrátane DPH ({{symbol}})` vyžaduje `{{symbol}}`),
 - projekt má `protectVariables` vypnuté.
 
-Pri nezhode sa nič nezapíše a vráti sa 400 `PLACEHOLDER_MISMATCH` s `details: { missing, extra }` – normalizované premenné, ktoré v hodnote chýbajú oproti základnému jazyku, a ktoré sú navyše.
+Pri nezhode sa nič nezapíše a vráti sa 400 `PLACEHOLDER_MISMATCH` s `details: { missing, extra }` – normalizované premenné, ktoré sú v hodnote menej ráz ako v základnom jazyku (`missing`), a ktoré sú v nej viac ráz (`extra`); každá premenná raz.
 
 Úprava neberie advisory lock importu: jeden riadok sa zapíše atomicky a súbežný import ostane konzistentný, iba jeho počty (`changes`) môžu byť o tento riadok posunuté.
 

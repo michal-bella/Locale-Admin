@@ -112,6 +112,7 @@ describe('ExportModal', () => {
 		expect(await within(dialog).findByRole('checkbox', { name: 'Slovenčina' })).toBeChecked()
 		expect(within(dialog).getByRole('checkbox', { name: 'Angličtina' })).toBeChecked()
 		expect(within(dialog).getByRole('checkbox', { name: 'Nemčina (Rakúsko)' })).toBeChecked()
+		expect(Array.from(dialog.querySelectorAll('[data-flag]')).map((flag) => flag.getAttribute('data-flag'))).toEqual(['sk', 'gb', 'at'])
 		expect(within(dialog).getByRole('radio', { name: 'Všetky' })).toBeChecked()
 		expect(within(dialog).getByRole('textbox', { name: 'Názov súboru, prípona .csv sa doplní' })).toHaveValue('translations')
 		expect(within(dialog).getByRole('radio', { name: /CSV/ })).toHaveFocus()

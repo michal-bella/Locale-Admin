@@ -416,17 +416,24 @@ describe('ProjectSettingsPage', () => {
 		expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
 	})
 
-	it('lets a member change the base language of the project', async () => {
-		const requests = signedInAs(EDITOR_USER, { ...loaded(), [`PATCH ${SETTINGS_URL}`]: { status: 200, data: { ...SETTINGS, baseLanguageId: ENGLISH.id } } })
+	it('shows a member every setting disabled, keeps Opustiť projekt and sends nothing', async () => {
+		const requests = signedInAs(EDITOR_USER, loaded())
 		await renderSettings()
 
-		const select = screen.getByLabelText('Základný jazyk')
-		expect(select).toBeEnabled()
-		fireEvent.click(select)
-		fireEvent.click(await screen.findByRole('option', { name: 'English (en)' }))
-		fireEvent.click(getSaveButton())
+		for (const label of ['Názov projektu', 'Slug projektu', 'Primárna farba', 'Základný jazyk']) {
+			expect(screen.getByLabelText(label)).toBeDisabled()
+		}
+		expect(screen.getByRole('switch', { name: /Chrániť výrazy/ })).toBeDisabled()
+		expect(getSaveButton()).toBeDisabled()
+		expect(screen.getByRole('button', { name: 'Opustiť projekt' })).toBeEnabled()
+		expect(patchesOf(requests)).toHaveLength(0)
+	})
 
-		await waitFor(() => expect(patchesOf(requests)).toHaveLength(1))
-		expect(bodyOf(patchesOf(requests)[0])).toMatchObject({ baseLanguageId: ENGLISH.id })
+	it('does not link a member without languages to the Jazyky page, where they cannot add one', async () => {
+		signedInAs(EDITOR_USER, loaded({ ...SETTINGS, baseLanguageId: null }, []))
+		await renderSettings()
+
+		expect(screen.getByLabelText('Základný jazyk')).toHaveAccessibleDescription('Projekt zatiaľ nemá žiadne jazyky.')
+		expect(screen.queryByRole('link', { name: 'Pridať jazyk do projektu' })).not.toBeInTheDocument()
 	})
 })

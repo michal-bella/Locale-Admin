@@ -59,6 +59,35 @@ describe('Sidebar', () => {
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
 
+	it('passes the current project to the SPRÁVA links, which then link back to it instead of to Všetky projekty', async () => {
+		signedInAs(ADMIN_USER, {
+			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
+			[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [] },
+			...projectListRoute(PROJECT),
+		})
+		renderApp(`/projects/${PROJECT.slug}/settings`)
+		const inProject = await findNavigation()
+
+		const adminInProject = within(await inProject.findByRole('list', { name: 'Správa' }))
+		await waitFor(() => expect(adminInProject.getByRole('link', { name: 'Projekty' })).toHaveAttribute('href', `/admin/projects?from=${PROJECT.slug}`))
+		fireEvent.click(adminInProject.getByRole('link', { name: 'Používatelia' }))
+
+		const navigation = await findNavigation()
+		expect(await navigation.findByRole('link', { name: 'Späť na projekt' })).toHaveAttribute('href', `/projects/${PROJECT.slug}`)
+		expect(navigation.queryByRole('link', { name: 'Všetky projekty' })).not.toBeInTheDocument()
+		const admin = within(navigation.getByRole('list', { name: 'Správa' }))
+		expect(admin.getByRole('link', { name: 'Projekty' })).toHaveAttribute('href', `/admin/projects?from=${PROJECT.slug}`)
+	})
+
+	it('keeps Všetky projekty on an admin page opened without a valid project', async () => {
+		signedInAs(ADMIN_USER)
+		renderApp('/admin/users?from=Not%20a%20slug')
+		const navigation = await findNavigation()
+
+		expect(await navigation.findByRole('link', { name: 'Všetky projekty' })).toHaveAttribute('href', '/')
+		expect(navigation.queryByRole('link', { name: 'Späť na projekt' })).not.toBeInTheDocument()
+	})
+
 	it('switches projects from the switcher and keeps the current page', async () => {
 		const other = { ...PROJECT, id: '00000000-0000-4000-8000-000000000302', name: 'Demo project', slug: 'demo-project', primaryColor: '#FACC15' }
 		signedInAs(EDITOR_USER, {

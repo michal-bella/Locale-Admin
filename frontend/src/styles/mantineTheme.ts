@@ -57,7 +57,7 @@ export const mantineTheme = createTheme({
 	components: {
 		Button: Button.extend({
 			defaultProps: { size: 'md', variant: 'filled' },
-			classNames: { root: buttonClasses.root },
+			classNames: { root: buttonClasses.root, loader: buttonClasses.loader },
 			vars: (_theme, props) => ({
 				root: {
 					...(props.size === 'md' ? { '--button-height': rem(40), '--button-padding-x': rem(15), '--button-fz': 'var(--mantine-font-size-xs)' } : {}),

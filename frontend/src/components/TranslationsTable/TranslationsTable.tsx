@@ -7,6 +7,7 @@ import { type Language, ROLE, type TranslationCell as TranslationCellData, type 
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
+import BaseLanguageHint from '@/components/BaseLanguageHint/BaseLanguageHint'
 import EditKeyModal from '@/components/EditKeyModal/EditKeyModal'
 import EditTranslationModal from '@/components/EditTranslationModal/EditTranslationModal'
 import { Edit, Upload } from '@/components/Icons'
@@ -131,7 +132,9 @@ const TranslationsTable = ({
 			{language.isBase && (
 				<>
 					{' '}
-					<span className={classes.baseBadge}>{t('translationsPage.table.base')}</span>
+					<BaseLanguageHint>
+						<span className={classes.baseBadge}>{t('translationsPage.table.base')}</span>
+					</BaseLanguageHint>
 				</>
 			)}
 		</span>

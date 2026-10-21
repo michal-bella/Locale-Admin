@@ -1,5 +1,6 @@
 import { Avatar, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
+import { useParams } from '@tanstack/react-router'
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -29,6 +30,7 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 	const { t, i18n } = useTranslation()
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectMembersQuery(projectId)
 	const { data: me } = useMeQuery()
+	const { projectSlug } = useParams({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const tableRef = useRef<HTMLTableElement>(null)
 	const triggerRef = useRef<HTMLButtonElement | null>(null)
 	const [removeOpened, removeModal] = useDisclosure(false)
@@ -159,6 +161,7 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 									label={t('membersPage.table.openLabel', { email: member.email })}
 									to='/admin/users/$userId'
 									params={{ userId: member.id }}
+									search={{ from: projectSlug }}
 								/>
 								{member.id !== me.id && (
 									<RowAction

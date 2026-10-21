@@ -137,7 +137,7 @@ describe('MembersPage', () => {
 		expect(requests.some((request) => request.url === '/admin/users')).toBe(false)
 	})
 
-	it('links an admin from every row to the user detail', async () => {
+	it('links an admin from every row to the user detail, which links back to this project', async () => {
 		signedInAs(
 			ADMIN_USER,
 			routes(() => [ADMIN_MEMBER, JANA]),
@@ -145,8 +145,11 @@ describe('MembersPage', () => {
 		renderApp(PAGE_PATH)
 
 		const link = await screen.findByRole('link', { name: `Otvoriť používateľa ${JANA.email}` })
-		expect(link).toHaveAttribute('href', `/admin/users/${JANA.id}`)
-		expect(screen.getByRole('link', { name: `Otvoriť používateľa ${ADMIN_MEMBER.email}` })).toHaveAttribute('href', `/admin/users/${ADMIN_MEMBER.id}`)
+		expect(link).toHaveAttribute('href', `/admin/users/${JANA.id}?from=${PROJECT.slug}`)
+		expect(screen.getByRole('link', { name: `Otvoriť používateľa ${ADMIN_MEMBER.email}` })).toHaveAttribute(
+			'href',
+			`/admin/users/${ADMIN_MEMBER.id}?from=${PROJECT.slug}`,
+		)
 	})
 
 	it('offers an admin only the users who are not members yet', async () => {

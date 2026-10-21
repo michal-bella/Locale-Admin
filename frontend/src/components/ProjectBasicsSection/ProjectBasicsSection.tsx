@@ -15,7 +15,7 @@ import classes from './ProjectBasicsSection.module.css'
 import { type ProjectBasicsSectionProps } from './types'
 
 /** "Základné údaje" (Figma 3:1600) with the base language row added under the primary color. */
-const ProjectBasicsSection = ({ projectSlug, register, control, errors, languages, savedColor }: ProjectBasicsSectionProps) => {
+const ProjectBasicsSection = ({ projectSlug, register, control, errors, languages, savedColor, disabled = false }: ProjectBasicsSectionProps) => {
 	const { t } = useTranslation()
 	const nameId = useId()
 	const slugId = useId()
@@ -44,7 +44,7 @@ const ProjectBasicsSection = ({ projectSlug, register, control, errors, language
 					{t('projectSettingsPage.basics.name')}
 				</label>
 				{/* For the focus trap of the edit modal on Projekty when the data is cached; inert on the settings page. */}
-				<TextInput id={nameId} data-autofocus error={errors.name?.message} {...register('name')} />
+				<TextInput id={nameId} data-autofocus disabled={disabled} error={errors.name?.message} {...register('name')} />
 
 				<label htmlFor={slugId} className={`${classes.label} pt-3`}>
 					{t('projectSettingsPage.basics.slug.label')}
@@ -54,6 +54,7 @@ const ProjectBasicsSection = ({ projectSlug, register, control, errors, language
 					description={t('projectSettingsPage.basics.slug.description')}
 					inputWrapperOrder={['input', 'description', 'error']}
 					classNames={{ description: `${classes.hint} pt-1.5` }}
+					disabled={disabled}
 					error={errors.slug?.message}
 					{...register('slug')}
 				/>
@@ -73,6 +74,7 @@ const ProjectBasicsSection = ({ projectSlug, register, control, errors, language
 								format='hex'
 								withEyeDropper={false}
 								fixOnBlur={false}
+								disabled={disabled}
 								value={field.value}
 								onChange={field.onChange}
 								onBlur={field.onBlur}
@@ -107,15 +109,22 @@ const ProjectBasicsSection = ({ projectSlug, register, control, errors, language
 								onChange={(value) => value && field.onChange(value)}
 								onBlur={field.onBlur}
 								allowDeselect={false}
-								disabled={!hasLanguages}
+								disabled={disabled || !hasLanguages}
 								placeholder={t('projectSettingsPage.basics.baseLanguage.placeholder')}
 								description={
-									!hasLanguages && (
+									hasLanguages ? (
+										t('baseLanguage.hint')
+									) : (
 										<>
-											{t('projectSettingsPage.basics.baseLanguage.empty')}{' '}
-											<Link to='/projects/$projectSlug/languages' params={{ projectSlug }} className={classes.link}>
-												{t('projectSettingsPage.basics.baseLanguage.emptyLink')}
-											</Link>
+											{t('projectSettingsPage.basics.baseLanguage.empty')}
+											{!disabled && (
+												<>
+													{' '}
+													<Link to='/projects/$projectSlug/languages' params={{ projectSlug }} className={classes.link}>
+														{t('projectSettingsPage.basics.baseLanguage.emptyLink')}
+													</Link>
+												</>
+											)}
 										</>
 									)
 								}

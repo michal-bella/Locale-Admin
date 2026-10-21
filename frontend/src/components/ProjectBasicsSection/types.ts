@@ -9,6 +9,7 @@ export type ProjectBasicsSectionProps = {
 	control: Control<UpdateProjectSettingsRequest>
 	errors: FieldErrors<UpdateProjectSettingsRequest>
 	languages: Language[]
+	disabled?: boolean
 	/** Shown in the preview while the typed color is not a valid `#RRGGBB` yet. */
 	savedColor: string
 }

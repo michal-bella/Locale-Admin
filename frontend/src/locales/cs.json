@@ -5,6 +5,9 @@
 		"copyright": "© {{year}} Locale"
 	},
 	"documentTitle": "{{page}} – Locale",
+	"baseLanguage": {
+		"hint": "Jazyk, ze kterého se překládá. Při úpravě překladu se zobrazuje jako předloha a podle něj se kontrolují proměnné v ostatních jazycích."
+	},
 	"notification": {
 		"close": "Zavřít oznámení"
 	},
@@ -26,6 +29,7 @@
 		"list": {
 			"label": "Seznam projektů",
 			"empty": "Zatím nemáte žádný projekt. Vytvořte první.",
+			"emptyEditor": "Zatím nejste v žádném projektu. Do projektu vás přidá administrátor.",
 			"loadError": "Seznam projektů se nepodařilo načíst.",
 			"retry": "Zkusit znovu",
 			"settings": "Nastavení",
@@ -490,6 +494,7 @@
 			"deletedUser": "Odstraněný uživatel",
 			"open": "Zobrazit v překladech",
 			"openLabel": "Zobrazit změny uživatele {{name}} v překladech",
+			"openKeyLabel": "Zobrazit překlad {{key}} v překladech",
 			"events": {
 				"projectCreated": "vytvoření projektu {{name}}",
 				"projectUpdated": "změna nastavení projektu: {{fields}}",
@@ -882,6 +887,7 @@
 		"eyebrow": "Lokalizace",
 		"title": "Jazyky",
 		"description": "Jazyky, do kterých se projekt překládá. Pořadí změníte přetažením – v tomto pořadí se zobrazí sloupce v překladech a jazyk na prvním místě je základní.",
+		"descriptionEditor": "Jazyky, do kterých se projekt překládá. V tomto pořadí se zobrazí sloupce v překladech a jazyk na prvním místě je základní.",
 		"addButton": "Přidat jazyk",
 		"table": {
 			"move": "Přesunout",
@@ -993,6 +999,7 @@
 	"sidebar": {
 		"label": "Hlavní navigace",
 		"allProjects": "Všechny projekty",
+		"backToProject": "Zpět na projekt",
 		"languages": "Jazyky",
 		"admin": "Správa",
 		"adminProjects": "Projekty",

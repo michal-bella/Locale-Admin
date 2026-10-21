@@ -42,7 +42,7 @@ export const newTestProjectInput = (label: string) => {
 	return { name: `E2E ${label} ${suffix}`, slug: `${TEST_PROJECT_SLUG_PREFIX}${label}-${suffix}` }
 }
 
-/** Creates a project as the user of `api`, who becomes its member. The first of `languageTags` is the base language. */
+/** Creates a project as the ADMIN of `api` (only an ADMIN may), who becomes its member. The first of `languageTags` is the base language. */
 export const createProject = async (api: APIRequestContext, label: string, languageTags: string[] = ['sk', 'en']) => {
 	const response = await api.post(PROJECTS_API, { data: { ...newTestProjectInput(label), languageTags }, headers: MUTATION_HEADERS })
 	expect(response.status(), `POST ${PROJECTS_API}`).toBe(201)

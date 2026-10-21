@@ -18,6 +18,29 @@ notion_page_id:
 
 - frontend: zobrazenie, rozloženie, jazyky a **Len preklady** sú v samostatnom riadku nad kartou tabuľky (`TranslationsViewControls`) a odrolujú sa; v sticky hlavičke karty ostali iba filtre v jednom zalamovanom riadku ([Frontend](./frontend.md))
 
+### Posledná aktivita otvorí upravený preklad (2026-10-21)
+
+- frontend: šípka pri úprave prekladu na Prehľade otvorí Preklady s vyhľadávaním názvu kľúča a jeho namespace (`?search=…&namespace=…`) namiesto filtra Editor, takže ukáže práve ten kľúč; import ďalej filtruje zmeny používateľa ([Frontend](./frontend.md#stránka-prehľad-projektu))
+
+### Projekty, jazyky a nastavenia projektu mení iba ADMIN (2026-10-21)
+
+- API: `PATCH /api/projects/:projectId/settings` iba pre `ADMIN`, člen `EDITOR` dostane 403 `FORBIDDEN` ([API](./api/projects.md#patch-apiprojectsprojectidsettings))
+- frontend: editor vidí v Nastaveniach projektu všetky polia, prepínač aj **Uložiť zmeny** disabled, aktívne má iba **Opustiť projekt**; bez jazykov nevidí odkaz **Pridať jazyk do projektu**
+- API: `POST /api/projects/:projectId/languages` iba pre `ADMIN`, člen `EDITOR` dostane 403 `FORBIDDEN`, nečlen ďalej 404 ([API](./api/project-languages.md#post-apiprojectsprojectidlanguages))
+- API: `DELETE /api/projects/:projectId/languages/:languageId` iba pre `ADMIN`, člen `EDITOR` dostane 403 `FORBIDDEN` ([API](./api/project-languages.md#delete-apiprojectsprojectidlanguageslanguageid))
+- API: `PUT /api/projects/:projectId/languages/order` iba pre `ADMIN`, člen `EDITOR` dostane 403 `FORBIDDEN` ([API](./api/project-languages.md#put-apiprojectsprojectidlanguagesorder))
+- frontend: tlačidlo **Pridať jazyk** na stránke Jazyky (aj v prázdnom stave) a ikonu koša **Odobrať** vidí iba `ADMIN`; editor nemá v tabuľke jazykov stĺpec akcií ani úchyty na presun a popis stránky mu presúvanie nespomína
+- API: `POST /api/projects` iba pre `ADMIN`, `EDITOR` dostane 403 `FORBIDDEN` ([API](./api/projects.md#post-apiprojects))
+- frontend: tlačidlo **Nový projekt** na úvodnej stránke vidí iba `ADMIN`; prázdny zoznam editora hovorí, že ho do projektu pridá administrátor ([Frontend](./frontend.md))
+- e2e: projekty „člena“ vytvára ADMIN cez `createProjectOf` (pridá člena a sám odíde)
+
+### Nápoveda k základnému jazyku a návrat do projektu zo správy (2026-10-21)
+
+- frontend: odznak **Základný** v tabuľke prekladov a na stránke Jazyky má tooltip, čo základný jazyk znamená; rovnaký text je pod poľom **Základný jazyk** v nastaveniach projektu ([Frontend](./frontend.md))
+- frontend: stránky správy otvorené z projektu majú v sidebare **Späť na projekt** namiesto **Všetky projekty** (`?from=<slug>`) ([Frontend](./frontend.md#layout-sidebar-a-horná-lišta))
+- frontend: loader v tlačidlách (napr. **Uložiť** a **Uložiť a ďalší**) je v strede aj pri zapnutom obmedzení animácií v systéme; Mantine ho centruje iba inline štýlom prechodu, ktorý `respectReducedMotion` vynechá, preto ho centruje aj trieda `loader` v `styles/components/Button.module.css`
+- frontend: text odznaku **ZÁKLADNÝ** na stránke Jazyky je zvislo v strede cez `text-box: trim-both cap alphabetic` namiesto horného paddingu 1 px ([Frontend](./frontend.md#stránka-jazyky-projektu))
+
 ### Kompaktný sidebar (2026-10-21)
 
 - frontend: tlačidlo **Zbaliť menu** dole v sidebare (od 62 em) ho zúži na 80 px s logom, avatarom projektu a ikonami s tooltipmi; voľba sa pamätá v prehliadači ([Frontend](./frontend.md#layout-sidebar-a-horná-lišta))

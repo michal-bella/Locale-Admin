@@ -6,8 +6,9 @@ import { flushSync } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import Sortable from 'sortablejs'
 
-import { type ProjectListItem } from '@locale/shared'
+import { type ProjectListItem, ROLE } from '@locale/shared'
 
+import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectsQuery } from '@/api/projects/projectsQuery'
 import { useReorderProjectsMutation } from '@/api/projects/useReorderProjectsMutation'
@@ -70,6 +71,7 @@ const ProjectProgress = ({ project }: { project: ProjectListItem }) => {
  */
 const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	const { t, i18n } = useTranslation()
+	const { data: user } = useMeQuery()
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectsQuery()
 	const listRef = useRef<HTMLUListElement>(null)
 	const [retrySucceeded, setRetrySucceeded] = useState(false)
@@ -201,7 +203,11 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	}
 
 	if (data.projects.length === 0) {
-		return <div className={classes.card}>{state(<Text size='sm'>{t('projectsPage.list.empty')}</Text>)}</div>
+		return (
+			<div className={classes.card}>
+				{state(<Text size='sm'>{t(user?.role === ROLE.ADMIN ? 'projectsPage.list.empty' : 'projectsPage.list.emptyEditor')}</Text>)}
+			</div>
+		)
 	}
 
 	return (

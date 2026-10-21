@@ -132,10 +132,10 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 		expect(getRes.body).toEqual(expected)
 	})
 
-	it('lets a member save without the base language or with the current one', async () => {
+	it('saves without the base language or with the current one', async () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
-		const cookie = await loginWithRole(app, ROLE.EDITOR, project.id)
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
 		const sk = await createLanguageRow(project.id, 'sk', { isBase: true })
 
 		const withoutBase = await patchProject(app, cookie, project.id, updateBody())
@@ -147,10 +147,10 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 		expect(projectSettingsSchema.parse(withCurrentBase.body)).toMatchObject({ name: 'B2C Android', baseLanguageId: sk.id })
 	})
 
-	it('moves the base flag to another language of the project for a member', async () => {
+	it('moves the base flag to another language of the project', async () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
-		const cookie = await loginWithRole(app, ROLE.EDITOR, project.id)
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
 		const sk = await createLanguageRow(project.id, 'sk', { isBase: true })
 		const en = await createLanguageRow(project.id, 'en')
 
@@ -214,11 +214,22 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
 		await createProjectRow('b2c-ios')
-		const cookie = await loginWithRole(app, ROLE.EDITOR, project.id)
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
 
 		const res = await patchProject(app, cookie, project.id, updateBody())
 
 		expectErrorCode(res, 409, ERROR_CODE.SLUG_TAKEN)
+		expect(await getTestPrisma().project.findUniqueOrThrow({ where: { id: project.id } })).toEqual(project)
+	})
+
+	it('returns 403 FORBIDDEN for an EDITOR member and saves nothing', async () => {
+		const app = createTestApp()
+		const project = await createProjectRow()
+		const cookie = await loginWithRole(app, ROLE.EDITOR, project.id)
+
+		const res = await patchProject(app, cookie, project.id, updateBody())
+
+		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
 		expect(await getTestPrisma().project.findUniqueOrThrow({ where: { id: project.id } })).toEqual(project)
 	})
 

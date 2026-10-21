@@ -1,6 +1,6 @@
 import { type APIRequestContext, expect, type Page, test } from '@playwright/test'
 
-import { readApiError } from '../support/api'
+import { MUTATION_HEADERS, readApiError } from '../support/api'
 import { ANONYMOUS, loginViaUi } from '../support/auth'
 import { type Language, listLanguages, newAdminApi } from '../support/languages'
 import { getMainNavigation } from '../support/layout'
@@ -227,19 +227,25 @@ test.describe('EDITOR', () => {
 		await expect(page).toHaveURL('/')
 	})
 
-	test('a member saves the settings of an own project', async ({ page }) => {
-		const editorApi = page.request
+	test('a member sees the settings disabled, can only leave, and PATCH returns 403', async ({ page }) => {
 		await openProjectSettingsPage(page, editor.projectSlug)
 		const form = getForm(page)
-		const before = await getProjectSettings(editorApi, editor.projectId)
+		const before = await getProjectSettings(page.request, editor.projectId)
 
-		await expect(form.baseLanguage).toBeEnabled()
-		await form.name.fill(`${before.name} člen`)
-		const patched = waitForProjectResponse(page, editor.projectId, 'PATCH')
-		await form.save.click()
-		expect((await patched).status()).toBe(200)
-		await expect(page.getByText(SAVE_SUCCESS)).toBeVisible()
-		expect(omitBase(await getProjectSettings(editorApi, editor.projectId))).toEqual({ ...omitBase(before), name: `${before.name} člen` })
+		for (const field of [form.name, form.slug, form.color, form.baseLanguage, form.protectVariables]) {
+			await expect(field).toBeDisabled()
+		}
+		await expect(form.name).toHaveValue(before.name)
+		await expect(form.save).toBeDisabled()
+		await expect(form.leave).toBeEnabled()
+
+		const patched = await page.request.patch(projectSettingsApi(editor.projectId), {
+			data: { name: `${before.name} člen`, slug: before.slug, primaryColor: before.primaryColor, protectVariables: before.protectVariables },
+			headers: MUTATION_HEADERS,
+		})
+		expect(patched.status()).toBe(403)
+		expect((await readApiError(patched)).code).toBe('FORBIDDEN')
+		expect(await getProjectSettings(page.request, editor.projectId)).toEqual(before)
 	})
 
 	test('a project the member is not in shows Projekt sa nenašiel and the API returns 404', async ({ page, playwright }) => {

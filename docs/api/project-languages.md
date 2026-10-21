@@ -21,7 +21,7 @@ Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez 
 
 - Každý projekt má najviac jeden základný jazyk (`isBase: true`), stráži to čiastočný unikátny index (viď [Databáza](../database.md#projectlanguage)).
 - Prvý jazyk projektu sa automaticky stane základným (pri vytvorení projektu prvý z `languageTags`).
-- Mení sa v nastaveniach projektu (`baseLanguageId` v `PATCH /api/projects/:projectId/settings`) alebo presunutím jazyka na prvé miesto (`PUT …/languages/order`), môže to každý člen aj `ADMIN`. Obe cesty menia ten istý príznak `isBase`.
+- Mení sa v nastaveniach projektu (`baseLanguageId` v `PATCH /api/projects/:projectId/settings`) alebo presunutím jazyka na prvé miesto (`PUT …/languages/order`), môže to iba `ADMIN`. Obe cesty menia ten istý príznak `isBase`.
 - Základný jazyk sa nedá odobrať (409 `LANGUAGE_IS_BASE`), najprv treba nastaviť iný.
 - Pridanie, odobratie, zmena poradia a zmena základného jazyka zamknú riadok projektu, takže dva súbežné prvé `POST` vytvoria práve jeden základný jazyk a `DELETE` nevráti 204, ak sa jazyk medzitým stal základným.
 
@@ -56,30 +56,35 @@ Vráti `200` s poľom `LanguageListItem[]` (schéma `languagesResponseSchema`, b
 
 ## PUT /api/projects/:projectId/languages/order
 
-Telo (schéma `reorderLanguagesRequestSchema`): `{ "languageIds": ["<id>", "<id>", …] }`, všetky jazyky projektu v novom poradí, každý práve raz. Poradie je spoločné pre celý projekt (nie per používateľ). Prvý jazyk sa v tej istej transakcii stane základným, ak ním ešte nie je.
+Iba `ADMIN`. Telo (schéma `reorderLanguagesRequestSchema`): `{ "languageIds": ["<id>", "<id>", …] }`, všetky jazyky projektu v novom poradí, každý práve raz. Poradie je spoločné pre celý projekt (nie per používateľ). Prvý jazyk sa v tej istej transakcii stane základným, ak ním ešte nie je.
 
 | HTTP | `code`             | Kedy                                                                                                                                                   |
 | ---- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 200  |                    | telo `LanguageListItem[]` v novom poradí                                                                                                               |
 | 400  | `VALIDATION_ERROR` | prázdny zoznam, duplicitné alebo neplatné ID; zoznam sa nezhoduje s jazykmi projektu, napr. iný člen medzitým jazyk pridal (`languageIds` / `INVALID`) |
+| 403  | `FORBIDDEN`        | volajúci nie je `ADMIN`                                                                                                                                |
 
 Pri chybe sa nič nezapíše.
 
 ## POST /api/projects/:projectId/languages
 
-Telo (schéma `createLanguageRequestSchema`): `{ "tag": "ru" }`. Ostatné polia sa ignorujú.
+Iba `ADMIN`. Telo (schéma `createLanguageRequestSchema`): `{ "tag": "ru" }`. Ostatné polia sa ignorujú.
 
 | HTTP | `code`             | Kedy                                              |
 | ---- | ------------------ | ------------------------------------------------- |
 | 201  |                    | telo `Language`                                   |
 | 400  | `VALIDATION_ERROR` | tag mimo katalógu alebo chýba (`tag` / `INVALID`) |
+| 403  | `FORBIDDEN`        | volajúci nie je `ADMIN`                           |
 | 409  | `LANGUAGE_TAKEN`   | jazyk už v projekte je                            |
 
 ## DELETE /api/projects/:projectId/languages/:languageId
 
+Iba `ADMIN`.
+
 | HTTP | `code`             | Kedy                                                                  |
 | ---- | ------------------ | --------------------------------------------------------------------- |
 | 204  |                    | jazyk odobraný                                                        |
+| 403  | `FORBIDDEN`        | volajúci nie je `ADMIN`                                               |
 | 404  | `NOT_FOUND`        | jazyk neexistuje, patrí inému projektu alebo `languageId` nie je UUID |
 | 409  | `LANGUAGE_IS_BASE` | ide o základný jazyk projektu                                         |
 

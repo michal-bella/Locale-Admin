@@ -99,7 +99,7 @@ test.describe('ADMIN', () => {
 		const removedPage = await context.newPage()
 		await loginViaUi(removedPage, editor)
 		await expectLoggedInHome(removedPage)
-		await expect(removedPage.getByText('Zatiaľ nemáte žiadny projekt. Vytvorte prvý.')).toBeVisible()
+		await expect(removedPage.getByText('Zatiaľ nie ste v žiadnom projekte. Do projektu vás pridá administrátor.')).toBeVisible()
 		await context.close()
 	})
 })

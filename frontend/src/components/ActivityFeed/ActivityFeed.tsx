@@ -2,7 +2,15 @@ import { Avatar, Button, Skeleton, Text } from '@mantine/core'
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ACTIVITY_TYPE, type ActivityEvent, type ActivityMember, LANGUAGE_TAGS, type LanguageTag, type TranslationsUpdatedWithin } from '@locale/shared'
+import {
+	ACTIVITY_TYPE,
+	type ActivityEvent,
+	type ActivityMember,
+	LANGUAGE_TAGS,
+	type LanguageTag,
+	TRANSLATIONS_SEARCH_MAX_LENGTH,
+	type TranslationsUpdatedWithin,
+} from '@locale/shared'
 
 import { useActivityInfiniteQuery } from '@/api/activity/activityQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -104,6 +112,8 @@ const ActivityFeed = ({ projectId, projectSlug }: ActivityFeedProps) => {
 	const renderEvent = (event: ActivityEvent) => {
 		const name = event.user?.name ?? t('dashboardPage.activity.deletedUser')
 		const changedBy = event.type === ACTIVITY_TYPE.TRANSLATION_UPDATED || event.type === ACTIVITY_TYPE.KEYS_IMPORTED ? event.user : null
+		// The key, not the editor filter: that one matches the last editor, so a later edit by someone else would hide the row.
+		const editedKey = event.type === ACTIVITY_TYPE.TRANSLATION_UPDATED && event.payload.name.length <= TRANSLATIONS_SEARCH_MAX_LENGTH ? event.payload : null
 		return (
 			<li key={event.id} className={classes.row}>
 				<Avatar aria-hidden size={32} radius='xl' color='var(--app-color-avatar-muted)' variant='filled' classNames={{ placeholder: classes.initials }}>
@@ -117,15 +127,26 @@ const ActivityFeed = ({ projectId, projectSlug }: ActivityFeedProps) => {
 						{formatRelativeTime(event.createdAt, i18n.language, now, 'short')}
 					</time>
 				</div>
-				{changedBy && (
+				{editedKey ? (
 					<RowAction
 						icon={ArrowRight}
 						tooltip={t('dashboardPage.activity.open')}
-						label={t('dashboardPage.activity.openLabel', { name })}
+						label={t('dashboardPage.activity.openKeyLabel', { key: editedKey.name })}
 						to='/projects/$projectSlug/translations'
 						params={{ projectSlug }}
-						search={{ updatedBy: changedBy.id, updatedWithin: updatedWithinFor(event.createdAt, now) }}
+						search={{ search: editedKey.name, namespace: editedKey.namespace }}
 					/>
+				) : (
+					changedBy && (
+						<RowAction
+							icon={ArrowRight}
+							tooltip={t('dashboardPage.activity.open')}
+							label={t('dashboardPage.activity.openLabel', { name })}
+							to='/projects/$projectSlug/translations'
+							params={{ projectSlug }}
+							search={{ updatedBy: changedBy.id, updatedWithin: updatedWithinFor(event.createdAt, now) }}
+						/>
+					)
 				)}
 			</li>
 		)

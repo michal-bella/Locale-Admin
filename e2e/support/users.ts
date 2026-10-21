@@ -4,7 +4,7 @@ import { type APIRequest, type APIRequestContext, expect, type Page } from '@pla
 
 import { type AdminUser, MUTATION_HEADERS, type Role } from './api'
 import { type Credentials, STORAGE_STATE } from './auth'
-import { createProject, projectMembersApi } from './projects'
+import { createProject, projectMembersApi, projectMembershipApi } from './projects'
 
 /** Every user the suite creates (members and admins) uses this prefix, so the teardown can delete them. */
 export const TEST_USER_EMAIL_PREFIX = 'e2e-editor-'
@@ -39,6 +39,15 @@ const postUser = async (api: Awaited<ReturnType<APIRequest['newContext']>>, role
 export const addMember = async (api: APIRequestContext, projectId: string, userId: string) => {
 	const response = await api.post(projectMembersApi(projectId), { data: { userId }, headers: MUTATION_HEADERS })
 	expect(response.status(), `POST ${projectMembersApi(projectId)}`).toBe(201)
+}
+
+/** Creates a project as the ADMIN (only an ADMIN creates projects), adds the user and leaves it, so the user is its only member. */
+export const createProjectOf = async (api: APIRequestContext, label: string, userId: string) => {
+	const project = await createProject(api, label)
+	await addMember(api, project.id, userId)
+	const response = await api.delete(projectMembershipApi(project.id), { data: {}, headers: MUTATION_HEADERS })
+	expect(response.status(), `DELETE ${projectMembershipApi(project.id)}`).toBe(204)
+	return { ...project, isMember: false, memberCount: 1 }
 }
 
 /** Creates an EDITOR with no project through `POST /api/admin/users` as the ADMIN. Needs the ADMIN storage state from the setup project. */

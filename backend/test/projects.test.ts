@@ -150,9 +150,9 @@ describe('GET /api/projects', () => {
 })
 
 describe('POST /api/projects', () => {
-	it('creates a project with trimmed values and its languages and makes the creator a member', async () => {
+	it('creates a project as an ADMIN with trimmed values and its languages and makes the creator a member', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app)
+		const { user, cookie } = await login(app, ROLE.ADMIN)
 
 		const res = await postProject(app, cookie, { name: ' Booking Web ', slug: ' booking-web ', languageTags: ['en', 'sk'] })
 
@@ -180,7 +180,7 @@ describe('POST /api/projects', () => {
 
 	it('returns 400 VALIDATION_ERROR with details for an invalid body', async () => {
 		const app = createTestApp()
-		const { cookie } = await login(app)
+		const { cookie } = await login(app, ROLE.ADMIN)
 
 		const res = await postProject(app, cookie, { name: ' ', slug: 'Booking Web', languageTags: [] })
 
@@ -195,7 +195,7 @@ describe('POST /api/projects', () => {
 
 	it('returns 409 SLUG_TAKEN for an existing slug', async () => {
 		const app = createTestApp()
-		const { cookie } = await login(app)
+		const { cookie } = await login(app, ROLE.ADMIN)
 		await createProjectRow('Booking Web', 'booking-web')
 
 		const res = await postProject(app, cookie, { name: 'Other', slug: 'booking-web', languageTags: ['sk'] })
@@ -203,6 +203,16 @@ describe('POST /api/projects', () => {
 		expectErrorCode(res, 409, ERROR_CODE.SLUG_TAKEN)
 		expect(await getTestPrisma().project.count()).toBe(1)
 		expect(await getTestPrisma().projectLanguage.count()).toBe(0)
+	})
+
+	it('returns 403 FORBIDDEN for an EDITOR and creates nothing', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app)
+
+		const res = await postProject(app, cookie, { name: 'Booking Web', slug: 'booking-web', languageTags: ['sk'] })
+
+		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
+		expect(await getTestPrisma().project.count()).toBe(0)
 	})
 
 	it('returns 401 AUTH_UNAUTHENTICATED without a session', async () => {
@@ -216,7 +226,7 @@ describe('POST /api/projects', () => {
 
 	it('returns 403 CSRF_REJECTED without X-Requested-With', async () => {
 		const app = createTestApp()
-		const { cookie } = await login(app)
+		const { cookie } = await login(app, ROLE.ADMIN)
 
 		const res = await request(app)
 			.post('/api/projects')

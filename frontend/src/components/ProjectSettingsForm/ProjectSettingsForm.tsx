@@ -30,7 +30,17 @@ const toFormValues = ({ name, slug, primaryColor, protectVariables, baseLanguage
  * Project settings page body (Figma 3:1557), also used in the edit modal on Projekty. "Uložiť zmeny" saves the whole form;
  * "Opustiť projekt" asks for confirmation.
  */
-const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, onSaved, onCancel, onNotFound, focusFirstField = false }: ProjectSettingsFormProps) => {
+const ProjectSettingsForm = ({
+	settings,
+	languages,
+	isMember,
+	onLeft,
+	onSaved,
+	onCancel,
+	onNotFound,
+	readOnly = false,
+	focusFirstField = false,
+}: ProjectSettingsFormProps) => {
 	const { t } = useTranslation()
 	const updateSettings = useUpdateProjectSettingsMutation(settings.id)
 	const [leaveOpened, leaveModal] = useDisclosure(false)
@@ -101,8 +111,9 @@ const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, onSaved, o
 				languages={languages}
 				savedColor={settings.primaryColor}
 				projectSlug={settings.slug}
+				disabled={readOnly}
 			/>
-			<VariableProtectionSection control={control} />
+			<VariableProtectionSection control={control} disabled={readOnly} />
 			<div className='flex flex-wrap justify-between gap-3'>
 				{isMember && (
 					<Button variant='outline' onClick={leaveModal.open}>
@@ -114,7 +125,7 @@ const ProjectSettingsForm = ({ settings, languages, isMember, onLeft, onSaved, o
 						{t('projectSettingsPage.cancel')}
 					</Button>
 				)}
-				<Button type='submit' loading={isPending} disabled={!isDirty} className='ml-auto'>
+				<Button type='submit' loading={isPending} disabled={readOnly || !isDirty} className='ml-auto'>
 					{t('projectSettingsPage.save')}
 				</Button>
 			</div>

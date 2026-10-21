@@ -5,6 +5,9 @@
 		"copyright": "© {{year}} Locale"
 	},
 	"documentTitle": "{{page}} – Locale",
+	"baseLanguage": {
+		"hint": "Jazyk, z ktorého sa prekladá. Pri úprave prekladu sa zobrazuje ako predloha a podľa neho sa kontrolujú premenné v ostatných jazykoch."
+	},
 	"notification": {
 		"close": "Zavrieť notifikáciu"
 	},
@@ -26,6 +29,7 @@
 		"list": {
 			"label": "Zoznam projektov",
 			"empty": "Zatiaľ nemáte žiadny projekt. Vytvorte prvý.",
+			"emptyEditor": "Zatiaľ nie ste v žiadnom projekte. Do projektu vás pridá administrátor.",
 			"loadError": "Zoznam projektov sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
 			"settings": "Nastavenia",
@@ -490,6 +494,7 @@
 			"deletedUser": "Odstránený používateľ",
 			"open": "Zobraziť v prekladoch",
 			"openLabel": "Zobraziť zmeny používateľa {{name}} v prekladoch",
+			"openKeyLabel": "Zobraziť preklad {{key}} v prekladoch",
 			"events": {
 				"projectCreated": "vytvorenie projektu {{name}}",
 				"projectUpdated": "zmena nastavení projektu: {{fields}}",
@@ -882,6 +887,7 @@
 		"eyebrow": "Lokalizácia",
 		"title": "Jazyky",
 		"description": "Jazyky, do ktorých sa projekt prekladá. Poradie zmeníte potiahnutím – v tomto poradí sa zobrazia stĺpce v prekladoch a jazyk na prvom mieste je základný.",
+		"descriptionEditor": "Jazyky, do ktorých sa projekt prekladá. V tomto poradí sa zobrazia stĺpce v prekladoch a jazyk na prvom mieste je základný.",
 		"addButton": "Pridať jazyk",
 		"table": {
 			"move": "Presunúť",
@@ -993,6 +999,7 @@
 	"sidebar": {
 		"label": "Hlavná navigácia",
 		"allProjects": "Všetky projekty",
+		"backToProject": "Späť na projekt",
 		"languages": "Jazyky",
 		"admin": "Správa",
 		"adminProjects": "Projekty",

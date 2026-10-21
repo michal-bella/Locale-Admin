@@ -9,6 +9,7 @@ import { type Language, listLanguages, projectLanguagesApi } from '../support/la
 import {
 	createProject,
 	listProjects,
+	newTestProjectInput,
 	projectMembersApi,
 	projectMembershipApi,
 	PROJECTS_API,
@@ -16,7 +17,7 @@ import {
 	TEST_PROJECT_SLUG_PREFIX,
 } from '../support/projects'
 import { insertTranslationKeys, listTranslations, PREFERENCES_API, projectTranslationsApi, translationApi, translationKeyApi } from '../support/translations'
-import { addMember, createEditor, createMember, newTestUserCredentials } from '../support/users'
+import { addMember, createEditor, createMember, createProjectOf, newTestUserCredentials } from '../support/users'
 
 const CREDENTIALS = { email: 'csrf-check@example.com', password: 'irrelevant' }
 
@@ -362,7 +363,7 @@ test.describe('anonymous /api/projects', () => {
 test.describe('/api/projects as a member', () => {
 	test.use({ storageState: ANONYMOUS })
 
-	test('a member sees only own projects, creates one, lists members but cannot add or remove them, leaves and cannot open a foreign project', async ({
+	test('a member sees only own projects, cannot create one, lists members but cannot add or remove them, leaves and cannot open a foreign project', async ({
 		request,
 		playwright,
 		baseURL,
@@ -373,11 +374,15 @@ test.describe('/api/projects as a member', () => {
 		expect(login.status()).toBe(200)
 		expect((await listProjects(request)).map(({ id }) => id)).toEqual([editor.projectId])
 
-		const created = await createProject(request, 'smoke')
-		expect(created).toMatchObject({ isMember: true, primaryColor: '#E83E8C' })
-		const duplicate = await request.post(PROJECTS_API, { data: { name: 'Duplicate', slug: created.slug, languageTags: ['sk'] }, headers: MUTATION_HEADERS })
-		expect(duplicate.status()).toBe(409)
-		expect((await readApiError(duplicate)).code).toBe('SLUG_TAKEN')
+		const forbiddenCreate = await request.post(PROJECTS_API, {
+			data: { ...newTestProjectInput('smoke-member'), languageTags: ['sk'] },
+			headers: MUTATION_HEADERS,
+		})
+		expect(forbiddenCreate.status()).toBe(403)
+		expect((await readApiError(forbiddenCreate)).code).toBe('FORBIDDEN')
+		const adminApi = await playwright.request.newContext({ baseURL, storageState: STORAGE_STATE.ADMIN })
+		const created = await createProjectOf(adminApi, 'smoke', editor.id)
+		await adminApi.dispose()
 
 		const lastMember = await request.delete(projectMembershipApi(created.id), { data: {}, headers: MUTATION_HEADERS })
 		expect(lastMember.status()).toBe(409)
@@ -411,12 +416,8 @@ test.describe('ADMIN /api/projects', () => {
 	test.use({ storageState: STORAGE_STATE.ADMIN })
 
 	test('GET also lists a project the admin is not a member of, with isMember false', async ({ request, playwright, baseURL }) => {
-		const editor = await createEditor(playwright.request, baseURL)
-		const editorApi = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
-		const login = await editorApi.post('/api/auth/login', { data: { email: editor.email, password: editor.password }, headers: MUTATION_HEADERS })
-		expect(login.status()).toBe(200)
-		const ownedByMember = await createProject(editorApi, 'member-owned')
-		await editorApi.dispose()
+		const member = await createMember(playwright.request, baseURL)
+		const ownedByMember = await createProjectOf(request, 'member-owned', member.id)
 
 		const project = (await listProjects(request)).find(({ id }) => id === ownedByMember.id)
 		expect(project).toEqual({ ...ownedByMember, isMember: false })

@@ -1,3 +1,8 @@
 .root[data-variant='filled'] {
 	box-shadow: var(--mantine-shadow-primary);
 }
+
+/* Mantine centers the loader only through its Transition's inline style, which is dropped under `respectReducedMotion`; same offset as Mantine. */
+.loader {
+	transform: translate(-50%, calc(-50% + 1px));
+}

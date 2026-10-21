@@ -9,7 +9,7 @@ import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
 import i18n from '@/lib/i18n'
-import { ADMIN_USER, apiError, projectListRoute, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: LanguageListItem['tag'], index: number, isBase = false): LanguageListItem => {
@@ -188,6 +188,17 @@ describe('ProjectLanguagesPage table', () => {
 		expect(await screen.findByRole('dialog', { name: 'Pridať jazyk' })).toBeInTheDocument()
 	})
 
+	it('hides Pridať jazyk from an EDITOR, also in the empty state', async () => {
+		signedInAs(EDITOR_USER, {
+			...PROJECT_ROUTES,
+			[`GET ${LIST_URL}`]: languagesResponse([]),
+		})
+		renderApp(PAGE_PATH)
+
+		expect(await screen.findByText('Projekt zatiaľ nemá žiadne jazyky.')).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Pridať jazyk' })).not.toBeInTheDocument()
+	})
+
 	it('shows the translated load error and retries', async () => {
 		let backendUp = false
 		signedInAs(ADMIN_USER, {
@@ -332,6 +343,20 @@ describe('Reordering languages', () => {
 		await findInTable('Slovenčina')
 		expect(screen.queryByRole('button', { name: 'Presunúť jazyk Slovenčina' })).not.toBeInTheDocument()
 	})
+
+	it('has no grips for an EDITOR and does not tell them to drag', async () => {
+		signedInAs(EDITOR_USER, {
+			...PROJECT_ROUTES,
+			[`GET ${LIST_URL}`]: languagesResponse([SLOVAK, ENGLISH]),
+		})
+		renderApp(PAGE_PATH)
+
+		await findInTable('Angličtina')
+		expect(screen.queryByRole('button', { name: /^Presunúť jazyk/ })).not.toBeInTheDocument()
+		expect(
+			screen.getByText('Jazyky, do ktorých sa projekt prekladá. V tomto poradí sa zobrazia stĺpce v prekladoch a jazyk na prvom mieste je základný.'),
+		).toBeInTheDocument()
+	})
 })
 
 describe('AddLanguageModal', () => {
@@ -440,6 +465,19 @@ describe('AddLanguageModal', () => {
 })
 
 describe('Deleting a language', () => {
+	it('shows no Odobrať and no actions column to an EDITOR', async () => {
+		signedInAs(EDITOR_USER, {
+			...PROJECT_ROUTES,
+			[`GET ${LIST_URL}`]: languagesResponse([SLOVAK, ENGLISH]),
+		})
+		renderApp(PAGE_PATH)
+
+		const table = await screen.findByRole('table', { name: 'Zoznam jazykov' })
+		expect(await within(table).findByText('Angličtina')).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: /^Odobrať jazyk/ })).not.toBeInTheDocument()
+		expect(within(table).queryByRole('columnheader', { name: 'Akcie' })).not.toBeInTheDocument()
+	})
+
 	it('disables Odobrať in the row of the base language', async () => {
 		signedInAs(ADMIN_USER, {
 			...PROJECT_ROUTES,

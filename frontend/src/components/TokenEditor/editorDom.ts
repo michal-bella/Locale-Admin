@@ -13,8 +13,8 @@ export type ChipClassNames = Record<Exclude<Token['type'], 'text'>, string | und
 
 export type ChipTitles = Partial<Record<Exclude<Token['type'], 'text'>, string>>
 
-/** Extra class and title of one chip, e.g. the warning of a placeholder the base language lacks. */
-export type ChipDecoration = { className: string; title: string }
+/** Extra class of one chip, e.g. the warning of a placeholder the base language lacks. */
+export type ChipDecoration = { className: string }
 
 const isChip = (node: Node): node is HTMLElement => node instanceof HTMLElement && node.hasAttribute(TOKEN_ATTRIBUTE)
 
@@ -84,7 +84,7 @@ export const render = (
 		if (decoration) {
 			chip.classList.add(decoration.className)
 		}
-		const title = decoration?.title ?? titles[token.type]
+		const title = titles[token.type]
 		if (title) {
 			chip.title = title
 		}

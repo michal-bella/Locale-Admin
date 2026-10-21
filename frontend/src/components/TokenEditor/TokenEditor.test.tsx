@@ -1,3 +1,4 @@
+import { MantineProvider } from '@mantine/core'
 import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vite-plus/test'
@@ -25,7 +26,8 @@ const Harness = ({ initial, onChange, ...props }: Partial<TokenEditorProps> & { 
 
 const renderEditor = (initial: string, props: Partial<TokenEditorProps> = {}) => {
 	const onChange = vi.fn()
-	render(<Harness initial={initial} onChange={onChange} {...props} />)
+	// The warning tooltip is a Mantine component.
+	render(<Harness initial={initial} onChange={onChange} {...props} />, { wrapper: MantineProvider })
 	const field = screen.getByRole('textbox', { name: LABEL })
 	return { field, onChange }
 }
@@ -55,13 +57,16 @@ describe('TokenEditor', () => {
 		expect(field).toHaveTextContent('Hi {{name}}, <b>bold</b>')
 	})
 
-	it('marks a placeholder chip the base language does not have with a warning class and title', () => {
+	it('marks a placeholder chip the base language does not have with a warning class and a tooltip on hover', async () => {
 		const { field } = renderEditor('Margin {{ perecentage }} of {{ amount }}', { basePlaceholders: new Set(['{{amount}}']) })
 		const [typo, known] = Array.from(field.querySelectorAll(`[${TOKEN_ATTRIBUTE}]`))
 		expect(typo?.className).toMatch(/chipWarning/)
-		expect(typo).toHaveAttribute('title', 'Premenná nie je v základnom jazyku – skontrolujte preklep.')
 		expect(known?.className).not.toMatch(/chipWarning/)
-		expect(known).not.toHaveAttribute('title')
+
+		fireEvent.mouseOver(typo as Element)
+		expect(await screen.findByRole('tooltip')).toHaveTextContent('Premenná nie je v základnom jazyku – skontrolujte preklep.')
+		fireEvent.mouseOver(known as Element)
+		expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
 	})
 
 	it('reports typed text and turns a typed placeholder into a chip', () => {

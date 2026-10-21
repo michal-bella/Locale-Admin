@@ -1,4 +1,5 @@
-import { type ClipboardEvent, type KeyboardEvent, useImperativeHandle, useLayoutEffect, useRef } from 'react'
+import { Tooltip } from '@mantine/core'
+import { type ClipboardEvent, type KeyboardEvent, type MouseEvent, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import textClasses from '@/components/TranslationText/TranslationText.module.css'
@@ -43,9 +44,19 @@ const TokenEditor = ({
 	const tokens = (text: string) => tokenize(text, { tags: true, hash: pluralHash })
 	const chipTitles: ChipTitles = { hash: t('translationsPage.plural.hash') }
 	const decorate = (token: Token): ChipDecoration | undefined =>
-		token.type === 'placeholder' && isUnknownPlaceholder(token.value, basePlaceholders)
-			? { className: textClasses.chipWarning ?? '', title: t('translationsPage.editor.unknownVariable') }
-			: undefined
+		token.type === 'placeholder' && isUnknownPlaceholder(token.value, basePlaceholders) ? { className: textClasses.chipWarning ?? '' } : undefined
+	// A native title never shows inside contenteditable, so a Tooltip sits on an anchor laid over the hovered warning chip.
+	const [warningRect, setWarningRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
+	const trackWarningChip = (event: MouseEvent<HTMLDivElement>) => {
+		const chip = event.target instanceof Element ? event.target.closest(`.${textClasses.chipWarning}`) : null
+		if (!chip || !rootRef.current) {
+			setWarningRect(null)
+			return
+		}
+		const outer = rootRef.current.parentElement?.getBoundingClientRect()
+		const rect = chip.getBoundingClientRect()
+		setWarningRect({ left: rect.left - (outer?.left ?? 0), top: rect.top - (outer?.top ?? 0), width: rect.width, height: rect.height })
+	}
 
 	const commit = (next: string, caret: number) => {
 		const root = rootRef.current
@@ -147,39 +158,48 @@ const TokenEditor = ({
 	}
 
 	return (
-		<div
-			ref={rootRef}
-			role='textbox'
-			aria-multiline
-			aria-label={label}
-			aria-describedby={describedBy}
-			aria-invalid={invalid || undefined}
-			aria-readonly={readOnly || undefined}
-			contentEditable={readOnly ? false : 'plaintext-only'}
-			tabIndex={0}
-			spellCheck={false}
-			data-maxlength={maxLength}
-			data-autofocus={modalAutofocus || undefined}
-			onFocus={() => {
-				if (modalAutofocus && !autofocusedRef.current && rootRef.current) {
-					autofocusedRef.current = true
-					setCaret(rootRef.current, current().length)
-				}
-			}}
-			className={`${classes.root} ${className ?? ''}`}
-			onInput={handleInput}
-			onKeyDown={handleKeyDown}
-			onPaste={handlePaste}
-			onDrop={(event) => event.preventDefault()}
-			onCompositionStart={() => {
-				composingRef.current = true
-			}}
-			onCompositionEnd={() => {
-				composingRef.current = false
-				handleInput()
-			}}
-			onBlur={onBlur}
-		/>
+		<div className={`${classes.wrapper} ${className ?? ''}`}>
+			<div
+				ref={rootRef}
+				role='textbox'
+				aria-multiline
+				aria-label={label}
+				aria-describedby={describedBy}
+				aria-invalid={invalid || undefined}
+				aria-readonly={readOnly || undefined}
+				contentEditable={readOnly ? false : 'plaintext-only'}
+				tabIndex={0}
+				spellCheck={false}
+				data-maxlength={maxLength}
+				data-autofocus={modalAutofocus || undefined}
+				onFocus={() => {
+					if (modalAutofocus && !autofocusedRef.current && rootRef.current) {
+						autofocusedRef.current = true
+						setCaret(rootRef.current, current().length)
+					}
+				}}
+				className={classes.root}
+				onMouseOver={trackWarningChip}
+				onMouseLeave={() => setWarningRect(null)}
+				onInput={handleInput}
+				onKeyDown={handleKeyDown}
+				onPaste={handlePaste}
+				onDrop={(event) => event.preventDefault()}
+				onCompositionStart={() => {
+					composingRef.current = true
+				}}
+				onCompositionEnd={() => {
+					composingRef.current = false
+					handleInput()
+				}}
+				onBlur={onBlur}
+			/>
+			{warningRect && (
+				<Tooltip opened label={t('translationsPage.editor.unknownVariable')} multiline w={260}>
+					<span aria-hidden className={classes.warningAnchor} style={warningRect} />
+				</Tooltip>
+			)}
+		</div>
 	)
 }
 

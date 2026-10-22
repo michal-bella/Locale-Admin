@@ -9,4 +9,6 @@ export type TranslationsVersionBannerProps = {
 	writesBlocked: boolean
 	onShow: () => void
 	onClear: () => void
+	/** Opens the lock / unlock confirmation of the version; only an ADMIN gets the button. */
+	onToggleLock?: () => void
 }

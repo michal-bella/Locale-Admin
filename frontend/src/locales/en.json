@@ -261,6 +261,7 @@
 		"title": "Translations",
 		"description": "Manage the texts and translations of your project in one place.",
 		"importButton": "Import",
+		"createVersionButton": "Create version",
 		"createKeyButton": "Add key",
 		"stats": {
 			"totalKeys": "Total keys",
@@ -460,7 +461,11 @@
 			"lockedEditor": "Version {{name}} is locked; only an administrator edits its translations now.",
 			"unlocked": "Version {{name}} is past its end and unlocked for late changes.",
 			"show": "Show the version's work",
-			"clear": "Clear the version filter"
+			"clear": "Clear the version filter",
+			"lock": "Lock",
+			"unlock": "Unlock",
+			"lockLabel": "Lock version {{name}}",
+			"unlockLabel": "Unlock version {{name}}"
 		}
 	},
 	"dashboardPage": {

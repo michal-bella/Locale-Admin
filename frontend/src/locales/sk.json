@@ -263,6 +263,7 @@
 		"title": "Preklady",
 		"description": "Spravujte texty a preklady vášho projektu na jednom mieste.",
 		"importButton": "Importovať",
+		"createVersionButton": "Vytvoriť verziu",
 		"createKeyButton": "Pridať kľúč",
 		"stats": {
 			"totalKeys": "Celkom kľúčov",
@@ -468,7 +469,11 @@
 			"lockedEditor": "Verzia {{name}} je uzamknutá, jej preklady upravuje už len administrátor.",
 			"unlocked": "Verzia {{name}} je po termíne odomknutá na dodatočné úpravy.",
 			"show": "Zobraziť prácu verzie",
-			"clear": "Zrušiť filter verzie"
+			"clear": "Zrušiť filter verzie",
+			"lock": "Zamknúť",
+			"unlock": "Odomknúť",
+			"lockLabel": "Zamknúť verziu {{name}}",
+			"unlockLabel": "Odomknúť verziu {{name}}"
 		}
 	},
 	"dashboardPage": {

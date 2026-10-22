@@ -295,4 +295,86 @@ describe('TranslationsPage versions', () => {
 		expect(bodies[0]).toMatchObject({ versionId: CURRENT.id })
 		expect(bodies[1]).not.toHaveProperty('versionId')
 	})
+
+	it('preselects the filtered version in the import', async () => {
+		mockPage()
+		renderApp(`${PAGE_PATH}?version=${LOCKED.id}`)
+		await findRow('dashboard.welcome')
+
+		fireEvent.click(screen.getByRole('button', { name: 'Importovať' }))
+		const dialog = await screen.findByRole('dialog', { name: 'Importovať preklady' })
+		expect(within(dialog).getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.44')
+	})
+
+	it('creates a version from the page and filters by it', async () => {
+		const NEXT = version({ id: '00000000-0000-4000-8000-000000000503', name: 'v2.46', startsAt: dayShift(13), endsAt: dayShift(30), state: 'UPCOMING' })
+		let created = false
+		const requests = mockPage({
+			routes: {
+				[`GET ${VERSIONS_URL}`]: () => ({ status: 200, data: { items: created ? [NEXT, CURRENT, LOCKED] : [CURRENT, LOCKED] } }),
+				[`POST ${VERSIONS_URL}`]: () => {
+					created = true
+					return { status: 201, data: NEXT }
+				},
+			},
+		})
+		const router = renderApp(PAGE_PATH)
+		await findRow('dashboard.welcome')
+
+		fireEvent.click(screen.getByRole('button', { name: 'Vytvoriť verziu' }))
+		const dialog = await screen.findByRole('dialog', { name: 'Vytvoriť verziu' })
+		fireEvent.change(within(dialog).getByLabelText('Názov verzie'), { target: { value: NEXT.name } })
+		fireEvent.change(within(dialog).getByLabelText('Začiatok'), { target: { value: NEXT.startsAt } })
+		fireEvent.change(within(dialog).getByLabelText('Koniec'), { target: { value: NEXT.endsAt } })
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Vytvoriť' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Vytvoriť verziu' })).not.toBeInTheDocument())
+		expect(bodyOf(requests.find((request) => request.method === 'post' && request.url === VERSIONS_URL))).toEqual({
+			name: NEXT.name,
+			startsAt: NEXT.startsAt,
+			endsAt: NEXT.endsAt,
+		})
+		await waitFor(() => expect(router.state.location.search).toEqual({ version: NEXT.id }))
+		expect(await screen.findByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.46')
+		expect(await screen.findByText(`Verzia v2.46 začína o ${daysUntil(NEXT.startsAt, TODAY)} dní.`)).toBeInTheDocument()
+	})
+
+	it('lets an ADMIN lock and unlock the version of the banner', async () => {
+		let lock: string | undefined
+		const requests = mockPage({
+			routes: {
+				[`GET ${VERSIONS_URL}`]: () => ({
+					status: 200,
+					data: { items: [lock === 'LOCKED' ? { ...CURRENT, lock: VERSION_LOCK.LOCKED, isLocked: true, state: 'LOCKED' } : CURRENT, LOCKED] },
+				}),
+				[`PATCH ${VERSIONS_URL}/${CURRENT.id}`]: () => ({ status: 200, data: { ...CURRENT, lock, isLocked: lock === 'LOCKED' } }),
+			},
+		})
+		renderApp(PAGE_PATH)
+		await findRow('dashboard.welcome')
+
+		fireEvent.click(await screen.findByRole('button', { name: 'Zamknúť verziu v2.45' }))
+		const lockDialog = await screen.findByRole('dialog', { name: 'Zamknúť verziu' })
+		lock = 'LOCKED'
+		fireEvent.click(within(lockDialog).getByRole('button', { name: 'Zamknúť' }))
+		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Zamknúť verziu' })).not.toBeInTheDocument())
+		expect(bodyOf(requests.find((request) => request.method === 'patch'))).toEqual({ lock: 'LOCKED' })
+		expect(await screen.findByText('Verzia v2.45 je uzamknutá.')).toBeInTheDocument()
+
+		fireEvent.click(await screen.findByRole('button', { name: 'Odomknúť verziu v2.45' }))
+		const unlockDialog = await screen.findByRole('dialog', { name: 'Odomknúť verziu' })
+		lock = 'UNLOCKED'
+		fireEvent.click(within(unlockDialog).getByRole('button', { name: 'Odomknúť' }))
+		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Odomknúť verziu' })).not.toBeInTheDocument())
+		expect(bodyOf(requests.filter((request) => request.method === 'patch').at(-1))).toEqual({ lock: 'UNLOCKED' })
+	})
+
+	it('shows an EDITOR no Vytvoriť verziu and no lock button', async () => {
+		mockPage({ user: EDITOR_USER })
+		renderApp(PAGE_PATH)
+		await findRow('dashboard.welcome')
+
+		expect(screen.queryByRole('button', { name: 'Vytvoriť verziu' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Zamknúť verziu v2.45' })).not.toBeInTheDocument()
+	})
 })

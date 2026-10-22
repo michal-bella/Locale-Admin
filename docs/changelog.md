@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Verzie prekladov – vytvorenie a zamknutie zo stránky Preklady (2026-10-22)
+
+- frontend: stránka Preklady má pre `ADMIN` tlačidlo **Vytvoriť verziu** (nová verzia sa hneď zapne vo filtri) a v banneri verzie **Zamknúť** / **Odomknúť**; import predvolí verziu zapnutú vo filtri namiesto aktuálnej ([Frontend](./frontend.md#verzie-na-stránke-preklady))
+
 ### Zmena hesla v profile (2026-10-22)
 
 - API: `PUT /api/profile/password` s telom `{ currentPassword, newPassword }` overí aktuálne heslo (400 `PASSWORD_INCORRECT`), uloží nový hash a `passwordChangedAt`, vráti `Profile`; sessions zostávajú ([profil](./api/profile.md#put-apiprofilepassword))

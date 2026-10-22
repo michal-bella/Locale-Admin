@@ -17,7 +17,7 @@ import { useTranslationsQuery } from '@/api/translations/translationsQuery'
 import { useUpdateTranslationMutation } from '@/api/translations/useUpdateTranslationMutation'
 import CreateKeyModal from '@/components/CreateKeyModal/CreateKeyModal'
 import ExportModal from '@/components/ExportModal/ExportModal'
-import { Download, Plus, Upload } from '@/components/Icons'
+import { Download, Plus, Tag, Upload } from '@/components/Icons'
 import ImportModal from '@/components/ImportModal/ImportModal'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import TranslationStats from '@/components/TranslationStats/TranslationStats'
@@ -27,6 +27,8 @@ import TranslationsToolbar from '@/components/TranslationsToolbar/TranslationsTo
 import TranslationsVersionBanner from '@/components/TranslationsVersionBanner/TranslationsVersionBanner'
 import TranslationsViewControls from '@/components/TranslationsViewControls/TranslationsViewControls'
 import TranslationsWarningsBanner from '@/components/TranslationsWarningsBanner/TranslationsWarningsBanner'
+import VersionFormModal from '@/components/VersionFormModal/VersionFormModal'
+import VersionLockModal from '@/components/VersionLockModal/VersionLockModal'
 import { TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsPage.module.css'
@@ -39,7 +41,8 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
  * by all of them (no language ids in the query); `?languages=` narrows its columns to the base language plus the chosen ones without changing
  * the row status. `COMPACT` is the Figma source → target pair. Either view lays its languages side by side or stacked, also a preference
  * (`me.preferences.translationsLayout`). Without Posledný sync and the Na kontrolu card. Importovať (ADMIN only) opens `ImportModal`, Exportovať (every member) `ExportModal`.
- * A VISITOR gets the table read-only: cells are text and there is no edit modal.
+ * A VISITOR gets the table read-only: cells are text and there is no edit modal. An ADMIN also creates a version here (the page then
+ * filters by it) and locks or unlocks the version of the banner.
  */
 const TranslationsPage = () => {
 	const { t } = useTranslation()
@@ -64,6 +67,8 @@ const TranslationsPage = () => {
 	const [importOpened, importModal] = useDisclosure(false)
 	const [exportOpened, exportModal] = useDisclosure(false)
 	const [createKeyOpened, createKeyModal] = useDisclosure(false)
+	const [createVersionOpened, createVersionModal] = useDisclosure(false)
+	const [lockVersionOpened, lockVersionModal] = useDisclosure(false)
 	const importButtonRef = useRef<HTMLButtonElement>(null)
 
 	// Importovať in the empty state is gone once the import added keys, so Mantine has nothing to return the focus to; the header button
@@ -185,6 +190,11 @@ const TranslationsPage = () => {
 					titleSize='h2'
 				/>
 				<div className='flex gap-2'>
+					{isAdmin && (
+						<Button variant='default' leftSection={<Tag aria-hidden />} onClick={createVersionModal.open}>
+							{t('translationsPage.createVersionButton')}
+						</Button>
+					)}
 					{/* A key goes into an existing namespace, so a project without keys starts with an import. */}
 					{isAdmin && namespaces.length > 0 && (
 						<Button variant='default' leftSection={<Plus aria-hidden />} onClick={createKeyModal.open}>
@@ -226,6 +236,7 @@ const TranslationsPage = () => {
 					writesBlocked={!isAdmin && bannerVersion.isLocked}
 					onShow={() => updateSearch({ version: bannerVersion.id })}
 					onClear={() => updateSearch({ version: undefined })}
+					onToggleLock={isAdmin ? lockVersionModal.open : undefined}
 				/>
 			)}
 			{!isError && !isPending && data && (data.stats.warnings > 0 || search.warnings) && (
@@ -302,7 +313,18 @@ const TranslationsPage = () => {
 					onPageSizeChange={(next) => updateSearch({ pageSize: next === TRANSLATIONS_PAGE_SIZES[0] ? undefined : next })}
 				/>
 			)}
-			{isAdmin && <ImportModal projectId={projectId} versions={versions} opened={importOpened} onClose={closeImport} />}
+			{isAdmin && <ImportModal projectId={projectId} versions={versions} defaultVersionId={search.version} opened={importOpened} onClose={closeImport} />}
+			{isAdmin && (
+				<VersionFormModal
+					projectId={projectId}
+					opened={createVersionOpened}
+					version={null}
+					onClose={createVersionModal.close}
+					// The new version is what the user works in next, so the list filters by it right away.
+					onCreated={(created) => updateSearch({ version: created.id })}
+				/>
+			)}
+			{isAdmin && <VersionLockModal projectId={projectId} opened={lockVersionOpened} version={bannerVersion ?? null} onClose={lockVersionModal.close} />}
 			{isAdmin && (
 				<CreateKeyModal
 					projectId={projectId}

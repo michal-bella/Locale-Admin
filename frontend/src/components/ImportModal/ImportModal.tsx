@@ -61,7 +61,7 @@ const mergeMapping = (preview: ImportPreviewResponse, previous: ImportColumnMapp
  * Import of a CSV file in two steps (Figma 3:2042 for the first one): upload with local checks and the preview, then the review of
  * the language columns, warnings and counts, and the import itself. The file stays in memory between the steps.
  */
-const ImportModal = ({ projectId, versions, opened, onClose }: ImportModalProps) => {
+const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }: ImportModalProps) => {
 	const { t } = useTranslation()
 	const isMobile = useMediaQuery(MOBILE_QUERY) ?? false
 	const { data: languages = [] } = useProjectLanguagesQuery(projectId)
@@ -72,7 +72,7 @@ const ImportModal = ({ projectId, versions, opened, onClose }: ImportModalProps)
 	const [step, setStep] = useState<Step>('UPLOAD')
 	const [file, setFile] = useState<SelectedImportFile | null>(null)
 	const [createMissingKeys, setCreateMissingKeys] = useState(true)
-	// `null` until the user picks: the current version by date, none without one (also for a version created meanwhile).
+	// `null` until the user picks: the version filtered on the page, else the current one by date, none without one (also for a version created meanwhile).
 	const [pickedVersionId, setPickedVersionId] = useState<string | null>(null)
 	const [versionFormOpened, versionForm] = useDisclosure(false)
 	const [fileError, setFileError] = useState<string>()
@@ -96,7 +96,8 @@ const ImportModal = ({ projectId, versions, opened, onClose }: ImportModalProps)
 
 	const isPending = previewMutation.isPending || importMutation.isPending || createLanguage.isPending
 
-	const versionId = pickedVersionId ?? versions.find((version) => version.isCurrent)?.id ?? NO_VERSION
+	const versionId =
+		pickedVersionId ?? versions.find((version) => version.id === defaultVersionId)?.id ?? versions.find((version) => version.isCurrent)?.id ?? NO_VERSION
 	const selectedVersion = versions.find((version) => version.id === versionId)
 
 	const resetAndClose = () => {

@@ -3,16 +3,17 @@ import { useTranslation } from 'react-i18next'
 
 import { daysUntil, toVersionDate } from '@locale/shared'
 
-import { Lock, Tag } from '@/components/Icons'
+import { Lock, LockUnlocked, Tag } from '@/components/Icons'
 
 import classes from './TranslationsVersionBanner.module.css'
 import { type TranslationsVersionBannerProps } from './types'
 
 /**
  * Countdown of a version above the translations card: how long editors have until the version locks, or that it is locked (and, for an
- * editor, that only an administrator edits it now). The button filters the list to the version's work or clears that filter.
+ * editor, that only an administrator edits it now). The button filters the list to the version's work or clears that filter; an ADMIN
+ * also locks or unlocks the version from here.
  */
-const TranslationsVersionBanner = ({ version, active, writesBlocked, onShow, onClear }: TranslationsVersionBannerProps) => {
+const TranslationsVersionBanner = ({ version, active, writesBlocked, onShow, onClear, onToggleLock }: TranslationsVersionBannerProps) => {
 	const { t } = useTranslation()
 	// Days are counted in the browser's calendar: the deadline is a day, not a moment.
 	const today = toVersionDate(new Date())
@@ -38,15 +39,28 @@ const TranslationsVersionBanner = ({ version, active, writesBlocked, onShow, onC
 			classNames={{ root: classes.root, message: classes.message }}
 		>
 			<span>{message}</span>
-			{active ? (
-				<Button variant='default' size='xs' onClick={onClear}>
-					{t('translationsPage.version.clear')}
-				</Button>
-			) : (
-				<Button variant='default' size='xs' onClick={onShow}>
-					{t('translationsPage.version.show')}
-				</Button>
-			)}
+			<div className='flex flex-wrap gap-2'>
+				{onToggleLock && (
+					<Button
+						variant='default'
+						size='xs'
+						leftSection={version.isLocked ? <LockUnlocked aria-hidden /> : <Lock aria-hidden />}
+						aria-label={t(version.isLocked ? 'translationsPage.version.unlockLabel' : 'translationsPage.version.lockLabel', { name })}
+						onClick={onToggleLock}
+					>
+						{t(version.isLocked ? 'translationsPage.version.unlock' : 'translationsPage.version.lock')}
+					</Button>
+				)}
+				{active ? (
+					<Button variant='default' size='xs' onClick={onClear}>
+						{t('translationsPage.version.clear')}
+					</Button>
+				) : (
+					<Button variant='default' size='xs' onClick={onShow}>
+						{t('translationsPage.version.show')}
+					</Button>
+				)}
+			</div>
 		</Alert>
 	)
 }

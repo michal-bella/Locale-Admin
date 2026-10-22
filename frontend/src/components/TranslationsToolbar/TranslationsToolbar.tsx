@@ -21,7 +21,7 @@ const renderStatusOption = ({ option }: ComboboxLikeRenderOptionInput<ComboboxIt
 }
 
 /**
- * Filters of the translations table (Figma 3:121): search, sort, status, namespace, Editor, Verzia and Zmenené, each with an icon in the left
+ * Filters of the translations table (Figma 3:121): search, sort, Verzia, status, namespace, Editor and Zmenené, each with an icon in the left
  * section so the row of selects reads apart, then the switches Zobraziť len zmeny and Len preklady. How the table is laid out (view, layout,
  * languages) lives in `TranslationsViewControls`. The search writes to the URL 300 ms after the last keystroke; the X and Esc clear it right away,
  * as the other filters do.
@@ -66,7 +66,7 @@ const TranslationsToolbar = ({
 	const namespaceOptions = namespaces.filter(Boolean)
 
 	return (
-		// The search and the filters grow to fill their rows, so no row ends in a blank gap however it wraps.
+		// The search grows to fill its row; the selects grow only up to a cap, so a wrapped row keeps them at their size and the switches at its end.
 		<div className={classes.filters}>
 			<TextInput
 				aria-label={t('translationsPage.toolbar.search.label')}
@@ -100,6 +100,22 @@ const TranslationsToolbar = ({
 				allowDeselect={false}
 				withScrollArea={false}
 			/>
+			{versions.length > 0 && (
+				<Select
+					aria-label={t('translationsPage.toolbar.version.label')}
+					placeholder={t('translationsPage.toolbar.version.placeholder')}
+					className={classes.select}
+					leftSection={<Tag width={16} height={16} aria-hidden />}
+					data={versions.map((item) => ({
+						value: item.id,
+						label: item.isCurrent ? t('translationsPage.toolbar.version.current', { name: item.name }) : item.name,
+					}))}
+					value={version ?? null}
+					// No clear button: the list always shows one version.
+					onChange={(value) => onChange({ version: value ?? undefined })}
+					allowDeselect={false}
+				/>
+			)}
 			<Select
 				aria-label={t('translationsPage.toolbar.status.label')}
 				className={classes.select}
@@ -151,22 +167,6 @@ const TranslationsToolbar = ({
 					onChange={(value) => onChange({ updatedBy: value ?? undefined })}
 					searchable
 					clearable
-				/>
-			)}
-			{versions.length > 0 && (
-				<Select
-					aria-label={t('translationsPage.toolbar.version.label')}
-					placeholder={t('translationsPage.toolbar.version.placeholder')}
-					className={classes.select}
-					leftSection={<Tag width={16} height={16} aria-hidden />}
-					data={versions.map((item) => ({
-						value: item.id,
-						label: item.isCurrent ? t('translationsPage.toolbar.version.current', { name: item.name }) : item.name,
-					}))}
-					value={version ?? null}
-					// No clear button: the list always shows one version.
-					onChange={(value) => onChange({ version: value ?? undefined })}
-					allowDeselect={false}
 				/>
 			)}
 			<Select

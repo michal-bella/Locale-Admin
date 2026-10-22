@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Lišta filtrov v Prekladoch (2026-10-22)
+
+- frontend: výber **Verzia** je v lište filtrov tretí, hneď za zoradením; selecty rastú najviac do 16 rem, takže zalomený filter **Zmenené** sa v zobrazení Zdroj → cieľ už neroztiahne cez celý druhý riadok ([Frontend](./frontend.md))
+
 ### Preklady zo stránky Jazyky (2026-10-22)
 
 - frontend: v tabuľke na stránke Jazyky otvorí názov jazyka aj ikona **Otvoriť preklady** (aj pre editora) Preklady s týmto jazykom ako cieľom v zobrazení Zdroj → cieľ (`?target=`), vo Všetkých jazykoch zobrazí iba ten jazyk vedľa základného; editor má preto v tabuľke stĺpec akcií ([Frontend](./frontend.md#jazyky-projektu))

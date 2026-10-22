@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Lokálny vývoj (2026-10-22)
+
+- backend: `pnpm dev` z interaktívneho terminálu sa už nezasekne na `prisma generate` (v `--parallel` behu dostával SIGTTIN a backend nikdy nepočúval, SPA ukazovala „Niečo sa pokazilo“); dev skript mu dáva stdin z `/dev/null`
+
 ### Chýbajúce preklady a jazyk v kartách (2026-10-22)
 
 - API: `GET …/translations` vracia v `stats` aj `untranslatedByLanguage` (počet kľúčov verzie bez hodnoty za každý jazyk projektu) ([API](./api/translations.md))

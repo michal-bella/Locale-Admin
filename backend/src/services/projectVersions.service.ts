@@ -27,8 +27,10 @@ const VERSION_SELECT = {
 	startsAt: true,
 	endsAt: true,
 	lock: true,
+	importedAt: true,
 	createdAt: true,
 	createdBy: EDITOR_SELECT,
+	_count: { select: { keys: true } },
 } satisfies Prisma.ProjectVersionSelect
 
 type VersionRow = Prisma.ProjectVersionGetPayload<{ select: typeof VERSION_SELECT }>
@@ -45,6 +47,8 @@ const toProjectVersion = (row: VersionRow, today: string, currentId: string | nu
 		isLocked: isVersionLocked(dates, today),
 		state: getVersionState(dates, today),
 		isCurrent: row.id === currentId,
+		importedAt: row.importedAt?.toISOString() ?? null,
+		keyCount: row._count.keys,
 		createdAt: row.createdAt.toISOString(),
 		createdBy: row.createdBy && toEditor(row.createdBy),
 	}

@@ -265,6 +265,7 @@
 		"importButton": "Importovat",
 		"createVersionButton": "Vytvořit verzi",
 		"createKeyButton": "Přidat klíč",
+		"noVersions": "Projekt zatím nemá žádnou verzi. Vytvořte ji a importujte do ní překlady.",
 		"stats": {
 			"totalKeys": "Celkem klíčů",
 			"translated": "Přeložené",
@@ -355,8 +356,7 @@
 			"clearFilters": "Zrušit filtry",
 			"edit": "Upravit klíč",
 			"editLabel": "Upravit klíč {{key}}",
-			"base": "Základní",
-			"version": "Vznikl ve verzi {{name}}"
+			"base": "Základní"
 		},
 		"status": {
 			"TRANSLATED": "Přeložené",
@@ -468,7 +468,6 @@
 			"locked": "Verze {{name}} je uzamčená.",
 			"lockedEditor": "Verze {{name}} je uzamčená, její překlady upravuje už jen administrátor.",
 			"unlocked": "Verze {{name}} je po termínu odemčená pro dodatečné úpravy.",
-			"clear": "Zrušit filtr verze",
 			"lock": "Zamknout",
 			"unlock": "Odemknout",
 			"lockLabel": "Zamknout verzi {{name}}",
@@ -716,7 +715,6 @@
 		"version": {
 			"label": "Verze",
 			"description": "Vytvořené klíče a zapsané překlady dostanou tuto verzi.",
-			"none": "Bez verze",
 			"current": "{{name}} (aktuální)",
 			"create": "Vytvořit novou"
 		}
@@ -782,10 +780,7 @@
 			"extra": "navíc {{list}}"
 		},
 		"version": {
-			"asOf": "Stav projektu k verzi {{name}}",
-			"description": "Soubor obsahuje klíče bez verze a klíče verzí, které začínají nejpozději jako tato. Klíče pozdějších verzí v něm nejsou.",
-			"onlyWork": "Jen změny této verze",
-			"onlyWorkDescription": "Pouze klíče, které ve verzi {{name}} vznikly nebo se v ní změnily."
+			"info": "Export verze {{name}}"
 		}
 	},
 	"importIssues": {

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { ACTIVITY_TYPE, activityEventDataSchema } from '@locale/shared'
 
 import { ROLE } from '../src/generated/prisma/enums'
-import { SEED_ADMIN_EMAIL, SEED_PROJECT, SEED_TRANSLATIONS, seedAdmin, seedProject } from '../src/services/seed.service'
+import { SEED_ADMIN_EMAIL, SEED_PREVIOUS_KEY_COUNT, SEED_PROJECT, SEED_TRANSLATIONS, seedAdmin, seedProject } from '../src/services/seed.service'
 
 import { getTestDatabaseUrl, getTestPrisma } from './helpers/db'
 import { createUser } from './helpers/users'
@@ -57,7 +57,7 @@ describe('seedProject', () => {
 
 		await prisma.translation.updateMany({ data: { value: 'edited' } })
 		await expect(seedProject(prisma)).resolves.toBe('exists')
-		await expect(prisma.translationKey.count()).resolves.toBe(SEED_TRANSLATIONS.length)
+		await expect(prisma.translationKey.count()).resolves.toBe(SEED_TRANSLATIONS.length + SEED_PREVIOUS_KEY_COUNT)
 		await expect(prisma.translation.count({ where: { value: { not: 'edited' } } })).resolves.toBe(0)
 		await expect(prisma.project.findMany({ include: { members: true, languages: { orderBy: { tag: 'asc' } } } })).resolves.toEqual(created)
 	})
@@ -79,7 +79,10 @@ describe('seedProject', () => {
 		await seedAdmin(prisma, 'FirstPassword1')
 
 		await expect(seedProject(prisma)).resolves.toBe('created')
-		const keys = await prisma.translationKey.findMany({ include: { translations: { include: { language: true } } } })
+		const keys = await prisma.translationKey.findMany({
+			where: { version: { importedAt: { not: null }, endsAt: { gte: new Date() } } },
+			include: { translations: { include: { language: true } } },
+		})
 		expect(keys).toHaveLength(SEED_TRANSLATIONS.length)
 		expect(new Set(keys.map(({ namespace }) => namespace))).toEqual(new Set(['loc', 'paths']))
 		expect(keys.some(({ name }) => name === 'orders.empty.title')).toBe(true)
@@ -121,7 +124,7 @@ describe('seed script', () => {
 		await expect(getTestPrisma().projectLanguage.count()).resolves.toBe(2)
 		await expect(getTestPrisma().project.count()).resolves.toBe(1)
 		await expect(getTestPrisma().projectMember.count()).resolves.toBe(1)
-		await expect(getTestPrisma().translationKey.count()).resolves.toBe(SEED_TRANSLATIONS.length)
+		await expect(getTestPrisma().translationKey.count()).resolves.toBe(SEED_TRANSLATIONS.length + SEED_PREVIOUS_KEY_COUNT)
 	})
 
 	it.each([

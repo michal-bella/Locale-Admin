@@ -18,9 +18,7 @@ import { AppError } from '../lib/errors'
 import { csvHeader, csvRow, csvSection, namespaceIssue, rowIssues, type ExportRow } from '../lib/export/csvWriter'
 import { createXlsxWriter } from '../lib/export/xlsxWriter'
 import { type PrismaClient } from '../lib/prisma'
-import { versionNotFound } from '../lib/projectVersions'
-
-import { versionWorkSql } from './translations.service'
+import { assertProjectVersion } from '../lib/projectVersions'
 
 type Tx = Prisma.TransactionClient
 
@@ -170,21 +168,10 @@ const writeXlsx = async ({ tx, projectId, languageIds, tags, status, version, si
 	return written
 }
 
-/**
- * SQL limiting the keys to the export's version: `UP_TO` is the project as of the version (keys without a version and keys of versions
- * starting no later than it), `ONLY` the work of the version (the list filter). Empty without a version; a foreign version is 404.
- */
-const versionCondition = async (prisma: PrismaClient, projectId: string, { versionId, versionScope }: ExportCheckQuery): Promise<Prisma.Sql> => {
-	if (versionId === undefined) {
-		return Prisma.empty
-	}
-	const version = await prisma.projectVersion.findFirst({ where: { id: versionId, projectId }, select: { startsAt: true } })
-	if (!version) {
-		throw versionNotFound()
-	}
-	return versionScope === 'ONLY'
-		? Prisma.sql`AND ${versionWorkSql(versionId)}`
-		: Prisma.sql`AND (k."versionId" IS NULL OR EXISTS (SELECT 1 FROM "ProjectVersion" v WHERE v.id = k."versionId" AND v."startsAt" <= ${version.startsAt}))`
+/** SQL limiting the keys to the exported version (every version holds its own copy); a foreign version is 404. */
+const versionCondition = async (prisma: PrismaClient, projectId: string, { versionId }: ExportCheckQuery): Promise<Prisma.Sql> => {
+	await assertProjectVersion(prisma, projectId, versionId)
+	return Prisma.sql`AND k."versionId" = ${versionId}::uuid`
 }
 
 /**

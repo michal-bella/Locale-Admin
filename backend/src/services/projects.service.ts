@@ -13,6 +13,7 @@ import { Prisma } from '../generated/prisma/client'
 import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
+import { toDbDate, todayVersionDate } from '../lib/projectVersions'
 
 const PROJECT_LIST_SELECT = {
 	id: true,
@@ -21,21 +22,45 @@ const PROJECT_LIST_SELECT = {
 	primaryColor: true,
 	createdAt: true,
 	languages: { select: { id: true, tag: true }, orderBy: [{ isBase: 'desc' }, { position: 'asc' }, { tag: 'asc' }] },
-	_count: { select: { translationKeys: true, members: true } },
+	_count: { select: { members: true } },
 } satisfies Prisma.ProjectSelect
 
 type ProjectListRow = Prisma.ProjectGetPayload<{ select: typeof PROJECT_LIST_SELECT }>
 
+type VersionCounts = { keyCount: number; translatedCount: number }
+
 // `tag` is always a catalog value (written only from the validated API and the seed).
-const toListItem = ({ languages, _count, createdAt, ...project }: ProjectListRow, isMember: boolean, translatedCount: number): ProjectListItem => ({
+const toListItem = ({ languages, _count, createdAt, ...project }: ProjectListRow, isMember: boolean, counts: VersionCounts): ProjectListItem => ({
 	...project,
 	isMember,
 	languageTags: languages.map((language) => language.tag as LanguageTag),
-	keyCount: _count.translationKeys,
-	translatedCount,
+	...counts,
 	memberCount: _count.members,
 	createdAt: createdAt.toISOString(),
 })
+
+/**
+ * Keys and filled values of each project's default version (the current one by date, else the newest; see `findDefaultVersionId`),
+ * zero for a project without versions. Every version holds its own copy of the keys, so counting the project would multiply them.
+ */
+const countDefaultVersions = async (prisma: PrismaClient, projectIds: string[]): Promise<Map<string, VersionCounts>> => {
+	if (projectIds.length === 0) {
+		return new Map()
+	}
+	const today = toDbDate(todayVersionDate())
+	const rows = await prisma.$queryRaw<{ projectId: string; keyCount: number; translatedCount: number }[]>`
+		WITH shown AS (
+			SELECT DISTINCT ON (v."projectId") v."projectId", v.id
+			FROM "ProjectVersion" v
+			WHERE v."projectId" IN (${Prisma.join(projectIds.map((id) => Prisma.sql`${id}::uuid`))})
+			ORDER BY v."projectId", (v."startsAt" <= ${today} AND v."endsAt" >= ${today}) DESC, v."startsAt" DESC, v."createdAt" DESC
+		)
+		SELECT shown."projectId",
+			(SELECT count(*)::int FROM "TranslationKey" k WHERE k."versionId" = shown.id) AS "keyCount",
+			(SELECT count(*)::int FROM "Translation" t JOIN "TranslationKey" k ON k.id = t."keyId" WHERE k."versionId" = shown.id AND t.value IS NOT NULL) AS "translatedCount"
+		FROM shown`
+	return new Map(rows.map(({ projectId, ...counts }) => [projectId, counts]))
+}
 
 export const isPrismaError = (err: unknown, code: string): boolean => err instanceof Prisma.PrismaClientKnownRequestError && err.code === code
 
@@ -60,23 +85,15 @@ export const listProjects = async (prisma: PrismaClient, user: AuthUser): Promis
 		}),
 		prisma.projectOrder.findMany({ where: { userId: user.id }, select: { projectId: true, position: true } }),
 	])
-	const filled = await prisma.translation.groupBy({
-		by: ['languageId'],
-		where: { value: { not: null }, languageId: { in: projects.flatMap((project) => project.languages.map((language) => language.id)) } },
-		_count: { _all: true },
-	})
-	const filledByLanguage = new Map(filled.map(({ languageId, _count }) => [languageId, _count._all]))
+	const counts = await countDefaultVersions(
+		prisma,
+		projects.map((project) => project.id),
+	)
 	const positions = new Map(orders.map(({ projectId, position }) => [projectId, position]))
 	const position = (projectId: string) => positions.get(projectId) ?? Number.MAX_SAFE_INTEGER
 	// Stable sort, so projects with the same (missing) position keep the name order of the query.
 	return projects
-		.map(({ members, ...project }) =>
-			toListItem(
-				project,
-				members.length > 0,
-				project.languages.reduce((sum, language) => sum + (filledByLanguage.get(language.id) ?? 0), 0),
-			),
-		)
+		.map(({ members, ...project }) => toListItem(project, members.length > 0, counts.get(project.id) ?? { keyCount: 0, translatedCount: 0 }))
 		.sort((a, b) => position(a.id) - position(b.id))
 }
 
@@ -107,7 +124,7 @@ export const createProject = async (prisma: PrismaClient, userId: string, { name
 			await recordActivity(tx, { projectId: created.id, userId, type: ACTIVITY_TYPE.PROJECT_CREATED, payload: { name } })
 			return created
 		})
-		return toListItem(project, true, 0)
+		return toListItem(project, true, { keyCount: 0, translatedCount: 0 })
 	} catch (err) {
 		if (isPrismaError(err, 'P2002')) {
 			throw slugTaken()

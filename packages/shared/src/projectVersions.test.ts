@@ -73,15 +73,19 @@ describe('updateProjectVersionRequestSchema', () => {
 describe('version lock and state', () => {
 	const version = { startsAt: '2026-09-08', endsAt: '2026-09-29' }
 
-	it('AUTO locks the day after endsAt, explicit locks win over the dates', () => {
+	it('AUTO locks outside the window (before startsAt and after endsAt), explicit locks win over the dates', () => {
+		expect(isVersionLocked({ ...version, lock: VERSION_LOCK.AUTO }, '2026-09-07')).toBe(true)
+		expect(isVersionLocked({ ...version, lock: VERSION_LOCK.AUTO }, '2026-09-08')).toBe(false)
 		expect(isVersionLocked({ ...version, lock: VERSION_LOCK.AUTO }, '2026-09-29')).toBe(false)
 		expect(isVersionLocked({ ...version, lock: VERSION_LOCK.AUTO }, '2026-09-30')).toBe(true)
+		expect(isVersionLocked({ ...version, lock: VERSION_LOCK.UNLOCKED }, '2026-09-01')).toBe(false)
 		expect(isVersionLocked({ ...version, lock: VERSION_LOCK.UNLOCKED }, '2026-12-01')).toBe(false)
 		expect(isVersionLocked({ ...version, lock: VERSION_LOCK.LOCKED }, '2026-09-01')).toBe(true)
 	})
 
-	it('derives the state from the lock and startsAt', () => {
+	it('derives the state from the lock and startsAt; a version before its window is UPCOMING, not LOCKED', () => {
 		expect(getVersionState({ ...version, lock: VERSION_LOCK.AUTO }, '2026-09-01')).toBe('UPCOMING')
+		expect(getVersionState({ ...version, lock: VERSION_LOCK.UNLOCKED }, '2026-09-01')).toBe('UPCOMING')
 		expect(getVersionState({ ...version, lock: VERSION_LOCK.AUTO }, '2026-09-08')).toBe('ACTIVE')
 		expect(getVersionState({ ...version, lock: VERSION_LOCK.AUTO }, '2026-10-01')).toBe('LOCKED')
 		expect(getVersionState({ ...version, lock: VERSION_LOCK.UNLOCKED }, '2026-10-01')).toBe('ACTIVE')

@@ -7,9 +7,10 @@ const LANGUAGE_ID = '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d'
 
 describe('importPreviewRequestSchema', () => {
 	it('accepts a CSV file name in any case and rejects other extensions', () => {
-		expect(importPreviewRequestSchema.safeParse({ fileName: 'translations.CSV', content: '' }).success).toBe(true)
-		expect(importPreviewRequestSchema.safeParse({ fileName: 'translations.json', content: '' }).success).toBe(false)
-		expect(importPreviewRequestSchema.safeParse({ fileName: ' ', content: '' }).success).toBe(false)
+		expect(importPreviewRequestSchema.safeParse({ fileName: 'translations.CSV', content: '', versionId: LANGUAGE_ID }).success).toBe(true)
+		expect(importPreviewRequestSchema.safeParse({ fileName: 'translations.json', content: '', versionId: LANGUAGE_ID }).success).toBe(false)
+		expect(importPreviewRequestSchema.safeParse({ fileName: ' ', content: '', versionId: LANGUAGE_ID }).success).toBe(false)
+		expect(importPreviewRequestSchema.safeParse({ fileName: 'translations.csv', content: '' }).success).toBe(false)
 	})
 })
 
@@ -19,6 +20,7 @@ describe('importRequestSchema', () => {
 			importRequestSchema.parse({
 				fileName: 'a.csv',
 				content: 'x',
+				versionId: LANGUAGE_ID,
 				columns: [
 					{ columnIndex: 2, languageId: LANGUAGE_ID },
 					{ columnIndex: 3, languageId: null },
@@ -27,9 +29,13 @@ describe('importRequestSchema', () => {
 		).toMatchObject({ createMissingKeys: true })
 	})
 
-	it('rejects an empty column list and the Keys column', () => {
-		expect(importRequestSchema.safeParse({ fileName: 'a.csv', content: 'x', columns: [] }).success).toBe(false)
-		expect(importRequestSchema.safeParse({ fileName: 'a.csv', content: 'x', columns: [{ columnIndex: 1, languageId: null }] }).success).toBe(false)
+	it('rejects an empty column list, the Keys column and a missing version', () => {
+		const columns = [{ columnIndex: 2, languageId: LANGUAGE_ID }]
+		expect(importRequestSchema.safeParse({ fileName: 'a.csv', content: 'x', versionId: LANGUAGE_ID, columns: [] }).success).toBe(false)
+		expect(
+			importRequestSchema.safeParse({ fileName: 'a.csv', content: 'x', versionId: LANGUAGE_ID, columns: [{ columnIndex: 1, languageId: null }] }).success,
+		).toBe(false)
+		expect(importRequestSchema.safeParse({ fileName: 'a.csv', content: 'x', columns }).success).toBe(false)
 	})
 })
 

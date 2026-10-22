@@ -11,6 +11,7 @@ import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
+import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -22,15 +23,22 @@ const createProject = (members: string[] = []) =>
 const createLanguage = (projectId: string, tag: string, isBase = false) => getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase } })
 
 /** Rows inserted straight into the DB: the flag stays `null`, as for rows from before the column existed. */
-const createKey = (projectId: string, name: string, values: Record<string, string | null> = {}) =>
+const createKey = async (projectId: string, name: string, values: Record<string, string | null> = {}) =>
 	getTestPrisma().translationKey.create({
-		data: { projectId, namespace: 'loc', name, translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) } },
+		data: {
+			projectId,
+			versionId: await versionIdOf(projectId),
+			namespace: 'loc',
+			name,
+			translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) },
+		},
 	})
 
 /** Signs in a new ADMIN who is a member of a new project with `sk` (base) and `en`. */
 const setup = async (app: App) => {
 	const { user } = await createUser({ role: ROLE.ADMIN })
 	const project = await createProject([user.id])
+	await createVersionRow(project.id)
 	const sk = await createLanguage(project.id, 'sk', true)
 	const en = await createLanguage(project.id, 'en')
 	return { user, project, sk, en, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
@@ -78,7 +86,12 @@ describe('Translation.placeholderWarning', () => {
 			.post(`/api/projects/${project.id}/keys`)
 			.set('Cookie', cookie)
 			.set(CSRF_HEADERS)
-			.send({ namespace: 'loc', name: 'greeting', translations: { [sk.id]: 'Ahoj {{name}}', [en.id]: 'Hello' } })
+			.send({
+				versionId: await versionIdOf(project.id),
+				namespace: 'loc',
+				name: 'greeting',
+				translations: { [sk.id]: 'Ahoj {{name}}', [en.id]: 'Hello' },
+			})
 		expect(created.status).toBe(201)
 		expect(await flagsOf((created.body as { keyId: string }).keyId)).toEqual({ sk: false, en: true })
 
@@ -87,6 +100,7 @@ describe('Translation.placeholderWarning', () => {
 			.set('Cookie', cookie)
 			.set(CSRF_HEADERS)
 			.send({
+				versionId: await versionIdOf(project.id),
 				fileName: 'translations.csv',
 				content: [
 					'Keys; sk ; en',

@@ -74,16 +74,17 @@ Vracia ich preview v `warnings` (max. 1 000, `IMPORT_WARNINGS_MAX`, v poradí s�
 
 ## POST /api/projects/:projectId/imports/preview
 
-Analyzuje súbor a porovná ho s projektom. **Nič nezapisuje.** Frontend drží súbor v pamäti a pri importe ho pošle znova.
+Analyzuje súbor a porovná ho s kľúčmi zvolenej verzie. **Nič nezapisuje.** Frontend drží súbor v pamäti a pri importe ho pošle znova.
 
 ### Telo požiadavky
 
 Schéma `importPreviewRequestSchema`.
 
-| Pole       | Typ    | Povinný | Popis                                             |
-| ---------- | ------ | ------- | ------------------------------------------------- |
-| `fileName` | string | áno     | názov súboru, 1 až 255 znakov, musí končiť `.csv` |
-| `content`  | string | áno     | obsah súboru ako text, max. 10 MB v UTF-8 bajtoch |
+| Pole        | Typ    | Povinný | Popis                                                                            |
+| ----------- | ------ | ------- | -------------------------------------------------------------------------------- |
+| `fileName`  | string | áno     | názov súboru, 1 až 255 znakov, musí končiť `.csv`                                |
+| `content`   | string | áno     | obsah súboru ako text, max. 10 MB v UTF-8 bajtoch                                |
+| `versionId` | UUID   | áno     | verzia, s ktorej kľúčmi sa súbor porovná; cudzia 404 `PROJECT_VERSION_NOT_FOUND` |
 
 ### Párovanie
 
@@ -147,19 +148,19 @@ Schéma `importPreviewResponseSchema`.
 
 ## POST /api/projects/:projectId/imports
 
-Zapíše súbor do projektu. Súbor sa znova parsuje a validuje rovnako ako pri preview (preview je bezstavový). Poradie kontrol: veľkosť (413) → telo (400 `VALIDATION_ERROR`) → súbor (422 `IMPORT_FILE_INVALID`) → stĺpce (400 `IMPORT_COLUMNS_INVALID`) → zápis.
+Zapíše súbor do verzie `versionId`. Súbor sa znova parsuje a validuje rovnako ako pri preview (preview je bezstavový). Poradie kontrol: veľkosť (413) → telo (400 `VALIDATION_ERROR`) → súbor (422 `IMPORT_FILE_INVALID`) → stĺpce (400 `IMPORT_COLUMNS_INVALID`) → zápis.
 
 ### Telo požiadavky
 
 Schéma `importRequestSchema`.
 
-| Pole                | Typ     | Povinný | Popis                                                                                                                                                                                                                                                                                                                        |
-| ------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fileName`          | string  | áno     | ako pri preview                                                                                                                                                                                                                                                                                                              |
-| `content`           | string  | áno     | ako pri preview                                                                                                                                                                                                                                                                                                              |
-| `columns`           | pole    | áno     | `{ columnIndex, languageId }` pre každý stĺpec jazyka zo súboru, aspoň jeden prvok                                                                                                                                                                                                                                           |
-| `createMissingKeys` | boolean | nie     | predvolene `true`; `false` = kľúče, ktoré projekt nemá, sa nevytvoria a ich hodnoty sa preskočia                                                                                                                                                                                                                             |
-| `versionId`         | UUID    | nie     | predvolene `null`; verzia projektu, ktorú dostanú vytvorené kľúče a zapísané bunky (nezmenená bunka si verziu nechá). Import aktuálnu verziu nikdy neodhaduje. Cudzia verzia 404 `PROJECT_VERSION_NOT_FOUND`, uzamknutá pre inú rolu než `ADMIN` 409 `PROJECT_VERSION_LOCKED` (viď [verzie projektu](./project-versions.md)) |
+| Pole                | Typ     | Povinný | Popis                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fileName`          | string  | áno     | ako pri preview                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `content`           | string  | áno     | ako pri preview                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `columns`           | pole    | áno     | `{ columnIndex, languageId }` pre každý stĺpec jazyka zo súboru, aspoň jeden prvok                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `createMissingKeys` | boolean | nie     | predvolene `true`; `false` = kľúče, ktoré projekt nemá, sa nevytvoria a ich hodnoty sa preskočia                                                                                                                                                                                                                                                                                                                                                                                        |
+| `versionId`         | UUID    | áno     | verzia, do ktorej súbor ide: jej kľúče sa párujú so súborom, nové kľúče v nej vzniknú a `importedAt` verzie sa nastaví. Import aktuálnu verziu nikdy neodhaduje. Cudzia verzia 404 `PROJECT_VERSION_NOT_FOUND`, uzamknutá (ručne alebo mimo okna) pre inú rolu než `ADMIN` 409 `PROJECT_VERSION_LOCKED` (viď [verzie projektu](./project-versions.md)). Prevzatie prekladov z predchádzajúcej verzie a definovanie množiny kľúčov verzie pribudne v míľniku B plánu `version-snapshots` |
 
 ### Pravidlá pre `columns`
 
@@ -173,7 +174,7 @@ Porušenie ktoréhokoľvek pravidla vráti 400 `IMPORT_COLUMNS_INVALID` (bez `de
 
 ### Zlúčenie s dátami projektu
 
-- Kľúč sa páruje podľa `(namespace, kľúč)`. Chýbajúci kľúč sa vytvorí, ak `createMissingKeys` je `true`, inak sa jeho hodnoty preskočia. Kľúče, ktoré v súbore nie sú, ostávajú nedotknuté (nič sa nemaže).
+- Kľúč sa páruje podľa `(namespace, kľúč)` v rámci verzie. Chýbajúci kľúč sa vytvorí, ak `createMissingKeys` je `true`, inak sa jeho hodnoty preskočia. Kľúče, ktoré v súbore nie sú, ostávajú nedotknuté (nič sa nemaže).
 - Prázdna hodnota v súbore (`null`, `""`, prázdne pole) **nikdy nič nezapíše**: nezmaže vyplnený preklad a nevytvorí riadok s `null`.
 - Vyplnená hodnota sa vloží (preklad chýba alebo je `null`) alebo prepíše inú hodnotu (rozhodnutie 4). Zapísané riadky dostanú `updatedById` = prihlásený používateľ a `updatedAt` = čas importu.
 - Rovnaká hodnota sa nezapisuje, `updatedAt` aj `updatedById` ostanú pôvodné. Opakovaný import toho istého súboru preto vráti nulové počty.
@@ -190,7 +191,7 @@ Schéma `importResultSchema`. Počty sa rovnajú preview pre ten istý súbor ib
 | `translationsCreated` | vyplnené v súbore, prázdne alebo chýbajúce v projekte (súčet `new` v preview) |
 | `translationsUpdated` | vyplnené v súbore aj v projekte, iná hodnota (súčet `changed` v preview)      |
 | `skippedColumns`      | počet stĺpcov s `languageId: null`                                            |
-| `version`             | `{ id, name }` verzie z požiadavky, inak `null`                               |
+| `version`             | `{ id, name }` verzie z požiadavky                                            |
 
 ```json
 { "keysCreated": 2, "translationsCreated": 9, "translationsUpdated": 1, "skippedColumns": 2, "version": { "id": "…", "name": "v2.45" } }

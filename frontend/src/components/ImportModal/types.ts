@@ -4,8 +4,8 @@ export type ImportModalProps = {
 	projectId: string
 	/** Versions of the project for the Verzia step. */
 	versions: ProjectVersion[]
-	/** The version filtered on the page; preselected instead of the current one. */
-	defaultVersionId?: string
+	/** The version shown on the page; preselected in the Verzia select. */
+	defaultVersionId: string
 	opened: boolean
 	onClose: () => void
 }

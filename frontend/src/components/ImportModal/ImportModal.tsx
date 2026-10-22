@@ -37,9 +37,6 @@ const CSV_EXTENSION = /\.csv$/i
 
 const MOBILE_QUERY = '(max-width: 48em)'
 
-/** Select value for an import without a version; a version is its id. */
-const NO_VERSION = 'NONE'
-
 /** Above the import modal (Mantine's default modal z-index is 200). */
 const VERSION_MODAL_Z_INDEX = 300
 
@@ -72,7 +69,7 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 	const [step, setStep] = useState<Step>('UPLOAD')
 	const [file, setFile] = useState<SelectedImportFile | null>(null)
 	const [createMissingKeys, setCreateMissingKeys] = useState(true)
-	// `null` until the user picks: the version filtered on the page, else the current one by date, none without one (also for a version created meanwhile).
+	// `null` until the user picks (also a version created meanwhile): the version shown on the page.
 	const [pickedVersionId, setPickedVersionId] = useState<string | null>(null)
 	const [versionFormOpened, versionForm] = useDisclosure(false)
 	const [fileError, setFileError] = useState<string>()
@@ -96,8 +93,7 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 
 	const isPending = previewMutation.isPending || importMutation.isPending || createLanguage.isPending
 
-	const versionId =
-		pickedVersionId ?? versions.find((version) => version.id === defaultVersionId)?.id ?? versions.find((version) => version.isCurrent)?.id ?? NO_VERSION
+	const versionId = pickedVersionId ?? defaultVersionId
 	const selectedVersion = versions.find((version) => version.id === versionId)
 
 	const resetAndClose = () => {
@@ -141,7 +137,7 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 		const reader = new FileReader()
 		reader.onload = () => {
 			const content = typeof reader.result === 'string' ? reader.result : ''
-			if (requestBytes({ fileName: picked.name, content }) > IMPORT_REQUEST_MAX_BYTES) {
+			if (requestBytes({ fileName: picked.name, content, versionId }) > IMPORT_REQUEST_MAX_BYTES) {
 				setFileError(t('errors.IMPORT_FILE_TOO_LARGE'))
 				return
 			}
@@ -160,7 +156,7 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 	const runPreview = (selected: SelectedImportFile) => {
 		setImportError(undefined)
 		previewMutation.mutate(
-			{ fileName: selected.name, content: selected.content },
+			{ fileName: selected.name, content: selected.content, versionId },
 			{
 				onSuccess: (data) => {
 					setPreview(data)
@@ -220,8 +216,7 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 				content: file.content,
 				columns: preview.columns.map((column) => ({ columnIndex: column.columnIndex, languageId: mapping[column.columnIndex] ?? null })),
 				createMissingKeys,
-				// Left out without a version: the API defaults to none, and a project without versions sends the same body as before.
-				...(versionId === NO_VERSION ? {} : { versionId }),
+				versionId,
 			},
 			{
 				onSuccess: (result) => {
@@ -328,15 +323,12 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 							label={t('importModal.version.label')}
 							description={t('importModal.version.description')}
 							className='min-w-64 flex-1'
-							data={[
-								{ value: NO_VERSION, label: t('importModal.version.none') },
-								...versions.map((version) => ({
-									value: version.id,
-									label: version.isCurrent ? t('importModal.version.current', { name: version.name }) : version.name,
-								})),
-							]}
+							data={versions.map((version) => ({
+								value: version.id,
+								label: version.isCurrent ? t('importModal.version.current', { name: version.name }) : version.name,
+							}))}
 							value={versionId}
-							onChange={(value) => setPickedVersionId(value ?? NO_VERSION)}
+							onChange={setPickedVersionId}
 							allowDeselect={false}
 							disabled={isPending}
 						/>

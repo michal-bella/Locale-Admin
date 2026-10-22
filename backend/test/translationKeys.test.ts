@@ -19,6 +19,7 @@ import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
+import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -34,10 +35,11 @@ const createLanguage = (projectId: string, tag: string, isBase = false) => getTe
 
 type KeyOptions = { namespace?: string; values?: Record<string, string | null>; pluralVariable?: string | null; description?: string | null }
 
-const createKey = (projectId: string, name: string, { namespace = 'loc', values = {}, pluralVariable = null, description = null }: KeyOptions = {}) =>
+const createKey = async (projectId: string, name: string, { namespace = 'loc', values = {}, pluralVariable = null, description = null }: KeyOptions = {}) =>
 	getTestPrisma().translationKey.create({
 		data: {
 			projectId,
+			versionId: await versionIdOf(projectId),
 			namespace,
 			name,
 			pluralVariable,
@@ -50,6 +52,7 @@ const createKey = (projectId: string, name: string, { namespace = 'loc', values 
 const setup = async (app: App, { role = ROLE.ADMIN, member = true } = {}) => {
 	const { user } = await createUser({ role })
 	const project = await createProject(member ? [user.id] : [])
+	await createVersionRow(project.id)
 	const sk = await createLanguage(project.id, 'sk', true)
 	const en = await createLanguage(project.id, 'en')
 	return { user, project, sk, en, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
@@ -77,7 +80,10 @@ const updatedBy = async (keyId: string) => {
 }
 
 const list = async (app: App, cookie: string, projectId: string, sourceLanguageId: string, targetLanguageId: string) => {
-	const res = await request(app).get(`/api/projects/${projectId}/translations`).query({ sourceLanguageId, targetLanguageId }).set('Cookie', cookie)
+	const res = await request(app)
+		.get(`/api/projects/${projectId}/translations`)
+		.query({ versionId: await versionIdOf(projectId), sourceLanguageId, targetLanguageId })
+		.set('Cookie', cookie)
 	expect(res.status).toBe(200)
 	return translationsResponseSchema.parse(res.body)
 }
@@ -242,8 +248,12 @@ describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 	})
 })
 
-const post = (app: App, cookie: string, projectId: string, body: CreateTranslationKeyRequestInput | Record<string, unknown>) =>
-	request(app).post(`/api/projects/${projectId}/keys`).set('Cookie', cookie).set(CSRF_HEADERS).send(body)
+const post = async (app: App, cookie: string, projectId: string, body: CreateTranslationKeyRequestInput | Record<string, unknown>) =>
+	request(app)
+		.post(`/api/projects/${projectId}/keys`)
+		.set('Cookie', cookie)
+		.set(CSRF_HEADERS)
+		.send({ versionId: await versionIdOf(projectId), ...body })
 
 const detailsOf = (res: request.Response) => errorResponseSchema.parse(res.body).error.details
 
@@ -275,7 +285,10 @@ describe('POST /api/projects/:projectId/keys', () => {
 			},
 		])
 
-		const list = await request(app).get(`/api/projects/${project.id}/translations`).query({ search: 'orders.empty' }).set('Cookie', cookie)
+		const list = await request(app)
+			.get(`/api/projects/${project.id}/translations`)
+			.query({ versionId: await versionIdOf(project.id), search: 'orders.empty' })
+			.set('Cookie', cookie)
 		const item = translationsResponseSchema.parse(list.body).items[0]
 		expect(item?.translations[sk.id]?.value).toBe('Žiadne objednávky')
 		expect(item?.translations[en.id]).toEqual({ value: null, status: 'UNTRANSLATED', updatedAt: null, updatedBy: null })

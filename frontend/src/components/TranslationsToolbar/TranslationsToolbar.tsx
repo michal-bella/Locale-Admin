@@ -7,7 +7,6 @@ import { TRANSLATIONS_SEARCH_MAX_LENGTH, translationsSortSchema, translationStat
 
 import { ArrowsSort, CheckCircle, Clock, Folder, Search, Tag, User } from '@/components/Icons'
 import TranslationStatusBadge from '@/components/TranslationStatusBadge/TranslationStatusBadge'
-import { ALL_VERSIONS } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsToolbar.module.css'
 import { type TranslationsToolbarProps } from './types'
@@ -150,7 +149,7 @@ const TranslationsToolbar = ({
 					clearable
 				/>
 			)}
-			{(versions.length > 0 || version !== undefined) && (
+			{versions.length > 0 && (
 				<Select
 					aria-label={t('translationsPage.toolbar.version.label')}
 					placeholder={t('translationsPage.toolbar.version.placeholder')}
@@ -161,8 +160,8 @@ const TranslationsToolbar = ({
 						label: item.isCurrent ? t('translationsPage.toolbar.version.current', { name: item.name }) : item.name,
 					}))}
 					value={version ?? null}
-					// No clear button: the whole project is reached from the banner, the stats cards and Zrušiť filtre, so the version is not dropped by accident.
-					onChange={(value) => onChange({ version: value ?? ALL_VERSIONS })}
+					// No clear button: the list always shows one version.
+					onChange={(value) => onChange({ version: value ?? undefined })}
 					allowDeselect={false}
 				/>
 			)}

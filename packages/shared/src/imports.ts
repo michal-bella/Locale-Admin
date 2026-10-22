@@ -83,6 +83,8 @@ const importFileNameSchema = z
 export const importPreviewRequestSchema = z.object({
 	fileName: importFileNameSchema,
 	content: z.string(),
+	/** The version the file goes into; the preview compares the file with its keys. The import never guesses the current version. */
+	versionId: z.uuid(),
 })
 
 export type ImportPreviewRequest = z.infer<typeof importPreviewRequestSchema>
@@ -146,8 +148,6 @@ export type ImportPreviewResponse = z.infer<typeof importPreviewResponseSchema>
 export const importRequestSchema = importPreviewRequestSchema.extend({
 	columns: z.array(z.object({ columnIndex: z.number().int().min(2), languageId: z.uuid().nullable() })).min(1),
 	createMissingKeys: z.boolean().default(true),
-	/** Version the created keys and written cells get; `null` writes without a version. The import never guesses the current version. */
-	versionId: z.uuid().nullable().default(null),
 })
 
 export type ImportRequest = z.infer<typeof importRequestSchema>
@@ -163,7 +163,7 @@ export const importResultSchema = z.object({
 	translationsCreated: count,
 	translationsUpdated: count,
 	skippedColumns: count,
-	version: translationVersionRefSchema.nullable(),
+	version: translationVersionRefSchema,
 })
 
 export type ImportResult = z.infer<typeof importResultSchema>

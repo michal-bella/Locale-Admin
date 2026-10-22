@@ -32,7 +32,7 @@ import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
 import { recomputePlaceholderWarnings } from '../lib/placeholderWarnings'
 import { type PrismaClient } from '../lib/prisma'
-import { resolveVersionId } from '../lib/projectVersions'
+import { assertProjectVersion, resolveVersion } from '../lib/projectVersions'
 
 import { isPrismaError } from './projects.service'
 
@@ -44,8 +44,6 @@ type ItemRow = {
 	description: string | null
 	pluralVariable: string | null
 	untranslated: boolean
-	versionId: string | null
-	versionName: string | null
 }
 
 export type EditorRow = { id: string; email: string; firstName: string | null; lastName: string | null }
@@ -112,10 +110,6 @@ const EXTENDED_VIEW: ViewSql = {
 /** A key with a cell whose placeholders differ from the base language (`Translation.placeholderWarning`, see lib/placeholderWarnings). */
 const HAS_WARNING_SQL = Prisma.sql`EXISTS (SELECT 1 FROM "Translation" w WHERE w."keyId" = k.id AND w."placeholderWarning")`
 
-/** The work of a version: keys created in it or with a cell last written in it. The export's `ONLY` scope uses the same condition. */
-export const versionWorkSql = (versionId: string) =>
-	Prisma.sql`(k."versionId" = ${versionId}::uuid OR EXISTS (SELECT 1 FROM "Translation" x WHERE x."keyId" = k.id AND x."versionId" = ${versionId}::uuid))`
-
 const UPDATED_WITHIN_INTERVAL: Record<TranslationsUpdatedWithin, string> = { DAY: '1 day', WEEK: '7 days', MONTH: '30 days' }
 
 const orderBy = (sort: TranslationsSort, view: ViewSql): Prisma.Sql => {
@@ -143,7 +137,6 @@ const toItem = (row: ItemRow, languageIds: string[], cells: Map<string, CellRow>
 	description: row.description,
 	plural: toPlural(row.pluralVariable),
 	status: row.untranslated ? 'UNTRANSLATED' : 'TRANSLATED',
-	version: row.versionId === null || row.versionName === null ? null : { id: row.versionId, name: row.versionName },
 	translations: Object.fromEntries(
 		languageIds.map((languageId) => {
 			const cell = cells.get(`${row.keyId}:${languageId}`)
@@ -171,18 +164,20 @@ const assertProjectLanguages = async (prisma: PrismaClient, projectId: string, l
 }
 
 /**
+ * The keys of one version (every version holds its own copy, see `ProjectVersion`); a version of another project is 404.
  * Missing rows and `null` values are untranslated. With a source and target language the target decides the row status
  * (compact view), without them every language of the project does (extended view); see `translationsQuerySchema`. The
- * items carry a cell for every language either way. `stats`, `namespaces` and `editors` ignore the filters.
+ * items carry a cell for every language either way. `stats`, `namespaces` and `editors` are the version's, ignoring the filters.
  */
 export const listTranslations = async (prisma: PrismaClient, projectId: string, query: TranslationsQuery): Promise<TranslationsResponse> => {
 	const { sourceLanguageId, targetLanguageId, search, status, namespace, updatedById, updatedWithin, warnings, versionId, sort, page, pageSize } = query
+	await assertProjectVersion(prisma, projectId, versionId)
 	if (sourceLanguageId !== undefined && targetLanguageId !== undefined) {
 		await assertProjectLanguages(prisma, projectId, [sourceLanguageId, targetLanguageId])
 	}
 	const view = sourceLanguageId !== undefined && targetLanguageId !== undefined ? compactView(sourceLanguageId, targetLanguageId) : EXTENDED_VIEW
 
-	const conditions = [Prisma.sql`k."projectId" = ${projectId}::uuid`]
+	const conditions = [Prisma.sql`k."versionId" = ${versionId}::uuid`]
 	if (search !== undefined) {
 		const pattern = toContainsPattern(search)
 		conditions.push(Prisma.sql`(${matches(Prisma.sql`k.name`, pattern)} OR ${view.valueMatches(pattern)})`)
@@ -196,9 +191,6 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	if (warnings) {
 		conditions.push(HAS_WARNING_SQL)
 	}
-	if (versionId !== undefined) {
-		conditions.push(versionWorkSql(versionId))
-	}
 	if (updatedById !== undefined || updatedWithin !== undefined) {
 		const updated = [
 			...(updatedById === undefined ? [] : [Prisma.sql`x."updatedById" = ${updatedById}::uuid`]),
@@ -210,8 +202,7 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 
 	const [rows, [count], [stats], namespaces, languages, editors] = await Promise.all([
 		prisma.$queryRaw<ItemRow[]>`
-			SELECT k.id AS "keyId", k.namespace, k.name, ${GROUP_SQL} AS "group", k.description, k."pluralVariable", ${view.untranslated} AS untranslated,
-				k."versionId", (SELECT v.name FROM "ProjectVersion" v WHERE v.id = k."versionId") AS "versionName"
+			SELECT k.id AS "keyId", k.namespace, k.name, ${GROUP_SQL} AS "group", k.description, k."pluralVariable", ${view.untranslated} AS untranslated
 			FROM ${from}
 			ORDER BY ${orderBy(sort, view)}
 			LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
@@ -220,14 +211,14 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 			SELECT count(*)::int AS "totalKeys", (count(*) FILTER (WHERE NOT ${view.untranslated}))::int AS translated,
 				(count(*) FILTER (WHERE ${HAS_WARNING_SQL}))::int AS warnings
 			FROM "TranslationKey" k ${view.joins}
-			WHERE k."projectId" = ${projectId}::uuid`,
-		prisma.translationKey.findMany({ where: { projectId }, distinct: ['namespace'], select: { namespace: true }, orderBy: { namespace: 'asc' } }),
+			WHERE k."versionId" = ${versionId}::uuid`,
+		prisma.translationKey.findMany({ where: { versionId }, distinct: ['namespace'], select: { namespace: true }, orderBy: { namespace: 'asc' } }),
 		prisma.projectLanguage.findMany({ where: { projectId }, select: { id: true } }),
 		prisma.$queryRaw<(EditorRow & { edits: number })[]>`
 			WITH edits AS (
 				SELECT t."updatedById" AS id, count(*)::int AS edits
 				FROM "Translation" t JOIN "TranslationKey" k ON k.id = t."keyId"
-				WHERE k."projectId" = ${projectId}::uuid AND t."updatedById" IS NOT NULL
+				WHERE k."versionId" = ${versionId}::uuid AND t."updatedById" IS NOT NULL
 				GROUP BY t."updatedById"
 			)
 			SELECT u.id, u.email, u."firstName", u."lastName", COALESCE(e.edits, 0) AS edits
@@ -261,15 +252,16 @@ const keyNotFound = () => new AppError(404, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND
  * Upserts the target cell. On a plural key a non-null value must be a plural message with the key's variable. With
  * `protectVariables` a non-base value must keep the `{{…}}` placeholders of the base language value; when that is missing
  * or `null`, of the key name (a sentence key such as `Cena ({{symbol}})` names its variables), skipped when the name has none. Writes `TRANSLATION_UPDATED` only when the stored value changes.
+ * The cell belongs to the key's version: an EDITOR cannot write into a locked one (409 `PROJECT_VERSION_LOCKED`).
  */
 export const updateTranslation = async (
 	prisma: PrismaClient,
 	{ projectId, keyId, languageId, userId, role }: { projectId: string; keyId: string; languageId: string; userId: string; role: ROLE },
-	{ value, versionId: requestedVersionId }: { value: string | null; versionId?: string },
+	{ value }: { value: string | null },
 ): Promise<UpdateTranslationResponse> => {
 	const key = await prisma.translationKey.findFirst({
 		where: { id: keyId, projectId },
-		select: { namespace: true, name: true, pluralVariable: true, project: { select: { protectVariables: true } } },
+		select: { namespace: true, name: true, pluralVariable: true, versionId: true, project: { select: { protectVariables: true } } },
 	})
 	if (!key) {
 		throw keyNotFound()
@@ -305,12 +297,11 @@ export const updateTranslation = async (
 		await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(hashtextextended(${`import:${projectId}`}, 0))`
 		await tx.$queryRaw`SELECT id FROM "TranslationKey" WHERE id = ${keyId}::uuid FOR NO KEY UPDATE`
 		const oldValue = (await tx.translation.findUnique({ where: { keyId_languageId: { keyId, languageId } }, select: { value: true } }))?.value ?? null
-		const versionId = await resolveVersionId(tx, { projectId, versionId: requestedVersionId, role })
-		// The version says where the value was last changed, so a save that keeps the value leaves it.
+		await resolveVersion(tx, { projectId, versionId: key.versionId, role })
 		const updated = await tx.translation.upsert({
 			where: { keyId_languageId: { keyId, languageId } },
-			create: { keyId, languageId, value, updatedById: userId, versionId },
-			update: { value, updatedById: userId, ...(value === oldValue ? {} : { versionId }) },
+			create: { keyId, languageId, value, updatedById: userId },
+			update: { value, updatedById: userId },
 			select: { value: true, updatedAt: true, updatedBy: EDITOR_SELECT },
 		})
 		if (updated.value !== oldValue) {
@@ -407,14 +398,14 @@ export const updateTranslationKey = async (
 	})
 
 /**
- * Adds a key by hand into a namespace the project already has, with the given values (empty ones stay untranslated, no row).
+ * Adds a key by hand into a namespace the version already has, with the given values (empty ones stay untranslated, no row).
  * With variable protection on, every non-base value must keep the placeholders of the base value (or of a key name with
  * placeholders when the base is empty). Writes `KEY_CREATED` with the languages that got a value.
  */
 export const createTranslationKey = async (
 	prisma: PrismaClient,
 	{ projectId, userId, role }: { projectId: string; userId: string; role: ROLE },
-	{ namespace, name, translations, versionId: requestedVersionId }: CreateTranslationKeyRequest,
+	{ namespace, name, translations, versionId }: CreateTranslationKeyRequest,
 ): Promise<CreateTranslationKeyResponse> => {
 	const project = await prisma.project.findUniqueOrThrow({
 		where: { id: projectId },
@@ -460,18 +451,18 @@ export const createTranslationKey = async (
 	return prisma.$transaction(async (tx) => {
 		// Waits for a running import, like a cell edit, so the import never meets a key created in the middle of it.
 		await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(hashtextextended(${`import:${projectId}`}, 0))`
-		if (!(await tx.translationKey.findFirst({ where: { projectId, namespace }, select: { id: true } }))) {
-			throw new AppError(400, ERROR_CODE.VALIDATION_ERROR, 'Namespace not found in the project', [{ path: 'namespace', code: VALIDATION_CODE.INVALID }])
+		await resolveVersion(tx, { projectId, versionId, role })
+		if (!(await tx.translationKey.findFirst({ where: { versionId, namespace }, select: { id: true } }))) {
+			throw new AppError(400, ERROR_CODE.VALIDATION_ERROR, 'Namespace not found in the version', [{ path: 'namespace', code: VALIDATION_CODE.INVALID }])
 		}
-		const versionId = await resolveVersionId(tx, { projectId, versionId: requestedVersionId, role })
 		const key = await tx.translationKey
 			.create({
 				data: {
 					projectId,
+					versionId,
 					namespace,
 					name,
-					versionId,
-					translations: { create: values.map(({ id, value }) => ({ languageId: id, value, updatedById: userId, versionId })) },
+					translations: { create: values.map(({ id, value }) => ({ languageId: id, value, updatedById: userId })) },
 				},
 				select: { id: true, namespace: true, name: true, description: true, pluralVariable: true },
 			})

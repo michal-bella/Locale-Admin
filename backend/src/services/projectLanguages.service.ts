@@ -16,6 +16,7 @@ import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
 import { recomputeProjectPlaceholderWarnings } from '../lib/placeholderWarnings'
 import { type PrismaClient } from '../lib/prisma'
+import { findDefaultVersionId, todayVersionDate } from '../lib/projectVersions'
 
 import { isPrismaError } from './projects.service'
 
@@ -87,11 +88,13 @@ export const setBaseLanguage = async (
 export const findBaseLanguageId = async (prisma: PrismaClient | Prisma.TransactionClient, projectId: string): Promise<string | null> =>
 	(await prisma.projectLanguage.findFirst({ where: { projectId, isBase: true }, select: { id: true } }))?.id ?? null
 
+/** The counts are those of the project's default version (the current one, else the newest; see `findDefaultVersionId`), zero without versions. */
 const listWithCounts = async (db: PrismaClient | Prisma.TransactionClient, projectId: string): Promise<LanguageListItem[]> => {
+	const versionId = await findDefaultVersionId(db, projectId, todayVersionDate())
 	const [languages, keyCount, filled] = await Promise.all([
 		db.projectLanguage.findMany({ where: { projectId }, select: LANGUAGE_SELECT, orderBy: LANGUAGE_ORDER }),
-		db.translationKey.count({ where: { projectId } }),
-		db.translation.groupBy({ by: ['languageId'], where: { value: { not: null }, language: { projectId } }, _count: { _all: true } }),
+		versionId === null ? 0 : db.translationKey.count({ where: { versionId } }),
+		versionId === null ? [] : db.translation.groupBy({ by: ['languageId'], where: { value: { not: null }, key: { versionId } }, _count: { _all: true } }),
 	])
 	const filledByLanguage = new Map(filled.map(({ languageId, _count }) => [languageId, _count._all]))
 	return languages.map((language) => ({ ...toLanguage(language), translatedCount: filledByLanguage.get(language.id) ?? 0, keyCount }))

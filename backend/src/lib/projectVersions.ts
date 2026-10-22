@@ -27,25 +27,43 @@ export const findCurrentVersionId = async (db: PrismaClient | Prisma.Transaction
 	)?.id ?? null
 
 /**
- * The version a write goes into. `undefined` picks the current version (`findCurrentVersionId`) or `null` when there is none; an id
- * must be a version of the project (404 `PROJECT_VERSION_NOT_FOUND`) and, for anyone but an ADMIN, not locked (409 `PROJECT_VERSION_LOCKED`).
- * A version that is current by its dates can only be locked by hand.
+ * The version a project-level view shows: the current one by date, else the newest `startsAt` (a project between windows or with only
+ * upcoming versions), `null` without versions. The project list and the Languages page count the keys of this version.
  */
-export const resolveVersionId = async (
-	db: PrismaClient | Prisma.TransactionClient,
-	{ projectId, versionId, role }: { projectId: string; versionId: string | undefined; role: ROLE },
-): Promise<string | null> => {
-	const today = todayVersionDate()
-	const id = versionId ?? (await findCurrentVersionId(db, projectId, today))
-	if (id === null) {
-		return null
-	}
-	const version = await db.projectVersion.findFirst({ where: { id, projectId }, select: { lock: true, endsAt: true } })
+export const findDefaultVersionId = async (db: PrismaClient | Prisma.TransactionClient, projectId: string, today: string): Promise<string | null> =>
+	(await findCurrentVersionId(db, projectId, today)) ??
+	(await db.projectVersion.findFirst({ where: { projectId }, orderBy: [{ startsAt: 'desc' }, { createdAt: 'desc' }], select: { id: true } }))?.id ??
+	null
+
+export type ResolvedVersion = { id: string; name: string; importedAt: Date | null }
+
+/** A version of the project for a read (list, export): 404 `PROJECT_VERSION_NOT_FOUND` when it belongs to another project or does not exist. */
+export const assertProjectVersion = async (db: PrismaClient | Prisma.TransactionClient, projectId: string, versionId: string): Promise<ResolvedVersion> => {
+	const version = await db.projectVersion.findFirst({ where: { id: versionId, projectId }, select: { id: true, name: true, importedAt: true } })
 	if (!version) {
 		throw versionNotFound()
 	}
-	if (role !== ROLE.ADMIN && isVersionLocked({ lock: version.lock as VERSION_LOCK, endsAt: fromDbDate(version.endsAt) }, today)) {
+	return version
+}
+
+/**
+ * The version a write goes into: a version of the project (404 `PROJECT_VERSION_NOT_FOUND`) that, for anyone but an ADMIN, is not
+ * locked (409 `PROJECT_VERSION_LOCKED`): locked by hand, or `AUTO` outside its `startsAt`–`endsAt` window (`isVersionLocked`).
+ */
+export const resolveVersion = async (
+	db: PrismaClient | Prisma.TransactionClient,
+	{ projectId, versionId, role }: { projectId: string; versionId: string; role: ROLE },
+): Promise<ResolvedVersion> => {
+	const version = await db.projectVersion.findFirst({
+		where: { id: versionId, projectId },
+		select: { id: true, name: true, importedAt: true, lock: true, startsAt: true, endsAt: true },
+	})
+	if (!version) {
+		throw versionNotFound()
+	}
+	const dates = { lock: version.lock as VERSION_LOCK, startsAt: fromDbDate(version.startsAt), endsAt: fromDbDate(version.endsAt) }
+	if (role !== ROLE.ADMIN && isVersionLocked(dates, todayVersionDate())) {
 		throw new AppError(409, ERROR_CODE.PROJECT_VERSION_LOCKED, 'Version is locked')
 	}
-	return id
+	return { id: version.id, name: version.name, importedAt: version.importedAt }
 }

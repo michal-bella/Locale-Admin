@@ -12,7 +12,7 @@ export enum VERSION_LOCK {
 	UNLOCKED = 'UNLOCKED',
 }
 
-/** State of a version for today: `LOCKED` when `isLocked`, else `UPCOMING` before `startsAt`, else `ACTIVE` (also when unlocked after `endsAt`). */
+/** State of a version for today: `LOCKED` when locked by hand or past `endsAt` with `AUTO`, else `UPCOMING` before `startsAt`, else `ACTIVE` (also when unlocked after `endsAt`). */
 export const projectVersionStateSchema = z.enum(['UPCOMING', 'ACTIVE', 'LOCKED'])
 
 export type ProjectVersionState = z.infer<typeof projectVersionStateSchema>
@@ -65,8 +65,9 @@ export type UpdateProjectVersionRequestInput = z.input<typeof updateProjectVersi
 
 /**
  * One version in `GET /api/projects/:projectId/versions` and the body of `POST` and `PATCH`. `isLocked` is the effective lock for
- * today (`lock = LOCKED`, or `lock = AUTO` and today is past `endsAt`); `isCurrent` marks the version today falls into (the latest
- * `startsAt` when several overlap). `createdBy` is `null` after the user was deleted.
+ * today (`lock = LOCKED`, or `lock = AUTO` and today is outside `startsAt`–`endsAt`); `isCurrent` marks the version today falls into (the latest
+ * `startsAt` when several overlap). `createdBy` is `null` after the user was deleted. `importedAt` is the last import, `null` for an
+ * empty version; `keyCount` the keys the version holds.
  */
 export const projectVersionSchema = z.object({
 	id: z.uuid(),
@@ -77,6 +78,8 @@ export const projectVersionSchema = z.object({
 	isLocked: z.boolean(),
 	state: projectVersionStateSchema,
 	isCurrent: z.boolean(),
+	importedAt: z.iso.datetime().nullable(),
+	keyCount: z.number().int().nonnegative(),
 	createdAt: z.iso.datetime(),
 	createdBy: translationEditorSchema.nullable(),
 })
@@ -97,12 +100,23 @@ export const toVersionDate = (date: Date): string => {
 	return `${date.getFullYear()}-${month}-${day}`
 }
 
-/** The effective lock: an explicit `lock` wins, `AUTO` locks the day after `endsAt`. Dates compare as `YYYY-MM-DD` strings. */
-export const isVersionLocked = ({ lock, endsAt }: { lock: VERSION_LOCK; endsAt: string }, today: string): boolean =>
-	lock === VERSION_LOCK.LOCKED || (lock === VERSION_LOCK.AUTO && today > endsAt)
+/**
+ * The effective lock for an editor's writes: an explicit `lock` wins, `AUTO` locks outside the window (before `startsAt` and after
+ * `endsAt`). Dates compare as `YYYY-MM-DD` strings.
+ */
+export const isVersionLocked = ({ lock, startsAt, endsAt }: { lock: VERSION_LOCK; startsAt: string; endsAt: string }, today: string): boolean =>
+	lock === VERSION_LOCK.LOCKED || (lock === VERSION_LOCK.AUTO && (today < startsAt || today > endsAt))
 
-export const getVersionState = (version: { lock: VERSION_LOCK; startsAt: string; endsAt: string }, today: string): ProjectVersionState =>
-	isVersionLocked(version, today) ? 'LOCKED' : today < version.startsAt ? 'UPCOMING' : 'ACTIVE'
+/** A version before its window is `UPCOMING` even though editors cannot write into it yet; `LOCKED` is by hand or past `endsAt`. */
+export const getVersionState = (version: { lock: VERSION_LOCK; startsAt: string; endsAt: string }, today: string): ProjectVersionState => {
+	if (version.lock === VERSION_LOCK.LOCKED) {
+		return 'LOCKED'
+	}
+	if (today < version.startsAt) {
+		return 'UPCOMING'
+	}
+	return isVersionLocked(version, today) ? 'LOCKED' : 'ACTIVE'
+}
 
 /** Days from `today` to `date` (negative when past), both `YYYY-MM-DD`; whole days, no time zone involved. */
 export const daysUntil = (date: string, today: string): number => Math.round((Date.parse(date) - Date.parse(today)) / 86_400_000)

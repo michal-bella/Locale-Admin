@@ -14,7 +14,7 @@ import {
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
-import { ADMIN_USER, apiError, projectListRoute, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, CURRENT_VERSION, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -92,7 +92,7 @@ const mockPage = (routes: Routes = {}, languages: Language[] = [SLOVAK, ENGLISH]
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 		[`GET ${LANGUAGES_URL}`]: { status: 200, data: languages },
-		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [] } },
+		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [CURRENT_VERSION] } },
 		[`GET ${TRANSLATIONS_URL}`]: { status: 200, data: TRANSLATIONS },
 		[`POST ${PREVIEW_URL}`]: { status: 200, data: PREVIEW },
 		...routes,
@@ -256,7 +256,7 @@ describe('ImportModal step 1 (upload)', () => {
 			'Súbor je prázdny alebo obsahuje iba hlavičku.',
 		])
 		expect(within(alert).getByText('a ďalšie 2')).toBeInTheDocument()
-		expect(bodyOf(sent(requests, 'post', PREVIEW_URL)[0])).toEqual({ fileName: 'preklady.csv', content: CSV })
+		expect(bodyOf(sent(requests, 'post', PREVIEW_URL)[0])).toEqual({ fileName: 'preklady.csv', content: CSV, versionId: CURRENT_VERSION.id })
 
 		chooseFile(dialog, csvFile('opravene.csv'))
 		expect(await within(dialog).findByText('opravene.csv')).toBeInTheDocument()
@@ -319,6 +319,7 @@ describe('ImportModal step 2 (review)', () => {
 			'3 nové preklady',
 			'1 kľúč bez prekladu v základnom jazyku',
 			'1 stĺpec sa preskočí',
+			'Verzia: v2.45',
 		])
 		expect(within(dialog).getByRole('button', { name: 'Importovať' })).toBeEnabled()
 		expect(within(dialog).getByRole('button', { name: 'Späť' })).toBeInTheDocument()
@@ -345,7 +346,13 @@ describe('ImportModal step 2 (review)', () => {
 		expect(within(dialog).queryByText('Jazyk ru nie je v projekte.')).not.toBeInTheDocument()
 		const ruRow = languageSelect(dialog, 'ru').closest('tr')!
 		expect(within(ruRow).getByText('2 / 0')).toBeInTheDocument()
-		expect(summaryItems(dialog)).toEqual(['2 nové kľúče', '1 preklad sa prepíše', '5 nových prekladov', '1 kľúč bez prekladu v základnom jazyku'])
+		expect(summaryItems(dialog)).toEqual([
+			'2 nové kľúče',
+			'1 preklad sa prepíše',
+			'5 nových prekladov',
+			'1 kľúč bez prekladu v základnom jazyku',
+			'Verzia: v2.45',
+		])
 	})
 
 	it('keeps a manual choice on a matched column when Pridať jazyk runs the preview again', async () => {
@@ -445,6 +452,7 @@ describe('ImportModal step 2 (review)', () => {
 			'0 nových prekladov',
 			'1 kľúč bez prekladu v základnom jazyku',
 			'2 stĺpce sa preskočia',
+			'Verzia: v2.45',
 		])
 	})
 
@@ -507,6 +515,7 @@ describe('ImportModal step 2 (review)', () => {
 				{ columnIndex: 3, languageId: null },
 			],
 			createMissingKeys: false,
+			versionId: CURRENT_VERSION.id,
 		})
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Import dokončený: 2 nové kľúče, 3 nové preklady, 1 prepísaný.' }))
 		await waitFor(() => expect(sent(requests, 'get', TRANSLATIONS_URL).length).toBeGreaterThan(translationRequestsBefore))

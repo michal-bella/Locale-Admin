@@ -24,7 +24,7 @@ import { parseCsv } from '../lib/import/csvParser'
 import { type ParsedFile } from '../lib/import/parsedFile'
 import { recomputePlaceholderWarnings } from '../lib/placeholderWarnings'
 import { type PrismaClient } from '../lib/prisma'
-import { resolveVersionId } from '../lib/projectVersions'
+import { assertProjectVersion, resolveVersion } from '../lib/projectVersions'
 
 type KeyRow = { id: string; namespace: string; name: string; pluralVariable: string | null; languageId: string | null; value: string | null }
 
@@ -56,14 +56,14 @@ export const parseImportFile = (content: string): ParsedFile => {
 }
 
 /**
- * The file's keys in the project with their values by language id, by key identity. A key without translations has an empty map.
+ * The file's keys in the version with their values by language id, by key identity. A key without translations has an empty map.
  * Not filtered by language: `languageId = ANY($1::uuid[])` as a parameter made Postgres pick a plan 100x slower.
  */
-const loadProjectKeys = async (db: Prisma.TransactionClient, projectId: string, file: ParsedFile) => {
+const loadVersionKeys = async (db: Prisma.TransactionClient, versionId: string, file: ParsedFile) => {
 	const rows = await db.$queryRaw<KeyRow[]>`
 		SELECT k.id, k.namespace, k.name, k."pluralVariable", t."languageId", t.value
 		FROM unnest(${file.rows.map((row) => row.namespace)}::text[], ${file.rows.map((row) => row.key)}::text[]) AS f(namespace, name)
-		JOIN "TranslationKey" k ON k."projectId" = ${projectId}::uuid AND k.namespace = f.namespace AND k.name = f.name
+		JOIN "TranslationKey" k ON k."versionId" = ${versionId}::uuid AND k.namespace = f.namespace AND k.name = f.name
 		LEFT JOIN "Translation" t ON t."keyId" = k.id`
 	const keys = new Map<string, ProjectKey>()
 	for (const row of rows) {
@@ -115,8 +115,9 @@ const classifyValue = (fileValue: string | null, dbValue: string | null): ValueC
 	return fileValue === dbValue ? 'unchanged' : 'changed'
 }
 
-/** Compares a parsed file with the project without writing anything. Tags match case-insensitively, the response keeps the file's spelling. */
-export const previewImport = async (prisma: PrismaClient, projectId: string, file: ParsedFile): Promise<ImportPreviewResponse> => {
+/** Compares a parsed file with the keys of the version without writing anything. Tags match case-insensitively, the response keeps the file's spelling. */
+export const previewImport = async (prisma: PrismaClient, projectId: string, versionId: string, file: ParsedFile): Promise<ImportPreviewResponse> => {
+	await assertProjectVersion(prisma, projectId, versionId)
 	const languages = await prisma.projectLanguage.findMany({ where: { projectId }, select: { id: true, tag: true, isBase: true } })
 	const languageByTag = new Map(languages.map((language) => [language.tag.toLowerCase(), language]))
 
@@ -145,7 +146,7 @@ export const previewImport = async (prisma: PrismaClient, projectId: string, fil
 					},
 				],
 	)
-	const projectKeys = await loadProjectKeys(prisma, projectId, file)
+	const projectKeys = await loadVersionKeys(prisma, versionId, file)
 
 	const namespaces = new Map<string, number>()
 	let existingKeys = 0
@@ -249,7 +250,8 @@ const batches = <T>(items: T[]): T[][] =>
  * (`detectPluralVariable`): a new key, or an existing one without a plural setting; an existing plural variable is never changed. For a
  * plural key a message with text around the plural is written as a plain plural message (`valueToWrite`), and the preview counts the same.
  * An import that creates a key or writes a value records one `KEYS_IMPORTED` event whose `count` is the number of written values.
- * `request.versionId` goes on every created key and written cell (`null` writes none); a locked version is refused for anyone but an ADMIN.
+ * The file goes into `request.versionId`: its keys are the version's keys; a locked version is refused for anyone but an ADMIN. The
+ * version remembers the import in `importedAt`.
  */
 export const importFile = (
 	prisma: PrismaClient,
@@ -266,9 +268,8 @@ export const importFile = (
 			// Not Postgres now(): Prisma's @updatedAt uses the Node clock, the DB clock (Docker VM) can lag it by a few ms,
 			// and now() is the transaction start, before the lock wait. Mixing them made `updatedAt` go backwards.
 			const writtenAt = new Date()
-			const versionId = request.versionId === null ? null : await resolveVersionId(tx, { projectId, versionId: request.versionId, role })
-			const version =
-				versionId === null ? null : await tx.projectVersion.findUniqueOrThrow({ where: { id: versionId }, select: { id: true, name: true } })
+			const version = await resolveVersion(tx, { projectId, versionId: request.versionId, role })
+			const versionId = version.id
 
 			const languages = await tx.projectLanguage.findMany({
 				where: { projectId },
@@ -276,7 +277,7 @@ export const importFile = (
 				orderBy: [{ isBase: 'desc' }, { position: 'asc' }, { tag: 'asc' }],
 			})
 			const columns = resolveColumns(file, request.columns, new Set(languages.map(({ id }) => id)))
-			const projectKeys = await loadProjectKeys(tx, projectId, file)
+			const projectKeys = await loadVersionKeys(tx, versionId, file)
 
 			const missingKeys = request.createMissingKeys ? file.rows.filter((row) => !projectKeys.has(keyIdentity(row.namespace, row.key))) : []
 			const createdKeyIds = new Map<string, string>()
@@ -286,7 +287,7 @@ export const importFile = (
 					SELECT gen_random_uuid(), ${projectId}::uuid, f.namespace, f.name, f.plural, ${versionId}::uuid, ${writtenAt}, ${writtenAt}
 					FROM unnest(${batch.map((row) => row.namespace)}::text[], ${batch.map((row) => row.key)}::text[], ${batch.map((row) => pluralAfterImport(undefined, row, columns))}::text[])
 						AS f(namespace, name, plural)
-					ON CONFLICT ("projectId", namespace, name) DO NOTHING
+					ON CONFLICT ("versionId", namespace, name) DO NOTHING
 					RETURNING id, namespace, name`
 				for (const key of created) {
 					createdKeyIds.set(keyIdentity(key.namespace, key.name), key.id)
@@ -333,16 +334,17 @@ export const importFile = (
 
 			for (const batch of batches(writes)) {
 				await tx.$executeRaw`
-					INSERT INTO "Translation" ("keyId", "languageId", value, "updatedById", "updatedAt", "versionId")
-					SELECT f."keyId", f."languageId", f.value, ${userId}::uuid, ${writtenAt}, ${versionId}::uuid
+					INSERT INTO "Translation" ("keyId", "languageId", value, "updatedById", "updatedAt")
+					SELECT f."keyId", f."languageId", f.value, ${userId}::uuid, ${writtenAt}
 					FROM unnest(${batch.map((write) => write.keyId)}::uuid[], ${batch.map((write) => write.languageId)}::uuid[], ${batch.map((write) => write.value)}::text[])
 						AS f("keyId", "languageId", value)
 					ON CONFLICT ("keyId", "languageId") DO UPDATE
-					SET value = EXCLUDED.value, "updatedById" = EXCLUDED."updatedById", "updatedAt" = EXCLUDED."updatedAt", "versionId" = EXCLUDED."versionId"
+					SET value = EXCLUDED.value, "updatedById" = EXCLUDED."updatedById", "updatedAt" = EXCLUDED."updatedAt"
 					WHERE "Translation".value IS DISTINCT FROM EXCLUDED.value`
 			}
 
 			await recomputePlaceholderWarnings(tx, [...createdKeyIds.values(), ...writes.map(({ keyId }) => keyId)])
+			await tx.projectVersion.update({ where: { id: versionId }, data: { importedAt: writtenAt } })
 
 			if (createdKeyIds.size > 0 || writes.length > 0) {
 				const writtenLanguageIds = new Set(writes.map(({ languageId }) => languageId))
@@ -356,7 +358,7 @@ export const importFile = (
 						translationsCreated,
 						translationsUpdated,
 						languageTags: languages.filter(({ id }) => writtenLanguageIds.has(id)).map(({ tag }) => tag),
-						...(version === null ? {} : { versionName: version.name }),
+						versionName: version.name,
 					},
 				})
 			}
@@ -366,7 +368,7 @@ export const importFile = (
 				translationsCreated,
 				translationsUpdated,
 				skippedColumns: request.columns.filter(({ languageId }) => languageId === null).length,
-				version,
+				version: { id: version.id, name: version.name },
 			}
 		},
 		// The timeout includes waiting for the lock while another import of the project runs.

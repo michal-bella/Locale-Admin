@@ -23,6 +23,7 @@ import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
+import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -39,23 +40,34 @@ const createProject = (members: string[] = []) =>
 const createLanguage = (projectId: string, tag: string, isBase = false) => getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase } })
 
 /** `values` maps a language id to its value; a language left out has no row. */
-const createKey = (projectId: string, namespace: string, name: string, values: Record<string, string | null> = {}) =>
+const createKey = async (projectId: string, namespace: string, name: string, values: Record<string, string | null> = {}) =>
 	getTestPrisma().translationKey.create({
-		data: { projectId, namespace, name, translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) } },
+		data: {
+			projectId,
+			versionId: await versionIdOf(projectId),
+			namespace,
+			name,
+			translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) },
+		},
 	})
 
 /** Logs in a new user (ADMIN unless given, only an ADMIN imports) who is a member of a new project with `sk` (base), `en` and `cs`. */
 const setup = async (app: App, role: ROLE = ROLE.ADMIN, { member = true }: { member?: boolean } = {}) => {
 	const { user } = await createUser({ role })
 	const project = await createProject(member ? [user.id] : [])
+	await createVersionRow(project.id)
 	const sk = await createLanguage(project.id, 'sk', true)
 	const en = await createLanguage(project.id, 'en')
 	const cs = await createLanguage(project.id, 'cs')
 	return { user, project, sk, en, cs, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
 }
 
-const preview = (app: App, cookie: string, projectId: string, body: object) =>
-	request(app).post(`/api/projects/${projectId}/imports/preview`).set('Cookie', cookie).set(CSRF_HEADERS).send(body)
+const preview = async (app: App, cookie: string, projectId: string, body: object) =>
+	request(app)
+		.post(`/api/projects/${projectId}/imports/preview`)
+		.set('Cookie', cookie)
+		.set(CSRF_HEADERS)
+		.send({ versionId: await versionIdOf(projectId), ...body })
 
 const previewCsv = (app: App, cookie: string, projectId: string, lines: string[]) =>
 	preview(app, cookie, projectId, { fileName: 'translations.csv', content: lines.join('\n') })
@@ -75,6 +87,9 @@ const countRows = async () => {
 	const prisma = getTestPrisma()
 	return { keys: await prisma.translationKey.count(), translations: await prisma.translation.count(), languages: await prisma.projectLanguage.count() }
 }
+
+/** The version `setup` created, as the import result names it. */
+const IMPORTED_VERSION = { id: expect.any(String) as string, name: 'v1' }
 
 const SAMPLE = [
 	'Keys; sk ; EN ; cs ; de-AT ; pl ',
@@ -389,9 +404,10 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 		for (const tag of tags.slice(3)) {
 			await createLanguage(project.id, tag)
 		}
+		const versionId = await versionIdOf(project.id)
 		await prisma.$executeRaw`
-			INSERT INTO "TranslationKey" (id, "projectId", namespace, name, "updatedAt")
-			SELECT gen_random_uuid(), ${project.id}::uuid, 'loc', 'Veta číslo ' || i || ' {{count}}', now() FROM generate_series(1, 2500) AS i`
+			INSERT INTO "TranslationKey" (id, "projectId", "versionId", namespace, name, "updatedAt")
+			SELECT gen_random_uuid(), ${project.id}::uuid, ${versionId}::uuid, 'loc', 'Veta číslo ' || i || ' {{count}}', now() FROM generate_series(1, 2500) AS i`
 		await prisma.$executeRaw`
 			INSERT INTO "Translation" ("keyId", "languageId", value, "updatedAt")
 			SELECT k.id, l.id, l.tag || ' ' || k.name, now()
@@ -415,8 +431,12 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 
 type ImportColumns = ImportRequestInput['columns']
 
-const postImport = (app: App, cookie: string, projectId: string, body: object) =>
-	request(app).post(`/api/projects/${projectId}/imports`).set('Cookie', cookie).set(CSRF_HEADERS).send(body)
+const postImport = async (app: App, cookie: string, projectId: string, body: object) =>
+	request(app)
+		.post(`/api/projects/${projectId}/imports`)
+		.set('Cookie', cookie)
+		.set(CSRF_HEADERS)
+		.send({ versionId: await versionIdOf(projectId), ...body })
 
 const importCsv = (app: App, cookie: string, projectId: string, lines: string[], columns: ImportColumns, createMissingKeys?: boolean) =>
 	postImport(app, cookie, projectId, { fileName: 'translations.csv', content: lines.join('\n'), columns, createMissingKeys })
@@ -470,7 +490,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			translationsCreated: 6,
 			translationsUpdated: 0,
 			skippedColumns: 0,
-			version: null,
+			version: IMPORTED_VERSION,
 		})
 
 		expect(await projectKeys(project.id)).toEqual(['loc/Uložiť', 'loc/Zrušiť', 'paths/orders'])
@@ -491,7 +511,9 @@ describe('POST /api/projects/:projectId/imports', () => {
 		const { project, sk, en, cs, cookie } = await setup(app)
 		const prisma = getTestPrisma()
 		await createKey(project.id, 'loc', 'existing', { [sk.id]: '{count, plural, one {# kus} other {# kusov}}' })
-		await prisma.translationKey.create({ data: { projectId: project.id, namespace: 'loc', name: 'kept', pluralVariable: 'n' } })
+		await prisma.translationKey.create({
+			data: { projectId: project.id, versionId: await versionIdOf(project.id), namespace: 'loc', name: 'kept', pluralVariable: 'n' },
+		})
 
 		await importOk(
 			app,
@@ -565,7 +587,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			translationsCreated: 0,
 			translationsUpdated: 0,
 			skippedColumns: 0,
-			version: null,
+			version: IMPORTED_VERSION,
 		})
 		expect(await projectTranslations(project.id)).toEqual(before)
 	})
@@ -583,7 +605,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			translationsCreated: 1,
 			translationsUpdated: 1,
 			skippedColumns: 0,
-			version: null,
+			version: IMPORTED_VERSION,
 		})
 
 		const after = await projectTranslations(project.id)
@@ -615,7 +637,13 @@ describe('POST /api/projects/:projectId/imports', () => {
 			{ columnIndex: 4, languageId: null },
 		])
 
-		expect(result).toEqual({ keysCreated: 3, translationsCreated: 5, translationsUpdated: 0, skippedColumns: 1, version: null })
+		expect(result).toEqual({
+			keysCreated: 3,
+			translationsCreated: 5,
+			translationsUpdated: 0,
+			skippedColumns: 1,
+			version: IMPORTED_VERSION,
+		})
 		expect(Object.keys(await projectValues(project.id)).filter((id) => id.endsWith(' cs'))).toEqual([])
 	})
 
@@ -629,7 +657,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			translationsCreated: 2,
 			translationsUpdated: 0,
 			skippedColumns: 0,
-			version: null,
+			version: IMPORTED_VERSION,
 		})
 		expect(await projectKeys(project.id)).toEqual(['loc/Uložiť'])
 		expect(await projectValues(project.id)).toEqual({ 'loc/Uložiť en': 'Save', 'loc/Uložiť sk': 'Uložiť' })
@@ -665,7 +693,13 @@ describe('POST /api/projects/:projectId/imports', () => {
 			],
 		)
 
-		expect(result).toEqual({ keysCreated: 1, translationsCreated: 3, translationsUpdated: 0, skippedColumns: 0, version: null })
+		expect(result).toEqual({
+			keysCreated: 1,
+			translationsCreated: 3,
+			translationsUpdated: 0,
+			skippedColumns: 0,
+			version: IMPORTED_VERSION,
+		})
 		expect(await projectValues(project.id)).toEqual({ '/a cs': 'Polski', '/a en': 'Deutsch', '/a sk': 'A' })
 	})
 
@@ -691,7 +725,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			translationsCreated: body.changes.reduce((sum, change) => sum + change.new, 0),
 			translationsUpdated: body.changes.reduce((sum, change) => sum + change.changed, 0),
 			skippedColumns: 2,
-			version: null,
+			version: IMPORTED_VERSION,
 		})
 		expect(result.translationsCreated).toBeGreaterThan(0)
 		expect(result.translationsUpdated).toBeGreaterThan(0)
@@ -708,8 +742,20 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		const firstWonOrder = results[0].keysCreated === 2000
 		const [earlier, later] = firstWonOrder ? results : [results[1], results[0]]
-		expect(earlier).toEqual({ keysCreated: 2000, translationsCreated: 2000, translationsUpdated: 0, skippedColumns: 0, version: null })
-		expect(later).toEqual({ keysCreated: 1000, translationsCreated: 1000, translationsUpdated: 1000, skippedColumns: 0, version: null })
+		expect(earlier).toEqual({
+			keysCreated: 2000,
+			translationsCreated: 2000,
+			translationsUpdated: 0,
+			skippedColumns: 0,
+			version: IMPORTED_VERSION,
+		})
+		expect(later).toEqual({
+			keysCreated: 1000,
+			translationsCreated: 1000,
+			translationsUpdated: 1000,
+			skippedColumns: 0,
+			version: IMPORTED_VERSION,
+		})
 		const values = await projectValues(project.id)
 		expect(Object.keys(values)).toHaveLength(3000)
 		expect(values['/key 1500 en']).toBe(firstWonOrder ? 'second 1500' : 'first 1500')
@@ -733,7 +779,14 @@ describe('POST /api/projects/:projectId/imports', () => {
 		const holder = prisma.$transaction(
 			async (tx) => {
 				await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`import:${project.id}`}, 0))`
-				await tx.translationKey.create({ data: { projectId: project.id, name: 'a', translations: { create: { languageId: en.id, value: 'held' } } } })
+				await tx.translationKey.create({
+					data: {
+						projectId: project.id,
+						versionId: await versionIdOf(project.id),
+						name: 'a',
+						translations: { create: { languageId: en.id, value: 'held' } },
+					},
+				})
 				lockTaken()
 				await released
 			},
@@ -757,7 +810,13 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		release()
 		await holder
-		expect(await pending).toEqual({ keysCreated: 1, translationsCreated: 1, translationsUpdated: 1, skippedColumns: 0, version: null })
+		expect(await pending).toEqual({
+			keysCreated: 1,
+			translationsCreated: 1,
+			translationsUpdated: 1,
+			skippedColumns: 0,
+			version: IMPORTED_VERSION,
+		})
 		expect(await projectValues(project.id)).toEqual({ '/a en': 'imported', '/b en': 'B' })
 	})
 
@@ -916,7 +975,13 @@ describe('POST /api/projects/:projectId/imports', () => {
 		const result = await importOk(app, cookie, project.id, lines, columns)
 		const elapsed = performance.now() - started
 
-		expect(result).toEqual({ keysCreated: 2500, translationsCreated: 25000, translationsUpdated: 0, skippedColumns: 0, version: null })
+		expect(result).toEqual({
+			keysCreated: 2500,
+			translationsCreated: 25000,
+			translationsUpdated: 0,
+			skippedColumns: 0,
+			version: IMPORTED_VERSION,
+		})
 		expect(await getTestPrisma().translation.count()).toBe(25000)
 		expect(elapsed, `import took ${Math.round(elapsed)} ms`).toBeLessThan(5000)
 	})

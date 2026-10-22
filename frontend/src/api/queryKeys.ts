@@ -25,10 +25,8 @@ export const QUERY_KEYS = {
 		/** Prefix of every translations page of one project, e.g. to refetch them all after an edit. */
 		TRANSLATIONS_ALL: (projectId: string) => ['projects', projectId, 'translations'] as const,
 		TRANSLATIONS: (projectId: string, query: TranslationsQueryInput) => ['projects', projectId, 'translations', query] as const,
-		EXPORT_CHECK: (
-			projectId: string,
-			query: Pick<ExportCheckQuery, 'languageIds' | 'status' | 'versionId'> & Partial<Pick<ExportCheckQuery, 'versionScope'>>,
-		) => ['projects', projectId, 'export-check', query] as const,
+		EXPORT_CHECK: (projectId: string, query: Pick<ExportCheckQuery, 'languageIds' | 'status' | 'versionId'>) =>
+			['projects', projectId, 'export-check', query] as const,
 		DASHBOARD: (projectId: string) => ['projects', projectId, 'dashboard'] as const,
 		/** Prefix of the activity feed and the daily activity of one project. */
 		ACTIVITY_ALL: (projectId: string) => ['projects', projectId, 'activity'] as const,

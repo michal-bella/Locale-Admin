@@ -10,20 +10,21 @@ import { type TranslationsVersionBannerProps } from './types'
 
 /**
  * Countdown of a version above the translations card: how long editors have until the version locks, or that it is locked (and, for an
- * editor, that only an administrator edits it now), and how many keys of its work are still untranslated. The list opens on the version's
- * work; the button clears that filter (the whole project), an ADMIN also locks or unlocks the version from here.
+ * editor, that only an administrator edits it now), and how many of its keys are still untranslated. An ADMIN also locks or unlocks the
+ * version from here.
  */
-const TranslationsVersionBanner = ({ version, active, writesBlocked, untranslated, onClear, onToggleLock }: TranslationsVersionBannerProps) => {
+const TranslationsVersionBanner = ({ version, writesBlocked, untranslated, onToggleLock }: TranslationsVersionBannerProps) => {
 	const { t } = useTranslation()
 	// Days are counted in the browser's calendar: the deadline is a day, not a moment.
 	const today = toVersionDate(new Date())
 	const { name } = version
 	const message = (() => {
-		if (version.isLocked) {
-			return t(writesBlocked ? 'translationsPage.version.lockedEditor' : 'translationsPage.version.locked', { name })
-		}
+		// A version before its window is locked for editors too, but the countdown to its start says more than "locked".
 		if (today < version.startsAt) {
 			return t('translationsPage.version.upcoming', { name, count: daysUntil(version.startsAt, today) })
+		}
+		if (version.isLocked) {
+			return t(writesBlocked ? 'translationsPage.version.lockedEditor' : 'translationsPage.version.locked', { name })
 		}
 		if (today > version.endsAt) {
 			return t('translationsPage.version.unlocked', { name })
@@ -52,11 +53,6 @@ const TranslationsVersionBanner = ({ version, active, writesBlocked, untranslate
 						onClick={onToggleLock}
 					>
 						{t(version.isLocked ? 'translationsPage.version.unlock' : 'translationsPage.version.lock')}
-					</Button>
-				)}
-				{active && (
-					<Button variant='default' size='xs' onClick={onClear}>
-						{t('translationsPage.version.clear')}
 					</Button>
 				)}
 			</div>

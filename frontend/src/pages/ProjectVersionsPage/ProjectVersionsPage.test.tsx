@@ -37,6 +37,8 @@ const version = (overrides: Partial<ProjectVersion> & Pick<ProjectVersion, 'id' 
 	isLocked: false,
 	state: 'ACTIVE',
 	isCurrent: false,
+	importedAt: null,
+	keyCount: 0,
 	createdAt: '2026-09-01T10:00:00.000Z',
 	createdBy: { id: ADMIN_USER.id, name: 'Michal Bella' },
 	...overrides,

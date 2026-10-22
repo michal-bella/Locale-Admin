@@ -1,4 +1,4 @@
-import { Button, VisuallyHidden } from '@mantine/core'
+import { Button, Text, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
@@ -29,7 +29,7 @@ import TranslationsViewControls from '@/components/TranslationsViewControls/Tran
 import TranslationsWarningsBanner from '@/components/TranslationsWarningsBanner/TranslationsWarningsBanner'
 import VersionFormModal from '@/components/VersionFormModal/VersionFormModal'
 import VersionLockModal from '@/components/VersionLockModal/VersionLockModal'
-import { ALL_VERSIONS, TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
+import { TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsPage.module.css'
 
@@ -41,8 +41,9 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
  * by all of them (no language ids in the query); `?languages=` narrows its columns to the base language plus the chosen ones without changing
  * the row status. `COMPACT` is the Figma source → target pair. Either view lays its languages side by side or stacked, also a preference
  * (`me.preferences.translationsLayout`). Without Posledný sync and the Na kontrolu card. Importovať (ADMIN only) opens `ImportModal`, Exportovať (every member) `ExportModal`.
- * A VISITOR gets the table read-only: cells are text and there is no edit modal. An ADMIN also creates a version here (the page then
- * filters by it) and locks or unlocks the version of the banner.
+ * A VISITOR gets the table read-only: cells are text and there is no edit modal. The list always shows one version of the project
+ * (`?version=`, else the current one, else the newest); a project without versions gets an empty state instead of the table. An ADMIN
+ * also creates a version here (the page then shows it) and locks or unlocks the version of the banner.
  */
 const TranslationsPage = () => {
 	const { t } = useTranslation()
@@ -58,17 +59,13 @@ const TranslationsPage = () => {
 	const updatePreferences = useUpdatePreferencesMutation()
 	const languagesQuery = useProjectLanguagesQuery(projectId)
 	const languages = languagesQuery.data ?? []
-	// A project without versions works as before: no filter, no banner, nothing sent with the edits.
-	const versions = useProjectVersionsQuery(projectId).data?.items ?? []
-	const currentVersion = versions.find((version) => version.isCurrent)
-	// Without `?version=` the list shows the work of the current version (what the editors finish now); `ALL` is the whole project.
-	const versionId = search.version === ALL_VERSIONS ? undefined : (search.version ?? currentVersion?.id)
-	const selectedVersion = versions.find((version) => version.id === versionId)
-	const bannerVersion = selectedVersion ?? currentVersion
-	// The stats count the whole project, so a card and Zrušiť filtre show it; a project without versions keeps the URL clean.
-	const wholeProject = currentVersion ? ALL_VERSIONS : undefined
+	const versionsQuery = useProjectVersionsQuery(projectId)
+	const versions = versionsQuery.data?.items ?? []
+	// Every version holds its own copy of the keys, so the list always shows one: the one in the URL, else the current one, else the newest.
+	const version = versions.find((item) => item.id === search.version) ?? versions.find((item) => item.isCurrent) ?? versions[0]
+	const versionId = version?.id
 	// An editor cannot write into a locked version; the API would refuse it (409), so the cells do not open at all.
-	const writesBlocked = !isAdmin && selectedVersion?.isLocked === true
+	const writesBlocked = !isAdmin && version?.isLocked === true
 	const [importOpened, importModal] = useDisclosure(false)
 	const [exportOpened, exportModal] = useDisclosure(false)
 	const [createKeyOpened, createKeyModal] = useDisclosure(false)
@@ -106,22 +103,22 @@ const TranslationsPage = () => {
 		pageSize,
 	}
 	const listQuery =
-		sourceLanguage && targetLanguage
+		sourceLanguage && targetLanguage && version
 			? view === 'COMPACT'
 				? { sourceLanguageId: sourceLanguage.id, targetLanguageId: targetLanguage.id, ...filters }
 				: filters
 			: null
 	const translationsQuery = useTranslationsQuery(projectId, listQuery)
 	const data = translationsQuery.data
-	// The stats count the whole project; the banner says how much of the version's work is still untranslated (one key is enough, the total is what counts).
-	const versionWorkQuery = useTranslationsQuery(
+	// The banner says how many keys of the version are still untranslated whatever the filters are (one key is enough, the total is what counts).
+	const untranslatedQuery = useTranslationsQuery(
 		projectId,
-		bannerVersion && listQuery
+		version && listQuery
 			? {
 					...(view === 'COMPACT' && sourceLanguage && targetLanguage
 						? { sourceLanguageId: sourceLanguage.id, targetLanguageId: targetLanguage.id }
 						: {}),
-					versionId: bannerVersion.id,
+					versionId: version.id,
 					status: 'UNTRANSLATED',
 					pageSize: 1,
 				}
@@ -134,7 +131,7 @@ const TranslationsPage = () => {
 	// The status badge flips silently for a screen reader; the live region below says it. Clearing first makes a repeated save of the same key announce again.
 	const saveTranslation = async (keyId: string, languageId: string, value: string | null) => {
 		setSavedAnnouncement('')
-		const result = await updateTranslation.mutateAsync({ keyId, languageId, value, versionId })
+		const result = await updateTranslation.mutateAsync({ keyId, languageId, value })
 		setSavedAnnouncement(t('translationsPage.editor.saved', { key: data?.items.find((item) => item.keyId === keyId)?.name ?? '' }))
 		return result
 	}
@@ -164,21 +161,23 @@ const TranslationsPage = () => {
 			updatedBy: undefined,
 			updatedWithin: undefined,
 			warnings: undefined,
-			version: wholeProject,
 		})
 
 	const retry = async () => {
 		const languagesResult = languagesQuery.isError ? await languagesQuery.refetch() : languagesQuery
-		if (languagesResult.isError) {
+		const versionsResult = versionsQuery.isError ? await versionsQuery.refetch() : versionsQuery
+		if (languagesResult.isError || versionsResult.isError) {
 			return false
 		}
 		const translationsResult = translationsQuery.isError ? await translationsQuery.refetch() : translationsQuery
 		return !translationsResult.isError
 	}
 
-	const isError = languagesQuery.isError || translationsQuery.isError
+	const isError = languagesQuery.isError || versionsQuery.isError || translationsQuery.isError
 	const hasLanguages = languages.length > 0
-	const isPending = !isError && (languagesQuery.isPending || (hasLanguages && translationsQuery.isPending) || isPastEnd)
+	const isPending =
+		!isError && (languagesQuery.isPending || versionsQuery.isPending || (hasLanguages && version !== undefined && translationsQuery.isPending) || isPastEnd)
+	const hasNoVersions = !isError && !isPending && versions.length === 0
 
 	// The search commits 300 ms after typing and the table changes silently; one polite region says what the list shows now.
 	const resultsAnnouncement = (() => {
@@ -220,21 +219,23 @@ const TranslationsPage = () => {
 							{t('translationsPage.createKeyButton')}
 						</Button>
 					)}
-					{isAdmin && (
+					{isAdmin && version && (
 						<Button ref={importButtonRef} variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
 							{t('translationsPage.importButton')}
 						</Button>
 					)}
-					<Button leftSection={<Download aria-hidden />} onClick={exportModal.open}>
-						{t('translationsPage.exportButton')}
-					</Button>
+					{version && (
+						<Button leftSection={<Download aria-hidden />} onClick={exportModal.open}>
+							{t('translationsPage.exportButton')}
+						</Button>
+					)}
 				</div>
 			</div>
 			{!isError && (
 				<TranslationStats
 					stats={isPending ? undefined : (data?.stats ?? { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 })}
 					status={search.status}
-					// The cards count every key of the project, so a card drops the other row filters to show exactly its number.
+					// The cards count every key of the version, so a card drops the other row filters to show exactly its number.
 					onStatusChange={(value) =>
 						updateSearch({
 							search: undefined,
@@ -242,19 +243,16 @@ const TranslationsPage = () => {
 							updatedBy: undefined,
 							updatedWithin: undefined,
 							warnings: undefined,
-							version: wholeProject,
 							status: value,
 						})
 					}
 				/>
 			)}
-			{!isError && !isPending && bannerVersion && (
+			{!isError && !isPending && version && (
 				<TranslationsVersionBanner
-					version={bannerVersion}
-					active={selectedVersion !== undefined}
-					writesBlocked={!isAdmin && bannerVersion.isLocked}
-					untranslated={versionWorkQuery.data?.total}
-					onClear={() => updateSearch({ version: ALL_VERSIONS })}
+					version={version}
+					writesBlocked={!isAdmin && version.isLocked}
+					untranslated={untranslatedQuery.data?.total}
 					onToggleLock={isAdmin ? lockVersionModal.open : undefined}
 				/>
 			)}
@@ -266,60 +264,66 @@ const TranslationsPage = () => {
 					onClear={() => updateSearch({ warnings: undefined })}
 				/>
 			)}
-			{/* The view controls sit close above the card they configure; only the filters inside it stick. */}
-			<div className='flex flex-col gap-3'>
-				<TranslationsViewControls
-					view={view}
-					onViewChange={(next) => changePreferences({ translationsView: next })}
-					isPreferenceSaving={updatePreferences.isPending}
-					layout={layout}
-					onLayoutChange={(next) => changePreferences({ translationsLayout: next })}
-					languages={languages}
-					sourceLanguage={sourceLanguage}
-					targetLanguage={targetLanguage}
-					shownLanguages={search.languages}
-					translationsOnly={search.translationsOnly}
-					// The shown languages and Len preklady change only the columns, so the page stays; the pair changes what counts as untranslated.
-					onChange={(patch) => updateSearch(patch, { resetPage: !('languages' in patch || 'translationsOnly' in patch) })}
-				/>
-				<div className={classes.card}>
-					<div className={classes.toolbar}>
-						<TranslationsToolbar
-							search={search.search}
-							status={search.status}
-							namespace={search.namespace}
-							sort={sort}
-							updatedBy={search.updatedBy}
-							updatedWithin={search.updatedWithin}
-							version={versionId}
-							versions={versions}
-							editors={data?.editors ?? []}
-							namespaces={namespaces}
-							onChange={(patch) => updateSearch(patch)}
-						/>
-					</div>
-					<TranslationsTable
-						projectId={projectId}
-						data={data}
-						isPending={isPending}
-						isError={isError}
-						error={languagesQuery.error ?? translationsQuery.error}
-						onRetry={retry}
-						isRetrying={languagesQuery.isRefetching || translationsQuery.isRefetching}
+			{hasNoVersions ? (
+				<Text component='p' className={`${classes.card} p-8`}>
+					{t('translationsPage.noVersions')}
+				</Text>
+			) : (
+				/* The view controls sit close above the card they configure; only the filters inside it stick. */
+				<div className='flex flex-col gap-3'>
+					<TranslationsViewControls
 						view={view}
+						onViewChange={(next) => changePreferences({ translationsView: next })}
+						isPreferenceSaving={updatePreferences.isPending}
 						layout={layout}
-						languages={tableLanguages}
+						onLayoutChange={(next) => changePreferences({ translationsLayout: next })}
+						languages={languages}
 						sourceLanguage={sourceLanguage}
 						targetLanguage={targetLanguage}
-						onClearFilters={clearFilters}
-						onImport={importModal.open}
-						showGroups={sort !== 'UPDATED'}
+						shownLanguages={search.languages}
 						translationsOnly={search.translationsOnly}
-						readOnly={isVisitor || writesBlocked}
-						onSave={saveTranslation}
+						// The shown languages and Len preklady change only the columns, so the page stays; the pair changes what counts as untranslated.
+						onChange={(patch) => updateSearch(patch, { resetPage: !('languages' in patch || 'translationsOnly' in patch) })}
 					/>
+					<div className={classes.card}>
+						<div className={classes.toolbar}>
+							<TranslationsToolbar
+								search={search.search}
+								status={search.status}
+								namespace={search.namespace}
+								sort={sort}
+								updatedBy={search.updatedBy}
+								updatedWithin={search.updatedWithin}
+								version={versionId}
+								versions={versions}
+								editors={data?.editors ?? []}
+								namespaces={namespaces}
+								onChange={(patch) => updateSearch(patch)}
+							/>
+						</div>
+						<TranslationsTable
+							projectId={projectId}
+							data={data}
+							isPending={isPending}
+							isError={isError}
+							error={languagesQuery.error ?? translationsQuery.error}
+							onRetry={retry}
+							isRetrying={languagesQuery.isRefetching || translationsQuery.isRefetching}
+							view={view}
+							layout={layout}
+							languages={tableLanguages}
+							sourceLanguage={sourceLanguage}
+							targetLanguage={targetLanguage}
+							onClearFilters={clearFilters}
+							onImport={importModal.open}
+							showGroups={sort !== 'UPDATED'}
+							translationsOnly={search.translationsOnly}
+							readOnly={isVisitor || writesBlocked}
+							onSave={saveTranslation}
+						/>
+					</div>
 				</div>
-			</div>
+			)}
 			<VisuallyHidden role='status'>{resultsAnnouncement}</VisuallyHidden>
 			<VisuallyHidden role='status'>{savedAnnouncement}</VisuallyHidden>
 			{!isError && !isPastEnd && data && data.total > 0 && (
@@ -332,7 +336,9 @@ const TranslationsPage = () => {
 					onPageSizeChange={(next) => updateSearch({ pageSize: next === TRANSLATIONS_PAGE_SIZES[0] ? undefined : next })}
 				/>
 			)}
-			{isAdmin && <ImportModal projectId={projectId} versions={versions} defaultVersionId={versionId} opened={importOpened} onClose={closeImport} />}
+			{isAdmin && version && (
+				<ImportModal projectId={projectId} versions={versions} defaultVersionId={version.id} opened={importOpened} onClose={closeImport} />
+			)}
 			{isAdmin && (
 				<VersionFormModal
 					projectId={projectId}
@@ -343,14 +349,14 @@ const TranslationsPage = () => {
 					onCreated={(created) => updateSearch({ version: created.id })}
 				/>
 			)}
-			{isAdmin && <VersionLockModal projectId={projectId} opened={lockVersionOpened} version={bannerVersion ?? null} onClose={lockVersionModal.close} />}
-			{isAdmin && (
+			{isAdmin && <VersionLockModal projectId={projectId} opened={lockVersionOpened} version={version ?? null} onClose={lockVersionModal.close} />}
+			{isAdmin && version && (
 				<CreateKeyModal
 					projectId={projectId}
 					languages={languages}
 					namespaces={namespaces}
 					defaultNamespace={search.namespace}
-					versionId={versionId}
+					versionId={version.id}
 					opened={createKeyOpened}
 					onClose={createKeyModal.close}
 					// Shows the new key whatever page or filters were on; an empty namespace means no namespace filter.
@@ -366,7 +372,7 @@ const TranslationsPage = () => {
 					}
 				/>
 			)}
-			<ExportModal projectId={projectId} version={selectedVersion} opened={exportOpened} onClose={exportModal.close} />
+			{version && <ExportModal projectId={projectId} version={version} opened={exportOpened} onClose={exportModal.close} />}
 		</div>
 	)
 }

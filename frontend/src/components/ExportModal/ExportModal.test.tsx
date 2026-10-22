@@ -7,7 +7,7 @@ import { type ExportCheckResponse, type Language, type ProjectSettings, SUPPORTE
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
-import { ADMIN_USER, apiError, projectListRoute, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, CURRENT_VERSION, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -60,7 +60,7 @@ const mockPage = (
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [SLOVAK, ENGLISH, GERMAN] },
-		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [] } },
+		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [CURRENT_VERSION] } },
 		[`GET /projects/${PROJECT.id}/translations`]: { status: 200, data: TRANSLATIONS },
 		[`GET ${EXPORT_URL}`]: exportResponse,
 		[`GET ${CHECK_URL}`]: checkResponse,
@@ -130,7 +130,12 @@ describe('ExportModal', () => {
 		submit(dialog)
 
 		await waitFor(() => expect(downloads).toEqual(['translations.csv']))
-		expect(exportRequests(requests)[0]?.params).toEqual({ languageIds: [SLOVAK.id, ENGLISH.id, GERMAN.id].join(','), status: 'ALL', format: 'CSV' })
+		expect(exportRequests(requests)[0]?.params).toEqual({
+			languageIds: [SLOVAK.id, ENGLISH.id, GERMAN.id].join(','),
+			status: 'ALL',
+			format: 'CSV',
+			versionId: CURRENT_VERSION.id,
+		})
 		expect(exportRequests(requests)[0]?.responseType).toBe('blob')
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ message: 'Preklady sa stiahli do súboru translations.csv.' }))
 		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Exportovať preklady' })).not.toBeInTheDocument())
@@ -147,7 +152,12 @@ describe('ExportModal', () => {
 		submit(dialog)
 
 		await waitFor(() => expect(downloads).toEqual(['notino-b2b.csv']))
-		expect(exportRequests(requests)[0]?.params).toEqual({ languageIds: [SLOVAK.id, GERMAN.id].join(','), status: 'UNTRANSLATED', format: 'CSV' })
+		expect(exportRequests(requests)[0]?.params).toEqual({
+			languageIds: [SLOVAK.id, GERMAN.id].join(','),
+			status: 'UNTRANSLATED',
+			format: 'CSV',
+			versionId: CURRENT_VERSION.id,
+		})
 	})
 
 	it('exports XLSX: the button, the extension and the request follow the chosen format', async () => {
@@ -256,12 +266,14 @@ describe('ExportModal', () => {
 		).toEqual(['„loc / margin“ (angličtina): chýba {{percentage}}, navyše {{perecentage}}.', '„loc / margin“ (nemčina (Rakúsko)): chýba {{percentage}}.'])
 		expect(within(dialog).getByText('… a ešte 50 ďalších.')).toBeInTheDocument()
 		const checks = () => requests.filter((request) => request.url === CHECK_URL)
-		expect(checks().at(-1)?.params).toEqual({ languageIds: `${SLOVAK.id},${ENGLISH.id},${GERMAN.id}`, status: 'ALL' })
+		expect(checks().at(-1)?.params).toEqual({ languageIds: `${SLOVAK.id},${ENGLISH.id},${GERMAN.id}`, status: 'ALL', versionId: CURRENT_VERSION.id })
 
 		// A changed selection checks again with the new languages and status.
 		fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Angličtina' }))
 		fireEvent.click(within(dialog).getByRole('radio', { name: 'Nepreložené' }))
-		await waitFor(() => expect(checks().at(-1)?.params).toEqual({ languageIds: `${SLOVAK.id},${GERMAN.id}`, status: 'UNTRANSLATED' }))
+		await waitFor(() =>
+			expect(checks().at(-1)?.params).toEqual({ languageIds: `${SLOVAK.id},${GERMAN.id}`, status: 'UNTRANSLATED', versionId: CURRENT_VERSION.id }),
+		)
 
 		submit(dialog)
 		await waitFor(() => expect(downloads).toEqual(['translations.csv']))

@@ -9,6 +9,7 @@ import { createTestApp } from './helpers/app'
 import { loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
+import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -19,18 +20,22 @@ const login = async (app: App, role: ROLE = ROLE.EDITOR, names: { firstName?: st
 	return { user, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
 }
 
-const createProject = (memberIds: string[] = []) =>
-	getTestPrisma().project.create({
+const createProject = async (memberIds: string[] = []) => {
+	const project = await getTestPrisma().project.create({
 		data: { name: 'A', slug: `a-${randomUUID().slice(0, 8)}`, members: { create: memberIds.map((userId) => ({ userId })) } },
 	})
+	await createVersionRow(project.id)
+	return project
+}
 
 const createLanguage = (projectId: string, tag: string, position: number, isBase = false) =>
 	getTestPrisma().projectLanguage.create({ data: { projectId, tag, position, isBase } })
 
-const createKey = (projectId: string, name: string, values: Record<string, string | null> = {}, createdAt?: Date) =>
+const createKey = async (projectId: string, name: string, values: Record<string, string | null> = {}, createdAt?: Date) =>
 	getTestPrisma().translationKey.create({
 		data: {
 			projectId,
+			versionId: await versionIdOf(projectId),
 			namespace: 'loc',
 			name,
 			createdAt,

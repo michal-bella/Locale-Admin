@@ -17,6 +17,7 @@ import { createTestApp } from './helpers/app'
 import { loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
+import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -34,6 +35,7 @@ const createProject = (members: string[] = []) =>
 const setup = async (app: App, role: ROLE = ROLE.EDITOR, { member = true }: { member?: boolean } = {}) => {
 	const { user } = await createUser({ role })
 	const project = await createProject(member ? [user.id] : [])
+	await createVersionRow(project.id)
 	const sk = await createLanguage(project.id, 'sk', true)
 	const en = await createLanguage(project.id, 'en')
 	return { user, project, sk, en, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
@@ -42,13 +44,22 @@ const setup = async (app: App, role: ROLE = ROLE.EDITOR, { member = true }: { me
 const createLanguage = (projectId: string, tag: string, isBase = false) => getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase } })
 
 /** `values` maps a language id to its value; a language left out has no row. */
-const createKey = (projectId: string, namespace: string, name: string, values: Record<string, string | null> = {}) =>
+const createKey = async (projectId: string, namespace: string, name: string, values: Record<string, string | null> = {}) =>
 	getTestPrisma().translationKey.create({
-		data: { projectId, namespace, name, translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) } },
+		data: {
+			projectId,
+			versionId: await versionIdOf(projectId),
+			namespace,
+			name,
+			translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) },
+		},
 	})
 
-const list = (app: App, cookie: string, projectId: string, query: Partial<Record<keyof TranslationsQueryInput, string | number>>) =>
-	request(app).get(`/api/projects/${projectId}/translations`).query(query).set('Cookie', cookie)
+const list = async (app: App, cookie: string, projectId: string, query: Partial<Record<keyof TranslationsQueryInput, string | number>>) =>
+	request(app)
+		.get(`/api/projects/${projectId}/translations`)
+		.query({ versionId: await versionIdOf(projectId), ...query })
+		.set('Cookie', cookie)
 
 const listOk = async (...args: Parameters<typeof list>) => {
 	const res = await list(...args)
@@ -89,7 +100,6 @@ describe('GET /api/projects/:projectId/translations', () => {
 					description: null,
 					plural: null,
 					status: 'UNTRANSLATED',
-					version: null,
 					translations: {
 						[sk.id]: { value: 'Zrušiť', status: 'TRANSLATED', updatedAt: await updatedAt(missing.id, sk.id), updatedBy: null },
 						[en.id]: EMPTY,
@@ -103,7 +113,6 @@ describe('GET /api/projects/:projectId/translations', () => {
 					description: null,
 					plural: null,
 					status: 'UNTRANSLATED',
-					version: null,
 					translations: {
 						[sk.id]: { value: 'Žiadne objednávky', status: 'TRANSLATED', updatedAt: await updatedAt(empty.id, sk.id), updatedBy: null },
 						[en.id]: { value: null, status: 'UNTRANSLATED', updatedAt: await updatedAt(empty.id, en.id), updatedBy: null },
@@ -117,7 +126,6 @@ describe('GET /api/projects/:projectId/translations', () => {
 					description: null,
 					plural: null,
 					status: 'TRANSLATED',
-					version: null,
 					translations: {
 						[sk.id]: { value: 'Uložiť', status: 'TRANSLATED', updatedAt: await updatedAt(save.id, sk.id), updatedBy: null },
 						[en.id]: { value: 'Save', status: 'TRANSLATED', updatedAt: await updatedAt(save.id, en.id), updatedBy: null },
@@ -131,7 +139,6 @@ describe('GET /api/projects/:projectId/translations', () => {
 					description: null,
 					plural: null,
 					status: 'TRANSLATED',
-					version: null,
 					translations: {
 						[sk.id]: EMPTY,
 						[en.id]: { value: '/orders', status: 'TRANSLATED', updatedAt: await updatedAt(path.id, en.id), updatedBy: null },
@@ -439,6 +446,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			const app = createTestApp()
 			const { user } = await createUser({ role: ROLE.ADMIN })
 			const project = await createProject()
+			await createVersionRow(project.id)
 			const cookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
 
 			expect(await listOk(app, cookie, project.id, {})).toEqual({
@@ -506,7 +514,9 @@ describe('GET /api/projects/:projectId/translations', () => {
 		expect(await details({ ...valid, page: 0, pageSize: 101 })).toEqual(['page', 'pageSize'])
 		expect(await details({ ...valid, search: 'x'.repeat(201) })).toEqual(['search'])
 		const res = await request(app)
-			.get(`/api/projects/${project.id}/translations?sourceLanguageId=${sk.id}&targetLanguageId=${en.id}&search=a&search=b`)
+			.get(
+				`/api/projects/${project.id}/translations?versionId=${await versionIdOf(project.id)}&sourceLanguageId=${sk.id}&targetLanguageId=${en.id}&search=a&search=b`,
+			)
 			.set('Cookie', cookie)
 		expectErrorCode(res, 400, ERROR_CODE.VALIDATION_ERROR)
 		expect(detailPaths(res)).toEqual(['search'])
@@ -519,9 +529,10 @@ describe('GET /api/projects/:projectId/translations', () => {
 		for (const tag of ['bg', 'cs', 'de-AT', 'hr', 'hu', 'ro', 'ru', 'pl']) {
 			await createLanguage(project.id, tag)
 		}
+		const versionId = await versionIdOf(project.id)
 		await prisma.$executeRaw`
-			INSERT INTO "TranslationKey" (id, "projectId", namespace, name, "updatedAt")
-			SELECT gen_random_uuid(), ${project.id}::uuid, CASE WHEN i % 4 = 0 THEN 'paths' ELSE 'loc' END,
+			INSERT INTO "TranslationKey" (id, "projectId", "versionId", namespace, name, "updatedAt")
+			SELECT gen_random_uuid(), ${project.id}::uuid, ${versionId}::uuid, CASE WHEN i % 4 = 0 THEN 'paths' ELSE 'loc' END,
 				CASE WHEN i % 3 = 0 THEN 'module' || (i % 50) || '.section.key' || i ELSE 'Veta číslo ' || i || '. Pokračovanie textu' END, now()
 			FROM generate_series(1, 2500) AS i`
 		await prisma.$executeRaw`

@@ -216,11 +216,6 @@ const TranslationsTable = ({
 							<Text component='span' className={classes.key}>
 								{item.name}
 							</Text>
-							{item.version && (
-								<span className={classes.versionBadge} aria-label={t('translationsPage.table.version', { name: item.version.name })}>
-									{item.version.name}
-								</span>
-							)}
 							{item.description && (
 								<Tooltip label={item.description} events={TOOLTIP_EVENTS} multiline w={260}>
 									<span

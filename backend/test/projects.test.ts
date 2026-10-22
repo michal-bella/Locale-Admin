@@ -7,6 +7,7 @@ import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
+import { createVersionRow } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -88,9 +89,11 @@ describe('GET /api/projects', () => {
 		})
 		const languageId = (tag: string) => project.languages.find((language) => language.tag === tag)!.id
 		const [sk, en] = [languageId('sk'), languageId('en')]
+		const version = await createVersionRow(project.id)
 		await prisma.translationKey.create({
 			data: {
 				projectId: project.id,
+				versionId: version.id,
 				name: 'a',
 				translations: {
 					create: [
@@ -103,6 +106,7 @@ describe('GET /api/projects', () => {
 		await prisma.translationKey.create({
 			data: {
 				projectId: project.id,
+				versionId: version.id,
 				name: 'b',
 				translations: {
 					create: [
@@ -112,13 +116,14 @@ describe('GET /api/projects', () => {
 				},
 			},
 		})
-		await prisma.translationKey.create({ data: { projectId: project.id, name: 'c' } })
+		await prisma.translationKey.create({ data: { projectId: project.id, versionId: version.id, name: 'c' } })
 		const other = await prisma.project.create({
 			data: { name: 'Other', slug: 'other', languages: { create: { tag: 'en', isBase: true } } },
 			include: { languages: true },
 		})
+		const otherVersion = await createVersionRow(other.id)
 		await prisma.translationKey.create({
-			data: { projectId: other.id, name: 'a', translations: { create: { languageId: other.languages[0]!.id, value: 'A' } } },
+			data: { projectId: other.id, versionId: otherVersion.id, name: 'a', translations: { create: { languageId: other.languages[0]!.id, value: 'A' } } },
 		})
 
 		const res = await request(app).get('/api/projects').set('Cookie', cookie)

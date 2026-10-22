@@ -9,7 +9,7 @@ export type TranslationsToolbarProps = {
 	sort: TranslationsSort
 	updatedBy?: string
 	updatedWithin?: TranslationsUpdatedWithin
-	/** The version the list shows (the current one by default); `undefined` is the whole project. */
+	/** The version the list shows. */
 	version?: string
 	/** Versions of the project, newest first; the Verzia filter shows only when there is at least one. */
 	versions: ProjectVersion[]

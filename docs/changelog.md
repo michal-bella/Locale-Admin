@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Verzie ako kópie prekladov – míľnik A (2026-10-22)
+
+- model: každá verzia má vlastnú kópiu kľúčov a buniek (`TranslationKey.versionId` povinné, unikátnosť `(versionId, namespace, name)`, `Cascade`; `Translation.versionId` zaniká; `ProjectVersion.importedAt`), migrácia `version_snapshots` existujúce kľúče zmaže, seed vytvorí projekt s verziami v2.44 (uzamknutá) a v2.45 (aktuálna) ([ADR 0007](./decisions/0007-version-snapshots.md), [databáza](./database.md#projectversion))
+- API: `GET …/translations`, export a kontrola pred exportom majú `versionId` povinné (400 bez neho, 404 cudzia verzia) a čítajú jednu verziu; `versionScope` zaniká; `PUT …/translations/:languageId` bez `versionId` (bunka patrí verzii kľúča); `POST …/keys`, náhľad importu aj import majú `versionId` povinné; výsledok importu má `version` vždy; verzia má `importedAt` a `keyCount`; editor je mimo okna verzie (aj pred začiatkom) uzamknutý ([verzie](./api/project-versions.md), [preklady](./api/translations.md), [import](./api/imports.md), [export](./api/exports.md))
+- API: zoznam projektov a stránka Jazyky počítajú kľúče predvolenej verzie projektu (aktuálna, inak najnovšia)
+- frontend: stránka Preklady vždy ukazuje jednu verziu (z URL, inak aktuálnu, inak najnovšiu), bez „celého projektu“ a bez chipu verzie; projekt bez verzií má prázdny stav; import a export idú vždy do zobrazenej verzie (bez „Bez verzie“ a bez „Len zmeny tejto verzie“) ([Frontend](./frontend.md#verzie-na-stránke-preklady))
+
 ### Verzie prekladov – vytvorenie a zamknutie zo stránky Preklady (2026-10-22)
 
 - frontend: stránka Preklady sa otvára na práci aktuálnej verzie (filter Verzia je predvolený, `?version=ALL` = celý projekt; karty štatistík a Zrušiť filtre ho nastavia)

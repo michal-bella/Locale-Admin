@@ -108,43 +108,44 @@ PK je dvojica (`userId`, `projectId`), index na `projectId`. Riadok ostane aj po
 
 ### ProjectVersion
 
-Verzia prekladov projektu: pomenované časové okno zhodné s verziou aplikácie v kóde (`v2.45`). Dáta sa nekopírujú, verzia je štítok na kľúčoch a bunkách. Správanie API je v [API: verzie projektu](./api/project-versions.md), rozhodnutie v [ADR 0006](./decisions/0006-project-versions.md), plán v [`plans/translation-versions.md`](./plans/translation-versions.md).
+Verzia prekladov projektu: pomenované časové okno zhodné s verziou aplikácie v kóde (`v2.45`). Každá verzia má **vlastnú kópiu kľúčov a buniek** (`TranslationKey.versionId`), vzniká prázdna a naplní ju import (plán [`version-snapshots`](./plans/version-snapshots.md), [ADR 0007](./decisions/0007-version-snapshots.md)). Správanie API je v [API: verzie projektu](./api/project-versions.md), rozhodnutie v [ADR 0006](./decisions/0006-project-versions.md), plán v [`plans/translation-versions.md`](./plans/translation-versions.md).
 
-| Pole                     | Typ                 | Poznámka                                                                                                                     |
-| ------------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `id`                     | UUID                | PK                                                                                                                           |
-| `projectId`              | UUID                | FK na `Project`, pri zmazaní projektu sa zmaže                                                                               |
-| `name`                   | string              | názov zhodný s verziou v kóde, 1 až 50 znakov, unikátny v projekte                                                           |
-| `startsAt`               | date                | začiatok okna (code freeze): dokedy vývojári dodajú kľúče                                                                    |
-| `endsAt`                 | date                | koniec okna (end of copy + translation): dokedy editori preklady dokončia; vždy po `startsAt`, okná sa môžu prekrývať        |
-| `lock`                   | enum `VERSION_LOCK` | default `AUTO` (uzamknutá odo dňa po `endsAt`), `LOCKED` / `UNLOCKED` nastavené ručne `ADMIN`-om majú prednosť pred dátumami |
-| `createdById`            | UUID, nullable      | FK na `User`, kto verziu vytvoril; pri zmazaní usera `null`                                                                  |
-| `createdAt`, `updatedAt` | datetime            |                                                                                                                              |
+| Pole                     | Typ                 | Poznámka                                                                                                                         |
+| ------------------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                     | UUID                | PK                                                                                                                               |
+| `projectId`              | UUID                | FK na `Project`, pri zmazaní projektu sa zmaže                                                                                   |
+| `name`                   | string              | názov zhodný s verziou v kóde, 1 až 50 znakov, unikátny v projekte                                                               |
+| `startsAt`               | date                | začiatok okna (code freeze): dokedy vývojári dodajú kľúče                                                                        |
+| `endsAt`                 | date                | koniec okna (end of copy + translation): dokedy editori preklady dokončia; vždy po `startsAt`, okná sa môžu prekrývať            |
+| `lock`                   | enum `VERSION_LOCK` | default `AUTO` (uzamknutá odo dňa po `endsAt`), `LOCKED` / `UNLOCKED` nastavené ručne `ADMIN`-om majú prednosť pred dátumami     |
+| `createdById`            | UUID, nullable      | FK na `User`, kto verziu vytvoril; pri zmazaní usera `null`                                                                      |
+| `importedAt`             | datetime, nullable  | čas posledného importu do verzie; `null` = prázdna verzia bez kľúčov. Neskôr poslúži na porovnanie spätných zmien staršej verzie |
+| `createdAt`, `updatedAt` | datetime            |                                                                                                                                  |
 
 Indexy: unikátna dvojica (`projectId`, `name`), (`projectId`, `startsAt` DESC) pre zoznam a hľadanie aktuálnej verzie. Dátumy sú `DATE` bez času; Prisma ich vracia ako UTC polnoc, backend ich číta a zapisuje cez `fromDbDate` / `toDbDate` v `backend/src/lib/projectVersions.ts`, „dnes“ je dátum servera.
 
-Verzia sa nikdy nemaže: `TranslationKey.versionId` a `Translation.versionId` na ňu ukazujú s `Restrict`. Uzamknutá verzia (`isVersionLocked` v `packages/shared`) blokuje zápisy `EDITOR`-a a `VISITOR`-a (409 `PROJECT_VERSION_LOCKED`), `ADMIN` zapisuje vždy. Aktuálna verzia (dnešok medzi dátumami, pri prekryve najneskorší `startsAt`) sa odvodzuje dotazom (`findCurrentVersionId`), neukladá sa.
+Kľúče verzie na ňu ukazujú s `Cascade`, takže zmazanie verzie (plánované v míľniku C) zmaže aj jej kľúče a bunky. Uzamknutá verzia (`isVersionLocked` v `packages/shared`: `lock = LOCKED`, alebo `AUTO` a dnešok mimo okna `startsAt`–`endsAt`) blokuje zápisy `EDITOR`-a a `VISITOR`-a (409 `PROJECT_VERSION_LOCKED`), `ADMIN` zapisuje vždy. Aktuálna verzia (dnešok medzi dátumami, pri prekryve najneskorší `startsAt`) sa odvodzuje dotazom (`findCurrentVersionId`), neukladá sa; projektové súhrny (zoznam projektov, stránka Jazyky) počítajú predvolenú verziu (`findDefaultVersionId`: aktuálna, inak najnovšia).
 
 ### TranslationKey
 
-Kľúč prekladu v projekte. Správanie API je v [API: preklady](./api/translations.md).
+Kľúč prekladu v jednej verzii projektu: každá verzia drží vlastnú kópiu kľúčov, takže ten istý kľúč existuje raz v každej verzii. Správanie API je v [API: preklady](./api/translations.md).
 
-| Pole                     | Typ              | Poznámka                                                                                                                                                                                         |
-| ------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`                     | UUID             | PK                                                                                                                                                                                               |
-| `projectId`              | UUID             | FK na `Project`, pri zmazaní projektu sa zmaže                                                                                                                                                   |
-| `namespace`              | string           | default `""`; názov JSON súboru (`loc`, `paths`), v CSV sekcia `--namespace--`                                                                                                                   |
-| `name`                   | string           | kľúč, napr. veta `Uložiť` alebo cesta `orders.empty.title`                                                                                                                                       |
-| `description`            | string, nullable | popis kľúča pre prekladateľov, max. 500 znakov                                                                                                                                                   |
-| `pluralVariable`         | string, nullable | `null` = bežný kľúč; názov číselnej premennej (`count`) = plurálový kľúč                                                                                                                         |
-| `versionId`              | UUID, nullable   | FK na `ProjectVersion` (`Restrict`): verzia, v ktorej kľúč vznikol (import alebo Pridať kľúč); `null` bez verzií a pri kľúčoch spred nich. Zapisuje sa od míľnika B plánu `translation-versions` |
-| `createdAt`, `updatedAt` | datetime         |                                                                                                                                                                                                  |
+| Pole                     | Typ              | Poznámka                                                                                |
+| ------------------------ | ---------------- | --------------------------------------------------------------------------------------- |
+| `id`                     | UUID             | PK                                                                                      |
+| `projectId`              | UUID             | FK na `Project`, pri zmazaní projektu sa zmaže; ponechané pre dopyty za projekt (index) |
+| `versionId`              | UUID             | FK na `ProjectVersion` (`Cascade`): verzia, ktorej kópia kľúč je; povinné               |
+| `namespace`              | string           | default `""`; názov JSON súboru (`loc`, `paths`), v CSV sekcia `--namespace--`          |
+| `name`                   | string           | kľúč, napr. veta `Uložiť` alebo cesta `orders.empty.title`                              |
+| `description`            | string, nullable | popis kľúča pre prekladateľov, max. 500 znakov                                          |
+| `pluralVariable`         | string, nullable | `null` = bežný kľúč; názov číselnej premennej (`count`) = plurálový kľúč                |
+| `createdAt`, `updatedAt` | datetime         |                                                                                         |
 
-Unikátna trojica (`projectId`, `namespace`, `name`): ten istý kľúč môže byť v projekte vo viacerých namespace. Namespace je súčasť identity kľúča a musí sa zachovať presne, lebo budúci export z neho generuje JSON súbory po jazykoch aj sekcie v CSV. V zozname prekladov slúži ako skupina a filter.
+Unikátna trojica (`versionId`, `namespace`, `name`): ten istý kľúč môže byť vo verzii vo viacerých namespace a v každej verzii projektu raz. Namespace je súčasť identity kľúča a musí sa zachovať presne, lebo budúci export z neho generuje JSON súbory po jazykoch aj sekcie v CSV. V zozname prekladov slúži ako skupina a filter.
 
 Plurálový kľúč (`pluralVariable` nie je `null`) ukladá v každom jazyku jednu ICU správu `{count, plural, one {# položka} few {# položky} other {# položiek}}` (`serializePluralValue` v `packages/shared/src/plurals.ts`). Zapnutie, vypnutie alebo premenovanie premennej cez `PATCH …/keys/:keyId` prepíše hodnoty vo všetkých jazykoch (viď [API: preklady](./api/translations.md#plurálové-formy)).
 
-Kľúče vytvára import alebo `ADMIN` ručne cez `POST /api/projects/:projectId/keys`, vždy do namespace, ktorý projekt už má (nový namespace vzniká iba importom); názov, popis a plurál upraví `ADMIN` cez `PATCH /api/projects/:projectId/keys/:keyId`. Dĺžka `name` je obmedzená na 2 000 **bajtov** v UTF-8 (`IMPORT_KEY_MAX_BYTES`, chyba `KEY_TOO_LONG`) a `namespace` na 100 znakov (`IMPORT_NAMESPACE_MAX_LENGTH`), lebo riadok btree indexu unesie najviac ~2,7 kB: 2 000 znakov v cyrilike (≈ 4 kB) by pri zápise skončilo chybou 500. Kľúč s 2 000 bajtmi a 100-znakovým namespace sa do indexu zmestí (overené integračným testom). Zmazanie projektu zmaže kľúče aj preklady kaskádou; kľúče, ktoré v importovanom súbore chýbajú, sa nemažú.
+Kľúče vytvára import alebo `ADMIN` ručne cez `POST /api/projects/:projectId/keys`, vždy do zvolenej verzie a do namespace, ktorý tá verzia už má (nový namespace vzniká iba importom); názov, popis a plurál upraví `ADMIN` cez `PATCH /api/projects/:projectId/keys/:keyId`. Dĺžka `name` je obmedzená na 2 000 **bajtov** v UTF-8 (`IMPORT_KEY_MAX_BYTES`, chyba `KEY_TOO_LONG`) a `namespace` na 100 znakov (`IMPORT_NAMESPACE_MAX_LENGTH`), lebo riadok btree indexu unesie najviac ~2,7 kB: 2 000 znakov v cyrilike (≈ 4 kB) by pri zápise skončilo chybou 500. Kľúč s 2 000 bajtmi a 100-znakovým namespace sa do indexu zmestí (overené integračným testom). Zmazanie projektu zmaže kľúče aj preklady kaskádou; kľúče, ktoré v importovanom súbore chýbajú, sa nemažú.
 
 ### Translation
 
@@ -158,9 +159,8 @@ Text kľúča v jednom jazyku projektu.
 | `updatedById`        | UUID, nullable    | FK na `User`, kto naposledy zmenil preklad; pri zmazaní usera sa nastaví `null`                                                                                                                                                                                                                                                                                                                                                                                               |
 | `updatedAt`          | datetime          | posledná zmena                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `placeholderWarning` | boolean, nullable | `true` = premenné hodnoty sa líšia od referencie (hodnota základného jazyka, inak názov kľúča s premennými), `false` = skontrolované a v poriadku (základný jazyk vždy), `null` = ešte nevypočítané; prepočítava sa po kľúčoch v transakcii každého zápisu (úprava, Pridať kľúč, premenovanie, import, zmena základného jazyka) a `null` riadky dopočíta seed pri štarte (`seedPlaceholderWarnings`). Plán [`plans/translation-warnings.md`](./plans/translation-warnings.md) |
-| `versionId`          | UUID, nullable    | FK na `ProjectVersion` (`Restrict`): verzia, v ktorej bola hodnota naposledy zapísaná; zápis, ktorý hodnotu nemení, ju nechá. Zapisuje sa od míľnika B plánu `translation-versions`                                                                                                                                                                                                                                                                                           |
 
-PK je dvojica (`keyId`, `languageId`), indexy na `languageId` a `versionId`. Kaskády: zmazanie kľúča alebo odobratie jazyka z projektu zmaže jeho preklady, zmazanie používateľa nastaví `updatedById` na `null`.
+PK je dvojica (`keyId`, `languageId`), index na `languageId`; verziu bunky určuje jej kľúč. Kaskády: zmazanie kľúča alebo odobratie jazyka z projektu zmaže jeho preklady, zmazanie používateľa nastaví `updatedById` na `null`.
 
 Riadky zapisujú dva endpointy:
 
@@ -223,8 +223,7 @@ erDiagram
     User |o--o{ ActivityEvent : "urobil"
     Project ||--o{ ProjectVersion : "má verzie"
     User |o--o{ ProjectVersion : "vytvoril"
-    ProjectVersion |o--o{ TranslationKey : "vznikol vo"
-    ProjectVersion |o--o{ Translation : "zmenená vo"
+    ProjectVersion ||--o{ TranslationKey : "má kópiu kľúčov"
     User {
         uuid id PK
         string email UK
@@ -293,7 +292,6 @@ erDiagram
         uuid updatedById FK
         datetime updatedAt
         boolean placeholderWarning
-        uuid versionId FK
     }
     ProjectVersion {
         uuid id PK

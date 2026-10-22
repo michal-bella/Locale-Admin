@@ -128,8 +128,9 @@ model ProjectVersion {
   createdBy    User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+  /// Time of the last import; `null` is an empty version (no keys yet). Kept to compare late changes of an older version later.
+  importedAt   DateTime?
   keys         TranslationKey[]
-  translations Translation[]
 
   @@unique([projectId, name])
   @@index([projectId, startsAt(sort: Desc)])
@@ -158,25 +159,26 @@ model ProjectMember {
   @@index([userId])
 }
 
-/// `namespace` is the JSON file of the key (`loc`, `paths`), `""` for none. It is part of the key identity and must be kept exactly for the export.
+/// Every version of a project holds its own copy of the keys: the key identity is `(versionId, namespace, name)`, so the same key
+/// exists once per version and goes away with it. `projectId` is kept for project-wide reads and the cascade.
+/// `namespace` is the JSON file of the key (`loc`, `paths`), `""` for none. It must be kept exactly for the export.
 /// `pluralVariable` set = plural key: every value is one ICU plural message with this number variable (`serializePluralValue` in @locale/shared).
 model TranslationKey {
-  id             String          @id @default(uuid()) @db.Uuid
-  projectId      String          @db.Uuid
-  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  namespace      String          @default("")
+  id             String         @id @default(uuid()) @db.Uuid
+  projectId      String         @db.Uuid
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versionId      String         @db.Uuid
+  version        ProjectVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  namespace      String         @default("")
   name           String
   description    String?
   pluralVariable String?
-  /// Version the key was created in (import or „Pridať kľúč“); `null` for projects without versions and for keys created before them.
-  versionId      String?         @db.Uuid
-  version        ProjectVersion? @relation(fields: [versionId], references: [id], onDelete: Restrict)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   translations   Translation[]
 
-  @@unique([projectId, namespace, name])
-  @@index([versionId])
+  @@unique([versionId, namespace, name])
+  @@index([projectId])
 }
 
 /// The status is derived, never stored: a missing row or `value = null` is untranslated. `""` is never written (saved as `null`).
@@ -192,13 +194,9 @@ model Translation {
   /// `true` when the value's placeholders differ from the reference (base value, else a key name with placeholders), `false` when checked
   /// and fine (always for the base language), `null` for rows the services have not computed yet (the seed fills them on start).
   placeholderWarning Boolean?
-  /// Version in which the value was last written; a write that leaves the value unchanged keeps it.
-  versionId          String?         @db.Uuid
-  version            ProjectVersion? @relation(fields: [versionId], references: [id], onDelete: Restrict)
 
   @@id([keyId, languageId])
   @@index([languageId])
-  @@index([versionId])
 }
 
 /// Append-only log of project changes for the dashboard, written in the same transaction as the change.

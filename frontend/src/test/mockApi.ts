@@ -1,6 +1,6 @@
 import { type AxiosAdapter, AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-import { type AuthUser, type ProjectListItem, ROLE } from '@locale/shared'
+import { type AuthUser, type ProjectListItem, type ProjectVersion, ROLE, toVersionDate, VERSION_LOCK } from '@locale/shared'
 
 import http from '@/api/http'
 
@@ -99,3 +99,23 @@ export const signedOut = (routes: MockRoutes = {}) => mockApi({ 'GET /auth/me': 
 export const resetApiMock = () => {
 	http.defaults.adapter = originalAdapter
 }
+
+const dayShift = (days: number) => toVersionDate(new Date(Date.now() + days * 86_400_000))
+
+/** A version of a project; the defaults are an active window around today, so a list request with it has `versionId`. */
+export const projectVersion = (overrides: Partial<ProjectVersion> & Pick<ProjectVersion, 'id' | 'name'>): ProjectVersion => ({
+	startsAt: dayShift(-5),
+	endsAt: dayShift(12),
+	lock: VERSION_LOCK.AUTO,
+	isLocked: false,
+	state: 'ACTIVE',
+	isCurrent: false,
+	importedAt: '2026-10-01T10:00:00.000Z',
+	keyCount: 4,
+	createdAt: '2026-09-01T10:00:00.000Z',
+	createdBy: null,
+	...overrides,
+})
+
+/** The current version of a project; every translations page needs one, since the list always shows a version. */
+export const CURRENT_VERSION = projectVersion({ id: '00000000-0000-4000-8000-000000000502', name: 'v2.45', isCurrent: true })

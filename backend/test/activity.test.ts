@@ -9,6 +9,7 @@ import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
+import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -40,12 +41,19 @@ const setup = async (app: App, role: ROLE = ROLE.ADMIN) => {
 	})
 	const sk = await prisma.projectLanguage.create({ data: { projectId: project.id, tag: 'sk', isBase: true, position: 0 } })
 	const en = await prisma.projectLanguage.create({ data: { projectId: project.id, tag: 'en', position: 1 } })
+	await createVersionRow(project.id)
 	return { user, cookie, project, sk, en }
 }
 
-const createKey = (projectId: string, name: string, values: Record<string, string | null> = {}) =>
+const createKey = async (projectId: string, name: string, values: Record<string, string | null> = {}) =>
 	getTestPrisma().translationKey.create({
-		data: { projectId, namespace: 'loc', name, translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) } },
+		data: {
+			projectId,
+			versionId: await versionIdOf(projectId),
+			namespace: 'loc',
+			name,
+			translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) },
+		},
 	})
 
 describe('activity events', () => {
@@ -208,6 +216,7 @@ describe('activity events', () => {
 		const { user, cookie, project, sk, en } = await setup(app)
 		await createKey(project.id, 'Uložiť', { [sk.id]: 'Uložiť', [en.id]: 'Store' })
 		const body = {
+			versionId: await versionIdOf(project.id),
 			fileName: 'translations.csv',
 			content: ['Keys; sk ; en', '--loc--', ' Uložiť; Uložiť; Save', ' Zrušiť; Zrušiť; null', ' Späť; null; null'].join('\n'),
 			columns: [
@@ -222,7 +231,7 @@ describe('activity events', () => {
 		expect(await events(project.id)).toEqual([
 			{
 				type: ACTIVITY_TYPE.KEYS_IMPORTED,
-				payload: { keysCreated: 2, translationsCreated: 1, translationsUpdated: 1, languageTags: ['sk', 'en'] },
+				payload: { keysCreated: 2, translationsCreated: 1, translationsUpdated: 1, languageTags: ['sk', 'en'], versionName: 'v1' },
 				userId: user.id,
 				count: 2,
 			},

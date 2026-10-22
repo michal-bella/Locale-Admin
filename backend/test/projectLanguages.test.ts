@@ -18,6 +18,7 @@ import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
+import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -101,8 +102,12 @@ describe('GET /api/projects/:projectId/languages', () => {
 		const sk = await createLanguageRow(project.id, 'sk', true)
 		const en = await createLanguageRow(project.id, 'en', false, 1)
 		const otherSk = await createLanguageRow(other.id, 'sk', true)
-		const createKey = (projectId: string, name: string, values: { languageId: string; value: string | null }[]) =>
-			getTestPrisma().translationKey.create({ data: { projectId, namespace: 'loc', name, translations: { create: values } } })
+		await createVersionRow(project.id)
+		await createVersionRow(other.id)
+		const createKey = async (projectId: string, name: string, values: { languageId: string; value: string | null }[]) =>
+			getTestPrisma().translationKey.create({
+				data: { projectId, versionId: await versionIdOf(projectId), namespace: 'loc', name, translations: { create: values } },
+			})
 		await createKey(project.id, 'a', [
 			{ languageId: sk.id, value: 'A' },
 			{ languageId: en.id, value: 'A' },

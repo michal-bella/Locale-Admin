@@ -17,7 +17,7 @@ export const translationsQueryOptions = (projectId: string, query: TranslationsQ
  */
 export const useTranslationsQuery = (projectId: string, query: TranslationsQueryInput | null) =>
 	useQuery({
-		...translationsQueryOptions(projectId, query ?? { sourceLanguageId: '', targetLanguageId: '' }),
+		...translationsQueryOptions(projectId, query ?? { sourceLanguageId: '', targetLanguageId: '', versionId: '' }),
 		enabled: query !== null,
 		placeholderData: keepPreviousData,
 	})

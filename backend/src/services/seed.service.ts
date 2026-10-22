@@ -1,8 +1,9 @@
-import { ACTIVITY_TYPE, activityEventDataSchema, type ActivityEventData, type LanguageTag } from '@locale/shared'
+import { ACTIVITY_TYPE, activityEventDataSchema, type ActivityEventData, type LanguageTag, toVersionDate } from '@locale/shared'
 
 import { ROLE } from '../generated/prisma/enums'
 import { hashPassword } from '../lib/password'
 import { type PrismaClient } from '../lib/prisma'
+import { toDbDate } from '../lib/projectVersions'
 
 export const SEED_ADMIN_EMAIL = 'michal.bella@goodrequest.com'
 
@@ -72,6 +73,22 @@ export const SEED_TRANSLATIONS: SeedTranslation[] = [
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+const dayShift = (days: number) => toVersionDate(new Date(Date.now() + days * DAY_MS))
+
+/**
+ * Two versions, each with its own copy of the keys: the previous one (locked, its window is over) holds the first
+ * `SEED_PREVIOUS_KEY_COUNT` keys with one English value still missing, the current one every key, so the diff shows added and changed keys.
+ */
+export const SEED_VERSIONS = {
+	previous: { name: 'v2.44', startsAt: dayShift(-40), endsAt: dayShift(-12) },
+	current: { name: 'v2.45', startsAt: dayShift(-11), endsAt: dayShift(17) },
+} as const
+
+export const SEED_PREVIOUS_KEY_COUNT = 26
+
+/** Key whose English value the previous version still misses (translated only in the current one). */
+export const SEED_PREVIOUS_UNTRANSLATED_KEY = 'orders.list.title'
+
 type SeedKey = { id: string; namespace: string; name: string; en: string | null | undefined }
 
 type SeedActivityEvent = { daysAgo: number; count?: number; data: ActivityEventData }
@@ -108,7 +125,8 @@ const seedActivityEvents = (keys: SeedKey[]): SeedActivityEvent[] => {
 
 /**
  * Seeds only an empty table, so changes stay after a restart. Run after `seedAdmin`: the admin becomes the only member. Languages `sk` (base) and `en`.
- * The sample translations and activity are created only together with the project, so a real project with the same slug never gets invented data.
+ * The sample translations (in both versions of `SEED_VERSIONS`) and activity are created only together with the project, so a real project
+ * with the same slug never gets invented data.
  */
 export const seedProject = async (prisma: PrismaClient): Promise<SeedProjectResult> => {
 	if ((await prisma.project.count()) > 0) {
@@ -127,11 +145,22 @@ export const seedProject = async (prisma: PrismaClient): Promise<SeedProjectResu
 			select: { id: true, languages: { select: { id: true, tag: true } } },
 		})
 		const languageIds = new Map(project.languages.map(({ id, tag }) => [tag, id]))
-		const keys: SeedKey[] = []
-		for (const { namespace, name, values } of SEED_TRANSLATIONS) {
-			const { id } = await tx.translationKey.create({
+		const versionData = ({ name, startsAt, endsAt }: (typeof SEED_VERSIONS)[keyof typeof SEED_VERSIONS], importedDaysAgo: number) => ({
+			projectId: project.id,
+			name,
+			startsAt: toDbDate(startsAt),
+			endsAt: toDbDate(endsAt),
+			createdById: admin.id,
+			createdAt: new Date(now - importedDaysAgo * DAY_MS - 30 * 60 * 1000),
+			importedAt: new Date(now - importedDaysAgo * DAY_MS),
+		})
+		const previous = await tx.projectVersion.create({ data: versionData(SEED_VERSIONS.previous, 29), select: { id: true } })
+		const current = await tx.projectVersion.create({ data: versionData(SEED_VERSIONS.current, 10), select: { id: true } })
+		const createKey = async (versionId: string, { namespace, name, values }: SeedTranslation) =>
+			tx.translationKey.create({
 				data: {
 					projectId: project.id,
+					versionId,
 					namespace,
 					name,
 					translations: {
@@ -143,7 +172,14 @@ export const seedProject = async (prisma: PrismaClient): Promise<SeedProjectResu
 				},
 				select: { id: true },
 			})
-			keys.push({ id, namespace, name, en: values.en })
+		for (const translation of SEED_TRANSLATIONS.slice(0, SEED_PREVIOUS_KEY_COUNT)) {
+			const values = translation.name === SEED_PREVIOUS_UNTRANSLATED_KEY ? { ...translation.values, en: null } : translation.values
+			await createKey(previous.id, { ...translation, values })
+		}
+		const keys: SeedKey[] = []
+		for (const translation of SEED_TRANSLATIONS) {
+			const { id } = await createKey(current.id, translation)
+			keys.push({ id, namespace: translation.namespace, name: translation.name, en: translation.values.en })
 		}
 		await tx.activityEvent.createMany({
 			data: seedActivityEvents(keys).map(({ daysAgo, count, data }, index) => ({

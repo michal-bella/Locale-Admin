@@ -9,6 +9,7 @@ import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
+import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -25,10 +26,11 @@ const createProject = (members: string[] = [], protectVariables = true) =>
 const createLanguage = (projectId: string, tag: string, isBase = false) => getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase } })
 
 /** `values` maps a language id to its value; a language left out has no row. */
-const createKey = (projectId: string, name: string, values: Record<string, string | null> = {}, pluralVariable: string | null = null) =>
+const createKey = async (projectId: string, name: string, values: Record<string, string | null> = {}, pluralVariable: string | null = null) =>
 	getTestPrisma().translationKey.create({
 		data: {
 			projectId,
+			versionId: await versionIdOf(projectId),
 			namespace: 'loc',
 			name,
 			pluralVariable,
@@ -40,6 +42,7 @@ const createKey = (projectId: string, name: string, values: Record<string, strin
 const setup = async (app: App, { role = ROLE.EDITOR, member = true, protectVariables = true } = {}) => {
 	const { user } = await createUser({ role })
 	const project = await createProject(member ? [user.id] : [], protectVariables)
+	await createVersionRow(project.id)
 	const sk = await createLanguage(project.id, 'sk', true)
 	const en = await createLanguage(project.id, 'en')
 	return { user, project, sk, en, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
@@ -74,7 +77,10 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 		const { user: admin } = await createUser({ role: ROLE.ADMIN })
 		const adminCookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
 		await prisma.user.delete({ where: { id: user.id } })
-		const res = await request(app).get(`/api/projects/${project.id}/translations`).set('Cookie', adminCookie)
+		const res = await request(app)
+			.get(`/api/projects/${project.id}/translations`)
+			.query({ versionId: await versionIdOf(project.id) })
+			.set('Cookie', adminCookie)
 		expect(translationsResponseSchema.parse(res.body).items[0]?.translations[en.id]).toMatchObject({ value: 'Store', updatedBy: null })
 	})
 
@@ -201,7 +207,7 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 		const saved = await putOk(app, cookie, project.id, key.id, en.id, 'Save')
 		const res = await request(app)
 			.get(`/api/projects/${project.id}/translations`)
-			.query({ sourceLanguageId: sk.id, targetLanguageId: en.id })
+			.query({ versionId: await versionIdOf(project.id), sourceLanguageId: sk.id, targetLanguageId: en.id })
 			.set('Cookie', cookie)
 
 		expect(res.status).toBe(200)
@@ -277,7 +283,10 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 
 		expectErrorCode(await put(app, cookie, project.id, key.id, en.id, 'B'), 403, ERROR_CODE.FORBIDDEN)
 		expect(await findRow(key.id, en.id)).toBeNull()
-		const list = await request(app).get(`/api/projects/${project.id}/translations`).set('Cookie', cookie)
+		const list = await request(app)
+			.get(`/api/projects/${project.id}/translations`)
+			.query({ versionId: await versionIdOf(project.id) })
+			.set('Cookie', cookie)
 		expect(list.status).toBe(200)
 		expect(translationsResponseSchema.parse(list.body).items.map(({ name }) => name)).toEqual(['a'])
 	})

@@ -2,8 +2,8 @@ import { type ProjectVersion } from '@locale/shared'
 
 export type ExportModalProps = {
 	projectId: string
-	/** The version filtered on the page: the export is the project as of it, or only its work. */
-	version?: ProjectVersion
+	/** The version shown on the page; the file holds its keys. */
+	version: ProjectVersion
 	opened: boolean
 	onClose: () => void
 }

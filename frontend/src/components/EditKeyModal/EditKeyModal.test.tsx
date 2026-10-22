@@ -16,7 +16,7 @@ import {
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
-import { ADMIN_USER, apiError, EDITOR_USER, projectListRoute, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, CURRENT_VERSION, EDITOR_USER, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -50,7 +50,6 @@ const item = (name: string, overrides: Partial<TranslationListItem> = {}): Trans
 	description: null,
 	plural: null,
 	status: 'TRANSLATED',
-	version: null,
 	translations: {
 		[SLOVAK.id]: { value: 'Vitajte', status: 'TRANSLATED', updatedAt: null, updatedBy: null },
 		[ENGLISH.id]: { value: 'Welcome', status: 'TRANSLATED', updatedAt: null, updatedBy: null },
@@ -91,6 +90,7 @@ const mockPage = ({ user = ADMIN_USER, items = [WELCOME, COUNT], patch }: { user
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [SLOVAK, ENGLISH] },
+		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [CURRENT_VERSION] } },
 		[`GET ${TRANSLATIONS_URL}`]: { status: 200, data: translations },
 		...Object.fromEntries(
 			items.map((entry) => [

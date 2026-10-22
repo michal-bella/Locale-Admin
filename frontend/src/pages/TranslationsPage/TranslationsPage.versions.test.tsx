@@ -18,7 +18,7 @@ import {
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
-import { ADMIN_USER, EDITOR_USER, type MockRoutes, projectListRoute, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, CURRENT_VERSION, EDITOR_USER, type MockRoutes, projectListRoute, projectVersion, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -51,20 +51,8 @@ const IMPORT_URL = `/projects/${PROJECT.id}/imports`
 const TODAY = toVersionDate(new Date())
 const dayShift = (days: number) => toVersionDate(new Date(Date.now() + days * 86_400_000))
 
-const version = (overrides: Partial<ProjectVersion> & Pick<ProjectVersion, 'id' | 'name'>): ProjectVersion => ({
-	startsAt: dayShift(-5),
-	endsAt: dayShift(12),
-	lock: VERSION_LOCK.AUTO,
-	isLocked: false,
-	state: 'ACTIVE',
-	isCurrent: false,
-	createdAt: '2026-09-01T10:00:00.000Z',
-	createdBy: null,
-	...overrides,
-})
-
-const CURRENT = version({ id: '00000000-0000-4000-8000-000000000502', name: 'v2.45', isCurrent: true })
-const LOCKED = version({
+const CURRENT = CURRENT_VERSION
+const LOCKED = projectVersion({
 	id: '00000000-0000-4000-8000-000000000501',
 	name: 'v2.44',
 	startsAt: dayShift(-40),
@@ -75,14 +63,13 @@ const LOCKED = version({
 
 const KEY_ID = '00000000-0000-4000-8000-000000000901'
 
-const item = (name: string, versionRef: TranslationListItem['version'], target: string | null): TranslationListItem => ({
+const item = (name: string, target: string | null): TranslationListItem => ({
 	keyId: KEY_ID,
 	namespace: 'loc',
 	name,
 	group: translationGroup('loc', name),
 	description: null,
 	plural: null,
-	version: versionRef,
 	status: target === null ? 'UNTRANSLATED' : 'TRANSLATED',
 	translations: {
 		[SLOVAK.id]: { value: 'Vitajte', status: 'TRANSLATED', updatedAt: null, updatedBy: null },
@@ -90,7 +77,7 @@ const item = (name: string, versionRef: TranslationListItem['version'], target: 
 	},
 })
 
-const WELCOME = item('dashboard.welcome', { id: CURRENT.id, name: CURRENT.name }, 'Welcome')
+const WELCOME = item('dashboard.welcome', 'Welcome')
 
 const response = (items: TranslationListItem[]): TranslationsResponse => ({
 	items,
@@ -165,29 +152,33 @@ afterEach(() => {
 })
 
 describe('TranslationsPage versions', () => {
-	it('shows the work of the current version by default, the whole project after clearing, and the chip and countdown', async () => {
+	it('shows the current version by default with its countdown, and another one from the Verzia select', async () => {
 		const requests = mockPage()
 		const router = renderApp(PAGE_PATH)
 		// The banner counts the untranslated keys of the version with its own request; the list requests are the rest.
 		const lastListRequest = () => requests.filter((request) => request.url === TRANSLATIONS_URL && paramsOf(request).status !== 'UNTRANSLATED').at(-1)
 
-		const row = await findRow('dashboard.welcome')
-		expect(within(row).getByText('v2.45')).toHaveAccessibleName('Vznikol vo verzii v2.45')
+		await findRow('dashboard.welcome')
 		const days = daysUntil(CURRENT.endsAt, TODAY)
 		expect(screen.getByText(`Verzia v2.45: ostáva ${days} dní do uzamknutia.`)).toBeInTheDocument()
 		expect(router.state.location.search).toEqual({})
 		expect(paramsOf(requests.find((request) => request.url === TRANSLATIONS_URL)).versionId).toBe(CURRENT.id)
 		expect(screen.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
+		expect(screen.queryByText('Zrušiť filter verzie')).not.toBeInTheDocument()
 
-		fireEvent.click(screen.getByRole('button', { name: 'Zrušiť filter verzie' }))
-		await waitFor(() => expect(router.state.location.search).toEqual({ version: 'ALL' }))
-		await waitFor(() => expect(paramsOf(lastListRequest()).versionId).toBeUndefined())
-		expect(screen.getByRole('combobox', { name: 'Verzia' })).toHaveValue('')
-		expect(screen.queryByRole('button', { name: 'Zrušiť filter verzie' })).not.toBeInTheDocument()
+		await pickOption('Verzia', 'v2.44')
+		await waitFor(() => expect(router.state.location.search).toEqual({ version: LOCKED.id }))
+		await waitFor(() => expect(paramsOf(lastListRequest()).versionId).toBe(LOCKED.id))
+		expect(screen.getByText('Verzia v2.44 je uzamknutá.')).toBeInTheDocument()
+	})
 
-		await pickOption('Verzia', 'v2.45 (aktuálna)')
-		await waitFor(() => expect(router.state.location.search).toEqual({ version: CURRENT.id }))
-		await waitFor(() => expect(paramsOf(lastListRequest()).versionId).toBe(CURRENT.id))
+	it('falls back to the newest version without a current one, also for an unknown version in the URL', async () => {
+		const requests = mockPage({ versions: [LOCKED, projectVersion({ ...LOCKED, id: '00000000-0000-4000-8000-000000000500', name: 'v2.43' })] })
+		renderApp(`${PAGE_PATH}?version=00000000-0000-4000-8000-000000000999`)
+
+		await findRow('dashboard.welcome')
+		expect(screen.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.44')
+		expect(paramsOf(requests.find((request) => request.url === TRANSLATIONS_URL)).versionId).toBe(LOCKED.id)
 	})
 
 	it('says how many keys of the version are still untranslated', async () => {
@@ -210,16 +201,20 @@ describe('TranslationsPage versions', () => {
 		expect(paramsOf(countRequest)).toMatchObject({ versionId: CURRENT.id, pageSize: 1 })
 	})
 
-	it('shows no filter and no banner in a project without versions', async () => {
-		mockPage({ versions: [] })
+	it('shows an empty state instead of the table in a project without versions and asks for no list', async () => {
+		const requests = mockPage({ versions: [] })
 		renderApp(PAGE_PATH)
 
-		await findRow('dashboard.welcome')
+		expect(await screen.findByText('Projekt zatiaľ nemá žiadnu verziu. Vytvorte ju a importujte do nej preklady.')).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Vytvoriť verziu' })).toBeInTheDocument()
+		expect(screen.queryByRole('table', { name: 'Zoznam prekladov' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Importovať' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Exportovať' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('combobox', { name: 'Verzia' })).not.toBeInTheDocument()
-		expect(screen.queryByText(/do uzamknutia/)).not.toBeInTheDocument()
+		expect(requests.filter((request) => request.url === TRANSLATIONS_URL)).toHaveLength(0)
 	})
 
-	it('sends the filtered version with a saved translation', async () => {
+	it('saves a translation of the shown version without a version in the body', async () => {
 		const requests = mockPage({
 			routes: {
 				[`PUT ${TRANSLATIONS_URL.replace('/translations', '')}/keys/${KEY_ID}/translations/${ENGLISH.id}`]: () => ({
@@ -242,7 +237,7 @@ describe('TranslationsPage versions', () => {
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť' }))
 
 		await waitFor(() => expect(requests.filter((request) => request.method === 'put')).toHaveLength(1))
-		expect(bodyOf(requests.find((request) => request.method === 'put'))).toEqual({ value: 'Welcome!', versionId: CURRENT.id })
+		expect(bodyOf(requests.find((request) => request.method === 'put'))).toEqual({ value: 'Welcome!' })
 	})
 
 	it('keeps the cells of a locked version read-only for an EDITOR and says why', async () => {
@@ -263,37 +258,43 @@ describe('TranslationsPage versions', () => {
 		expect(within(row).getByRole('button', { name: /Preklad kľúča dashboard.welcome, angličtina/ })).toBeInTheDocument()
 	})
 
-	it('exports the project as of the filtered version, or only its work with the checkbox', async () => {
+	it('exports the shown version', async () => {
 		const requests = mockPage({
 			routes: {
 				[`GET ${EXPORT_URL}`]: { status: 200, data: new Blob(['Keys; sk \n'], { type: 'text/csv' }) },
 				[`GET ${CHECK_URL}`]: { status: 200, data: { warnings: [], total: 0 } },
 			},
 		})
-		renderApp(`${PAGE_PATH}?version=${CURRENT.id}`)
+		renderApp(`${PAGE_PATH}?version=${LOCKED.id}`)
 		await findRow('dashboard.welcome')
 
 		fireEvent.click(screen.getByRole('button', { name: 'Exportovať' }))
 		const dialog = await screen.findByRole('dialog', { name: 'Exportovať preklady' })
-		expect(within(dialog).getByText('Stav projektu k verzii v2.45')).toBeInTheDocument()
-		await waitFor(() =>
-			expect(paramsOf(requests.find((request) => request.url === CHECK_URL))).toMatchObject({ versionId: CURRENT.id, versionScope: 'UP_TO' }),
-		)
+		expect(within(dialog).getByText('Export verzie v2.44')).toBeInTheDocument()
+		expect(within(dialog).queryByLabelText('Len zmeny tejto verzie')).not.toBeInTheDocument()
+		await waitFor(() => expect(paramsOf(requests.find((request) => request.url === CHECK_URL))).toMatchObject({ versionId: LOCKED.id }))
+		expect(paramsOf(requests.find((request) => request.url === CHECK_URL))).not.toHaveProperty('versionScope')
 
-		fireEvent.click(within(dialog).getByLabelText('Len zmeny tejto verzie'))
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Exportovať CSV' }))
 
 		await waitFor(() => expect(downloads).toEqual(['translations.csv']))
-		expect(paramsOf(requests.find((request) => request.url === EXPORT_URL))).toMatchObject({ versionId: CURRENT.id, versionScope: 'ONLY' })
+		expect(paramsOf(requests.find((request) => request.url === EXPORT_URL))).toMatchObject({ versionId: LOCKED.id })
+		expect(paramsOf(requests.find((request) => request.url === EXPORT_URL))).not.toHaveProperty('versionScope')
 	})
 
-	it('imports into the preselected current version, or without one', async () => {
+	it('imports into the preselected current version, or into the picked one, and previews with it', async () => {
 		const requests = mockPage({
 			routes: {
 				[`POST ${IMPORT_URL}/preview`]: { status: 200, data: PREVIEW },
 				[`POST ${IMPORT_URL}`]: {
 					status: 200,
-					data: { keysCreated: 1, translationsCreated: 1, translationsUpdated: 0, skippedColumns: 0, version: null },
+					data: {
+						keysCreated: 1,
+						translationsCreated: 1,
+						translationsUpdated: 0,
+						skippedColumns: 0,
+						version: { id: CURRENT.id, name: CURRENT.name },
+					},
 				},
 			},
 		})
@@ -316,11 +317,15 @@ describe('TranslationsPage versions', () => {
 		}
 
 		await runImport()
-		await runImport('Bez verzie')
+		await runImport('v2.44')
 
 		const bodies = requests.filter((request) => request.method === 'post' && request.url === IMPORT_URL).map(bodyOf)
 		expect(bodies[0]).toMatchObject({ versionId: CURRENT.id })
-		expect(bodies[1]).not.toHaveProperty('versionId')
+		expect(bodies[1]).toMatchObject({ versionId: LOCKED.id })
+		const previews = requests.filter((request) => request.method === 'post' && request.url === `${IMPORT_URL}/preview`).map(bodyOf)
+		expect(previews[0]).toMatchObject({ versionId: CURRENT.id })
+		expect(previews[1]).toMatchObject({ versionId: LOCKED.id })
+		expect(screen.queryByRole('option', { name: 'Bez verzie' })).not.toBeInTheDocument()
 	})
 
 	it('preselects the filtered version in the import', async () => {
@@ -333,8 +338,17 @@ describe('TranslationsPage versions', () => {
 		expect(within(dialog).getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.44')
 	})
 
-	it('creates a version from the page and filters by it', async () => {
-		const NEXT = version({ id: '00000000-0000-4000-8000-000000000503', name: 'v2.46', startsAt: dayShift(13), endsAt: dayShift(30), state: 'UPCOMING' })
+	it('creates a version from the page, shows it and says when it starts although it is locked for editors', async () => {
+		const NEXT = projectVersion({
+			id: '00000000-0000-4000-8000-000000000503',
+			name: 'v2.46',
+			startsAt: dayShift(13),
+			endsAt: dayShift(30),
+			isLocked: true,
+			state: 'UPCOMING',
+			importedAt: null,
+			keyCount: 0,
+		})
 		let created = false
 		const requests = mockPage({
 			routes: {

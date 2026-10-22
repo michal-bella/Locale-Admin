@@ -12,51 +12,78 @@ import {
 
 const SOURCE_ID = '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d'
 const TARGET_ID = '1c7a7a6f-3a5f-4b4c-8d2e-2f3a4b5c6d7e'
+const VERSION = '3e9f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d'
 
 describe('translationsQuerySchema', () => {
+	it('requires the version (an empty string is a missing field)', () => {
+		const result = translationsQuerySchema.safeParse({ sourceLanguageId: '', targetLanguageId: '', versionId: '' })
+		expect(result.success ? [] : toValidationIssues(result.error)).toEqual([{ path: 'versionId', code: VALIDATION_CODE.REQUIRED }])
+	})
+
 	it('applies defaults and treats empty strings as no filter', () => {
 		expect(
-			translationsQuerySchema.parse({ sourceLanguageId: SOURCE_ID, targetLanguageId: TARGET_ID, search: '  ', status: '', namespace: '', sort: '' }),
-		).toEqual({ sourceLanguageId: SOURCE_ID, targetLanguageId: TARGET_ID, sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 20 })
+			translationsQuerySchema.parse({
+				versionId: VERSION,
+				sourceLanguageId: SOURCE_ID,
+				targetLanguageId: TARGET_ID,
+				search: '  ',
+				status: '',
+				namespace: '',
+				sort: '',
+			}),
+		).toEqual({ versionId: VERSION, sourceLanguageId: SOURCE_ID, targetLanguageId: TARGET_ID, sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 20 })
 	})
 
 	it('reads the warnings flag from the URL and drops anything else', () => {
-		expect(translationsQuerySchema.parse({ warnings: '1' })).toMatchObject({ warnings: true })
-		expect(translationsQuerySchema.parse({ warnings: 'true' })).toMatchObject({ warnings: true })
-		expect(translationsQuerySchema.parse({ warnings: '' }).warnings).toBeUndefined()
-		expect(translationsQuerySchema.parse({ warnings: 'false' }).warnings).toBeUndefined()
+		expect(translationsQuerySchema.parse({ versionId: VERSION, warnings: '1' })).toMatchObject({ warnings: true })
+		expect(translationsQuerySchema.parse({ versionId: VERSION, warnings: 'true' })).toMatchObject({ warnings: true })
+		expect(translationsQuerySchema.parse({ versionId: VERSION, warnings: '' }).warnings).toBeUndefined()
+		expect(translationsQuerySchema.parse({ versionId: VERSION, warnings: 'false' }).warnings).toBeUndefined()
 	})
 
 	it('coerces numbers from query strings and trims search', () => {
-		const query = translationsQuerySchema.parse({ sourceLanguageId: SOURCE_ID, targetLanguageId: TARGET_ID, search: ' order ', page: '3', pageSize: '100' })
+		const query = translationsQuerySchema.parse({
+			versionId: VERSION,
+			sourceLanguageId: SOURCE_ID,
+			targetLanguageId: TARGET_ID,
+			search: ' order ',
+			page: '3',
+			pageSize: '100',
+		})
 		expect(query).toMatchObject({ search: 'order', page: 3, pageSize: 100 })
 	})
 
 	it('rejects a page size over 100, page 0 and an unknown status', () => {
 		const base = { sourceLanguageId: SOURCE_ID, targetLanguageId: TARGET_ID }
-		expect(translationsQuerySchema.safeParse({ ...base, pageSize: '101' }).success).toBe(false)
-		expect(translationsQuerySchema.safeParse({ ...base, page: '0' }).success).toBe(false)
-		expect(translationsQuerySchema.safeParse({ ...base, status: 'REVIEW' }).success).toBe(false)
+		expect(translationsQuerySchema.safeParse({ versionId: VERSION, ...base, pageSize: '101' }).success).toBe(false)
+		expect(translationsQuerySchema.safeParse({ versionId: VERSION, ...base, page: '0' }).success).toBe(false)
+		expect(translationsQuerySchema.safeParse({ versionId: VERSION, ...base, status: 'REVIEW' }).success).toBe(false)
 	})
 
 	it('parses the editor and period filters', () => {
 		const base = { sourceLanguageId: '', targetLanguageId: '' }
-		expect(translationsQuerySchema.parse({ ...base, updatedById: SOURCE_ID, updatedWithin: 'WEEK' })).toMatchObject({
+		expect(translationsQuerySchema.parse({ versionId: VERSION, ...base, updatedById: SOURCE_ID, updatedWithin: 'WEEK' })).toMatchObject({
 			updatedById: SOURCE_ID,
 			updatedWithin: 'WEEK',
 		})
-		expect(translationsQuerySchema.parse({ ...base, updatedById: '', updatedWithin: '' })).toEqual({
+		expect(translationsQuerySchema.parse({ versionId: VERSION, ...base, updatedById: '', updatedWithin: '' })).toEqual({
+			versionId: VERSION,
 			sort: 'UNTRANSLATED_FIRST',
 			page: 1,
 			pageSize: 20,
 		})
-		expect(translationsQuerySchema.safeParse({ ...base, updatedWithin: 'YEAR' }).success).toBe(false)
-		expect(translationsQuerySchema.safeParse({ ...base, updatedById: 'me' }).success).toBe(false)
+		expect(translationsQuerySchema.safeParse({ versionId: VERSION, ...base, updatedWithin: 'YEAR' }).success).toBe(false)
+		expect(translationsQuerySchema.safeParse({ versionId: VERSION, ...base, updatedById: 'me' }).success).toBe(false)
 	})
 
 	it('accepts no languages (extended view) but not one of the two', () => {
-		expect(translationsQuerySchema.parse({ sourceLanguageId: '', targetLanguageId: '' })).toEqual({ sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 20 })
-		const result = translationsQuerySchema.safeParse({ sourceLanguageId: SOURCE_ID })
+		expect(translationsQuerySchema.parse({ versionId: VERSION, sourceLanguageId: '', targetLanguageId: '' })).toEqual({
+			versionId: VERSION,
+			sort: 'UNTRANSLATED_FIRST',
+			page: 1,
+			pageSize: 20,
+		})
+		const result = translationsQuerySchema.safeParse({ versionId: VERSION, sourceLanguageId: SOURCE_ID })
 		expect(result.success ? [] : toValidationIssues(result.error)).toEqual([{ path: 'targetLanguageId', code: VALIDATION_CODE.REQUIRED }])
 	})
 })
@@ -71,7 +98,6 @@ describe('translationListItemSchema', () => {
 			description: null,
 			plural: null,
 			status: 'UNTRANSLATED',
-			version: null,
 			translations: {
 				[SOURCE_ID]: {
 					value: 'Uložiť',
@@ -113,17 +139,28 @@ describe('updateTranslationRequestSchema', () => {
 describe('createTranslationKeyRequestSchema', () => {
 	it('trims the name, keeps the namespace as is and stores empty values as null', () => {
 		expect(
-			createTranslationKeyRequestSchema.parse({ namespace: 'loc', name: ' orders.empty ', translations: { [SOURCE_ID]: 'Prázdne', [TARGET_ID]: ' ' } }),
+			createTranslationKeyRequestSchema.parse({
+				versionId: VERSION,
+				namespace: 'loc',
+				name: ' orders.empty ',
+				translations: { [SOURCE_ID]: 'Prázdne', [TARGET_ID]: ' ' },
+			}),
 		).toEqual({
+			versionId: VERSION,
 			namespace: 'loc',
 			name: 'orders.empty',
 			translations: { [SOURCE_ID]: 'Prázdne', [TARGET_ID]: null },
 		})
-		expect(createTranslationKeyRequestSchema.parse({ namespace: '', name: 'Ahoj' })).toEqual({ namespace: '', name: 'Ahoj', translations: {} })
+		expect(createTranslationKeyRequestSchema.parse({ versionId: VERSION, namespace: '', name: 'Ahoj' })).toEqual({
+			versionId: VERSION,
+			namespace: '',
+			name: 'Ahoj',
+			translations: {},
+		})
 	})
 
 	it('reports a missing name, a namespace over the limit and a language that is not an id', () => {
-		const result = createTranslationKeyRequestSchema.safeParse({ namespace: 'x'.repeat(101), name: '  ', translations: { sk: 'Ahoj' } })
+		const result = createTranslationKeyRequestSchema.safeParse({ versionId: VERSION, namespace: 'x'.repeat(101), name: '  ', translations: { sk: 'Ahoj' } })
 		expect(result.success).toBe(false)
 		const issues = toValidationIssues(result.error!)
 		expect(issues).toEqual(

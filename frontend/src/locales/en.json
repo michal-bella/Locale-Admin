@@ -263,6 +263,7 @@
 		"importButton": "Import",
 		"createVersionButton": "Create version",
 		"createKeyButton": "Add key",
+		"noVersions": "The project has no version yet. Create one and import the translations into it.",
 		"stats": {
 			"totalKeys": "Total keys",
 			"translated": "Translated",
@@ -351,8 +352,7 @@
 			"clearFilters": "Clear filters",
 			"edit": "Edit key",
 			"editLabel": "Edit key {{key}}",
-			"base": "Base",
-			"version": "Created in version {{name}}"
+			"base": "Base"
 		},
 		"status": {
 			"TRANSLATED": "Translated",
@@ -460,7 +460,6 @@
 			"locked": "Version {{name}} is locked.",
 			"lockedEditor": "Version {{name}} is locked; only an administrator edits its translations now.",
 			"unlocked": "Version {{name}} is past its end and unlocked for late changes.",
-			"clear": "Clear the version filter",
 			"lock": "Lock",
 			"unlock": "Unlock",
 			"lockLabel": "Lock version {{name}}",
@@ -696,7 +695,6 @@
 		"version": {
 			"label": "Version",
 			"description": "Created keys and written translations get this version.",
-			"none": "No version",
 			"current": "{{name}} (current)",
 			"create": "Create new"
 		}
@@ -758,10 +756,7 @@
 			"extra": "extra {{list}}"
 		},
 		"version": {
-			"asOf": "Project as of version {{name}}",
-			"description": "The file holds keys without a version and keys of versions starting no later than this one. Keys of later versions are left out.",
-			"onlyWork": "Only this version's changes",
-			"onlyWorkDescription": "Only keys created or changed in version {{name}}."
+			"info": "Export of version {{name}}"
 		}
 	},
 	"importIssues": {

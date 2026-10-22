@@ -53,20 +53,6 @@
 	color: var(--app-color-eyebrow);
 }
 
-/* The version a key was created in, next to its name: the same chip as Základný, in the muted colours. */
-.versionBadge {
-	flex-shrink: 0;
-	margin-top: 0.125rem;
-	padding: 0.125rem 0.375rem;
-	border-radius: var(--mantine-radius-xs);
-	background-color: var(--app-color-surface-muted);
-	font-size: var(--mantine-font-size-4xs);
-	font-weight: 700;
-	line-height: 1.2;
-	letter-spacing: 0.05em;
-	color: var(--app-color-muted);
-}
-
 /* A dashed line between two language columns, so the translations of a row read apart; the key and status columns keep their solid edges. */
 .languageTh + .languageTh,
 .value + .value {

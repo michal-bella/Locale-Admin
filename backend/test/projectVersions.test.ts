@@ -17,7 +17,7 @@ import {
 	toVersionDate,
 } from '@locale/shared'
 
-import { resolveVersionId, toDbDate } from '../src/lib/projectVersions'
+import { findDefaultVersionId, resolveVersion, toDbDate } from '../src/lib/projectVersions'
 
 import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
@@ -120,6 +120,8 @@ describe('POST /api/projects/:projectId/versions', () => {
 			isLocked: false,
 			state: 'ACTIVE',
 			isCurrent: true,
+			importedAt: null,
+			keyCount: 0,
 			createdBy: { id: user.id, name: user.email },
 		})
 		const events = await getTestPrisma().activityEvent.findMany({ where: { projectId: project.id } })
@@ -241,37 +243,45 @@ describe('PATCH /api/projects/:projectId/versions/:versionId', () => {
 	})
 })
 
-describe('resolveVersionId', () => {
-	it('picks the current version by date, prefers the latest startsAt and returns null without one', async () => {
+describe('findDefaultVersionId', () => {
+	it('picks the current version by date, prefers the latest startsAt, falls back to the newest and returns null without one', async () => {
 		const prisma = getTestPrisma()
 		const project = await prisma.project.create({ data: { name: 'A', slug: `a-${randomUUID().slice(0, 8)}` } })
-		expect(await resolveVersionId(prisma, { projectId: project.id, versionId: undefined, role: ROLE.EDITOR })).toBeNull()
+		expect(await findDefaultVersionId(prisma, project.id, TODAY)).toBeNull()
 
-		await createVersionRow(project.id, { startsAt: dayShift(-30), endsAt: dayShift(-1) })
-		const older = await createVersionRow(project.id, { startsAt: dayShift(-10), endsAt: dayShift(10) })
+		const past = await createVersionRow(project.id, { startsAt: dayShift(-30), endsAt: dayShift(-1) })
+		expect(await findDefaultVersionId(prisma, project.id, TODAY)).toBe(past.id)
+		const upcoming = await createVersionRow(project.id, { startsAt: dayShift(5), endsAt: dayShift(20) })
+		expect(await findDefaultVersionId(prisma, project.id, TODAY)).toBe(upcoming.id)
+		await createVersionRow(project.id, { startsAt: dayShift(-10), endsAt: dayShift(10) })
 		const newer = await createVersionRow(project.id, { startsAt: dayShift(-2), endsAt: dayShift(20) })
-		expect(await resolveVersionId(prisma, { projectId: project.id, versionId: undefined, role: ROLE.EDITOR })).toBe(newer.id)
-		expect(await resolveVersionId(prisma, { projectId: project.id, versionId: older.id, role: ROLE.EDITOR })).toBe(older.id)
+		expect(await findDefaultVersionId(prisma, project.id, TODAY)).toBe(newer.id)
 	})
+})
 
-	it('rejects a locked version for an EDITOR, lets an ADMIN through and rejects a foreign version', async () => {
+describe('resolveVersion', () => {
+	it('rejects a locked version and one outside its window for an EDITOR, lets an ADMIN through and rejects a foreign version', async () => {
 		const prisma = getTestPrisma()
 		const project = await prisma.project.create({ data: { name: 'A', slug: `a-${randomUUID().slice(0, 8)}` } })
 		const other = await prisma.project.create({ data: { name: 'B', slug: `b-${randomUUID().slice(0, 8)}` } })
 		const expired = await createVersionRow(project.id, { startsAt: dayShift(-30), endsAt: dayShift(-1) })
+		const upcoming = await createVersionRow(project.id, { startsAt: dayShift(1), endsAt: dayShift(10) })
+		const running = await createVersionRow(project.id, { startsAt: dayShift(-1), endsAt: dayShift(10) })
 		const reopened = await createVersionRow(project.id, { startsAt: dayShift(-30), endsAt: dayShift(-1), lock: VERSION_LOCK.UNLOCKED })
 		const lockedEarly = await createVersionRow(project.id, { startsAt: dayShift(-1), endsAt: dayShift(10), lock: VERSION_LOCK.LOCKED })
 		const foreign = await createVersionRow(other.id, { startsAt: dayShift(-1), endsAt: dayShift(10) })
 
-		const asEditor = (versionId: string) => resolveVersionId(prisma, { projectId: project.id, versionId, role: ROLE.EDITOR })
+		const asEditor = (versionId: string) => resolveVersion(prisma, { projectId: project.id, versionId, role: ROLE.EDITOR })
 		await expect(asEditor(expired.id)).rejects.toMatchObject({ status: 409, code: ERROR_CODE.PROJECT_VERSION_LOCKED })
+		await expect(asEditor(upcoming.id)).rejects.toMatchObject({ status: 409, code: ERROR_CODE.PROJECT_VERSION_LOCKED })
 		await expect(asEditor(lockedEarly.id)).rejects.toMatchObject({ status: 409, code: ERROR_CODE.PROJECT_VERSION_LOCKED })
-		expect(await asEditor(reopened.id)).toBe(reopened.id)
+		expect((await asEditor(running.id)).id).toBe(running.id)
+		expect((await asEditor(reopened.id)).id).toBe(reopened.id)
 		await expect(asEditor(foreign.id)).rejects.toMatchObject({ status: 404, code: ERROR_CODE.PROJECT_VERSION_NOT_FOUND })
-		expect(await resolveVersionId(prisma, { projectId: project.id, versionId: expired.id, role: ROLE.ADMIN })).toBe(expired.id)
-		// The current version is locked by hand only, so the implicit pick for an EDITOR fails while it is LOCKED.
-		await expect(resolveVersionId(prisma, { projectId: project.id, versionId: undefined, role: ROLE.EDITOR })).rejects.toMatchObject({
-			code: ERROR_CODE.PROJECT_VERSION_LOCKED,
-		})
+
+		const asAdmin = (versionId: string) => resolveVersion(prisma, { projectId: project.id, versionId, role: ROLE.ADMIN })
+		expect(await asAdmin(expired.id)).toEqual({ id: expired.id, name: expired.name, importedAt: null })
+		expect((await asAdmin(lockedEarly.id)).id).toBe(lockedEarly.id)
+		await expect(asAdmin(foreign.id)).rejects.toMatchObject({ status: 404, code: ERROR_CODE.PROJECT_VERSION_NOT_FOUND })
 	})
 })

@@ -21,6 +21,7 @@ import i18n from '@/lib/i18n'
 import {
 	ADMIN_USER as EXTENDED_ADMIN,
 	apiError,
+	CURRENT_VERSION,
 	EDITOR_USER as EXTENDED_EDITOR,
 	type MockRoutes,
 	projectListRoute,
@@ -83,7 +84,6 @@ const item = (namespace: string, name: string, source: string | null, target: st
 		group: translationGroup(namespace, name),
 		description: null,
 		plural: null,
-		version: null,
 		status: target === null ? 'UNTRANSLATED' : 'TRANSLATED',
 		translations: { [SLOVAK.id]: cell(source), [ENGLISH.id]: cell(target, updatedAt) },
 	}
@@ -125,11 +125,12 @@ const mockPage = ({
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: languages },
-		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [] } },
+		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [CURRENT_VERSION] } },
 		[`GET ${TRANSLATIONS_URL}`]: typeof translations === 'function' ? translations : { status: 200, data: translations },
 		...routes,
 	})
-	return () => requests.filter((request) => request.url === TRANSLATIONS_URL)
+	// The banner counts the untranslated keys of the version with one more request (pageSize 1); the list requests are the rest.
+	return () => requests.filter((request) => request.url === TRANSLATIONS_URL && (request.params as { pageSize: number }).pageSize !== 1)
 }
 
 const lastParams = (requests: () => InternalAxiosRequestConfig[]) => requests().at(-1)?.params as Record<string, unknown>
@@ -154,6 +155,15 @@ const getRow = (key: string) => {
 /** Matches the innermost element whose whole text is `text`, also when it is split across children (a label with a flag and the language). */
 const fullText = (text: string) => (_: string, element: Element | null) =>
 	element?.textContent === text && ![...element.children].some((child) => child.textContent === text)
+
+/** The warnings banner; the version banner above it is an alert too. */
+const getWarningsBanner = () => {
+	const banner = screen.getAllByRole('alert').find((alert) => within(alert).queryByRole('button', { name: /upozornen/ }))
+	if (!banner) {
+		throw new Error('Warnings banner not found')
+	}
+	return banner
+}
 
 const pickOption = async (label: string, option: string) => {
 	fireEvent.click(screen.getByRole('combobox', { name: label }))
@@ -209,6 +219,7 @@ describe('TranslationsPage', () => {
 		expect(lastParams(requests)).toEqual({
 			sourceLanguageId: SLOVAK.id,
 			targetLanguageId: CZECH.id,
+			versionId: CURRENT_VERSION.id,
 			sort: 'UNTRANSLATED_FIRST',
 			page: 1,
 			pageSize: 25,
@@ -233,6 +244,7 @@ describe('TranslationsPage', () => {
 		expect(lastParams(requests)).toEqual({
 			sourceLanguageId: ENGLISH.id,
 			targetLanguageId: SLOVAK.id,
+			versionId: CURRENT_VERSION.id,
 			search: 'welcome',
 			status: 'TRANSLATED',
 			namespace: 'loc',
@@ -250,7 +262,14 @@ describe('TranslationsPage', () => {
 		renderApp(`${PAGE_PATH}?status=REVIEW&sort=RANDOM&source=pl&page=0`)
 
 		await screen.findByText('orders.empty.title')
-		expect(lastParams(requests)).toEqual({ sourceLanguageId: SLOVAK.id, targetLanguageId: ENGLISH.id, sort: 'UNTRANSLATED_FIRST', page: 1, pageSize: 25 })
+		expect(lastParams(requests)).toEqual({
+			sourceLanguageId: SLOVAK.id,
+			targetLanguageId: ENGLISH.id,
+			versionId: CURRENT_VERSION.id,
+			sort: 'UNTRANSLATED_FIRST',
+			page: 1,
+			pageSize: 25,
+		})
 	})
 
 	it('marks a variable the base language does not have and a missing one, never in the base language', async () => {
@@ -328,6 +347,7 @@ describe('TranslationsPage', () => {
 			expect(lastParams(requests)).toEqual({
 				sourceLanguageId: SLOVAK.id,
 				targetLanguageId: ENGLISH.id,
+				versionId: CURRENT_VERSION.id,
 				status: 'UNTRANSLATED',
 				namespace: 'paths',
 				sort: 'UPDATED',
@@ -560,14 +580,14 @@ describe('TranslationsPage', () => {
 		const router = renderApp(PAGE_PATH)
 		await screen.findByText('orders.empty.title')
 
-		const banner = screen.getByRole('alert')
+		const banner = getWarningsBanner()
 		expect(banner).toHaveTextContent('3 kľúče majú premenné, ktoré sa líšia od základného jazyka, napríklad po importe.')
 		fireEvent.click(within(banner).getByRole('button', { name: 'Zobraziť upozornenia' }))
 		await waitFor(() => expect(router.state.location.search).toEqual({ warnings: true }))
 		await waitFor(() => expect(lastParams(requests)).toMatchObject({ warnings: true }))
 		expect(lastParams(requests)).toMatchObject({ page: 1 })
 
-		fireEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Zrušiť filter upozornení' }))
+		fireEvent.click(within(getWarningsBanner()).getByRole('button', { name: 'Zrušiť filter upozornení' }))
 		await waitFor(() => expect(router.state.location.search).toEqual({}))
 		await waitFor(() => expect(lastParams(requests).warnings).toBeUndefined())
 	})
@@ -576,7 +596,7 @@ describe('TranslationsPage', () => {
 		mockPage()
 		renderApp(PAGE_PATH)
 		await screen.findByText('orders.empty.title')
-		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: /upozornen/ })).not.toBeInTheDocument()
 	})
 
 	it('keeps the banner with Zrušiť filter when the URL filter is on and nothing matches, and Zrušiť filtre drops it too', async () => {
@@ -584,7 +604,7 @@ describe('TranslationsPage', () => {
 		const router = renderApp(`${PAGE_PATH}?warnings=true`)
 
 		expect(await findVisibleText('Filtrom nezodpovedá žiadny kľúč.')).toBeInTheDocument()
-		expect(within(screen.getByRole('alert')).getByRole('button', { name: 'Zrušiť filter upozornení' })).toBeInTheDocument()
+		expect(within(getWarningsBanner()).getByRole('button', { name: 'Zrušiť filter upozornení' })).toBeInTheDocument()
 		fireEvent.click(screen.getByRole('button', { name: 'Zrušiť filtre' }))
 		await waitFor(() => expect(router.state.location.search).toEqual({}))
 	})
@@ -817,6 +837,7 @@ const mockEditing = (put?: MockResponse | ((value: string | null) => MockRespons
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [SLOVAK, ENGLISH] },
+		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [CURRENT_VERSION] } },
 		[`GET ${TRANSLATIONS_URL}`]: () => ({ status: 200, data: current }),
 		...putRoutes,
 	})

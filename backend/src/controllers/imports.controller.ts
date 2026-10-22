@@ -10,8 +10,8 @@ export const createPreviewImportController =
 	(prisma: PrismaClient): RequestHandler<{ projectId: string }> =>
 	async (req, res) => {
 		assertImportFileSize(req.body)
-		const { content } = importPreviewRequestSchema.parse(req.body)
-		const body: ImportPreviewResponse = await previewImport(prisma, req.params.projectId, parseImportFile(content))
+		const { content, versionId } = importPreviewRequestSchema.parse(req.body)
+		const body: ImportPreviewResponse = await previewImport(prisma, req.params.projectId, versionId, parseImportFile(content))
 		res.status(200).json(body)
 	}
 

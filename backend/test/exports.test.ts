@@ -22,6 +22,7 @@ import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
+import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -39,23 +40,33 @@ const createLanguage = (projectId: string, tag: string, { isBase = false, positi
 	getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase, position } })
 
 /** `values` maps a language id to its value; a language left out has no row. */
-const createKey = (projectId: string, namespace: string, name: string, values: Record<string, string | null> = {}) =>
+const createKey = async (projectId: string, namespace: string, name: string, values: Record<string, string | null> = {}) =>
 	getTestPrisma().translationKey.create({
-		data: { projectId, namespace, name, translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) } },
+		data: {
+			projectId,
+			versionId: await versionIdOf(projectId),
+			namespace,
+			name,
+			translations: { create: Object.entries(values).map(([languageId, value]) => ({ languageId, value })) },
+		},
 	})
 
 /** A member of a new project with `sk` (base), then `en` and `cs` in the order of their position. */
 const setup = async (app: App, { member = true, role = ROLE.EDITOR }: { member?: boolean; role?: ROLE } = {}) => {
 	const { user } = await createUser({ role })
 	const project = await createProject(member ? [user.id] : [])
+	await createVersionRow(project.id)
 	const cs = await createLanguage(project.id, 'cs', { position: 2 })
 	const sk = await createLanguage(project.id, 'sk', { isBase: true, position: 1 })
 	const en = await createLanguage(project.id, 'en', { position: 0 })
 	return { project, sk, en, cs, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
 }
 
-const exportCsv = (app: App, cookie: string, projectId: string, query: Record<string, string>) =>
-	request(app).get(`/api/projects/${projectId}/export`).query(query).set('Cookie', cookie)
+const exportCsv = async (app: App, cookie: string, projectId: string, query: Record<string, string>) =>
+	request(app)
+		.get(`/api/projects/${projectId}/export`)
+		.query({ versionId: await versionIdOf(projectId), ...query })
+		.set('Cookie', cookie)
 
 /** Makes the next export wait inside its transaction call, holding its slot, until `release()`. */
 const blockNextExport = () => {
@@ -79,7 +90,10 @@ const blockNextExport = () => {
 
 /** Downloads the XLSX and reads it back: the rows of the only sheet as arrays of cell values (`null` for an empty cell). */
 const exportXlsx = async (app: App, cookie: string, projectId: string, query: Record<string, string>) => {
-	const res = await exportCsv(app, cookie, projectId, { ...query, format: 'XLSX' })
+	const res = await request(app)
+		.get(`/api/projects/${projectId}/export`)
+		.query({ versionId: await versionIdOf(projectId), ...query, format: 'XLSX' })
+		.set('Cookie', cookie)
 		.buffer(true)
 		.parse((response, callback) => {
 			const chunks: Buffer[] = []
@@ -166,8 +180,9 @@ describe('GET /api/projects/:projectId/export', () => {
 		const { project, sk, cookie } = await setup(app)
 		const count = EXPORT_BATCH_SIZE + 5
 		const names = Array.from({ length: count }, (_, index) => `key.${String(index).padStart(5, '0')}`)
+		const versionId = await versionIdOf(project.id)
 		await getTestPrisma().translationKey.createMany({
-			data: names.map((name, index) => ({ projectId: project.id, namespace: index % 2 === 0 ? 'a' : 'b', name })),
+			data: names.map((name, index) => ({ projectId: project.id, versionId, namespace: index % 2 === 0 ? 'a' : 'b', name })),
 		})
 
 		const lines = (await exportOk(app, cookie, project.id, { languageIds: sk.id })).trimEnd().split('\n')
@@ -194,7 +209,7 @@ describe('GET /api/projects/:projectId/export', () => {
 			.post(`/api/projects/${project.id}/imports`)
 			.set('Cookie', cookie)
 			.set(CSRF_HEADERS)
-			.send({ fileName: 'translations.csv', content: file, columns })
+			.send({ versionId: await versionIdOf(project.id), fileName: 'translations.csv', content: file, columns })
 		expect(importResultSchema.parse(imported.body).keysCreated).toBe(4)
 
 		expect(await exportOk(app, cookie, project.id, { languageIds: [sk.id, en.id, cs.id].join(',') })).toBe(file)
@@ -225,8 +240,9 @@ describe('GET /api/projects/:projectId/export', () => {
 		const app = createTestApp()
 		const { project, sk, cookie } = await setup(app)
 		const key = await createKey(project.id, 'loc', 'a;b', { [sk.id]: 'x;y' })
+		const versionId = await versionIdOf(project.id)
 		await getTestPrisma().translationKey.createMany({
-			data: Array.from({ length: EXPORT_ISSUES_MAX }, (_, index) => ({ projectId: project.id, namespace: 'loc', name: `k;${index}` })),
+			data: Array.from({ length: EXPORT_ISSUES_MAX }, (_, index) => ({ projectId: project.id, versionId, namespace: 'loc', name: `k;${index}` })),
 		})
 
 		const res = await exportCsv(app, cookie, project.id, { languageIds: sk.id })
@@ -246,7 +262,8 @@ describe('GET /api/projects/:projectId/export', () => {
 		const { project, sk, cookie } = await setup(app)
 		const count = EXPORT_BATCH_SIZE * 2 + 3
 		const names = Array.from({ length: count }, (_, index) => `key.${String(index).padStart(5, '0')}`)
-		await getTestPrisma().translationKey.createMany({ data: names.map((name) => ({ projectId: project.id, namespace: 'a', name })) })
+		const versionId = await versionIdOf(project.id)
+		await getTestPrisma().translationKey.createMany({ data: names.map((name) => ({ projectId: project.id, versionId, namespace: 'a', name })) })
 		// Translated: every key of the first batch and every third key after it.
 		const translated = names.filter((_, index) => index < EXPORT_BATCH_SIZE || index % 3 === 0)
 		const keys = await getTestPrisma().translationKey.findMany({ where: { projectId: project.id, name: { in: translated } }, select: { id: true } })
@@ -321,7 +338,8 @@ describe('GET /api/projects/:projectId/export', () => {
 			const app = createTestApp()
 			const { project, sk, cookie } = await setup(app)
 			const names = Array.from({ length: EXPORT_BATCH_SIZE + 5 }, (_, index) => `key.${String(index).padStart(5, '0')}`)
-			await getTestPrisma().translationKey.createMany({ data: names.map((name) => ({ projectId: project.id, namespace: 'a', name })) })
+			const versionId = await versionIdOf(project.id)
+			await getTestPrisma().translationKey.createMany({ data: names.map((name) => ({ projectId: project.id, versionId, namespace: 'a', name })) })
 			await createKey(project.id, 'b', 'translated', { [sk.id]: 'T' })
 
 			expect((await exportXlsx(app, cookie, project.id, { languageIds: sk.id })).rows).toHaveLength(names.length + 2)
@@ -494,8 +512,11 @@ describe('GET /api/projects/:projectId/export', () => {
 	})
 })
 
-const check = (app: App, cookie: string, projectId: string, query: Record<string, string>) =>
-	request(app).get(`/api/projects/${projectId}/export/check`).query(query).set('Cookie', cookie)
+const check = async (app: App, cookie: string, projectId: string, query: Record<string, string>) =>
+	request(app)
+		.get(`/api/projects/${projectId}/export/check`)
+		.query({ versionId: await versionIdOf(projectId), ...query })
+		.set('Cookie', cookie)
 
 const checkOk = async (...args: Parameters<typeof check>) => {
 	const res = await check(...args)

@@ -14,36 +14,38 @@ Verzia prekladov je pomenované časové okno projektu zhodné s verziou apliká
 | `POST`  | `/api/projects/:projectId/versions`            | iba `ADMIN`        | vytvorí verziu                             |
 | `PATCH` | `/api/projects/:projectId/versions/:versionId` | iba `ADMIN`        | zmení názov, dátumy alebo zamkne / odomkne |
 
-Verzia sa nedá zmazať: kľúče a bunky na ňu ukazujú (`Restrict`), chybná verzia sa opraví cez `PATCH`. Prístup rieši `requireProjectAccess` ako ostatné cesty projektu (401 bez session, 404 `NOT_FOUND` mimo prístupu), zápisy potrebujú CSRF hlavičku a JSON telo (viď [auth](./auth.md#csrf)).
+Každá verzia má vlastnú kópiu kľúčov a buniek ([ADR 0007](../decisions/0007-version-snapshots.md)): vzniká prázdna (`importedAt = null`, `keyCount = 0`) a naplní ju import. Zmazanie verzie pribudne v míľniku C plánu `version-snapshots`; chybná verzia sa zatiaľ opraví cez `PATCH`. Prístup rieši `requireProjectAccess` ako ostatné cesty projektu (401 bez session, 404 `NOT_FOUND` mimo prístupu), zápisy potrebujú CSRF hlavičku a JSON telo (viď [auth](./auth.md#csrf)).
 
 ## Uzamknutie
 
 Uzamknutá verzia je zdroj pravdy toho, čo je v kóde: `EDITOR` a `VISITOR` do nej nemôžu zapisovať (úprava bunky, nový kľúč, import s touto verziou vrátia 409 `PROJECT_VERSION_LOCKED`), `ADMIN` môže vždy. Uloženie `lock`:
 
-| `lock`     | Význam                                                                         |
-| ---------- | ------------------------------------------------------------------------------ |
-| `AUTO`     | predvolené; verzia je uzamknutá odo dňa po `endsAt`                            |
-| `LOCKED`   | `ADMIN` zamkol ručne, aj pred termínom                                         |
-| `UNLOCKED` | `ADMIN` odomkol ručne (dodatočné úpravy po termíne); platí, kým znova nezamkne |
+| `lock`     | Význam                                                                                               |
+| ---------- | ---------------------------------------------------------------------------------------------------- |
+| `AUTO`     | predvolené; pre editora je verzia uzamknutá mimo svojho okna: pred `startsAt` aj odo dňa po `endsAt` |
+| `LOCKED`   | `ADMIN` zamkol ručne, aj pred termínom                                                               |
+| `UNLOCKED` | `ADMIN` odomkol ručne (dodatočné úpravy po termíne); platí, kým znova nezamkne                       |
 
-Efektívne uzamknutie `isLocked` počíta `isVersionLocked` v `packages/shared`: `lock = LOCKED`, alebo `lock = AUTO` a dnešný dátum servera je po `endsAt`. Verzia, do ktorej padá dnešok (`isCurrent`), je teda uzamknutá iba ručne.
+Efektívne uzamknutie `isLocked` počíta `isVersionLocked` v `packages/shared`: `lock = LOCKED`, alebo `lock = AUTO` a dnešný dátum servera je mimo okna (pred `startsAt` alebo po `endsAt`). Verzia, do ktorej padá dnešok (`isCurrent`), je teda uzamknutá iba ručne.
 
 ## Odpoveď `ProjectVersion`
 
 Schéma `projectVersionSchema`.
 
-| Pole        | Typ                                | Popis                                                                                                     |
-| ----------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `id`        | UUID                               |                                                                                                           |
-| `name`      | string                             | názov zhodný s verziou v kóde, 1 až 50 znakov, unikátny v projekte                                        |
-| `startsAt`  | `YYYY-MM-DD`                       | začiatok okna (code freeze)                                                                               |
-| `endsAt`    | `YYYY-MM-DD`                       | koniec okna (end of copy + translation), vždy po `startsAt`                                               |
-| `lock`      | `AUTO` \| `LOCKED` \| `UNLOCKED`   | uložené nastavenie, viď vyššie                                                                            |
-| `isLocked`  | boolean                            | efektívne uzamknutie pre dnešok                                                                           |
-| `state`     | `UPCOMING` \| `ACTIVE` \| `LOCKED` | `LOCKED` keď `isLocked`, inak `UPCOMING` pred `startsAt`, inak `ACTIVE` (aj odomknutá verzia po `endsAt`) |
-| `isCurrent` | boolean                            | dnešok je medzi `startsAt` a `endsAt` vrátane; pri prekryve je aktuálna verzia s najneskorším `startsAt`  |
-| `createdAt` | string (ISO 8601)                  |                                                                                                           |
-| `createdBy` | `{ id, name }` \| `null`           | kto verziu vytvoril, `null` po zmazaní používateľa                                                        |
+| Pole         | Typ                                | Popis                                                                                                                                                                   |
+| ------------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | UUID                               |                                                                                                                                                                         |
+| `name`       | string                             | názov zhodný s verziou v kóde, 1 až 50 znakov, unikátny v projekte                                                                                                      |
+| `startsAt`   | `YYYY-MM-DD`                       | začiatok okna (code freeze)                                                                                                                                             |
+| `endsAt`     | `YYYY-MM-DD`                       | koniec okna (end of copy + translation), vždy po `startsAt`                                                                                                             |
+| `lock`       | `AUTO` \| `LOCKED` \| `UNLOCKED`   | uložené nastavenie, viď vyššie                                                                                                                                          |
+| `isLocked`   | boolean                            | efektívne uzamknutie pre dnešok                                                                                                                                         |
+| `state`      | `UPCOMING` \| `ACTIVE` \| `LOCKED` | `LOCKED` pri ručnom zámku alebo `AUTO` po `endsAt`, `UPCOMING` pred `startsAt` (hoci `isLocked` je pre editora `true`), inak `ACTIVE` (aj odomknutá verzia po `endsAt`) |
+| `isCurrent`  | boolean                            | dnešok je medzi `startsAt` a `endsAt` vrátane; pri prekryve je aktuálna verzia s najneskorším `startsAt`                                                                |
+| `importedAt` | string (ISO 8601) \| `null`        | čas posledného importu do verzie; `null` = prázdna verzia                                                                                                               |
+| `keyCount`   | číslo                              | počet kľúčov verzie                                                                                                                                                     |
+| `createdAt`  | string (ISO 8601)                  |                                                                                                                                                                         |
+| `createdBy`  | `{ id, name }` \| `null`           | kto verziu vytvoril, `null` po zmazaní používateľa                                                                                                                      |
 
 Dátumy sú kalendárne dni bez času (`DATE` v Postgrese); „dnes“ je dátum servera. Verzie jedného projektu sa môžu prekrývať (sprinty v release pláne sa prekrývajú).
 
@@ -74,9 +76,9 @@ Telo (schéma `updateProjectVersionRequestSchema`): ľubovoľná neprázdna podm
 | 404  | `PROJECT_VERSION_NOT_FOUND`  | verzia nepatrí projektu alebo `versionId` nie je UUID                 |
 | 409  | `PROJECT_VERSION_NAME_TAKEN` | nový názov už má iná verzia projektu                                  |
 
-## Verzia pri zápisoch (`resolveVersionId`)
+## Verzia pri zápisoch (`resolveVersion`)
 
-Helper `resolveVersionId(db, { projectId, versionId, role })` v `backend/src/lib/projectVersions.ts` používajú zápisy od míľnika B: bez `versionId` vyberie aktuálnu verziu podľa dnešného dátumu (alebo `null`, keď projekt žiadnu aktuálnu nemá), s `versionId` overí, že verzia patrí projektu (404 `PROJECT_VERSION_NOT_FOUND`) a pre inú rolu než `ADMIN` že nie je uzamknutá (409 `PROJECT_VERSION_LOCKED`).
+Helper `resolveVersion(db, { projectId, versionId, role })` v `backend/src/lib/projectVersions.ts` používa každý zápis (úprava bunky podľa verzie kľúča, Pridať kľúč a import podľa `versionId` v tele): overí, že verzia patrí projektu (404 `PROJECT_VERSION_NOT_FOUND`), a pre inú rolu než `ADMIN`, že nie je uzamknutá (409 `PROJECT_VERSION_LOCKED`). Čítania (zoznam, export) overujú príslušnosť cez `assertProjectVersion`. Žiadny zápis verziu neodhaduje; `findDefaultVersionId` (aktuálna podľa dátumu, inak najnovšia) slúži iba projektovým súhrnom.
 
 ## Príklad (curl)
 

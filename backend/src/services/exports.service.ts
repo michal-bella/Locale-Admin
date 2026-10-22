@@ -18,6 +18,9 @@ import { AppError } from '../lib/errors'
 import { csvHeader, csvRow, csvSection, namespaceIssue, rowIssues, type ExportRow } from '../lib/export/csvWriter'
 import { createXlsxWriter } from '../lib/export/xlsxWriter'
 import { type PrismaClient } from '../lib/prisma'
+import { versionNotFound } from '../lib/projectVersions'
+
+import { versionWorkSql } from './translations.service'
 
 type Tx = Prisma.TransactionClient
 
@@ -35,7 +38,7 @@ export type ExportSink = {
 	signal: AbortSignal
 }
 
-type ExportContext = { tx: Tx; projectId: string; languageIds: string[]; tags: string[]; status: ExportStatus; sink: ExportSink }
+type ExportContext = { tx: Tx; projectId: string; languageIds: string[]; tags: string[]; status: ExportStatus; version: Prisma.Sql; sink: ExportSink }
 
 /** Keys read per query; one batch is the only part of the file held in memory. */
 export const EXPORT_BATCH_SIZE = 1000
@@ -54,7 +57,14 @@ const matchesStatus = (row: ExportRow, status: ExportStatus) => status === 'ALL'
  * paging so memory does not grow with the project. The status is filtered here, after the batch is read: as an SQL
  * condition it would be evaluated for every remaining key of the project in every batch.
  */
-async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], status: ExportStatus, baseLanguageId?: string): AsyncGenerator<ExportRow[]> {
+async function* rowBatches(
+	tx: Tx,
+	projectId: string,
+	languageIds: string[],
+	status: ExportStatus,
+	version: Prisma.Sql,
+	baseLanguageId?: string,
+): AsyncGenerator<ExportRow[]> {
 	let last: KeyRow | undefined
 	for (;;) {
 		const after = last
@@ -63,7 +73,7 @@ async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], sta
 		const keys = await tx.$queryRaw<KeyRow[]>`
 			SELECT k.id, k.namespace, k.name
 			FROM "TranslationKey" k
-			WHERE k."projectId" = ${projectId}::uuid ${after}
+			WHERE k."projectId" = ${projectId}::uuid ${version} ${after}
 			ORDER BY k.namespace COLLATE "C", k.name COLLATE "C"
 			LIMIT ${EXPORT_BATCH_SIZE}`
 		if (keys.length === 0) {
@@ -96,11 +106,11 @@ async function* rowBatches(tx: Tx, projectId: string, languageIds: string[], sta
  * The CSV in two passes: the first only checks the values (422 `EXPORT_VALUE_UNSAFE` before anything is sent), the second
  * writes the file batch by batch. Returns the number of written keys.
  */
-const writeCsv = async ({ tx, projectId, languageIds, tags, status, sink }: ExportContext): Promise<number> => {
+const writeCsv = async ({ tx, projectId, languageIds, tags, status, version, sink }: ExportContext): Promise<number> => {
 	const issues: ExportIssue[] = []
 	let total = 0
 	let checkedNamespace = ''
-	for await (const rows of rowBatches(tx, projectId, languageIds, status)) {
+	for await (const rows of rowBatches(tx, projectId, languageIds, status, version)) {
 		if (sink.signal.aborted) {
 			return 0
 		}
@@ -125,7 +135,7 @@ const writeCsv = async ({ tx, projectId, languageIds, tags, status, sink }: Expo
 	await sink.write(csvHeader(tags))
 	let namespace = ''
 	let written = 0
-	for await (const rows of rowBatches(tx, projectId, languageIds, status)) {
+	for await (const rows of rowBatches(tx, projectId, languageIds, status, version)) {
 		if (sink.signal.aborted) {
 			return written
 		}
@@ -144,11 +154,11 @@ const writeCsv = async ({ tx, projectId, languageIds, tags, status, sink }: Expo
 }
 
 /** The XLSX in one pass: a cell holds `;`, line breaks and `--x--` without harm, so nothing is refused. */
-const writeXlsx = async ({ tx, projectId, languageIds, tags, status, sink }: ExportContext): Promise<number> => {
+const writeXlsx = async ({ tx, projectId, languageIds, tags, status, version, sink }: ExportContext): Promise<number> => {
 	sink.start()
 	const xlsx = createXlsxWriter(sink.stream, tags)
 	let written = 0
-	for await (const rows of rowBatches(tx, projectId, languageIds, status)) {
+	for await (const rows of rowBatches(tx, projectId, languageIds, status, version)) {
 		if (sink.signal.aborted) {
 			return written
 		}
@@ -158,6 +168,23 @@ const writeXlsx = async ({ tx, projectId, languageIds, tags, status, sink }: Exp
 	}
 	await xlsx.finish()
 	return written
+}
+
+/**
+ * SQL limiting the keys to the export's version: `UP_TO` is the project as of the version (keys without a version and keys of versions
+ * starting no later than it), `ONLY` the work of the version (the list filter). Empty without a version; a foreign version is 404.
+ */
+const versionCondition = async (prisma: PrismaClient, projectId: string, { versionId, versionScope }: ExportCheckQuery): Promise<Prisma.Sql> => {
+	if (versionId === undefined) {
+		return Prisma.empty
+	}
+	const version = await prisma.projectVersion.findFirst({ where: { id: versionId, projectId }, select: { startsAt: true } })
+	if (!version) {
+		throw versionNotFound()
+	}
+	return versionScope === 'ONLY'
+		? Prisma.sql`AND ${versionWorkSql(versionId)}`
+		: Prisma.sql`AND (k."versionId" IS NULL OR EXISTS (SELECT 1 FROM "ProjectVersion" v WHERE v.id = k."versionId" AND v."startsAt" <= ${version.startsAt}))`
 }
 
 /**
@@ -175,10 +202,11 @@ export const exportTranslations = async (prisma: PrismaClient, projectId: string
 	}
 	const languageIds = languages.map((language) => language.id)
 	const tags = languages.map((language) => language.tag)
+	const version = await versionCondition(prisma, projectId, query)
 
 	return prisma.$transaction(
 		(tx) => {
-			const context = { tx, projectId, languageIds, tags, status: query.status, sink }
+			const context = { tx, projectId, languageIds, tags, status: query.status, version, sink }
 			return query.format === 'XLSX' ? writeXlsx(context) : writeCsv(context)
 		},
 		{ isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: timeoutMs + TRANSACTION_TIMEOUT_MARGIN_MS },
@@ -201,12 +229,13 @@ export const checkExport = async (prisma: PrismaClient, projectId: string, query
 	}
 	const base = await prisma.projectLanguage.findFirst({ where: { projectId, isBase: true }, select: { id: true } })
 	const languageIds = languages.map((language) => language.id)
+	const version = await versionCondition(prisma, projectId, query)
 
 	return prisma.$transaction(
 		async (tx) => {
 			const warnings: ExportWarning[] = []
 			let total = 0
-			for await (const rows of rowBatches(tx, projectId, languageIds, query.status, base?.id)) {
+			for await (const rows of rowBatches(tx, projectId, languageIds, query.status, version, base?.id)) {
 				for (const row of rows) {
 					const reference = row.base ?? (placeholders(row.key).size > 0 ? row.key : null)
 					if (reference === null) {

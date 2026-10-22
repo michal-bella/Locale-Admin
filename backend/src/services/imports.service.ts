@@ -13,6 +13,7 @@ import {
 	type ImportPreviewResponse,
 	type ImportRequest,
 	type ImportResult,
+	type ROLE,
 	comparePlaceholders,
 } from '@locale/shared'
 
@@ -23,6 +24,7 @@ import { parseCsv } from '../lib/import/csvParser'
 import { type ParsedFile } from '../lib/import/parsedFile'
 import { recomputePlaceholderWarnings } from '../lib/placeholderWarnings'
 import { type PrismaClient } from '../lib/prisma'
+import { resolveVersionId } from '../lib/projectVersions'
 
 type KeyRow = { id: string; namespace: string; name: string; pluralVariable: string | null; languageId: string | null; value: string | null }
 
@@ -247,8 +249,14 @@ const batches = <T>(items: T[]): T[][] =>
  * (`detectPluralVariable`): a new key, or an existing one without a plural setting; an existing plural variable is never changed. For a
  * plural key a message with text around the plural is written as a plain plural message (`valueToWrite`), and the preview counts the same.
  * An import that creates a key or writes a value records one `KEYS_IMPORTED` event whose `count` is the number of written values.
+ * `request.versionId` goes on every created key and written cell (`null` writes none); a locked version is refused for anyone but an ADMIN.
  */
-export const importFile = (prisma: PrismaClient, projectId: string, userId: string, file: ParsedFile, request: ImportRequest): Promise<ImportResult> =>
+export const importFile = (
+	prisma: PrismaClient,
+	{ projectId, userId, role }: { projectId: string; userId: string; role: ROLE },
+	file: ParsedFile,
+	request: ImportRequest,
+): Promise<ImportResult> =>
 	prisma.$transaction(
 		async (tx) => {
 			// Below the 60 s transaction timeout, so an import waiting behind another one fails cleanly (500) instead of hanging.
@@ -258,6 +266,9 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 			// Not Postgres now(): Prisma's @updatedAt uses the Node clock, the DB clock (Docker VM) can lag it by a few ms,
 			// and now() is the transaction start, before the lock wait. Mixing them made `updatedAt` go backwards.
 			const writtenAt = new Date()
+			const versionId = request.versionId === null ? null : await resolveVersionId(tx, { projectId, versionId: request.versionId, role })
+			const version =
+				versionId === null ? null : await tx.projectVersion.findUniqueOrThrow({ where: { id: versionId }, select: { id: true, name: true } })
 
 			const languages = await tx.projectLanguage.findMany({
 				where: { projectId },
@@ -271,8 +282,8 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 			const createdKeyIds = new Map<string, string>()
 			for (const batch of batches(missingKeys)) {
 				const created = await tx.$queryRaw<{ id: string; namespace: string; name: string }[]>`
-					INSERT INTO "TranslationKey" (id, "projectId", namespace, name, "pluralVariable", "createdAt", "updatedAt")
-					SELECT gen_random_uuid(), ${projectId}::uuid, f.namespace, f.name, f.plural, ${writtenAt}, ${writtenAt}
+					INSERT INTO "TranslationKey" (id, "projectId", namespace, name, "pluralVariable", "versionId", "createdAt", "updatedAt")
+					SELECT gen_random_uuid(), ${projectId}::uuid, f.namespace, f.name, f.plural, ${versionId}::uuid, ${writtenAt}, ${writtenAt}
 					FROM unnest(${batch.map((row) => row.namespace)}::text[], ${batch.map((row) => row.key)}::text[], ${batch.map((row) => pluralAfterImport(undefined, row, columns))}::text[])
 						AS f(namespace, name, plural)
 					ON CONFLICT ("projectId", namespace, name) DO NOTHING
@@ -322,12 +333,12 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 
 			for (const batch of batches(writes)) {
 				await tx.$executeRaw`
-					INSERT INTO "Translation" ("keyId", "languageId", value, "updatedById", "updatedAt")
-					SELECT f."keyId", f."languageId", f.value, ${userId}::uuid, ${writtenAt}
+					INSERT INTO "Translation" ("keyId", "languageId", value, "updatedById", "updatedAt", "versionId")
+					SELECT f."keyId", f."languageId", f.value, ${userId}::uuid, ${writtenAt}, ${versionId}::uuid
 					FROM unnest(${batch.map((write) => write.keyId)}::uuid[], ${batch.map((write) => write.languageId)}::uuid[], ${batch.map((write) => write.value)}::text[])
 						AS f("keyId", "languageId", value)
 					ON CONFLICT ("keyId", "languageId") DO UPDATE
-					SET value = EXCLUDED.value, "updatedById" = EXCLUDED."updatedById", "updatedAt" = EXCLUDED."updatedAt"
+					SET value = EXCLUDED.value, "updatedById" = EXCLUDED."updatedById", "updatedAt" = EXCLUDED."updatedAt", "versionId" = EXCLUDED."versionId"
 					WHERE "Translation".value IS DISTINCT FROM EXCLUDED.value`
 			}
 
@@ -345,6 +356,7 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 						translationsCreated,
 						translationsUpdated,
 						languageTags: languages.filter(({ id }) => writtenLanguageIds.has(id)).map(({ tag }) => tag),
+						...(version === null ? {} : { versionName: version.name }),
 					},
 				})
 			}
@@ -354,6 +366,7 @@ export const importFile = (prisma: PrismaClient, projectId: string, userId: stri
 				translationsCreated,
 				translationsUpdated,
 				skippedColumns: request.columns.filter(({ languageId }) => languageId === null).length,
+				version,
 			}
 		},
 		// The timeout includes waiting for the lock while another import of the project runs.

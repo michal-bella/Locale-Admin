@@ -21,6 +21,7 @@ export const createImportController =
 		assertImportFileSize(req.body)
 		const request = importRequestSchema.parse(req.body)
 		const file = parseImportFile(request.content)
-		const body: ImportResult = await importFile(prisma, req.params.projectId, getAuth(req).user.id, file, request)
+		const { user } = getAuth(req)
+		const body: ImportResult = await importFile(prisma, { projectId: req.params.projectId, userId: user.id, role: user.role }, file, request)
 		res.status(200).json(body)
 	}

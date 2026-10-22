@@ -50,6 +50,7 @@ const item = (name: string, overrides: Partial<TranslationListItem> = {}): Trans
 	description: null,
 	plural: null,
 	status: 'TRANSLATED',
+	version: null,
 	translations: {
 		[SLOVAK.id]: { value: 'Vitajte', status: 'TRANSLATED', updatedAt: null, updatedBy: null },
 		[ENGLISH.id]: { value: 'Welcome', status: 'TRANSLATED', updatedAt: null, updatedBy: null },

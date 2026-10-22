@@ -8,7 +8,7 @@ const EN = '1c7f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d'
 
 describe('exportQuerySchema', () => {
 	it('splits comma-separated language ids and defaults the format and status', () => {
-		expect(exportQuerySchema.parse({ languageIds: `${SK},${EN}` })).toEqual({ format: 'CSV', languageIds: [SK, EN], status: 'ALL' })
+		expect(exportQuerySchema.parse({ languageIds: `${SK},${EN}` })).toEqual({ format: 'CSV', languageIds: [SK, EN], status: 'ALL', versionScope: 'UP_TO' })
 	})
 
 	it('rejects no language, a duplicate language, a non-uuid and an unknown format', () => {

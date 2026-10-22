@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { IMPORT_KEY_MAX_BYTES, IMPORT_NAMESPACE_MAX_LENGTH } from './imports'
 import { PLURAL_VARIABLE_DEFAULT, PLURAL_VARIABLE_MAX_LENGTH, PLURAL_VARIABLE_PATTERN } from './plurals'
+import { translationVersionRefSchema } from './versionRef'
 
 export const TRANSLATIONS_PAGE_SIZE_DEFAULT = 20
 
@@ -66,6 +67,8 @@ export const translationsQuerySchema = z
 		updatedWithin: z.preprocess(emptyToUndefined, translationsUpdatedWithinSchema.optional()),
 		/** `true` (also `'true'` or `'1'` in the URL) lists only keys with a cell whose placeholders differ from the base language. */
 		warnings: z.preprocess((value) => (value === true || value === 'true' || value === '1' ? true : undefined), z.literal(true).optional()),
+		/** Keys created in this version or with a cell last written in it (the work of the version, see `ProjectVersion`). */
+		versionId: z.preprocess(emptyToUndefined, z.uuid().optional()),
 		sort: z.preprocess(emptyToUndefined, translationsSortSchema.default('UNTRANSLATED_FIRST')),
 		page: z.coerce.number().int().min(1).default(1),
 		pageSize: z.coerce.number().int().min(1).max(TRANSLATIONS_PAGE_SIZE_MAX).default(TRANSLATIONS_PAGE_SIZE_DEFAULT),
@@ -168,6 +171,8 @@ export const translationListItemSchema = z.object({
 	description: z.string().nullable(),
 	plural: translationKeyPluralSchema.nullable(),
 	status: translationStatusSchema,
+	/** Version the key was created in; `null` for keys without one. */
+	version: translationVersionRefSchema.nullable(),
 	translations: z.record(z.uuid(), translationCellSchema),
 })
 
@@ -218,8 +223,10 @@ const translationValueSchema = z
 	.nullable()
 	.transform((value) => (value === null || value.trim() === '' ? null : value))
 
+/** `versionId`: the version the change belongs to (the one filtered on the page); left out, the backend uses the current version by date. */
 export const updateTranslationRequestSchema = z.object({
 	value: translationValueSchema,
+	versionId: z.uuid().optional(),
 })
 
 export type UpdateTranslationRequest = z.infer<typeof updateTranslationRequestSchema>
@@ -246,6 +253,8 @@ export const createTranslationKeyRequestSchema = z.object({
 	namespace: z.string().max(IMPORT_NAMESPACE_MAX_LENGTH),
 	name: translationKeyNameSchema,
 	translations: z.record(z.uuid(), translationValueSchema).default({}),
+	/** The version the key is created in; left out, the current version by date (none when the project has no versions). */
+	versionId: z.uuid().optional(),
 })
 
 export type CreateTranslationKeyRequest = z.infer<typeof createTranslationKeyRequestSchema>

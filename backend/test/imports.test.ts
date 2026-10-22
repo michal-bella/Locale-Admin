@@ -470,6 +470,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			translationsCreated: 6,
 			translationsUpdated: 0,
 			skippedColumns: 0,
+			version: null,
 		})
 
 		expect(await projectKeys(project.id)).toEqual(['loc/Uložiť', 'loc/Zrušiť', 'paths/orders'])
@@ -564,6 +565,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			translationsCreated: 0,
 			translationsUpdated: 0,
 			skippedColumns: 0,
+			version: null,
 		})
 		expect(await projectTranslations(project.id)).toEqual(before)
 	})
@@ -581,6 +583,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			translationsCreated: 1,
 			translationsUpdated: 1,
 			skippedColumns: 0,
+			version: null,
 		})
 
 		const after = await projectTranslations(project.id)
@@ -612,7 +615,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			{ columnIndex: 4, languageId: null },
 		])
 
-		expect(result).toEqual({ keysCreated: 3, translationsCreated: 5, translationsUpdated: 0, skippedColumns: 1 })
+		expect(result).toEqual({ keysCreated: 3, translationsCreated: 5, translationsUpdated: 0, skippedColumns: 1, version: null })
 		expect(Object.keys(await projectValues(project.id)).filter((id) => id.endsWith(' cs'))).toEqual([])
 	})
 
@@ -626,6 +629,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			translationsCreated: 2,
 			translationsUpdated: 0,
 			skippedColumns: 0,
+			version: null,
 		})
 		expect(await projectKeys(project.id)).toEqual(['loc/Uložiť'])
 		expect(await projectValues(project.id)).toEqual({ 'loc/Uložiť en': 'Save', 'loc/Uložiť sk': 'Uložiť' })
@@ -661,7 +665,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			],
 		)
 
-		expect(result).toEqual({ keysCreated: 1, translationsCreated: 3, translationsUpdated: 0, skippedColumns: 0 })
+		expect(result).toEqual({ keysCreated: 1, translationsCreated: 3, translationsUpdated: 0, skippedColumns: 0, version: null })
 		expect(await projectValues(project.id)).toEqual({ '/a cs': 'Polski', '/a en': 'Deutsch', '/a sk': 'A' })
 	})
 
@@ -687,6 +691,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 			translationsCreated: body.changes.reduce((sum, change) => sum + change.new, 0),
 			translationsUpdated: body.changes.reduce((sum, change) => sum + change.changed, 0),
 			skippedColumns: 2,
+			version: null,
 		})
 		expect(result.translationsCreated).toBeGreaterThan(0)
 		expect(result.translationsUpdated).toBeGreaterThan(0)
@@ -703,8 +708,8 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		const firstWonOrder = results[0].keysCreated === 2000
 		const [earlier, later] = firstWonOrder ? results : [results[1], results[0]]
-		expect(earlier).toEqual({ keysCreated: 2000, translationsCreated: 2000, translationsUpdated: 0, skippedColumns: 0 })
-		expect(later).toEqual({ keysCreated: 1000, translationsCreated: 1000, translationsUpdated: 1000, skippedColumns: 0 })
+		expect(earlier).toEqual({ keysCreated: 2000, translationsCreated: 2000, translationsUpdated: 0, skippedColumns: 0, version: null })
+		expect(later).toEqual({ keysCreated: 1000, translationsCreated: 1000, translationsUpdated: 1000, skippedColumns: 0, version: null })
 		const values = await projectValues(project.id)
 		expect(Object.keys(values)).toHaveLength(3000)
 		expect(values['/key 1500 en']).toBe(firstWonOrder ? 'second 1500' : 'first 1500')
@@ -752,7 +757,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		release()
 		await holder
-		expect(await pending).toEqual({ keysCreated: 1, translationsCreated: 1, translationsUpdated: 1, skippedColumns: 0 })
+		expect(await pending).toEqual({ keysCreated: 1, translationsCreated: 1, translationsUpdated: 1, skippedColumns: 0, version: null })
 		expect(await projectValues(project.id)).toEqual({ '/a en': 'imported', '/b en': 'B' })
 	})
 
@@ -911,7 +916,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 		const result = await importOk(app, cookie, project.id, lines, columns)
 		const elapsed = performance.now() - started
 
-		expect(result).toEqual({ keysCreated: 2500, translationsCreated: 25000, translationsUpdated: 0, skippedColumns: 0 })
+		expect(result).toEqual({ keysCreated: 2500, translationsCreated: 25000, translationsUpdated: 0, skippedColumns: 0, version: null })
 		expect(await getTestPrisma().translation.count()).toBe(25000)
 		expect(elapsed, `import took ${Math.round(elapsed)} ms`).toBeLessThan(5000)
 	})

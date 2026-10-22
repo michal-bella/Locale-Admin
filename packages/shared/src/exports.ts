@@ -23,7 +23,17 @@ export const EXPORT_ISSUES_MAX = 50
 
 const commaSeparated = (value: unknown) => (typeof value === 'string' ? value.split(',').filter((id) => id !== '') : value)
 
-/** Query of `GET /api/projects/:projectId/export`. `languageIds` is comma-separated and decides the column order only through the project order. */
+/** What an export with `versionId` contains: `UP_TO` the whole project as of that version (keys without a version and keys of versions starting no later), `ONLY` the work of that version (keys created in it or with a cell last written in it). */
+export const exportVersionScopeSchema = z.enum(['UP_TO', 'ONLY'])
+
+export type ExportVersionScope = z.infer<typeof exportVersionScopeSchema>
+
+const emptyToUndefined = (value: unknown) => (typeof value === 'string' && value.trim() === '' ? undefined : value)
+
+/**
+ * Query of `GET /api/projects/:projectId/export`. `languageIds` is comma-separated and decides the column order only through the project order.
+ * `versionId` limits the keys by `versionScope` (ignored without `versionId`).
+ */
 export const exportQuerySchema = z.object({
 	format: exportFormatSchema.default('CSV'),
 	languageIds: z.preprocess(
@@ -35,6 +45,8 @@ export const exportQuerySchema = z.object({
 			.refine((ids) => new Set(ids).size === ids.length),
 	),
 	status: exportStatusSchema.default('ALL'),
+	versionId: z.preprocess(emptyToUndefined, z.uuid().optional()),
+	versionScope: z.preprocess(emptyToUndefined, exportVersionScopeSchema.default('UP_TO')),
 })
 
 export type ExportQuery = z.infer<typeof exportQuerySchema>

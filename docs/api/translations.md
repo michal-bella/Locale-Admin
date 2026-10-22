@@ -44,19 +44,20 @@ Položka nesie bunku pre každý jazyk projektu v oboch zobrazeniach. Ktoré zob
 
 Parametre v query (schéma `translationsQuerySchema`). Prázdny reťazec znamená „bez filtra“.
 
-| Parameter          | Typ    | Povinný | Popis                                                                                                                                                                                    |
-| ------------------ | ------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sourceLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk projektu, ktorého text je zdroj; vždy spolu s `targetLanguageId`                                                                                             |
-| `targetLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk, pre ktorý sa počíta stav a `stats`; môže byť rovnaký ako zdroj                                                                                              |
-| `search`           | string | nie     | max. 200 znakov, orezaný; podreťazec bez ohľadu na veľkosť písmen a diakritiku (`unaccent`, „vlastni“ nájde „vlastní“ aj naopak) v kľúči a hodnotách (viď zobrazenie)                    |
-| `status`           | enum   | nie     | `TRANSLATED` alebo `UNTRANSLATED`                                                                                                                                                        |
-| `namespace`        | string | nie     | presná zhoda namespace                                                                                                                                                                   |
-| `updatedById`      | UUID   | nie     | iba kľúče, ktorých preklad (kompaktné: cieľový, rozšírené: ktorýkoľvek jazyk) naposledy uložil tento používateľ                                                                          |
-| `updatedWithin`    | enum   | nie     | `DAY`, `WEEK`, `MONTH`: preklad zmenený za posledných 24 hodín, 7 alebo 30 dní; spolu s `updatedById` musí obe podmienky splniť ten istý preklad                                         |
-| `warnings`         | `true` | nie     | iba kľúče, ktoré majú aspoň jednu bunku s upozornením na premenné (`Translation.placeholderWarning`, viď [databáza](../database.md#translation)); v URL aj `1`, iná hodnota = bez filtra |
-| `sort`             | enum   | nie     | `UNTRANSLATED_FIRST` (predvolené), `KEY`, `UPDATED`                                                                                                                                      |
-| `page`             | číslo  | nie     | od 1, predvolene 1                                                                                                                                                                       |
-| `pageSize`         | číslo  | nie     | 1 až 100, predvolene 20                                                                                                                                                                  |
+| Parameter          | Typ    | Povinný | Popis                                                                                                                                                                                                    |
+| ------------------ | ------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sourceLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk projektu, ktorého text je zdroj; vždy spolu s `targetLanguageId`                                                                                                             |
+| `targetLanguageId` | UUID   | nie     | kompaktné zobrazenie: jazyk, pre ktorý sa počíta stav a `stats`; môže byť rovnaký ako zdroj                                                                                                              |
+| `search`           | string | nie     | max. 200 znakov, orezaný; podreťazec bez ohľadu na veľkosť písmen a diakritiku (`unaccent`, „vlastni“ nájde „vlastní“ aj naopak) v kľúči a hodnotách (viď zobrazenie)                                    |
+| `status`           | enum   | nie     | `TRANSLATED` alebo `UNTRANSLATED`                                                                                                                                                                        |
+| `namespace`        | string | nie     | presná zhoda namespace                                                                                                                                                                                   |
+| `updatedById`      | UUID   | nie     | iba kľúče, ktorých preklad (kompaktné: cieľový, rozšírené: ktorýkoľvek jazyk) naposledy uložil tento používateľ                                                                                          |
+| `updatedWithin`    | enum   | nie     | `DAY`, `WEEK`, `MONTH`: preklad zmenený za posledných 24 hodín, 7 alebo 30 dní; spolu s `updatedById` musí obe podmienky splniť ten istý preklad                                                         |
+| `warnings`         | `true` | nie     | iba kľúče, ktoré majú aspoň jednu bunku s upozornením na premenné (`Translation.placeholderWarning`, viď [databáza](../database.md#translation)); v URL aj `1`, iná hodnota = bez filtra                 |
+| `versionId`        | UUID   | nie     | práca verzie: kľúče, ktoré vo verzii vznikli, alebo majú bunku naposledy zapísanú v nej (viď [verzie projektu](./project-versions.md)); cudzia verzia vráti prázdny zoznam, prázdna hodnota = bez filtra |
+| `sort`             | enum   | nie     | `UNTRANSLATED_FIRST` (predvolené), `KEY`, `UPDATED`                                                                                                                                                      |
+| `page`             | číslo  | nie     | od 1, predvolene 1                                                                                                                                                                                       |
+| `pageSize`         | číslo  | nie     | 1 až 100, predvolene 20                                                                                                                                                                                  |
 
 Znaky `%`, `_` a `\` vo vyhľadávaní sa berú doslovne. Hodnoty idú do SQL iba ako parametre.
 
@@ -93,6 +94,7 @@ Položka `items[]`:
 | `description`  | string alebo `null`        | popis kľúča pre prekladateľov (viď úprava kľúča)                                                                                                                       |
 | `plural`       | objekt alebo `null`        | `{ variable }` pri plurálovom kľúči, inak `null`                                                                                                                       |
 | `status`       | enum                       | stav riadku podľa zobrazenia (viď vyššie)                                                                                                                              |
+| `version`      | objekt alebo `null`        | `{ id, name }` verzie, v ktorej kľúč vznikol (import alebo Pridať kľúč), inak `null`                                                                                   |
 | `translations` | objekt                     | bunka pre **každý** jazyk projektu, kľúč je `ProjectLanguage.id`                                                                                                       |
 | `….value`      | string alebo `null`        | text v jazyku, `null` ak chýba                                                                                                                                         |
 | `….status`     | enum                       | `TRANSLATED` alebo `UNTRANSLATED`                                                                                                                                      |
@@ -144,9 +146,10 @@ Uloží preklad kľúča `keyId` v jazyku `languageId` (základný aj ostatné j
 
 Telo (schéma `updateTranslationRequestSchema`):
 
-| Pole    | Typ                 | Popis                                                                                                                |
-| ------- | ------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `value` | string alebo `null` | max. 10 000 znakov (`TRANSLATION_VALUE_MAX_LENGTH`); `null`, `""` aj samé medzery sa uložia ako `null` (Nepreložené) |
+| Pole        | Typ                 | Popis                                                                                                                                                                                                                                                                                                                                         |
+| ----------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`     | string alebo `null` | max. 10 000 znakov (`TRANSLATION_VALUE_MAX_LENGTH`); `null`, `""` aj samé medzery sa uložia ako `null` (Nepreložené)                                                                                                                                                                                                                          |
+| `versionId` | UUID, voliteľné     | verzia, do ktorej zmena patrí (verzia zapnutá vo filtri); bez neho aktuálna verzia projektu podľa dátumu (žiadna, ak projekt verzie nemá). Zapíše sa iba keď sa hodnota zmenila; cudzia verzia 404 `PROJECT_VERSION_NOT_FOUND`, uzamknutá pre `EDITOR` 409 `PROJECT_VERSION_LOCKED` (viď [verzie projektu](./project-versions.md#uzamknutie)) |
 
 Text sa ukladá tak, ako prišiel (bez orezania), HTML aj premenné `{{…}}` ostávajú ako text.
 
@@ -202,11 +205,12 @@ Pridá kľúč ručne, napr. keď po uzamknutí sheetu pri vývoji vznikne nový
 
 Telo (schéma `createTranslationKeyRequestSchema`):
 
-| Pole           | Typ                                       | Popis                                                                                                                                                    |
-| -------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `namespace`    | string                                    | povinné, existujúci namespace projektu presne ako je uložený (aj `""`, ak má projekt kľúče bez namespace), max. 100 znakov                               |
-| `name`         | string                                    | povinné, orezané, neprázdne, max. 2 000 bajtov v UTF-8 (`IMPORT_KEY_MAX_BYTES`)                                                                          |
-| `translations` | objekt `{ [languageId]: string \| null }` | voliteľné; hodnoty v jazykoch projektu, max. 10 000 znakov; prázdna hodnota, `null` aj vynechaný jazyk = nepreložené (riadok `Translation` sa nevytvorí) |
+| Pole           | Typ                                       | Popis                                                                                                                                                                                                                  |
+| -------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `namespace`    | string                                    | povinné, existujúci namespace projektu presne ako je uložený (aj `""`, ak má projekt kľúče bez namespace), max. 100 znakov                                                                                             |
+| `name`         | string                                    | povinné, orezané, neprázdne, max. 2 000 bajtov v UTF-8 (`IMPORT_KEY_MAX_BYTES`)                                                                                                                                        |
+| `translations` | objekt `{ [languageId]: string \| null }` | voliteľné; hodnoty v jazykoch projektu, max. 10 000 znakov; prázdna hodnota, `null` aj vynechaný jazyk = nepreložené (riadok `Translation` sa nevytvorí)                                                               |
+| `versionId`    | UUID                                      | voliteľné; verzia, v ktorej kľúč (a jeho vyplnené bunky) vzniká; bez neho aktuálna verzia podľa dátumu. Cudzia verzia 404 `PROJECT_VERSION_NOT_FOUND`, uzamknutá pre inú rolu než `ADMIN` 409 `PROJECT_VERSION_LOCKED` |
 
 Pri zapnutej ochrane premenných (`protectVariables`) musí každá vyplnená hodnota nezákladného jazyka mať rovnaké premenné ako vyplnená hodnota základného jazyka (alebo ako názov kľúča, ak základný jazyk ostal prázdny a názov premenné obsahuje), inak 400 `PLACEHOLDER_MISMATCH` s `details` `{ missing, extra, languageId }` pre prvý jazyk v poradí projektu, ktorý sa líši. Kľúč aj hodnoty sa zapíšu v jednej transakcii s udalosťou `KEY_CREATED` ([databáza](../database.md)); vytvorenie čaká na prípadný bežiaci import projektu. Uložené hodnoty majú `updatedById` prihláseného administrátora.
 

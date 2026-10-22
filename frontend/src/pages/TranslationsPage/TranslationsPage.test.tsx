@@ -83,6 +83,7 @@ const item = (namespace: string, name: string, source: string | null, target: st
 		group: translationGroup(namespace, name),
 		description: null,
 		plural: null,
+		version: null,
 		status: target === null ? 'UNTRANSLATED' : 'TRANSLATED',
 		translations: { [SLOVAK.id]: cell(source), [ENGLISH.id]: cell(target, updatedAt) },
 	}

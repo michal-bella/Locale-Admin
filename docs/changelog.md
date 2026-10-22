@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Verzie prekladov – zápis, filter a export (2026-10-22)
+
+- API: import (`versionId`, predvolene `null`), úprava bunky a Pridať kľúč (`versionId`, inak aktuálna verzia podľa dátumu) zapisujú verziu na kľúče a bunky; uzamknutá verzia vráti `EDITOR`-ovi 409 `PROJECT_VERSION_LOCKED` ([import](./api/imports.md#telo-požiadavky), [preklady](./api/translations.md))
+- API: `GET …/translations` má filter `versionId` (práca verzie) a `version` v položke; export a kontrola pred exportom majú `versionId` + `versionScope` (`UP_TO` = stav projektu k verzii, `ONLY` = práca verzie) ([export](./api/exports.md#query))
+
 ### Verzie prekladov – model a API (2026-10-22)
 
 - databáza: tabuľka `ProjectVersion` (názov, `startsAt`, `endsAt`, `lock`) a nullable `versionId` na `TranslationKey` a `Translation` (migrácia `project_versions`); verzia sa nemaže ([Databáza](./database.md#projectversion), [ADR 0006](./decisions/0006-project-versions.md))

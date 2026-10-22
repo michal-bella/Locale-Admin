@@ -68,6 +68,7 @@ export const activityEventDataSchema = z.discriminatedUnion('type', [
 		translationsCreated: count,
 		translationsUpdated: count,
 		languageTags: z.array(languageTag),
+		versionName: z.string().optional(),
 	}),
 	event(ACTIVITY_TYPE.KEY_CREATED, {
 		keyId: z.uuid(),

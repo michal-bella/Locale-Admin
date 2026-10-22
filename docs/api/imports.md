@@ -1,6 +1,6 @@
 ---
 title: 'API: import prekladov'
-updated: 2026-10-19
+updated: 2026-10-22
 notion_page_id:
 ---
 
@@ -153,12 +153,13 @@ Zapíše súbor do projektu. Súbor sa znova parsuje a validuje rovnako ako pri 
 
 Schéma `importRequestSchema`.
 
-| Pole                | Typ     | Povinný | Popis                                                                                            |
-| ------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------ |
-| `fileName`          | string  | áno     | ako pri preview                                                                                  |
-| `content`           | string  | áno     | ako pri preview                                                                                  |
-| `columns`           | pole    | áno     | `{ columnIndex, languageId }` pre každý stĺpec jazyka zo súboru, aspoň jeden prvok               |
-| `createMissingKeys` | boolean | nie     | predvolene `true`; `false` = kľúče, ktoré projekt nemá, sa nevytvoria a ich hodnoty sa preskočia |
+| Pole                | Typ     | Povinný | Popis                                                                                                                                                                                                                                                                                                                        |
+| ------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fileName`          | string  | áno     | ako pri preview                                                                                                                                                                                                                                                                                                              |
+| `content`           | string  | áno     | ako pri preview                                                                                                                                                                                                                                                                                                              |
+| `columns`           | pole    | áno     | `{ columnIndex, languageId }` pre každý stĺpec jazyka zo súboru, aspoň jeden prvok                                                                                                                                                                                                                                           |
+| `createMissingKeys` | boolean | nie     | predvolene `true`; `false` = kľúče, ktoré projekt nemá, sa nevytvoria a ich hodnoty sa preskočia                                                                                                                                                                                                                             |
+| `versionId`         | UUID    | nie     | predvolene `null`; verzia projektu, ktorú dostanú vytvorené kľúče a zapísané bunky (nezmenená bunka si verziu nechá). Import aktuálnu verziu nikdy neodhaduje. Cudzia verzia 404 `PROJECT_VERSION_NOT_FOUND`, uzamknutá pre inú rolu než `ADMIN` 409 `PROJECT_VERSION_LOCKED` (viď [verzie projektu](./project-versions.md)) |
 
 ### Pravidlá pre `columns`
 
@@ -189,9 +190,10 @@ Schéma `importResultSchema`. Počty sa rovnajú preview pre ten istý súbor ib
 | `translationsCreated` | vyplnené v súbore, prázdne alebo chýbajúce v projekte (súčet `new` v preview) |
 | `translationsUpdated` | vyplnené v súbore aj v projekte, iná hodnota (súčet `changed` v preview)      |
 | `skippedColumns`      | počet stĺpcov s `languageId: null`                                            |
+| `version`             | `{ id, name }` verzie z požiadavky, inak `null`                               |
 
 ```json
-{ "keysCreated": 2, "translationsCreated": 9, "translationsUpdated": 1, "skippedColumns": 2 }
+{ "keysCreated": 2, "translationsCreated": 9, "translationsUpdated": 1, "skippedColumns": 2, "version": { "id": "…", "name": "v2.45" } }
 ```
 
 ### Transakcia, zámok a dávky

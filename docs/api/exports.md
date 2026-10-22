@@ -1,6 +1,6 @@
 ---
 title: 'API: export prekladov'
-updated: 2026-10-20
+updated: 2026-10-22
 notion_page_id:
 ---
 
@@ -17,11 +17,13 @@ Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez 
 
 ## Query
 
-| Parameter     | Povinný | Hodnota                                                                                                    |
-| ------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
-| `languageIds` | áno     | ID jazykov projektu oddelené čiarkou, aspoň jeden, bez duplicít. Poradie stĺpcov určuje projekt, nie query |
-| `status`      | nie     | `ALL` (predvolené), `TRANSLATED`, `UNTRANSLATED`                                                           |
-| `format`      | nie     | `CSV` (predvolené) alebo `XLSX`                                                                            |
+| Parameter      | Povinný | Hodnota                                                                                                                                                                                                                                                                                                                                       |
+| -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `languageIds`  | áno     | ID jazykov projektu oddelené čiarkou, aspoň jeden, bez duplicít. Poradie stĺpcov určuje projekt, nie query                                                                                                                                                                                                                                    |
+| `status`       | nie     | `ALL` (predvolené), `TRANSLATED`, `UNTRANSLATED`                                                                                                                                                                                                                                                                                              |
+| `format`       | nie     | `CSV` (predvolené) alebo `XLSX`                                                                                                                                                                                                                                                                                                               |
+| `versionId`    | nie     | verzia projektu (viď [verzie projektu](./project-versions.md)); obmedzí kľúče podľa `versionScope`. Cudzia verzia 404 `PROJECT_VERSION_NOT_FOUND`                                                                                                                                                                                             |
+| `versionScope` | nie     | `UP_TO` (predvolené): stav projektu k verzii, teda kľúče bez verzie a kľúče verzií so `startsAt` najneskôr ako zvolená (release vetva dostane kompletný súbor bez kľúčov budúcich verzií); `ONLY`: iba práca verzie (kľúče vzniknuté v nej alebo s bunkou naposledy zapísanou v nej, rovnako ako filter zoznamu). Bez `versionId` sa ignoruje |
 
 **Stav** sa vyhodnocuje po kľúčoch cez vybrané jazyky: `TRANSLATED` = kľúč má hodnotu vo všetkých, `UNTRANSLATED` = aspoň jedna chýba (chýbajúci riadok alebo `null`). Bunky bez prekladu v exportovanom kľúči sú `null`.
 

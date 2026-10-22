@@ -71,6 +71,7 @@ describe('translationListItemSchema', () => {
 			description: null,
 			plural: null,
 			status: 'UNTRANSLATED',
+			version: null,
 			translations: {
 				[SOURCE_ID]: {
 					value: 'Uložiť',

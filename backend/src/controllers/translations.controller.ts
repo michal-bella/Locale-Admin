@@ -42,9 +42,10 @@ export const createUpdateTranslationController =
 	async (req, res) => {
 		const keyId = parseId(req.params.keyId, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND, 'Translation key not found')
 		const languageId = parseId(req.params.languageId, ERROR_CODE.NOT_FOUND, 'Language not found')
-		const { value } = updateTranslationRequestSchema.parse(req.body)
-		const ids = { projectId: req.params.projectId, keyId, languageId, userId: getAuth(req).user.id }
-		const body: UpdateTranslationResponse = await updateTranslation(prisma, ids, value)
+		const input = updateTranslationRequestSchema.parse(req.body)
+		const { user } = getAuth(req)
+		const ids = { projectId: req.params.projectId, keyId, languageId, userId: user.id, role: user.role }
+		const body: UpdateTranslationResponse = await updateTranslation(prisma, ids, input)
 		res.status(200).json(body)
 	}
 
@@ -62,6 +63,11 @@ export const createCreateTranslationKeyController =
 	(prisma: PrismaClient): RequestHandler<Pick<Params, 'projectId'>> =>
 	async (req, res) => {
 		const input = createTranslationKeyRequestSchema.parse(req.body)
-		const body: CreateTranslationKeyResponse = await createTranslationKey(prisma, { projectId: req.params.projectId, userId: getAuth(req).user.id }, input)
+		const { user } = getAuth(req)
+		const body: CreateTranslationKeyResponse = await createTranslationKey(
+			prisma,
+			{ projectId: req.params.projectId, userId: user.id, role: user.role },
+			input,
+		)
 		res.status(201).json(body)
 	}

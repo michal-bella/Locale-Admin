@@ -89,6 +89,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 					description: null,
 					plural: null,
 					status: 'UNTRANSLATED',
+					version: null,
 					translations: {
 						[sk.id]: { value: 'Zrušiť', status: 'TRANSLATED', updatedAt: await updatedAt(missing.id, sk.id), updatedBy: null },
 						[en.id]: EMPTY,
@@ -102,6 +103,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 					description: null,
 					plural: null,
 					status: 'UNTRANSLATED',
+					version: null,
 					translations: {
 						[sk.id]: { value: 'Žiadne objednávky', status: 'TRANSLATED', updatedAt: await updatedAt(empty.id, sk.id), updatedBy: null },
 						[en.id]: { value: null, status: 'UNTRANSLATED', updatedAt: await updatedAt(empty.id, en.id), updatedBy: null },
@@ -115,6 +117,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 					description: null,
 					plural: null,
 					status: 'TRANSLATED',
+					version: null,
 					translations: {
 						[sk.id]: { value: 'Uložiť', status: 'TRANSLATED', updatedAt: await updatedAt(save.id, sk.id), updatedBy: null },
 						[en.id]: { value: 'Save', status: 'TRANSLATED', updatedAt: await updatedAt(save.id, en.id), updatedBy: null },
@@ -128,6 +131,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 					description: null,
 					plural: null,
 					status: 'TRANSLATED',
+					version: null,
 					translations: {
 						[sk.id]: EMPTY,
 						[en.id]: { value: '/orders', status: 'TRANSLATED', updatedAt: await updatedAt(path.id, en.id), updatedBy: null },

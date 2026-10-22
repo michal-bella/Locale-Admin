@@ -26,7 +26,7 @@
 }
 
 .actionsColumn {
-	width: 4.625rem;
+	width: 1%;
 }
 
 .td {
@@ -36,7 +36,13 @@
 
 .actionsCell {
 	padding-inline: 0 1.25rem;
-	text-align: center;
+	white-space: nowrap;
+}
+
+.actions {
+	display: flex;
+	justify-content: center;
+	gap: 0.25rem;
 }
 
 .tr:last-child .td {
@@ -45,6 +51,18 @@
 
 .name {
 	line-height: 1.4286;
+}
+
+.nameLink {
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 600;
+	color: var(--app-color-text-strong);
+	text-decoration: none;
+}
+
+.nameLink:hover {
+	color: var(--mantine-color-brand-6);
+	text-decoration: underline;
 }
 
 .meta {

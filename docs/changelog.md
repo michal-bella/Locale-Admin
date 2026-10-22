@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Preklady zo stránky Jazyky (2026-10-22)
+
+- frontend: v tabuľke na stránke Jazyky otvorí názov jazyka aj ikona **Otvoriť preklady** (aj pre editora) Preklady s týmto jazykom ako cieľom v zobrazení Zdroj → cieľ (`?target=`), vo Všetkých jazykoch zobrazí iba ten jazyk vedľa základného; editor má preto v tabuľke stĺpec akcií ([Frontend](./frontend.md#jazyky-projektu))
+- frontend: percento pokrytia na stránke Jazyky zaokrúhľuje `formatShare` ako Prehľad a karty v Prekladoch, predtým nadol (2401 / 2457 ukazovalo 97 % v Jazykoch a 98 % v Prekladoch); takmer celé pokrytie je „> 99 %“
+
 ### Lokálny vývoj (2026-10-22)
 
 - backend: `pnpm dev` z interaktívneho terminálu sa už nezasekne na `prisma generate` (v `--parallel` behu dostával SIGTTIN a backend nikdy nepočúval, SPA ukazovala „Niečo sa pokazilo“); dev skript mu dáva stdin z `/dev/null`

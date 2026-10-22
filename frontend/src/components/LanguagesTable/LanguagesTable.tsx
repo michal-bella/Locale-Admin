@@ -1,6 +1,7 @@
 import { ActionIcon, Badge, Button, Progress, Skeleton, Table, Text, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useMergedRef } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
+import { Link } from '@tanstack/react-router'
 import { type KeyboardEvent, type ReactNode, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useTranslation } from 'react-i18next'
@@ -13,9 +14,10 @@ import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguage
 import { useReorderProjectLanguagesMutation } from '@/api/projectLanguages/useReorderProjectLanguagesMutation'
 import BaseLanguageHint from '@/components/BaseLanguageHint/BaseLanguageHint'
 import ChangeBaseLanguageModal from '@/components/ChangeBaseLanguageModal/ChangeBaseLanguageModal'
-import { GripVertical, Plus, Trash } from '@/components/Icons'
+import { GripVertical, Plus, Translate, Trash } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import RowAction from '@/components/RowAction/RowAction'
+import { formatShare } from '@/lib/formatShare'
 
 import classes from './LanguagesTable.module.css'
 import { type LanguagesTableProps } from './types'
@@ -24,21 +26,20 @@ const SKELETON_ROWS = 3
 
 const SORT_ANIMATION_MS = 150
 
-const COLUMN_COUNT_WITHOUT_ACTIONS = 3
+const COLUMN_COUNT = 4
 
-// Rounded down, so 100 % means every key is translated.
-const toPercent = (part: number, total: number) => (total === 0 ? 0 : Math.floor((part / total) * 100))
+// The base language is the source, so it opens the translations without a preset target.
+const translationsSearch = (language: Language) => (language.isBase ? {} : { target: language.tag, languages: [language.tag] })
 
 /**
  * Languages of a project in a card (Figma 3:812, 3:860) without the Na kontrolu column (that status does not exist). The base language cannot be removed.
  * Below 1200 px the Preložené column moves under the progress bar, below 640 px the progress moves under the language name, as in the members table.
  * The grip reorders them for the whole project (the column order of the translations): SortableJS drag and drop, or ArrowUp / ArrowDown
  * while the grip has the focus, as in the project list. The first language is the base, so a move that changes it waits for a confirmation;
- * "Nie" puts the rows back.
+ * "Nie" puts the rows back. The name and the Translate icon (for every member) open the translations with that language as the target.
  */
-const LanguagesTable = ({ projectId, onAdd, onDelete, reorderable = false, ref }: LanguagesTableProps) => {
+const LanguagesTable = ({ projectId, projectSlug, onAdd, onDelete, reorderable = false, ref }: LanguagesTableProps) => {
 	const { t, i18n } = useTranslation()
-	const columnCount = onDelete ? COLUMN_COUNT_WITHOUT_ACTIONS + 1 : COLUMN_COUNT_WITHOUT_ACTIONS
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectLanguagesQuery(projectId)
 	const tableRef = useRef<HTMLTableElement>(null)
 	const mergedRef = useMergedRef(tableRef, ref)
@@ -175,10 +176,15 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, reorderable = false, ref }
 		}
 	}
 
-	const renderCoverage = (language: LanguageListItem, percent: number) => (
+	const share = (part: number, total: number) => {
+		const { percent, bound } = formatShare(part, total, i18n.language)
+		return bound ? t(`dashboardPage.${bound}`, { percent }) : percent
+	}
+
+	const renderCoverage = (language: LanguageListItem, percent: string) => (
 		<div className={classes.coverage}>
 			<Progress
-				value={percent}
+				value={language.keyCount === 0 ? 0 : (language.translatedCount / language.keyCount) * 100}
 				size={6}
 				radius='xl'
 				className='flex-1'
@@ -186,7 +192,7 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, reorderable = false, ref }
 				aria-label={t('languagesPage.table.coverageLabel', { name: languageName(language), percent })}
 			/>
 			<Text component='span' className={classes.percent}>
-				{t('languagesPage.table.percent', { percent })}
+				{percent}
 			</Text>
 		</div>
 	)
@@ -196,7 +202,7 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, reorderable = false, ref }
 
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr className={classes.tr}>
-			<Table.Td colSpan={columnCount} className={`${classes.td} ${classes.state}`}>
+			<Table.Td colSpan={COLUMN_COUNT} className={`${classes.td} ${classes.state}`}>
 				{content}
 			</Table.Td>
 		</Table.Tr>
@@ -206,7 +212,7 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, reorderable = false, ref }
 		if (isPending) {
 			return Array.from({ length: SKELETON_ROWS }, (_, index) => (
 				<Table.Tr key={index} className={classes.tr}>
-					<Table.Td colSpan={columnCount} className={classes.td}>
+					<Table.Td colSpan={COLUMN_COUNT} className={classes.td}>
 						<div className='flex items-center gap-3'>
 							<Skeleton circle height={40} />
 							<Skeleton height={12} width='30%' radius='sm' />
@@ -241,7 +247,7 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, reorderable = false, ref }
 			)
 		}
 		return (languages ?? []).map((language) => {
-			const percent = toPercent(language.translatedCount, language.keyCount)
+			const percent = share(language.translatedCount, language.keyCount)
 			return (
 				<Table.Tr key={language.id} className={classes.tr}>
 					<Table.Td className={classes.td}>
@@ -277,9 +283,14 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, reorderable = false, ref }
 							<LanguageFlag code={language.flagCode} size='lg' />
 							<div className='flex min-w-0 flex-1 flex-col'>
 								<div className='flex flex-wrap items-center gap-x-5 gap-y-1'>
-									<Text size='sm' fw={600} c='var(--app-color-text-strong)' className={classes.name}>
+									<Link
+										to='/projects/$projectSlug/translations'
+										params={{ projectSlug }}
+										search={translationsSearch(language)}
+										className={`${classes.name} ${classes.nameLink}`}
+									>
 										{languageName(language)}
-									</Text>
+									</Link>
 									{language.isBase && (
 										<BaseLanguageHint>
 											<Badge radius='xl' classNames={{ root: classes.badge, label: classes.badgeLabel }}>
@@ -311,18 +322,28 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, reorderable = false, ref }
 							{translatedOf(language)}
 						</Text>
 					</Table.Td>
-					{onDelete && (
-						<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
+					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
+						<div className={classes.actions}>
 							<RowAction
-								icon={Trash}
-								tooltip={t('languagesPage.table.delete')}
-								label={t('languagesPage.table.deleteLabel', { name: languageName(language) })}
-								danger
-								disabled={language.isBase}
-								onClick={(event) => onDelete(language, event.currentTarget)}
+								icon={Translate}
+								tooltip={t('languagesPage.table.open')}
+								label={t('languagesPage.table.openLabel', { name: languageName(language) })}
+								to='/projects/$projectSlug/translations'
+								params={{ projectSlug }}
+								search={translationsSearch(language)}
 							/>
-						</Table.Td>
-					)}
+							{onDelete && (
+								<RowAction
+									icon={Trash}
+									tooltip={t('languagesPage.table.delete')}
+									label={t('languagesPage.table.deleteLabel', { name: languageName(language) })}
+									danger
+									disabled={language.isBase}
+									onClick={(event) => onDelete(language, event.currentTarget)}
+								/>
+							)}
+						</div>
+					</Table.Td>
 				</Table.Tr>
 			)
 		})
@@ -336,11 +357,9 @@ const LanguagesTable = ({ projectId, onAdd, onDelete, reorderable = false, ref }
 						<Table.Th className={classes.th}>{t('languagesPage.table.language')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.translatedColumn} ${classes.wideOnly}`}>{t('languagesPage.table.translated')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.coverageColumn} ${classes.tabletUp}`}>{t('languagesPage.table.coverage')}</Table.Th>
-						{onDelete && (
-							<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
-								<VisuallyHidden>{t('languagesPage.table.actionsColumn')}</VisuallyHidden>
-							</Table.Th>
-						)}
+						<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>
+							<VisuallyHidden>{t('languagesPage.table.actionsColumn')}</VisuallyHidden>
+						</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody ref={bodyRef}>{renderBody()}</Table.Tbody>

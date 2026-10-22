@@ -1,6 +1,6 @@
 import { Button } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useLoaderData } from '@tanstack/react-router'
+import { useLoaderData, useParams } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -17,6 +17,7 @@ import PageIntro from '@/components/PageIntro/PageIntro'
 /** Languages of the project (Figma 3:812 without the translation statistics columns): an ADMIN adds from the catalog, removes or reorders. */
 const ProjectLanguagesPage = () => {
 	const { t } = useTranslation()
+	const { projectSlug } = useParams({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { data: languages } = useProjectLanguagesQuery(projectId)
 	const { data: user } = useMeQuery()
@@ -81,6 +82,7 @@ const ProjectLanguagesPage = () => {
 			<LanguagesTable
 				ref={tableRef}
 				projectId={projectId}
+				projectSlug={projectSlug}
 				onAdd={isAdmin ? openAdd : undefined}
 				onDelete={isAdmin ? openDelete : undefined}
 				reorderable={isAdmin}

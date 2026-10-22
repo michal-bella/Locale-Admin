@@ -104,14 +104,16 @@ Schéma `importPreviewRequestSchema`.
 
 Schéma `importPreviewResponseSchema`.
 
-| Pole            | Typ    | Popis                                                                                                                                                 |
-| --------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `columns`       | pole   | stĺpce jazykov v poradí súboru: `tag`, `columnIndex` (od 2), `match`, `languageId` (iba `PROJECT`), `stats: { translations, untranslated, warnings }` |
-| `keys`          | objekt | `{ total, new, existing }` – kľúče zo súboru, nové a už existujúce v projekte                                                                         |
-| `namespaces`    | pole   | `{ namespace, keys }` v poradí súboru                                                                                                                 |
-| `changes`       | pole   | pre každý stĺpec `PROJECT`: `{ tag, columnIndex, new, changed, unchanged, keptBecauseNull }`                                                          |
-| `warnings`      | pole   | upozornenia (viď vyššie), max. 1 000                                                                                                                  |
-| `warningsTotal` | číslo  | celkový počet upozornení                                                                                                                              |
+| Pole              | Typ                 | Popis                                                                                                                                                                                                                          |
+| ----------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `columns`         | pole                | stĺpce jazykov v poradí súboru: `tag`, `columnIndex` (od 2), `match`, `languageId` (iba `PROJECT`), `stats: { translations, untranslated, warnings }`                                                                          |
+| `keys`            | objekt              | `{ total, new, existing, copiedFromPrevious }` – kľúče zo súboru: nové (nemá ich verzia ani predchádzajúca), existujúce vo verzii, a tie, ktoré má iba predchádzajúca verzia (import ich najprv skopíruje so všetkými jazykmi) |
+| `previousVersion` | objekt alebo `null` | `{ id, name }` najbližšej staršej verzie podľa `startsAt` (aj bez importu), z ktorej import kopíruje; `null` pre prvú verziu projektu                                                                                          |
+| `removed`         | objekt              | `{ total, names }` – kľúče verzie, ktoré v súbore nie sú: import ich zmaže aj s prekladmi (súbor definuje množinu kľúčov verzie); `names` sú prvé `IMPORT_REMOVED_NAMES_MAX` (20) ako `namespace:kľúč`, zoradené               |
+| `namespaces`      | pole                | `{ namespace, keys }` v poradí súboru                                                                                                                                                                                          |
+| `changes`         | pole                | pre každý stĺpec `PROJECT`: `{ tag, columnIndex, new, changed, unchanged, keptBecauseNull }`                                                                                                                                   |
+| `warnings`        | pole                | upozornenia (viď vyššie), max. 1 000                                                                                                                                                                                           |
+| `warningsTotal`   | číslo               | celkový počet upozornení                                                                                                                                                                                                       |
 
 `stats.translations` počíta vyplnené hodnoty, `stats.untranslated` hodnoty `null` (aj `""`), `stats.warnings` upozornenia `PLACEHOLDER_MISMATCH` a `BASE_LANGUAGE_UNTRANSLATED` v tomto stĺpci (upozornenie na jazyk sa nepočíta, ten je v `match`).
 
@@ -154,13 +156,13 @@ Zapíše súbor do verzie `versionId`. Súbor sa znova parsuje a validuje rovnak
 
 Schéma `importRequestSchema`.
 
-| Pole                | Typ     | Povinný | Popis                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fileName`          | string  | áno     | ako pri preview                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `content`           | string  | áno     | ako pri preview                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `columns`           | pole    | áno     | `{ columnIndex, languageId }` pre každý stĺpec jazyka zo súboru, aspoň jeden prvok                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `createMissingKeys` | boolean | nie     | predvolene `true`; `false` = kľúče, ktoré projekt nemá, sa nevytvoria a ich hodnoty sa preskočia                                                                                                                                                                                                                                                                                                                                                                                        |
-| `versionId`         | UUID    | áno     | verzia, do ktorej súbor ide: jej kľúče sa párujú so súborom, nové kľúče v nej vzniknú a `importedAt` verzie sa nastaví. Import aktuálnu verziu nikdy neodhaduje. Cudzia verzia 404 `PROJECT_VERSION_NOT_FOUND`, uzamknutá (ručne alebo mimo okna) pre inú rolu než `ADMIN` 409 `PROJECT_VERSION_LOCKED` (viď [verzie projektu](./project-versions.md)). Prevzatie prekladov z predchádzajúcej verzie a definovanie množiny kľúčov verzie pribudne v míľniku B plánu `version-snapshots` |
+| Pole                | Typ     | Povinný | Popis                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fileName`          | string  | áno     | ako pri preview                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `content`           | string  | áno     | ako pri preview                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `columns`           | pole    | áno     | `{ columnIndex, languageId }` pre každý stĺpec jazyka zo súboru, aspoň jeden prvok                                                                                                                                                                                                                                                                                                                                |
+| `createMissingKeys` | boolean | nie     | predvolene `true`; `false` = kľúče, ktoré projekt nemá, sa nevytvoria a ich hodnoty sa preskočia                                                                                                                                                                                                                                                                                                                  |
+| `versionId`         | UUID    | áno     | verzia, do ktorej súbor ide: jej kľúče sa párujú so súborom, nové kľúče v nej vzniknú a `importedAt` verzie sa nastaví. Import aktuálnu verziu nikdy neodhaduje. Cudzia verzia 404 `PROJECT_VERSION_NOT_FOUND`, uzamknutá (ručne alebo mimo okna) pre inú rolu než `ADMIN` 409 `PROJECT_VERSION_LOCKED` (viď [verzie projektu](./project-versions.md)). Viď [Zlúčenie s dátami verzie](#zlúčenie-s-dátami-verzie) |
 
 ### Pravidlá pre `columns`
 
@@ -172,9 +174,9 @@ Schéma `importRequestSchema`.
 
 Porušenie ktoréhokoľvek pravidla vráti 400 `IMPORT_COLUMNS_INVALID` (bez `details`) a nič sa nezapíše.
 
-### Zlúčenie s dátami projektu
+### Zlúčenie s dátami verzie
 
-- Kľúč sa páruje podľa `(namespace, kľúč)` v rámci verzie. Chýbajúci kľúč sa vytvorí, ak `createMissingKeys` je `true`, inak sa jeho hodnoty preskočia. Kľúče, ktoré v súbore nie sú, ostávajú nedotknuté (nič sa nemaže).
+- Kľúč sa páruje podľa `(namespace, kľúč)` v rámci verzie. Kľúč, ktorý verzia nemá, ale má ho **predchádzajúca verzia** (najbližšia staršia podľa `startsAt`), sa najprv **skopíruje** aj so všetkými jazykmi (hodnota, kto a kedy ju zapísal, upozornenie na premenné) a potom sa naň zapíšu hodnoty zo súboru ako na existujúci kľúč. Kľúč, ktorý nemá ani jedna, sa vytvorí, ak `createMissingKeys` je `true`, inak sa jeho hodnoty preskočia (kopírovanie z predchodcu `createMissingKeys` neovplyvní). **Súbor definuje množinu kľúčov verzie**: kľúče verzie, ktoré v súbore nie sú, sa zmažú aj s prekladmi (`removed` v náhľade, `keysRemoved` vo výsledku). Iné verzie sa nemenia.
 - Prázdna hodnota v súbore (`null`, `""`, prázdne pole) **nikdy nič nezapíše**: nezmaže vyplnený preklad a nevytvorí riadok s `null`.
 - Vyplnená hodnota sa vloží (preklad chýba alebo je `null`) alebo prepíše inú hodnotu (rozhodnutie 4). Zapísané riadky dostanú `updatedById` = prihlásený používateľ a `updatedAt` = čas importu.
 - Rovnaká hodnota sa nezapisuje, `updatedAt` aj `updatedById` ostanú pôvodné. Opakovaný import toho istého súboru preto vráti nulové počty.
@@ -185,16 +187,26 @@ Porušenie ktoréhokoľvek pravidla vráti 400 `IMPORT_COLUMNS_INVALID` (bez `de
 
 Schéma `importResultSchema`. Počty sa rovnajú preview pre ten istý súbor iba vtedy, keď sa projekt medzitým nezmenil, `createMissingKeys` je `true` a priradenie stĺpcov je to, ktoré navrhlo preview (stĺpce `PROJECT` na svoj `languageId`, ostatné preskočené). Preview počíta zmeny iba pre stĺpce, ktorých tag zodpovedá jazyku projektu, a nové kľúče vždy; ručne priradený stĺpec (napr. `pl` → `cs`), iný jazyk pre stĺpec alebo `createMissingKeys: false` dajú iné počty ako preview.
 
-| Pole                  | Popis                                                                         |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `keysCreated`         | počet vytvorených kľúčov (`keys.new` v preview)                               |
-| `translationsCreated` | vyplnené v súbore, prázdne alebo chýbajúce v projekte (súčet `new` v preview) |
-| `translationsUpdated` | vyplnené v súbore aj v projekte, iná hodnota (súčet `changed` v preview)      |
-| `skippedColumns`      | počet stĺpcov s `languageId: null`                                            |
-| `version`             | `{ id, name }` verzie z požiadavky                                            |
+| Pole                  | Popis                                                                           |
+| --------------------- | ------------------------------------------------------------------------------- |
+| `keysCreated`         | počet vytvorených kľúčov (`keys.new` v preview)                                 |
+| `keysCopied`          | počet kľúčov skopírovaných z predchádzajúcej verzie (`keys.copiedFromPrevious`) |
+| `keysRemoved`         | počet kľúčov verzie zmazaných, lebo v súbore nie sú (`removed.total`)           |
+| `translationsCreated` | vyplnené v súbore, prázdne alebo chýbajúce v projekte (súčet `new` v preview)   |
+| `translationsUpdated` | vyplnené v súbore aj v projekte, iná hodnota (súčet `changed` v preview)        |
+| `skippedColumns`      | počet stĺpcov s `languageId: null`                                              |
+| `version`             | `{ id, name }` verzie z požiadavky                                              |
 
 ```json
-{ "keysCreated": 2, "translationsCreated": 9, "translationsUpdated": 1, "skippedColumns": 2, "version": { "id": "…", "name": "v2.45" } }
+{
+	"keysCreated": 2,
+	"keysCopied": 300,
+	"keysRemoved": 3,
+	"translationsCreated": 9,
+	"translationsUpdated": 1,
+	"skippedColumns": 2,
+	"version": { "id": "…", "name": "v2.45" }
+}
 ```
 
 ### Transakcia, zámok a dávky

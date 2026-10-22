@@ -37,6 +37,23 @@ export const findDefaultVersionId = async (db: PrismaClient | Prisma.Transaction
 
 export type ResolvedVersion = { id: string; name: string; importedAt: Date | null }
 
+/**
+ * The nearest older version of the same project by `startsAt` (then by creation), whose keys an import copies and a diff compares with;
+ * `null` for the first version. An older version without an import counts as one without keys.
+ */
+export const findPreviousVersion = async (db: PrismaClient | Prisma.TransactionClient, versionId: string): Promise<{ id: string; name: string } | null> => {
+	const version = await db.projectVersion.findUniqueOrThrow({ where: { id: versionId }, select: { projectId: true, startsAt: true, createdAt: true } })
+	return db.projectVersion.findFirst({
+		where: {
+			projectId: version.projectId,
+			id: { not: versionId },
+			OR: [{ startsAt: { lt: version.startsAt } }, { startsAt: version.startsAt, createdAt: { lt: version.createdAt } }],
+		},
+		orderBy: [{ startsAt: 'desc' }, { createdAt: 'desc' }],
+		select: { id: true, name: true },
+	})
+}
+
 /** A version of the project for a read (list, export): 404 `PROJECT_VERSION_NOT_FOUND` when it belongs to another project or does not exist. */
 export const assertProjectVersion = async (db: PrismaClient | Prisma.TransactionClient, projectId: string, versionId: string): Promise<ResolvedVersion> => {
 	const version = await db.projectVersion.findFirst({ where: { id: versionId, projectId }, select: { id: true, name: true, importedAt: true } })

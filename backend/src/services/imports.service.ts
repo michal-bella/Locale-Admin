@@ -1,7 +1,10 @@
+import { randomUUID } from 'node:crypto'
+
 import {
 	ACTIVITY_TYPE,
 	ERROR_CODE,
 	IMPORT_FILE_MAX_BYTES,
+	IMPORT_REMOVED_NAMES_MAX,
 	IMPORT_WARNINGS_MAX,
 	SUPPORTED_LANGUAGES,
 	detectPluralVariable,
@@ -24,11 +27,12 @@ import { parseCsv } from '../lib/import/csvParser'
 import { type ParsedFile } from '../lib/import/parsedFile'
 import { recomputePlaceholderWarnings } from '../lib/placeholderWarnings'
 import { type PrismaClient } from '../lib/prisma'
-import { assertProjectVersion, resolveVersion } from '../lib/projectVersions'
+import { assertProjectVersion, findPreviousVersion, resolveVersion } from '../lib/projectVersions'
 
 type KeyRow = { id: string; namespace: string; name: string; pluralVariable: string | null; languageId: string | null; value: string | null }
 
-type ProjectKey = { id: string; pluralVariable: string | null; values: Map<string, string | null> }
+/** A key the file matches: one of the version, or one of the previous version the import copies first (`id` then becomes the copy's). */
+type ProjectKey = { id: string; pluralVariable: string | null; values: Map<string, string | null>; fromPrevious: boolean }
 
 /** What importing one value does. Shared by preview and import so their counts cannot diverge. */
 type ValueChange = 'new' | 'changed' | 'unchanged' | 'keptBecauseNull'
@@ -68,13 +72,41 @@ const loadVersionKeys = async (db: Prisma.TransactionClient, versionId: string, 
 	const keys = new Map<string, ProjectKey>()
 	for (const row of rows) {
 		const identity = keyIdentity(row.namespace, row.name)
-		const key = keys.get(identity) ?? { id: row.id, pluralVariable: row.pluralVariable, values: new Map<string, string | null>() }
+		const key = keys.get(identity) ?? { id: row.id, pluralVariable: row.pluralVariable, values: new Map<string, string | null>(), fromPrevious: false }
 		if (row.languageId !== null) {
 			key.values.set(row.languageId, row.value)
 		}
 		keys.set(identity, key)
 	}
 	return keys
+}
+
+/**
+ * The file's keys as the import sees them: the version's own keys, and for the rest the previous version's (marked `fromPrevious`), which the
+ * import copies with every language before it writes the file's values over them.
+ */
+const loadKeysForImport = async (db: Prisma.TransactionClient, versionId: string, previousVersionId: string | null, file: ParsedFile) => {
+	const keys = await loadVersionKeys(db, versionId, file)
+	if (previousVersionId === null) {
+		return keys
+	}
+	for (const [identity, key] of await loadVersionKeys(db, previousVersionId, file)) {
+		if (!keys.has(identity)) {
+			keys.set(identity, { ...key, fromPrevious: true })
+		}
+	}
+	return keys
+}
+
+/** Keys of the version the file does not mention: the file defines the key set, so the import removes them. */
+const loadRemovedKeys = async (db: Prisma.TransactionClient, versionId: string, file: ParsedFile) => {
+	const inFile = new Set(file.rows.map((row) => keyIdentity(row.namespace, row.key)))
+	const keys = await db.translationKey.findMany({
+		where: { versionId },
+		select: { id: true, namespace: true, name: true },
+		orderBy: [{ namespace: 'asc' }, { name: 'asc' }],
+	})
+	return keys.filter((key) => !inFile.has(keyIdentity(key.namespace, key.name)))
 }
 
 type FileRow = ParsedFile['rows'][number]
@@ -118,6 +150,7 @@ const classifyValue = (fileValue: string | null, dbValue: string | null): ValueC
 /** Compares a parsed file with the keys of the version without writing anything. Tags match case-insensitively, the response keeps the file's spelling. */
 export const previewImport = async (prisma: PrismaClient, projectId: string, versionId: string, file: ParsedFile): Promise<ImportPreviewResponse> => {
 	await assertProjectVersion(prisma, projectId, versionId)
+	const previousVersion = await findPreviousVersion(prisma, versionId)
 	const languages = await prisma.projectLanguage.findMany({ where: { projectId }, select: { id: true, tag: true, isBase: true } })
 	const languageByTag = new Map(languages.map((language) => [language.tag.toLowerCase(), language]))
 
@@ -146,14 +179,18 @@ export const previewImport = async (prisma: PrismaClient, projectId: string, ver
 					},
 				],
 	)
-	const projectKeys = await loadVersionKeys(prisma, versionId, file)
+	const projectKeys = await loadKeysForImport(prisma, versionId, previousVersion?.id ?? null, file)
+	const removed = await loadRemovedKeys(prisma, versionId, file)
 
 	const namespaces = new Map<string, number>()
 	let existingKeys = 0
+	let copiedKeys = 0
 	for (const row of file.rows) {
 		namespaces.set(row.namespace, (namespaces.get(row.namespace) ?? 0) + 1)
 		const projectKey = projectKeys.get(keyIdentity(row.namespace, row.key))
-		if (projectKey) {
+		if (projectKey?.fromPrevious) {
+			copiedKeys += 1
+		} else if (projectKey) {
 			existingKeys += 1
 		}
 
@@ -191,11 +228,16 @@ export const previewImport = async (prisma: PrismaClient, projectId: string, ver
 
 	return {
 		columns,
-		keys: { total: file.rows.length, new: file.rows.length - existingKeys, existing: existingKeys },
+		keys: { total: file.rows.length, new: file.rows.length - existingKeys - copiedKeys, existing: existingKeys, copiedFromPrevious: copiedKeys },
 		namespaces: [...namespaces].map(([namespace, keys]) => ({ namespace, keys })),
 		changes: projectColumns.map(({ change }): ImportPreviewChanges => change),
 		warnings: warnings.slice(0, IMPORT_WARNINGS_MAX),
 		warningsTotal: warnings.length,
+		previousVersion,
+		removed: {
+			total: removed.length,
+			names: removed.slice(0, IMPORT_REMOVED_NAMES_MAX).map((key) => (key.namespace ? `${key.namespace}:${key.name}` : key.name)),
+		},
 	}
 }
 
@@ -250,8 +292,10 @@ const batches = <T>(items: T[]): T[][] =>
  * (`detectPluralVariable`): a new key, or an existing one without a plural setting; an existing plural variable is never changed. For a
  * plural key a message with text around the plural is written as a plain plural message (`valueToWrite`), and the preview counts the same.
  * An import that creates a key or writes a value records one `KEYS_IMPORTED` event whose `count` is the number of written values.
- * The file goes into `request.versionId`: its keys are the version's keys; a locked version is refused for anyone but an ADMIN. The
- * version remembers the import in `importedAt`.
+ * The file goes into `request.versionId` and defines its key set: a key the version already has is updated, a key only the previous version
+ * (nearest older by `startsAt`) has is copied with every language first, a key in neither is created (`createMissingKeys`), and a key of the
+ * version missing from the file is removed with its cells. A locked version is refused for anyone but an ADMIN; the version remembers the
+ * import in `importedAt`.
  */
 export const importFile = (
 	prisma: PrismaClient,
@@ -277,7 +321,27 @@ export const importFile = (
 				orderBy: [{ isBase: 'desc' }, { position: 'asc' }, { tag: 'asc' }],
 			})
 			const columns = resolveColumns(file, request.columns, new Set(languages.map(({ id }) => id)))
-			const projectKeys = await loadVersionKeys(tx, versionId, file)
+			const previousVersion = await findPreviousVersion(tx, versionId)
+			const projectKeys = await loadKeysForImport(tx, versionId, previousVersion?.id ?? null, file)
+
+			// Copies of the previous version's keys, cells included (who wrote them and when stays, as the version's history), then the
+			// file's values go over them like over the version's own keys.
+			const copied = [...projectKeys.values()].filter((key) => key.fromPrevious).map((key) => ({ key, newId: randomUUID() }))
+			for (const batch of batches(copied)) {
+				await tx.$executeRaw`
+					INSERT INTO "TranslationKey" (id, "projectId", "versionId", namespace, name, description, "pluralVariable", "createdAt", "updatedAt")
+					SELECT m."newId", k."projectId", ${versionId}::uuid, k.namespace, k.name, k.description, k."pluralVariable", ${writtenAt}, ${writtenAt}
+					FROM unnest(${batch.map(({ key }) => key.id)}::uuid[], ${batch.map(({ newId }) => newId)}::uuid[]) AS m("oldId", "newId")
+					JOIN "TranslationKey" k ON k.id = m."oldId"`
+				await tx.$executeRaw`
+					INSERT INTO "Translation" ("keyId", "languageId", value, "updatedById", "updatedAt", "placeholderWarning")
+					SELECT m."newId", t."languageId", t.value, t."updatedById", t."updatedAt", t."placeholderWarning"
+					FROM unnest(${batch.map(({ key }) => key.id)}::uuid[], ${batch.map(({ newId }) => newId)}::uuid[]) AS m("oldId", "newId")
+					JOIN "Translation" t ON t."keyId" = m."oldId"`
+				for (const { key, newId } of batch) {
+					key.id = newId
+				}
+			}
 
 			const missingKeys = request.createMissingKeys ? file.rows.filter((row) => !projectKeys.has(keyIdentity(row.namespace, row.key))) : []
 			const createdKeyIds = new Map<string, string>()
@@ -343,10 +407,15 @@ export const importFile = (
 					WHERE "Translation".value IS DISTINCT FROM EXCLUDED.value`
 			}
 
+			const removed = await loadRemovedKeys(tx, versionId, file)
+			for (const batch of batches(removed)) {
+				await tx.translationKey.deleteMany({ where: { id: { in: batch.map((key) => key.id) } } })
+			}
+
 			await recomputePlaceholderWarnings(tx, [...createdKeyIds.values(), ...writes.map(({ keyId }) => keyId)])
 			await tx.projectVersion.update({ where: { id: versionId }, data: { importedAt: writtenAt } })
 
-			if (createdKeyIds.size > 0 || writes.length > 0) {
+			if (createdKeyIds.size > 0 || copied.length > 0 || removed.length > 0 || writes.length > 0) {
 				const writtenLanguageIds = new Set(writes.map(({ languageId }) => languageId))
 				await recordActivity(tx, {
 					projectId,
@@ -355,6 +424,8 @@ export const importFile = (
 					count: writes.length,
 					payload: {
 						keysCreated: createdKeyIds.size,
+						keysCopied: copied.length,
+						keysRemoved: removed.length,
 						translationsCreated,
 						translationsUpdated,
 						languageTags: languages.filter(({ id }) => writtenLanguageIds.has(id)).map(({ tag }) => tag),
@@ -365,6 +436,8 @@ export const importFile = (
 
 			return {
 				keysCreated: createdKeyIds.size,
+				keysCopied: copied.length,
+				keysRemoved: removed.length,
 				translationsCreated,
 				translationsUpdated,
 				skippedColumns: request.columns.filter(({ languageId }) => languageId === null).length,

@@ -27,7 +27,7 @@ const emptyToUndefined = (value: unknown) => (typeof value === 'string' && value
 
 /**
  * Query of `GET /api/projects/:projectId/export`. `languageIds` is comma-separated and decides the column order only through the project order.
- * `versionId` is the version whose keys make the file.
+ * `versionId` is the version whose keys make the file; `diffOnly` keeps only the keys added or changed against the previous version.
  */
 export const exportQuerySchema = z.object({
 	format: exportFormatSchema.default('CSV'),
@@ -41,6 +41,8 @@ export const exportQuerySchema = z.object({
 	),
 	status: exportStatusSchema.default('ALL'),
 	versionId: z.preprocess(emptyToUndefined, z.uuid()),
+	/** `true` (also `'true'` or `'1'`): only keys added or changed against the nearest older version (the diff of the version). */
+	diffOnly: z.preprocess((value) => (value === true || value === 'true' || value === '1' ? true : undefined), z.literal(true).optional()),
 })
 
 export type ExportQuery = z.infer<typeof exportQuerySchema>

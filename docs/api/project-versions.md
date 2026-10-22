@@ -14,7 +14,7 @@ Verzia prekladov je pomenované časové okno projektu zhodné s verziou apliká
 | `POST`  | `/api/projects/:projectId/versions`            | iba `ADMIN`        | vytvorí verziu                             |
 | `PATCH` | `/api/projects/:projectId/versions/:versionId` | iba `ADMIN`        | zmení názov, dátumy alebo zamkne / odomkne |
 
-Každá verzia má vlastnú kópiu kľúčov a buniek ([ADR 0007](../decisions/0007-version-snapshots.md)): vzniká prázdna (`importedAt = null`, `keyCount = 0`) a naplní ju import. Zmazanie verzie pribudne v míľniku C plánu `version-snapshots`; chybná verzia sa zatiaľ opraví cez `PATCH`. Prístup rieši `requireProjectAccess` ako ostatné cesty projektu (401 bez session, 404 `NOT_FOUND` mimo prístupu), zápisy potrebujú CSRF hlavičku a JSON telo (viď [auth](./auth.md#csrf)).
+Každá verzia má vlastnú kópiu kľúčov a buniek ([ADR 0007](../decisions/0007-version-snapshots.md)): vzniká prázdna (`importedAt = null`, `keyCount = 0`) a naplní ju import. Import skopíruje kľúče najbližšej staršej verzie podľa `startsAt` (**predchádzajúca verzia**, `findPreviousVersion`) a definuje množinu kľúčov verzie (viď [import](./imports.md#zlúčenie-s-dátami-verzie)); do prázdnej verzie sa kľúč ručne pridať nedá (409 `PROJECT_VERSION_EMPTY`). Zmazanie verzie pribudne v míľniku C plánu `version-snapshots`; chybná verzia sa zatiaľ opraví cez `PATCH`. Prístup rieši `requireProjectAccess` ako ostatné cesty projektu (401 bez session, 404 `NOT_FOUND` mimo prístupu), zápisy potrebujú CSRF hlavičku a JSON telo (viď [auth](./auth.md#csrf)).
 
 ## Uzamknutie
 

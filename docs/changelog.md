@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Verzie ako kópie prekladov – míľnik B (2026-10-22)
+
+- API: import kopíruje kľúče najbližšej staršej verzie (so všetkými jazykmi) a definuje množinu kľúčov verzie (kľúče chýbajúce v súbore zmaže); náhľad vracia `keys.copiedFromPrevious`, `previousVersion` a `removed`, výsledok `keysCopied` a `keysRemoved`; `POST …/keys` do verzie bez importu vráti 409 `PROJECT_VERSION_EMPTY`; export má `diffOnly` (iba kľúče pridané alebo zmenené oproti predchádzajúcej verzii) ([import](./api/imports.md#zlúčenie-s-dátami-verzie), [export](./api/exports.md#query), [preklady](./api/translations.md))
+
 ### Verzie ako kópie prekladov – míľnik A (2026-10-22)
 
 - model: každá verzia má vlastnú kópiu kľúčov a buniek (`TranslationKey.versionId` povinné, unikátnosť `(versionId, namespace, name)`, `Cascade`; `Translation.versionId` zaniká; `ProjectVersion.importedAt`), migrácia `version_snapshots` existujúce kľúče zmaže, seed vytvorí projekt s verziami v2.44 (uzamknutá) a v2.45 (aktuálna) ([ADR 0007](./decisions/0007-version-snapshots.md), [databáza](./database.md#projectversion))

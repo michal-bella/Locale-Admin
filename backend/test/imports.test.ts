@@ -123,7 +123,7 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 				{ tag: 'de-AT', columnIndex: 5, match: 'CATALOG', stats: { translations: 2, untranslated: 4, warnings: 0 } },
 				{ tag: 'pl', columnIndex: 6, match: 'UNKNOWN', stats: { translations: 3, untranslated: 3, warnings: 1 } },
 			],
-			keys: { total: 6, new: 2, existing: 4 },
+			keys: { total: 6, new: 2, existing: 4, copiedFromPrevious: 0 },
 			namespaces: [
 				{ namespace: 'loc', keys: 4 },
 				{ namespace: 'paths', keys: 2 },
@@ -151,6 +151,8 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 				{ code: 'BASE_LANGUAGE_UNTRANSLATED', line: 6, column: 2, params: { tag: 'sk', key: 'Existujúci bez prekladov', namespace: 'loc' } },
 			],
 			warningsTotal: 5,
+			previousVersion: null,
+			removed: { total: 1, names: ['loc:Nie je v súbore'] },
 		})
 	})
 
@@ -422,7 +424,7 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 		const body = await previewOk(app, cookie, project.id, [`Keys; ${tags.join(' ; ')}`, '--loc--', ...rows])
 		const elapsed = performance.now() - started
 
-		expect(body.keys).toEqual({ total: 2500, new: 0, existing: 2500 })
+		expect(body.keys).toEqual({ total: 2500, new: 0, existing: 2500, copiedFromPrevious: 0 })
 		expect(body.changes[1]).toMatchObject({ tag: 'en', changed: 1250, unchanged: 1250 })
 		expect(body.warningsTotal).toBe(1250)
 		expect(elapsed).toBeLessThan(1000)
@@ -487,6 +489,8 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		expect(await importOk(app, cookie, project.id, FILE, allColumns(sk, en, cs))).toEqual({
 			keysCreated: 3,
+			keysCopied: 0,
+			keysRemoved: 0,
 			translationsCreated: 6,
 			translationsUpdated: 0,
 			skippedColumns: 0,
@@ -584,6 +588,8 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		expect(await importOk(app, cookie, project.id, FILE, allColumns(sk, en, cs))).toEqual({
 			keysCreated: 0,
+			keysCopied: 0,
+			keysRemoved: 0,
 			translationsCreated: 0,
 			translationsUpdated: 0,
 			skippedColumns: 0,
@@ -600,8 +606,11 @@ describe('POST /api/projects/:projectId/imports', () => {
 		await createKey(project.id, 'loc', 'Nie je v súbore', { [sk.id]: 'Nie je v súbore' })
 		const before = new Map((await projectTranslations(project.id)).map((row) => [row.id, row]))
 
+		// The file defines the key set of the version: the key it does not mention goes away.
 		expect(await importOk(app, cookie, project.id, FILE.slice(0, 4), allColumns(sk, en, cs))).toEqual({
 			keysCreated: 0,
+			keysCopied: 0,
+			keysRemoved: 1,
 			translationsCreated: 1,
 			translationsUpdated: 1,
 			skippedColumns: 0,
@@ -610,7 +619,6 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		const after = await projectTranslations(project.id)
 		expect(Object.fromEntries(after.map(({ id, value }) => [id, value]))).toEqual({
-			'loc/Nie je v súbore sk': 'Nie je v súbore',
 			'loc/Uložiť cs': 'Uložit',
 			'loc/Uložiť en': 'Save',
 			'loc/Uložiť sk': 'Uložiť',
@@ -639,6 +647,8 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		expect(result).toEqual({
 			keysCreated: 3,
+			keysCopied: 0,
+			keysRemoved: 0,
 			translationsCreated: 5,
 			translationsUpdated: 0,
 			skippedColumns: 1,
@@ -654,6 +664,8 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		expect(await importOk(app, cookie, project.id, FILE, allColumns(sk, en, cs), false)).toEqual({
 			keysCreated: 0,
+			keysCopied: 0,
+			keysRemoved: 0,
 			translationsCreated: 2,
 			translationsUpdated: 0,
 			skippedColumns: 0,
@@ -695,6 +707,8 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		expect(result).toEqual({
 			keysCreated: 1,
+			keysCopied: 0,
+			keysRemoved: 0,
 			translationsCreated: 3,
 			translationsUpdated: 0,
 			skippedColumns: 0,
@@ -722,6 +736,8 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		expect(result).toEqual({
 			keysCreated: body.keys.new,
+			keysCopied: 0,
+			keysRemoved: 0,
 			translationsCreated: body.changes.reduce((sum, change) => sum + change.new, 0),
 			translationsUpdated: body.changes.reduce((sum, change) => sum + change.changed, 0),
 			skippedColumns: 2,
@@ -744,23 +760,28 @@ describe('POST /api/projects/:projectId/imports', () => {
 		const [earlier, later] = firstWonOrder ? results : [results[1], results[0]]
 		expect(earlier).toEqual({
 			keysCreated: 2000,
+			keysCopied: 0,
+			keysRemoved: 0,
 			translationsCreated: 2000,
 			translationsUpdated: 0,
 			skippedColumns: 0,
 			version: IMPORTED_VERSION,
 		})
+		// The later file defines the key set: the 1 000 keys only the earlier file had are removed, so the version ends with the later file's 2 000 keys.
 		expect(later).toEqual({
 			keysCreated: 1000,
+			keysCopied: 0,
+			keysRemoved: 1000,
 			translationsCreated: 1000,
 			translationsUpdated: 1000,
 			skippedColumns: 0,
 			version: IMPORTED_VERSION,
 		})
 		const values = await projectValues(project.id)
-		expect(Object.keys(values)).toHaveLength(3000)
+		expect(Object.keys(values)).toHaveLength(2000)
 		expect(values['/key 1500 en']).toBe(firstWonOrder ? 'second 1500' : 'first 1500')
-		expect(values['/key 500 en']).toBe('first 500')
-		expect(values['/key 2500 en']).toBe('second 2500')
+		expect(values[firstWonOrder ? '/key 2500 en' : '/key 500 en']).toBe(firstWonOrder ? 'second 2500' : 'first 500')
+		expect(values[firstWonOrder ? '/key 500 en' : '/key 2500 en']).toBeUndefined()
 	})
 
 	it('waits for the project import lock and reads the project only after it gets it', async () => {
@@ -812,6 +833,8 @@ describe('POST /api/projects/:projectId/imports', () => {
 		await holder
 		expect(await pending).toEqual({
 			keysCreated: 1,
+			keysCopied: 0,
+			keysRemoved: 0,
 			translationsCreated: 1,
 			translationsUpdated: 1,
 			skippedColumns: 0,
@@ -977,6 +1000,8 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 		expect(result).toEqual({
 			keysCreated: 2500,
+			keysCopied: 0,
+			keysRemoved: 0,
 			translationsCreated: 25000,
 			translationsUpdated: 0,
 			skippedColumns: 0,

@@ -127,14 +127,24 @@ export const importPreviewChangesSchema = z.object({
 
 export type ImportPreviewChanges = z.infer<typeof importPreviewChangesSchema>
 
-/** Body of `POST /api/projects/:projectId/imports/preview`. Keys are matched by `(namespace, name)`; nothing is written. */
+/** The import lists at most this many names of the keys it would remove from the version. */
+export const IMPORT_REMOVED_NAMES_MAX = 20
+
+/**
+ * Body of `POST /api/projects/:projectId/imports/preview`. Keys are matched by `(namespace, name)` within the version; nothing is written.
+ * `keys.existing` are in the version, `keys.copiedFromPrevious` only in the previous version (the import copies them with every language first),
+ * `keys.new` in neither. `removed` are keys of the version missing from the file: the import deletes them, the file defines the key set.
+ */
 export const importPreviewResponseSchema = z.object({
 	columns: z.array(importPreviewColumnSchema),
-	keys: z.object({ total: count, new: count, existing: count }),
+	keys: z.object({ total: count, new: count, existing: count, copiedFromPrevious: count }),
 	namespaces: z.array(z.object({ namespace: z.string(), keys: count })),
 	changes: z.array(importPreviewChangesSchema),
 	warnings: z.array(importIssueSchema),
 	warningsTotal: count,
+	/** The nearest older version by `startsAt`, whose keys the import copies; `null` for the first version of the project. */
+	previousVersion: translationVersionRefSchema.nullable(),
+	removed: z.object({ total: count, names: z.array(z.string()) }),
 })
 
 export type ImportPreviewResponse = z.infer<typeof importPreviewResponseSchema>
@@ -142,8 +152,8 @@ export type ImportPreviewResponse = z.infer<typeof importPreviewResponseSchema>
 /**
  * Body of `POST /api/projects/:projectId/imports`. Every language column of the file is listed exactly once;
  * `languageId: null` skips it, a language of the project may be mapped to one column only, and at least one column must
- * be mapped (otherwise 400 `IMPORT_COLUMNS_INVALID`). `createMissingKeys: false` imports only values of keys the project
- * already has.
+ * be mapped (otherwise 400 `IMPORT_COLUMNS_INVALID`). `createMissingKeys: false` creates no brand-new keys (keys of the previous
+ * version are still copied); keys of the version missing from the file are removed either way.
  */
 export const importRequestSchema = importPreviewRequestSchema.extend({
 	columns: z.array(z.object({ columnIndex: z.number().int().min(2), languageId: z.uuid().nullable() })).min(1),
@@ -155,11 +165,14 @@ export type ImportRequest = z.infer<typeof importRequestSchema>
 export type ImportRequestInput = z.input<typeof importRequestSchema>
 
 /**
- * Body of `200 POST /api/projects/:projectId/imports`. Counts match the preview: `translationsCreated` = `new`,
- * `translationsUpdated` = `changed`; `null` in the file never clears a filled value, so it is counted nowhere.
+ * Body of `200 POST /api/projects/:projectId/imports`. Counts match the preview: `keysCopied` = `keys.copiedFromPrevious`,
+ * `keysRemoved` = `removed.total`, `translationsCreated` = `new`, `translationsUpdated` = `changed` (for a copied key against the
+ * previous version's value); `null` in the file never clears a filled value, so it is counted nowhere.
  */
 export const importResultSchema = z.object({
 	keysCreated: count,
+	keysCopied: count,
+	keysRemoved: count,
 	translationsCreated: count,
 	translationsUpdated: count,
 	skippedColumns: count,

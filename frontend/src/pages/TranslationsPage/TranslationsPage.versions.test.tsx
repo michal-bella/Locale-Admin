@@ -93,11 +93,13 @@ const CSV = 'Keys; sk\n--loc--\nUložiť; Uložiť\n'
 
 const PREVIEW: ImportPreviewResponse = {
 	columns: [{ tag: 'sk', columnIndex: 2, match: 'PROJECT', languageId: SLOVAK.id, stats: { translations: 1, untranslated: 0, warnings: 0 } }],
-	keys: { total: 1, new: 1, existing: 0 },
+	keys: { total: 1, new: 1, existing: 0, copiedFromPrevious: 0 },
 	namespaces: [{ namespace: 'loc', keys: 1 }],
 	changes: [{ tag: 'sk', columnIndex: 2, new: 1, changed: 0, unchanged: 0, keptBecauseNull: 0 }],
 	warnings: [],
 	warningsTotal: 0,
+	previousVersion: null,
+	removed: { total: 0, names: [] },
 }
 
 const mockPage = ({
@@ -290,6 +292,8 @@ describe('TranslationsPage versions', () => {
 					status: 200,
 					data: {
 						keysCreated: 1,
+						keysCopied: 0,
+						keysRemoved: 0,
 						translationsCreated: 1,
 						translationsUpdated: 0,
 						skippedColumns: 0,

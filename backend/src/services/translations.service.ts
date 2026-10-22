@@ -110,6 +110,25 @@ const EXTENDED_VIEW: ViewSql = {
 /** A key with a cell whose placeholders differ from the base language (`Translation.placeholderWarning`, see lib/placeholderWarnings). */
 const HAS_WARNING_SQL = Prisma.sql`EXISTS (SELECT 1 FROM "Translation" w WHERE w."keyId" = k.id AND w."placeholderWarning")`
 
+/**
+ * Keys of the listed version (`k`) that differ from the previous version `previousVersionId`: added (no key with the same namespace and name
+ * there) or changed (another description or plural variable, or a value that differs in any language of the project, a missing row counting
+ * as `null`). Without a previous version every key is added.
+ */
+export const versionDiffSql = (previousVersionId: string | null): Prisma.Sql => {
+	if (previousVersionId === null) {
+		return Prisma.sql`TRUE`
+	}
+	const previousKey = Prisma.sql`"TranslationKey" p WHERE p."versionId" = ${previousVersionId}::uuid AND p.namespace = k.namespace AND p.name = k.name`
+	return Prisma.sql`(NOT EXISTS (SELECT 1 FROM ${previousKey}) OR EXISTS (
+		SELECT 1 FROM ${previousKey} AND (
+			p.description IS DISTINCT FROM k.description OR p."pluralVariable" IS DISTINCT FROM k."pluralVariable" OR EXISTS (
+				SELECT 1 FROM "ProjectLanguage" l
+				LEFT JOIN "Translation" a ON a."keyId" = k.id AND a."languageId" = l.id
+				LEFT JOIN "Translation" b ON b."keyId" = p.id AND b."languageId" = l.id
+				WHERE l."projectId" = k."projectId" AND a.value IS DISTINCT FROM b.value))))`
+}
+
 const UPDATED_WITHIN_INTERVAL: Record<TranslationsUpdatedWithin, string> = { DAY: '1 day', WEEK: '7 days', MONTH: '30 days' }
 
 const orderBy = (sort: TranslationsSort, view: ViewSql): Prisma.Sql => {
@@ -451,7 +470,11 @@ export const createTranslationKey = async (
 	return prisma.$transaction(async (tx) => {
 		// Waits for a running import, like a cell edit, so the import never meets a key created in the middle of it.
 		await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(hashtextextended(${`import:${projectId}`}, 0))`
-		await resolveVersion(tx, { projectId, versionId, role })
+		const version = await resolveVersion(tx, { projectId, versionId, role })
+		// A version gets its keys from an import; a key by hand only joins them.
+		if (version.importedAt === null) {
+			throw new AppError(409, ERROR_CODE.PROJECT_VERSION_EMPTY, 'Version has no import yet')
+		}
 		if (!(await tx.translationKey.findFirst({ where: { versionId, namespace }, select: { id: true } }))) {
 			throw new AppError(400, ERROR_CODE.VALIDATION_ERROR, 'Namespace not found in the version', [{ path: 'namespace', code: VALIDATION_CODE.INVALID }])
 		}

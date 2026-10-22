@@ -8,14 +8,16 @@ import { getTestPrisma } from './db'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export type VersionWindow = { name?: string; startsAt?: string; endsAt?: string; lock?: VERSION_LOCK }
+export type VersionWindow = { name?: string; startsAt?: string; endsAt?: string; lock?: VERSION_LOCK; importedAt?: Date | null }
 
 /** `YYYY-MM-DD` of today plus `days` in the local calendar of the test runner, the one the server reads too. */
 export const dayShift = (days: number) => toVersionDate(new Date(Date.now() + days * 86_400_000))
 
-/** A version of the project; by default a running one (started 5 days ago, 5 days left) called `v1`. */
-export const createVersionRow = (projectId: string, { name = 'v1', startsAt = dayShift(-5), endsAt = dayShift(5), lock }: VersionWindow = {}) =>
-	getTestPrisma().projectVersion.create({ data: { projectId, name, startsAt: toDbDate(startsAt), endsAt: toDbDate(endsAt), lock } })
+/** A version of the project; by default a running one (started 5 days ago, 5 days left) called `v1` that already had an import, so keys can go in. */
+export const createVersionRow = (
+	projectId: string,
+	{ name = 'v1', startsAt = dayShift(-5), endsAt = dayShift(5), lock, importedAt = new Date() }: VersionWindow = {},
+) => getTestPrisma().projectVersion.create({ data: { projectId, name, startsAt: toDbDate(startsAt), endsAt: toDbDate(endsAt), lock, importedAt } })
 
 /**
  * The first version of the project (the one `setup` created) for keys and queries of tests that do not care which version they use; a project

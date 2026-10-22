@@ -1197,6 +1197,7 @@
 		"PROJECT_VERSION_NAME_TAKEN": "A version with this name already exists in the project.",
 		"PROJECT_VERSION_NOT_FOUND": "The version was not found. Refresh the page and try again.",
 		"PROJECT_VERSION_LOCKED": "The version is locked. Only an administrator can make changes.",
+		"PROJECT_VERSION_EMPTY": "The version has no import yet. Import translations into it first.",
 		"EXPORT_LANGUAGES_INVALID": "A selected language does not belong to the project. Reload the page and try again.",
 		"EXPORT_VALUE_UNSAFE": "Some translations contain characters that would break the CSV file. Fix them and try again.",
 		"EXPORT_BUSY": "Too many exports are running right now. Try again in a moment.",

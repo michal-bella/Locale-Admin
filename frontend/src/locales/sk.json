@@ -1225,6 +1225,7 @@
 		"PROJECT_VERSION_NAME_TAKEN": "Verzia s týmto názvom už v projekte existuje.",
 		"PROJECT_VERSION_NOT_FOUND": "Verzia sa nenašla. Obnovte stránku a skúste to znova.",
 		"PROJECT_VERSION_LOCKED": "Verzia je uzamknutá. Úpravy môže robiť iba administrátor.",
+		"PROJECT_VERSION_EMPTY": "Verzia zatiaľ nemá import. Najprv do nej importujte preklady.",
 		"EXPORT_LANGUAGES_INVALID": "Vybraný jazyk do projektu nepatrí. Obnovte stránku a skúste to znova.",
 		"EXPORT_VALUE_UNSAFE": "Niektoré preklady obsahujú znaky, ktoré by rozbili CSV súbor. Opravte ich a skúste to znova.",
 		"EXPORT_BUSY": "Export práve robí veľa ľudí naraz. Skúste to o chvíľu znova.",

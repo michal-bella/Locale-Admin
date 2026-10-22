@@ -61,7 +61,7 @@ const PREVIEW: ImportPreviewResponse = {
 		{ tag: 'sk', columnIndex: 2, match: 'PROJECT', languageId: SLOVAK.id, stats: { translations: 5, untranslated: 1, warnings: 1 } },
 		{ tag: 'ru', columnIndex: 3, match: 'CATALOG', stats: { translations: 2, untranslated: 4, warnings: 0 } },
 	],
-	keys: { total: 6, new: 2, existing: 4 },
+	keys: { total: 6, new: 2, existing: 4, copiedFromPrevious: 0 },
 	namespaces: [{ namespace: 'common', keys: 6 }],
 	changes: [{ tag: 'sk', columnIndex: 2, new: 3, changed: 1, unchanged: 2, keptBecauseNull: 0 }],
 	warnings: [
@@ -69,6 +69,8 @@ const PREVIEW: ImportPreviewResponse = {
 		{ code: 'BASE_LANGUAGE_UNTRANSLATED', line: 6, column: 2, params: { tag: 'sk', key: 'Nový kľúč', namespace: 'common' } },
 	],
 	warningsTotal: 2,
+	previousVersion: null,
+	removed: { total: 0, names: [] },
 }
 
 /** The same file after `ru` was added to the project. */
@@ -81,6 +83,8 @@ const PREVIEW_WITH_RUSSIAN: ImportPreviewResponse = {
 	changes: [...PREVIEW.changes, { tag: 'ru', columnIndex: 3, new: 2, changed: 0, unchanged: 4, keptBecauseNull: 0 }],
 	warnings: [PREVIEW.warnings[1]!],
 	warningsTotal: 1,
+	previousVersion: null,
+	removed: { total: 0, names: [] },
 }
 
 type MockResponse = { status: number; data?: unknown }
@@ -492,7 +496,10 @@ describe('ImportModal step 2 (review)', () => {
 	it('sends the columns and createMissingKeys, shows the result and closes', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		const requests = mockPage({
-			[`POST ${IMPORT_URL}`]: { status: 200, data: { keysCreated: 2, translationsCreated: 3, translationsUpdated: 1, skippedColumns: 1 } },
+			[`POST ${IMPORT_URL}`]: {
+				status: 200,
+				data: { keysCreated: 2, keysCopied: 0, keysRemoved: 0, translationsCreated: 3, translationsUpdated: 1, skippedColumns: 1 },
+			},
 		})
 		renderApp(PAGE_PATH)
 		const dialog = await openModal()

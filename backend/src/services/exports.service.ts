@@ -18,7 +18,9 @@ import { AppError } from '../lib/errors'
 import { csvHeader, csvRow, csvSection, namespaceIssue, rowIssues, type ExportRow } from '../lib/export/csvWriter'
 import { createXlsxWriter } from '../lib/export/xlsxWriter'
 import { type PrismaClient } from '../lib/prisma'
-import { assertProjectVersion } from '../lib/projectVersions'
+import { assertProjectVersion, findPreviousVersion } from '../lib/projectVersions'
+
+import { versionDiffSql } from './translations.service'
 
 type Tx = Prisma.TransactionClient
 
@@ -168,10 +170,17 @@ const writeXlsx = async ({ tx, projectId, languageIds, tags, status, version, si
 	return written
 }
 
-/** SQL limiting the keys to the exported version (every version holds its own copy); a foreign version is 404. */
-const versionCondition = async (prisma: PrismaClient, projectId: string, { versionId }: ExportCheckQuery): Promise<Prisma.Sql> => {
+/**
+ * SQL limiting the keys to the exported version (every version holds its own copy); a foreign version is 404. With `diffOnly` only the keys
+ * added or changed against the previous version (`versionDiffSql`), the whole version when it has no previous one.
+ */
+const versionCondition = async (prisma: PrismaClient, projectId: string, { versionId, diffOnly }: ExportCheckQuery): Promise<Prisma.Sql> => {
 	await assertProjectVersion(prisma, projectId, versionId)
-	return Prisma.sql`AND k."versionId" = ${versionId}::uuid`
+	if (!diffOnly) {
+		return Prisma.sql`AND k."versionId" = ${versionId}::uuid`
+	}
+	const previous = await findPreviousVersion(prisma, versionId)
+	return Prisma.sql`AND k."versionId" = ${versionId}::uuid AND ${versionDiffSql(previous?.id ?? null)}`
 }
 
 /**

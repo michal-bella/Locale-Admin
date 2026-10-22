@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	ACTIVITY_TYPE,
 	ERROR_CODE,
+	importPreviewResponseSchema,
 	ROLE,
 	VERSION_LOCK,
 	createTranslationKeyResponseSchema,
@@ -70,12 +71,24 @@ const put = (app: App, cookie: string, projectId: string, keyId: string, languag
 const postKey = (app: App, cookie: string, projectId: string, body: object) =>
 	request(app).post(`/api/projects/${projectId}/keys`).set('Cookie', cookie).set(CSRF_HEADERS).send(body)
 
-const postImport = (app: App, cookie: string, projectId: string, lines: string[], columns: object[], versionId?: string) =>
+const postImport = (app: App, cookie: string, projectId: string, lines: string[], columns: object[], versionId?: string, createMissingKeys?: boolean) =>
 	request(app)
 		.post(`/api/projects/${projectId}/imports`)
 		.set('Cookie', cookie)
 		.set(CSRF_HEADERS)
-		.send({ fileName: 'translations.csv', content: lines.join('\n'), columns, versionId })
+		.send({ fileName: 'translations.csv', content: lines.join('\n'), columns, versionId, createMissingKeys })
+
+const postPreview = (app: App, cookie: string, projectId: string, lines: string[], versionId: string) =>
+	request(app)
+		.post(`/api/projects/${projectId}/imports/preview`)
+		.set('Cookie', cookie)
+		.set(CSRF_HEADERS)
+		.send({ fileName: 'translations.csv', content: lines.join('\n'), versionId })
+
+const cellsOf = async (projectId: string, versionId: string, name: string) => {
+	const key = await getTestPrisma().translationKey.findFirstOrThrow({ where: { projectId, versionId, name }, include: { translations: true } })
+	return Object.fromEntries(key.translations.map((cell) => [cell.languageId, cell.value]))
+}
 
 const list = (app: App, cookie: string, projectId: string, query: Record<string, string> = {}) =>
 	request(app).get(`/api/projects/${projectId}/translations`).query(query).set('Cookie', cookie)
@@ -180,8 +193,8 @@ describe('an import fills one version', () => {
 	it('creates the keys in the version, remembers the import and names the version in the result and the event', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie } = await setup(app)
-		const old = await createVersionRow(project.id, { name: 'v1', ...PAST })
-		const version = await createVersionRow(project.id, { name: 'v2', ...RUNNING })
+		const old = await createVersionRow(project.id, { name: 'v1', ...PAST, importedAt: null })
+		const version = await createVersionRow(project.id, { name: 'v2', ...RUNNING, importedAt: null })
 		const inOld = await createKey(project.id, old.id, 'Uložiť', { [sk.id]: 'Uložiť', [en.id]: 'Store' })
 		const columns = [
 			{ columnIndex: 2, languageId: sk.id },
@@ -191,10 +204,13 @@ describe('an import fills one version', () => {
 		const res = await postImport(app, cookie, project.id, FILE, columns, version.id)
 
 		expect(res.status).toBe(200)
+		// Uložiť is copied from v1 (sk kept, en Store → Save), the other two keys are new.
 		expect(importResultSchema.parse(res.body)).toEqual({
-			keysCreated: 3,
-			translationsCreated: 6,
-			translationsUpdated: 0,
+			keysCreated: 2,
+			keysCopied: 1,
+			keysRemoved: 0,
+			translationsCreated: 4,
+			translationsUpdated: 1,
 			skippedColumns: 0,
 			version: { id: version.id, name: 'v2' },
 		})
@@ -311,5 +327,159 @@ describe('the list and the export read one version', () => {
 			404,
 			ERROR_CODE.PROJECT_VERSION_NOT_FOUND,
 		)
+	})
+})
+
+describe('an import copies the previous version and defines the key set', () => {
+	const COLUMNS = (sk: { id: string }, en: { id: string }) => [
+		{ columnIndex: 2, languageId: sk.id },
+		{ columnIndex: 3, languageId: en.id },
+	]
+
+	it('previews and performs the copy of the nearest older version, the new keys and the removal of keys missing from the file', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const older = await createVersionRow(project.id, { name: 'v1', startsAt: dayShift(-90), endsAt: dayShift(-70) })
+		const previous = await createVersionRow(project.id, { name: 'v2', ...PAST })
+		const version = await createVersionRow(project.id, { name: 'v3', ...RUNNING })
+		await createKey(project.id, older.id, 'Zo starej', { [sk.id]: 'Stará' })
+		await createKey(project.id, previous.id, 'Uložiť', { [sk.id]: 'Uložiť', [en.id]: 'Save' })
+		await createKey(project.id, previous.id, 'Zrušiť', { [sk.id]: 'Zrušiť', [en.id]: 'Cancel' })
+		await createKey(project.id, previous.id, 'Zmizne', { [sk.id]: 'Zmizne' })
+		await createKey(project.id, version.id, 'Vlastný', { [sk.id]: 'Vlastný' })
+		await createKey(project.id, version.id, 'Odstránený', { [sk.id]: 'Odstránený' })
+		const file = ['Keys; sk ; en', '--loc--', ' Uložiť; Uložiť; Save', ' Zrušiť; Zrušiť; Abort', ' Vlastný; Vlastný; Own', ' Nový; Nový; New']
+
+		const preview = await postPreview(app, cookie, project.id, file, version.id)
+		expect(preview.status).toBe(200)
+		expect(importPreviewResponseSchema.parse(preview.body)).toMatchObject({
+			keys: { total: 4, new: 1, existing: 1, copiedFromPrevious: 2 },
+			changes: [
+				{ tag: 'sk', new: 1, changed: 0, unchanged: 3 },
+				{ tag: 'en', new: 2, changed: 1, unchanged: 1 },
+			],
+			previousVersion: { id: previous.id, name: 'v2' },
+			removed: { total: 1, names: ['loc:Odstránený'] },
+		})
+
+		const res = await postImport(app, cookie, project.id, file, COLUMNS(sk, en), version.id)
+		expect(res.status).toBe(200)
+		expect(importResultSchema.parse(res.body)).toEqual({
+			keysCreated: 1,
+			keysCopied: 2,
+			keysRemoved: 1,
+			translationsCreated: 3,
+			translationsUpdated: 1,
+			skippedColumns: 0,
+			version: { id: version.id, name: 'v3' },
+		})
+		expect(names(await listOk(app, cookie, project.id, { versionId: version.id }))).toEqual(['Nový', 'Uložiť', 'Vlastný', 'Zrušiť'])
+		expect(await cellsOf(project.id, version.id, 'Zrušiť')).toEqual({ [sk.id]: 'Zrušiť', [en.id]: 'Abort' })
+		expect(await cellsOf(project.id, version.id, 'Uložiť')).toEqual({ [sk.id]: 'Uložiť', [en.id]: 'Save' })
+		// The previous version is untouched, also the key the file left out.
+		expect(names(await listOk(app, cookie, project.id, { versionId: previous.id }))).toEqual(['Uložiť', 'Zmizne', 'Zrušiť'])
+		expect(await cellsOf(project.id, previous.id, 'Zrušiť')).toEqual({ [sk.id]: 'Zrušiť', [en.id]: 'Cancel' })
+		const event = await getTestPrisma().activityEvent.findFirstOrThrow({ where: { projectId: project.id, type: ACTIVITY_TYPE.KEYS_IMPORTED } })
+		expect(event.payload).toMatchObject({ keysCreated: 1, keysCopied: 2, keysRemoved: 1, versionName: 'v3' })
+	})
+
+	it('copies nothing for the first version, keeps copying with createMissingKeys false and removes keys of an emptied file', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const first = await createVersionRow(project.id, { name: 'v1', ...PAST })
+		const second = await createVersionRow(project.id, { name: 'v2', ...RUNNING })
+		const file = ['Keys; sk ; en', '--loc--', ' Uložiť; Uložiť; Save', ' Nový; Nový; New']
+
+		const preview = await postPreview(app, cookie, project.id, file, first.id)
+		expect(importPreviewResponseSchema.parse(preview.body)).toMatchObject({
+			keys: { copiedFromPrevious: 0, new: 2 },
+			previousVersion: null,
+			removed: { total: 0, names: [] },
+		})
+		expect(importResultSchema.parse((await postImport(app, cookie, project.id, file, COLUMNS(sk, en), first.id)).body)).toMatchObject({
+			keysCreated: 2,
+			keysCopied: 0,
+			keysRemoved: 0,
+		})
+
+		// Without creating new keys the second version still gets the copies of the first.
+		const onlyKnown = ['Keys; sk ; en', '--loc--', ' Uložiť; Uložiť; Store', ' Neznámy; Neznámy; Unknown']
+		expect(importResultSchema.parse((await postImport(app, cookie, project.id, onlyKnown, COLUMNS(sk, en), second.id, false)).body)).toMatchObject({
+			keysCreated: 0,
+			keysCopied: 1,
+			keysRemoved: 0,
+			translationsUpdated: 1,
+		})
+		expect(names(await listOk(app, cookie, project.id, { versionId: second.id }))).toEqual(['Uložiť'])
+		expect(await cellsOf(project.id, second.id, 'Uložiť')).toEqual({ [sk.id]: 'Uložiť', [en.id]: 'Store' })
+
+		const empty = ['Keys; sk ; en', '--loc--', ' Nový; Nový; New']
+		expect(importResultSchema.parse((await postImport(app, cookie, project.id, empty, COLUMNS(sk, en), second.id)).body)).toMatchObject({
+			keysCreated: 0,
+			keysCopied: 1,
+			keysRemoved: 1,
+		})
+		expect(names(await listOk(app, cookie, project.id, { versionId: second.id }))).toEqual(['Nový'])
+	})
+})
+
+describe('a key by hand needs an imported version', () => {
+	it('refuses an empty version with 409 PROJECT_VERSION_EMPTY', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const empty = await createVersionRow(project.id, { name: 'v1', ...RUNNING, importedAt: null })
+
+		expectErrorCode(await postKey(app, cookie, project.id, { namespace: 'loc', name: 'Nový', versionId: empty.id }), 409, ERROR_CODE.PROJECT_VERSION_EMPTY)
+
+		const file = ['Keys; sk ; en', '--loc--', ' Uložiť; Uložiť; Save']
+		expect((await postImport(app, cookie, project.id, file, COLUMNS(sk, en), empty.id)).status).toBe(200)
+		expect((await postKey(app, cookie, project.id, { namespace: 'loc', name: 'Nový', versionId: empty.id })).status).toBe(201)
+	})
+
+	const COLUMNS = (sk: { id: string }, en: { id: string }) => [
+		{ columnIndex: 2, languageId: sk.id },
+		{ columnIndex: 3, languageId: en.id },
+	]
+})
+
+describe('export of the diff', () => {
+	it('exports only the keys added or changed against the previous version with diffOnly, everything without one', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const previous = await createVersionRow(project.id, { name: 'v1', ...PAST })
+		const version = await createVersionRow(project.id, { name: 'v2', ...RUNNING })
+		await createKey(project.id, previous.id, 'Rovnaký', { [sk.id]: 'A', [en.id]: 'A' })
+		await createKey(project.id, previous.id, 'Zmenený', { [sk.id]: 'B', [en.id]: 'B' })
+		await createKey(project.id, previous.id, 'Doplnený', { [sk.id]: 'C' })
+		await createKey(project.id, previous.id, 'Popis', { [sk.id]: 'D' })
+		await createKey(project.id, version.id, 'Rovnaký', { [sk.id]: 'A', [en.id]: 'A' })
+		await createKey(project.id, version.id, 'Zmenený', { [sk.id]: 'B', [en.id]: 'B2' })
+		await createKey(project.id, version.id, 'Doplnený', { [sk.id]: 'C', [en.id]: 'C' })
+		await createKey(project.id, version.id, 'Pridaný', { [sk.id]: 'E' })
+		const withDescription = await createKey(project.id, version.id, 'Popis', { [sk.id]: 'D' })
+		await getTestPrisma().translationKey.update({ where: { id: withDescription.id }, data: { description: 'Popis' } })
+		const languageIds = `${sk.id},${en.id}`
+
+		const diff = await exportCsv(app, cookie, project.id, { languageIds, versionId: version.id, diffOnly: 'true' })
+		expect(diff.status).toBe(200)
+		expect(exportedKeys(diff.text)).toEqual(['Doplnený', 'Popis', 'Pridaný', 'Zmenený'])
+		expect(exportedKeys((await exportCsv(app, cookie, project.id, { languageIds, versionId: version.id })).text)).toEqual([
+			'Doplnený',
+			'Popis',
+			'Pridaný',
+			'Rovnaký',
+			'Zmenený',
+		])
+		expect(exportedKeys((await exportCsv(app, cookie, project.id, { languageIds, versionId: previous.id, diffOnly: '1' })).text)).toEqual([
+			'Doplnený',
+			'Popis',
+			'Rovnaký',
+			'Zmenený',
+		])
+		const check = await request(app)
+			.get(`/api/projects/${project.id}/export/check`)
+			.query({ languageIds, versionId: version.id, diffOnly: 'true' })
+			.set('Cookie', cookie)
+		expect(check.status).toBe(200)
 	})
 })

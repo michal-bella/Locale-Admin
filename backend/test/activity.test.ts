@@ -231,7 +231,15 @@ describe('activity events', () => {
 		expect(await events(project.id)).toEqual([
 			{
 				type: ACTIVITY_TYPE.KEYS_IMPORTED,
-				payload: { keysCreated: 2, translationsCreated: 1, translationsUpdated: 1, languageTags: ['sk', 'en'], versionName: 'v1' },
+				payload: {
+					keysCreated: 2,
+					keysCopied: 0,
+					keysRemoved: 0,
+					translationsCreated: 1,
+					translationsUpdated: 1,
+					languageTags: ['sk', 'en'],
+					versionName: 'v1',
+				},
 				userId: user.id,
 				count: 2,
 			},

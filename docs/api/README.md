@@ -92,6 +92,7 @@ Každá chyba má tvar `{ error: { code, message, details? } }`.
 | 409  | `TRANSLATION_KEY_TAKEN`      | kľúč s týmto názvom už v namespace existuje (premenovanie kľúča)                                                               |
 | 409  | `PROJECT_VERSION_NAME_TAKEN` | verzia s týmto názvom už v projekte existuje                                                                                   |
 | 409  | `PROJECT_VERSION_LOCKED`     | zápis `EDITOR`-a alebo `VISITOR`-a do uzamknutej verzie (od míľnika B plánu `translation-versions`)                            |
+| 409  | `PROJECT_VERSION_EMPTY`      | ručné pridanie kľúča do verzie, ktorá ešte nemá import                                                                         |
 | 422  | `IMPORT_FILE_INVALID`        | importovaný súbor má chyby, `details: { issues, total }`                                                                       |
 | 422  | `EXPORT_VALUE_UNSAFE`        | hodnota by rozbila exportované CSV (`;`, nový riadok, `--x--`), `details: { issues, total }`                                   |
 | 429  | `EXPORT_BUSY`                | príliš veľa súbežných exportov, hlavička `Retry-After`                                                                         |

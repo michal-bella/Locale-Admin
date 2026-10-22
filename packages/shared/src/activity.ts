@@ -65,6 +65,8 @@ export const activityEventDataSchema = z.discriminatedUnion('type', [
 	event(ACTIVITY_TYPE.MEMBER_REMOVED, { member: activityMemberSchema, left: z.boolean() }),
 	event(ACTIVITY_TYPE.KEYS_IMPORTED, {
 		keysCreated: count,
+		keysCopied: count.optional(),
+		keysRemoved: count.optional(),
 		translationsCreated: count,
 		translationsUpdated: count,
 		languageTags: z.array(languageTag),

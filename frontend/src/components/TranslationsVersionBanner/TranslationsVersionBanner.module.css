@@ -2,6 +2,14 @@
 	border: 1px solid var(--app-color-border);
 }
 
+/* Mantine's gray-light is a neutral near-black in the dark scheme, which clashes with the slate cards; the countdown sits on the card surface
+   with the card's text, like the stats above it. The locked state keeps Mantine's blue. */
+/* Mantine sets --alert-bg inline, so the properties are overridden, not the variables. */
+.neutral {
+	background-color: var(--app-color-surface);
+	color: var(--app-color-text-secondary);
+}
+
 .message {
 	display: flex;
 	flex-wrap: wrap;

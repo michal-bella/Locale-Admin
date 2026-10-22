@@ -36,7 +36,7 @@ const TranslationsVersionBanner = ({ version, active, writesBlocked, onShow, onC
 		<Alert
 			color={version.isLocked ? 'blue' : 'gray'}
 			icon={version.isLocked ? <Lock aria-hidden /> : <Tag aria-hidden />}
-			classNames={{ root: classes.root, message: classes.message }}
+			classNames={{ root: `${classes.root} ${version.isLocked ? '' : classes.neutral}`, message: classes.message }}
 		>
 			<span>{message}</span>
 			<div className='flex flex-wrap gap-2'>

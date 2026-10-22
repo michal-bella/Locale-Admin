@@ -272,12 +272,18 @@ describe('EditKeyModal', () => {
 		expect(patches()).toHaveLength(0)
 	})
 
-	it('closes without a request when nothing changed', async () => {
+	it('keeps Uložiť disabled until something changes', async () => {
 		const { patches } = mockPage()
 		renderApp(PAGE_PATH)
 		const dialog = await openModal('items.count')
-		submit(dialog)
-		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		const button = within(dialog).getByRole('button', { name: 'Uložiť' })
+		expect(button).toBeDisabled()
+
+		const name = within(dialog).getByLabelText(/Kľúč/)
+		fireEvent.change(name, { target: { value: 'items.total' } })
+		expect(button).toBeEnabled()
+		fireEvent.change(name, { target: { value: 'items.count' } })
+		expect(button).toBeDisabled()
 		expect(patches()).toHaveLength(0)
 	})
 

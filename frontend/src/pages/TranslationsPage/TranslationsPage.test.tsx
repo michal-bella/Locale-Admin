@@ -192,6 +192,8 @@ describe('TranslationsPage', () => {
 		expect(screen.getByText('27')).toBeInTheDocument()
 		expect(screen.getByRole('progressbar', { name: 'Preložené: 89 %' })).toBeInTheDocument()
 		expect(screen.getByRole('progressbar', { name: 'Nepreložené: 11 %' })).toBeInTheDocument()
+		expect(screen.getByText('89 % kľúčov')).toBeInTheDocument()
+		expect(screen.getByText('11 % kľúčov')).toBeInTheDocument()
 		expect(screen.queryByText('Na kontrolu')).not.toBeInTheDocument()
 
 		const headers = within(getTable())
@@ -278,6 +280,7 @@ describe('TranslationsPage', () => {
 				items: [
 					item('loc', 'margin', 'Marža {{ percentage }} % ({{ amount }})', 'Margin {{ perecentage }}%'),
 					item('loc', 'greeting', 'Ahoj {{name}}', 'Hello {{name}}'),
+					item('loc', 'account', 'Pokračovať s týmto účtom?', 'Continue with this account <strong>{{user}}</strong>?'),
 				],
 			}),
 		})
@@ -287,14 +290,21 @@ describe('TranslationsPage', () => {
 		const target = screen.getByRole('button', { name: /Preklad kľúča margin, angličtina/ })
 		const warning = within(target).getByText('{{ perecentage }}')
 		expect(warning.className).toMatch(/chipWarning/)
-		expect(within(target).getByRole('img', { name: 'Chýbajú: {{percentage}}, {{amount}}.' })).toBeInTheDocument()
+		expect(
+			within(target).getByRole('img', {
+				name: 'Chýbajú: {{percentage}}, {{amount}}. Navyše: {{perecentage}}. Premenná nie je v základnom jazyku – skontrolujte preklep.',
+			}),
+		).toBeInTheDocument()
+		// An extra variable alone gets the icon too, so a clamped long value still shows the warning.
+		const account = screen.getByRole('button', { name: /Preklad kľúča account, angličtina/ })
+		expect(within(account).getByRole('img', { name: 'Navyše: {{user}}. Premenná nie je v základnom jazyku – skontrolujte preklep.' })).toBeInTheDocument()
 		fireEvent.mouseEnter(warning)
 		expect(await screen.findByRole('tooltip')).toHaveTextContent('Premenná nie je v základnom jazyku – skontrolujte preklep.')
 
 		// The base (source) value and a matching target get neither the chip nor the icon.
 		expect(screen.getByText('{{ percentage }}').className).not.toMatch(/chipWarning/)
 		screen.getAllByText('{{name}}').forEach((chip) => expect(chip.className).not.toMatch(/chipWarning/))
-		expect(screen.getAllByRole('img')).toHaveLength(1)
+		expect(screen.getAllByRole('img')).toHaveLength(2)
 	})
 
 	it('writes the search to the URL after typing stops and resets the page', async () => {
@@ -1034,6 +1044,8 @@ describe('TranslationsPage edit modal', () => {
 		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, angličtina: Bez prekladu')
 		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, angličtina')
 		typeText(field, 'Hello {{user}}')
+		// The label warns while typing, from the base value; the server's mismatch below is the mocked answer.
+		expect(within(dialog).getByRole('img', { name: 'Navyše: {{user}}. Premenná nie je v základnom jazyku – skontrolujte preklep.' })).toBeInTheDocument()
 		const submit = within(dialog).getByRole('button', { name: 'Uložiť' })
 		act(() => submit.focus())
 		fireEvent.click(submit)
@@ -1097,14 +1109,19 @@ describe('TranslationsPage edit modal', () => {
 		show.mockRestore()
 	})
 
-	it('closes without a request when the value did not change', async () => {
+	it('keeps Uložiť disabled until the value changes', async () => {
 		const puts = mockEditing()
 		renderApp(PAGE_PATH)
 
 		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
-		save(dialog)
+		const button = within(dialog).getByRole('button', { name: 'Uložiť' })
+		expect(button).toBeDisabled()
 
-		await waitForClosed()
+		const field = fieldOf(dialog, 'Preklad kľúča dashboard.welcome, angličtina')
+		typeText(field, 'Welcome, {{name}}')
+		expect(button).toBeEnabled()
+		typeText(field, 'Welcome back, {{name}}')
+		expect(button).toBeDisabled()
 		expect(puts()).toHaveLength(0)
 	})
 
@@ -1348,14 +1365,15 @@ describe('TranslationsPage plural forms', () => {
 		await waitFor(() => expect(getRow('items.count')).toHaveAttribute('data-status', 'UNTRANSLATED'))
 	})
 
-	it('closes without a request when no form changed', async () => {
+	it('keeps Uložiť disabled until a form changes', async () => {
 		const puts = mockEditing(undefined, ADMIN_USER, [PLURAL_ITEM()])
 		renderApp(PAGE_PATH)
 		const dialog = await openPlural()
+		const button = within(dialog).getByRole('button', { name: 'Uložiť' })
+		expect(button).toBeDisabled()
 
-		save(dialog)
-
-		await waitForClosed()
+		typeText(fieldOf(dialog, 'Preklad kľúča items.count, angličtina, Iné'), '# things')
+		expect(button).toBeEnabled()
 		expect(puts()).toHaveLength(0)
 	})
 

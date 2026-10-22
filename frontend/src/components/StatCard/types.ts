@@ -7,6 +7,8 @@ export type StatCardProps = {
 	value?: number | string
 	/** Small line under the value, e.g. "+12 za 30 dní". */
 	hint?: string
+	/** Short note next to the value, e.g. "93 % kľúčov"; it keeps the card as tall as one without it. */
+	share?: string
 	icon: ComponentType<SVGProps<SVGSVGElement>>
 	tone: 'brand' | 'success' | 'danger'
 	/** Share of all keys in percent; the card without it has no progress bar. */

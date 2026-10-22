@@ -408,17 +408,20 @@ describe('EditUserEmailModal', () => {
 		expect(screen.getByRole('dialog', { name: 'Upraviť e-mail' })).toBeInTheDocument()
 	})
 
-	it('closes without a request when the email is unchanged', async () => {
+	it('keeps Uložiť disabled while the email is unchanged', async () => {
 		const requests = signedInAs(
 			ADMIN_USER,
 			routes(() => JANA),
 		)
 		renderApp(USER_URL)
 		const dialog = await openEmailModal()
+		const button = within(dialog).getByRole('button', { name: 'Uložiť' })
+		expect(button).toBeDisabled()
 
-		fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť' }))
-
-		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		typeEmail(dialog, 'jana.nova@firma.sk')
+		expect(button).toBeEnabled()
+		typeEmail(dialog, JANA.email)
+		expect(button).toBeDisabled()
 		expect(requests.filter((request) => request.method === 'patch')).toHaveLength(0)
 	})
 })

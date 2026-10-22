@@ -4,6 +4,7 @@ import { type KeyboardEvent, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
+	comparePlaceholders,
 	hasBalancedBraces,
 	type Language,
 	type PlaceholderMismatchDetails,
@@ -22,6 +23,7 @@ import getPlaceholderMismatch from '@/api/getPlaceholderMismatch'
 import AppModal from '@/components/AppModal/AppModal'
 import { Copy } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
+import PlaceholderWarning from '@/components/PlaceholderWarning/PlaceholderWarning'
 import PluralFormChip from '@/components/PluralForms/PluralFormChip'
 import RowAction from '@/components/RowAction/RowAction'
 import TokenEditor from '@/components/TokenEditor/TokenEditor'
@@ -97,7 +99,9 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	const value = cell?.value ?? null
 	const plural = item.plural ? { variable: item.plural.variable, tag: language.tag } : null
 	const forms: PluralForm[] = plural ? pluralFormsOf(plural.tag, parsePluralForms(value)) : [PLAIN]
-	const [draft, setDraft] = useState<Draft>(() => (plural ? parsePluralForms(value) : { [PLAIN]: value ?? '' }))
+	const [initialDraft] = useState<Draft>(() => (plural ? parsePluralForms(value) : { [PLAIN]: value ?? '' }))
+	const [draft, setDraft] = useState<Draft>(initialDraft)
+	const isPristine = forms.every((form) => (draft[form] ?? '') === (initialDraft[form] ?? ''))
 	const [rejected, setRejected] = useState<Rejection | null>(null)
 	const editorRefs = useRef<Partial<Record<PluralForm, HTMLDivElement | null>>>({})
 	const pendingFocusRef = useRef(focusOnMount)
@@ -108,6 +112,12 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	// Same reference as the API check: the base value, or the key name when the base is empty and the name has placeholders.
 	const reference = baseValue === undefined ? undefined : (baseValue ?? (placeholders(item.name).size > 0 ? item.name : undefined))
 	const basePlaceholders = reference === undefined ? undefined : placeholders(reference)
+	const draftValue = plural
+		? serializePluralValue({ variable: plural.variable, forms: Object.fromEntries(forms.map((form) => [form, draft[form] ?? ''])) })
+		: (draft[PLAIN] ?? '')
+	// An empty draft is untranslated, not a mismatch; the cell shows no warning for it either.
+	const draftEmpty = forms.every((form) => (draft[form] ?? '').trim() === '')
+	const draftMismatch = reference === undefined || draftEmpty ? null : comparePlaceholders(reference, draftValue)
 
 	const composeValue = (): string | null => {
 		if (!plural) {
@@ -282,7 +292,10 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 				</div>
 			)}
 			<div>
-				<span className={`${classes.label} ${classes.labelWithLanguage}`}>{labelWithLanguage(t('translationsPage.editModal.value'), language)}</span>
+				<span className={`${classes.label} ${classes.labelWithLanguage}`}>
+					{labelWithLanguage(t('translationsPage.editModal.value'), language)}
+					{draftMismatch && <PlaceholderWarning missing={draftMismatch.missing} extra={draftMismatch.extra} />}
+				</span>
 				<div className={classes.forms}>
 					{plural
 						? forms.map((form, index) => (
@@ -311,6 +324,7 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 					<Button
 						variant={onNext ? 'default' : 'filled'}
 						loading={saving}
+						disabled={isPristine}
 						onClick={() => void save()}
 						aria-keyshortcuts={onNext ? undefined : 'Meta+Enter Control+Enter'}
 					>

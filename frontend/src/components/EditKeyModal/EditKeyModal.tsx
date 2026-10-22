@@ -107,6 +107,9 @@ const EditKeyModal = ({ projectId, item, opened, onClose }: EditKeyModalProps) =
 		values: toFormValues(item),
 	})
 	const pluralEnabled = useWatch({ control, name: 'pluralEnabled' })
+	const watchedValues = useWatch({ control })
+	// The same diff the request sends, so a key that opens with a detected plural can still be saved without touching the form.
+	const unchanged = item !== null && Object.keys(toBody(item, { ...toFormValues(item), ...watchedValues })).length === 0
 	const detectedVariable = detectedPlural(item)
 
 	const resetAndClose = () => {
@@ -169,7 +172,7 @@ const EditKeyModal = ({ projectId, item, opened, onClose }: EditKeyModalProps) =
 					<Button variant='default' onClick={handleClose} disabled={isPending}>
 						{t('translationsPage.editKeyModal.cancel')}
 					</Button>
-					<Button type='submit' loading={isPending}>
+					<Button type='submit' loading={isPending} disabled={unchanged}>
 						{t('translationsPage.editKeyModal.submit')}
 					</Button>
 				</>

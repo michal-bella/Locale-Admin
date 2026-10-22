@@ -10,7 +10,7 @@ notion_page_id:
 
 ### Dátumy verzie a import (2026-10-22)
 
-- frontend: kalendár pri dátumoch verzie zvýrazní dnešok a má pod sebou tlačidlo **Dnes**, ktoré vyplní dnešný dátum a prepne kalendár na aktuálny mesiac; tlačidlo **Vytvoriť novú** v dialógu importu má výšku výberu verzie (44 px); v tabuľke verzií sú „Vytvoril …“ a „Import …“ iba v tooltipe ikony (i) pri názve, nie pod ním; názov verzie a nová akcia **Otvoriť preklady** (aj pre editora) otvoria Preklady s touto verziou ([Frontend](./frontend.md#stránka-verzie-projektu))
+- frontend: kalendár pri dátumoch verzie zvýrazní dnešok a má pod sebou tlačidlo **Dnes**, ktoré vyplní dnešný dátum a prepne kalendár na aktuálny mesiac; tlačidlo **Vytvoriť novú** v dialógu importu má výšku výberu verzie (44 px); v tabuľke verzií sú „Vytvoril …“ a „Import …“ iba v tooltipe ikony (i) pri názve, nie pod ním; názov verzie a nová akcia **Otvoriť preklady** (aj pre editora) otvoria Preklady s touto verziou; karty Preložené a Nepreložené na Prekladoch majú jemné zelené a červené pozadie a vedľa čísla podiel „93 % kľúčov“; **Uložiť** v modáloch Upraviť preklad, Upraviť kľúč, Upraviť verziu a Upraviť e-mail je disabled, kým sa nič nezmení (Nastavenia projektu a Profil to už mali); ikona ⚠ nesúladu premenných sa ukáže aj pri premennej navyše, v bunke je v rohu mimo ellipsis a v modáli Upraviť preklad pri labeli Preklad ([Frontend](./frontend.md#stránka-verzie-projektu))
 
 ### Verzie ako kópie prekladov – míľnik F (2026-10-22)
 

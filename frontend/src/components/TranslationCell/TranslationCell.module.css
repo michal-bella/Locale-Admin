@@ -43,3 +43,17 @@
 	-webkit-line-clamp: 2;
 	overflow: hidden;
 }
+
+/* The line clamp would hide a warning icon after a long value; it sits at the end of the first line in space kept free for it. The space is
+   on the content, not the button, whose padding the table overrides per view. */
+.content:has([data-placeholder-warning]) {
+	position: relative;
+	padding-inline-end: 1.25rem;
+}
+
+.content [data-placeholder-warning] {
+	position: absolute;
+	top: 0.125rem;
+	inset-inline-end: 0;
+	margin: 0;
+}

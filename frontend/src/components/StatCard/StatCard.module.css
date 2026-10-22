@@ -5,6 +5,16 @@
 	background-color: var(--app-color-surface);
 }
 
+.card[data-tone='success'] {
+	border-color: color-mix(in srgb, var(--mantine-color-teal-6) 25%, transparent);
+	background-color: color-mix(in srgb, var(--mantine-color-teal-6) 6%, var(--app-color-surface));
+}
+
+.card[data-tone='danger'] {
+	border-color: color-mix(in srgb, var(--mantine-color-red-6) 25%, transparent);
+	background-color: color-mix(in srgb, var(--mantine-color-red-6) 6%, var(--app-color-surface));
+}
+
 .value {
 	font-size: 1.5rem;
 	font-weight: 700;
@@ -43,6 +53,12 @@
 	align-self: flex-start;
 	margin-top: 0.25rem;
 	margin-inline-start: calc(var(--button-padding-x) * -1);
+}
+
+.share {
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 500;
+	color: var(--app-color-text-secondary);
 }
 
 .hint {

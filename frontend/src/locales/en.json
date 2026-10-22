@@ -270,6 +270,7 @@
 			"translated": "Translated",
 			"missing": "Untranslated",
 			"progressLabel": "{{label}}: {{percent}} %",
+			"share": "{{percent}} of keys",
 			"showTranslated": "Show translated",
 			"showMissing": "Show untranslated",
 			"showAll": "Show all"

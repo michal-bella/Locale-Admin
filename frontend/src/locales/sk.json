@@ -272,6 +272,7 @@
 			"translated": "Preložené",
 			"missing": "Nepreložené",
 			"progressLabel": "{{label}}: {{percent}} %",
+			"share": "{{percent}} kľúčov",
 			"showTranslated": "Zobraziť preložené",
 			"showMissing": "Zobraziť nepreložené",
 			"showAll": "Zobraziť všetky"

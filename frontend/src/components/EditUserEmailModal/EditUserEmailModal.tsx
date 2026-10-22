@@ -23,7 +23,7 @@ const EditUserEmailModal = ({ user, opened, onClose }: EditUserEmailModalProps) 
 		handleSubmit,
 		setError,
 		reset,
-		formState: { errors },
+		formState: { errors, isDirty },
 	} = useForm<UpdateUserRequest>({
 		resolver: zodResolver(updateUserRequestSchema, {
 			error: (issue) => {
@@ -94,7 +94,7 @@ const EditUserEmailModal = ({ user, opened, onClose }: EditUserEmailModalProps) 
 					<Button variant='default' onClick={handleClose} disabled={isPending}>
 						{t('userPage.emailModal.cancel')}
 					</Button>
-					<Button type='submit' loading={isPending}>
+					<Button type='submit' loading={isPending} disabled={!isDirty}>
 						{t('userPage.emailModal.submit')}
 					</Button>
 				</>

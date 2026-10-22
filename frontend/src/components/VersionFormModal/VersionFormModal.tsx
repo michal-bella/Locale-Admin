@@ -54,7 +54,7 @@ const VersionFormModal = ({ projectId, opened, version, onClose, onCreated, zInd
 		handleSubmit,
 		setError,
 		reset,
-		formState: { errors },
+		formState: { errors, isDirty },
 	} = useForm({
 		resolver: zodResolver(createProjectVersionRequestSchema, {
 			error: (issue) => {
@@ -165,7 +165,7 @@ const VersionFormModal = ({ projectId, opened, version, onClose, onCreated, zInd
 					<Button variant='default' onClick={handleClose} disabled={isPending}>
 						{t('versionsPage.form.cancel')}
 					</Button>
-					<Button type='submit' loading={isPending}>
+					<Button type='submit' loading={isPending} disabled={mode === 'edit' && !isDirty}>
 						{t(`versionsPage.form.submit.${mode}`)}
 					</Button>
 				</>

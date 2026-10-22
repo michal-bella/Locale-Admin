@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { TRANSLATIONS_SEARCH_MAX_LENGTH, translationsSortSchema, translationStatusSchema, translationsUpdatedWithinSchema } from '@locale/shared'
 
-import { Search } from '@/components/Icons'
+import { ArrowsSort, CheckCircle, Clock, Folder, Search, Tag, User } from '@/components/Icons'
 import TranslationStatusBadge from '@/components/TranslationStatusBadge/TranslationStatusBadge'
 
 import classes from './TranslationsToolbar.module.css'
@@ -21,8 +21,8 @@ const renderStatusOption = ({ option }: ComboboxLikeRenderOptionInput<ComboboxIt
 }
 
 /**
- * Filters of the translations table (Figma 3:121): search, status, namespace, sort, Editor, Zmenené and Verzia. What the table shows (view, layout, languages,
- * Len preklady) lives in `TranslationsViewControls`. The search writes to the URL 300 ms after the last keystroke; the X and Esc clear it right away,
+ * Filters of the translations table (Figma 3:121): search, sort, status, namespace, Editor, Verzia and Zmenené, each with an icon in the left
+ * section so the row of selects reads apart. What the table shows (view, layout, languages, Len preklady) lives in `TranslationsViewControls`. The search writes to the URL 300 ms after the last keystroke; the X and Esc clear it right away,
  * as the other filters do.
  */
 const TranslationsToolbar = ({
@@ -84,6 +84,19 @@ const TranslationsToolbar = ({
 				}}
 			/>
 			<Select
+				aria-label={t('translationsPage.toolbar.sort.label')}
+				className={classes.select}
+				leftSection={<ArrowsSort aria-hidden />}
+				data={translationsSortSchema.options.map((value) => ({ value, label: t(`translationsPage.toolbar.sort.${value}`) }))}
+				value={sort}
+				onChange={(value) => {
+					const parsed = translationsSortSchema.safeParse(value)
+					onChange({ sort: parsed.success && parsed.data !== 'UNTRANSLATED_FIRST' ? parsed.data : undefined })
+				}}
+				allowDeselect={false}
+				withScrollArea={false}
+			/>
+			<Select
 				aria-label={t('translationsPage.toolbar.status.label')}
 				className={classes.select}
 				data={[ALL_STATUSES, ...translationStatusSchema.options].map((value) => ({
@@ -96,7 +109,7 @@ const TranslationsToolbar = ({
 					onChange({ status: parsed.success ? parsed.data : undefined })
 				}}
 				renderOption={renderStatusOption}
-				leftSection={status && <TranslationStatusBadge status={status} />}
+				leftSection={status ? <TranslationStatusBadge status={status} /> : <CheckCircle aria-hidden />}
 				leftSectionWidth={status ? 'auto' : undefined}
 				leftSectionProps={{ className: status ? classes.statusBadgeSection : undefined }}
 				// Select only defaults the right section to `none`; without this a click on the badge never reaches the input.
@@ -111,29 +124,19 @@ const TranslationsToolbar = ({
 					aria-label={t('translationsPage.toolbar.namespace.label')}
 					placeholder={t('translationsPage.toolbar.namespace.placeholder')}
 					className={classes.select}
+					leftSection={<Folder aria-hidden />}
 					data={namespaceOptions}
 					value={namespace ?? null}
 					onChange={(value) => onChange({ namespace: value ?? undefined })}
 					clearable
 				/>
 			)}
-			<Select
-				aria-label={t('translationsPage.toolbar.sort.label')}
-				className={classes.select}
-				data={translationsSortSchema.options.map((value) => ({ value, label: t(`translationsPage.toolbar.sort.${value}`) }))}
-				value={sort}
-				onChange={(value) => {
-					const parsed = translationsSortSchema.safeParse(value)
-					onChange({ sort: parsed.success && parsed.data !== 'UNTRANSLATED_FIRST' ? parsed.data : undefined })
-				}}
-				allowDeselect={false}
-				withScrollArea={false}
-			/>
 			{(editors.length > 0 || updatedBy !== undefined) && (
 				<Select
 					aria-label={t('translationsPage.toolbar.updatedBy.label')}
 					placeholder={t('translationsPage.toolbar.updatedBy.placeholder')}
 					className={classes.select}
+					leftSection={<User aria-hidden />}
 					data={editors.map((editor) => ({ value: editor.id, label: editor.name }))}
 					value={updatedBy ?? null}
 					onChange={(value) => onChange({ updatedBy: value ?? undefined })}
@@ -146,6 +149,7 @@ const TranslationsToolbar = ({
 					aria-label={t('translationsPage.toolbar.version.label')}
 					placeholder={t('translationsPage.toolbar.version.placeholder')}
 					className={classes.select}
+					leftSection={<Tag width={16} height={16} aria-hidden />}
 					data={versions.map((item) => ({
 						value: item.id,
 						label: item.isCurrent ? t('translationsPage.toolbar.version.current', { name: item.name }) : item.name,
@@ -159,6 +163,7 @@ const TranslationsToolbar = ({
 				aria-label={t('translationsPage.toolbar.updatedWithin.label')}
 				placeholder={t('translationsPage.toolbar.updatedWithin.placeholder')}
 				className={classes.select}
+				leftSection={<Clock aria-hidden />}
 				data={translationsUpdatedWithinSchema.options.map((value) => ({ value, label: t(`translationsPage.toolbar.updatedWithin.${value}`) }))}
 				value={updatedWithin ?? null}
 				onChange={(value) => {

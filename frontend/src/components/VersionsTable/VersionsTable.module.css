@@ -76,9 +76,9 @@
 	display: none;
 }
 
-/* Same breakpoints as the members table. Below 992 px the three fixed columns would leave the name a few characters, so the dates
-   move under the name and the state column takes what its badge needs. */
-@media (max-width: 61.99em) {
+/* Same breakpoints as the languages table: below 1200 px the sidebar leaves the name a few characters next to the three fixed columns,
+   so the dates move under the name and the state column takes what its badge needs. */
+@media (max-width: 74.99em) {
 	.wideOnly {
 		display: none;
 	}

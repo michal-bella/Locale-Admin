@@ -22,7 +22,7 @@ const STATE_COLOR: Record<ProjectVersionState, string> = { UPCOMING: 'gray', ACT
 
 /**
  * Versions of a project in a card like the languages: name with who created it, the two dates, the state for today and, for an ADMIN,
- * Upraviť and Zamknúť / Odomknúť. Below 992 px the dates move under the name, as in the members table.
+ * Upraviť and Zamknúť / Odomknúť. Below 1200 px the dates move under the name, as in the languages table.
  */
 const VersionsTable = ({ projectId, onCreate, onEdit, onToggleLock, ref }: VersionsTableProps) => {
 	const { t, i18n } = useTranslation()

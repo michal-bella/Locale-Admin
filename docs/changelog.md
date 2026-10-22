@@ -10,6 +10,7 @@ notion_page_id:
 
 ### Verzie prekladov – vytvorenie a zamknutie zo stránky Preklady (2026-10-22)
 
+- frontend: stránka Preklady sa otvára na práci aktuálnej verzie (filter Verzia je predvolený, `?version=ALL` = celý projekt; karty štatistík a Zrušiť filtre ho nastavia)
 - frontend: banner verzie na stránke Preklady povie, koľko kľúčov z práce verzie je ešte nepreložených; filtre prekladov majú ikony a Zoradenie je hneď za vyhľadávaním
 - frontend: dátumy verzie vo formulári sú `DateInput` z `@mantine/dates` (nová závislosť s `dayjs`) s kalendárom v štýle aplikácie a lokalizovaným formátom; popisy polí sú pod vstupmi, aby boli obe polia zarovnané ([Frontend](./frontend.md#stránka-verzie-projektu))
 - frontend: stránka Preklady má pre `ADMIN` tlačidlo **Vytvoriť verziu** (nová verzia sa hneď zapne vo filtri) a v banneri verzie **Zamknúť** / **Odomknúť**; import predvolí verziu zapnutú vo filtri namiesto aktuálnej ([Frontend](./frontend.md#verzie-na-stránke-preklady))

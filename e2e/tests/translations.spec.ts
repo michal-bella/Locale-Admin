@@ -302,26 +302,26 @@ test('a yellow banner counts the keys with a placeholder warning and its button 
 	await expect(getTranslationRows(page)).toHaveCount(10)
 })
 
-test('the current version counts down above the table; its button filters the list to the version and writes it to the URL', async ({ page, request }) => {
+test('the list opens on the work of the current version with its countdown; clearing the filter shows the whole project', async ({ page, request }) => {
 	const project = await createProjectWithKeys(request, 'translations-version', KEYS)
 	const version = await createVersion(request, project.id, { name: 'v2.45', ...CURRENT_WINDOW })
 	await openTranslations(page, project)
 
 	await expect(page.getByText('Verzia v2.45: ostáva 12 dní do uzamknutia.')).toBeVisible()
-	await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('')
-	await page.getByRole('button', { name: 'Zobraziť prácu verzie' }).click()
-	await expect(page).toHaveURL(translationsPath(project, `?version=${version.id}`))
 	await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
-	await expect(getTranslationRows(page)).toHaveCount(0)
-
-	// An edit without a filter goes into the current version by date, so the key becomes its work.
+	await expect(page.getByText('Filtrom nezodpovedá žiadny kľúč.').first()).toBeVisible()
 	await page.getByRole('button', { name: 'Zrušiť filter verzie' }).click()
-	await expect(page).toHaveURL(translationsPath(project))
+	await expect(page).toHaveURL(translationsPath(project, '?version=ALL'))
+	await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('')
+	await expect(getTranslationRows(page)).toHaveCount(KEYS.length)
+
+	// An edit in the whole project goes into the current version by date, so the key becomes its work.
 	await openEditTranslationModal(page, 'orders.empty.title', 'čeština')
 	await getTranslationField(page, 'orders.empty.title', 'čeština').fill('Zatím nemáte žádné objednávky')
 	expect((await saveTranslation(page)).status()).toBe(200)
 	await expect(getEditTranslationDialog(page)).toBeHidden()
-	await pickOption(page, 'Verzia', 'v2.45 (aktuálna)')
+	await page.getByRole('button', { name: 'Zobraziť prácu verzie' }).click()
+	await expect(page).toHaveURL(translationsPath(project, `?version=${version.id}`))
 	await expectKeys(getTranslationRows(page), ['orders.empty.title'])
 })
 

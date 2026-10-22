@@ -142,9 +142,10 @@ test.describe('EDITOR', () => {
 		await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v1.0')
 		await expect(page.getByText('Filtrom nezodpovedá žiadny kľúč.').first()).toBeVisible()
 
-		// Without the filter the current version counts down and the cells open as usual.
+		// The page opens on the current version, which counts down; the whole project's cells open as usual.
 		await openTranslations(page, { slug: editor.projectSlug } as ProjectListItem)
 		await expect(page.getByText('Verzia v1.1: ostáva 12 dní do uzamknutia.')).toBeVisible()
+		await page.getByRole('button', { name: 'Zrušiť filter verzie' }).click()
 		await expect(getCellButton(getTranslationRow(page, 'nav.home'), 'nav.home')).toBeVisible()
 	})
 })

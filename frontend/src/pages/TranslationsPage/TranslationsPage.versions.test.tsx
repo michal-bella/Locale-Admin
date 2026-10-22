@@ -165,22 +165,29 @@ afterEach(() => {
 })
 
 describe('TranslationsPage versions', () => {
-	it('filters by version from the toolbar, shows the chip and the countdown of the current version', async () => {
+	it('shows the work of the current version by default, the whole project after clearing, and the chip and countdown', async () => {
 		const requests = mockPage()
 		const router = renderApp(PAGE_PATH)
+		// The banner counts the untranslated keys of the version with its own request; the list requests are the rest.
+		const lastListRequest = () => requests.filter((request) => request.url === TRANSLATIONS_URL && paramsOf(request).status !== 'UNTRANSLATED').at(-1)
 
 		const row = await findRow('dashboard.welcome')
 		expect(within(row).getByText('v2.45')).toHaveAccessibleName('Vznikol vo verzii v2.45')
 		const days = daysUntil(CURRENT.endsAt, TODAY)
 		expect(screen.getByText(`Verzia v2.45: ostáva ${days} dní do uzamknutia.`)).toBeInTheDocument()
+		expect(router.state.location.search).toEqual({})
+		expect(paramsOf(requests.find((request) => request.url === TRANSLATIONS_URL)).versionId).toBe(CURRENT.id)
+		expect(screen.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
+
+		fireEvent.click(screen.getByRole('button', { name: 'Zrušiť filter verzie' }))
+		await waitFor(() => expect(router.state.location.search).toEqual({ version: 'ALL' }))
+		await waitFor(() => expect(paramsOf(lastListRequest()).versionId).toBeUndefined())
+		expect(screen.getByRole('combobox', { name: 'Verzia' })).toHaveValue('')
+		expect(screen.getByRole('button', { name: 'Zobraziť prácu verzie' })).toBeInTheDocument()
 
 		await pickOption('Verzia', 'v2.45 (aktuálna)')
 		await waitFor(() => expect(router.state.location.search).toEqual({ version: CURRENT.id }))
-		await waitFor(() => expect(paramsOf(requests.filter((request) => request.url === TRANSLATIONS_URL).at(-1)).versionId).toBe(CURRENT.id))
-		expect(screen.getByRole('button', { name: 'Zrušiť filter verzie' })).toBeInTheDocument()
-
-		fireEvent.click(screen.getByRole('button', { name: 'Zrušiť filter verzie' }))
-		await waitFor(() => expect(router.state.location.search).toEqual({}))
+		await waitFor(() => expect(paramsOf(lastListRequest()).versionId).toBe(CURRENT.id))
 	})
 
 	it('says how many keys of the version are still untranslated', async () => {

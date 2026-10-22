@@ -7,6 +7,7 @@ import { TRANSLATIONS_SEARCH_MAX_LENGTH, translationsSortSchema, translationStat
 
 import { ArrowsSort, CheckCircle, Clock, Folder, Search, Tag, User } from '@/components/Icons'
 import TranslationStatusBadge from '@/components/TranslationStatusBadge/TranslationStatusBadge'
+import { ALL_VERSIONS } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsToolbar.module.css'
 import { type TranslationsToolbarProps } from './types'
@@ -160,7 +161,8 @@ const TranslationsToolbar = ({
 						label: item.isCurrent ? t('translationsPage.toolbar.version.current', { name: item.name }) : item.name,
 					}))}
 					value={version ?? null}
-					onChange={(value) => onChange({ version: value ?? undefined })}
+					// Cleared means the whole project, not the default (the current version).
+					onChange={(value) => onChange({ version: value ?? ALL_VERSIONS })}
 					clearable
 				/>
 			)}

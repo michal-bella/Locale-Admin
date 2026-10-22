@@ -13,6 +13,9 @@ export const TRANSLATIONS_PAGE_SIZES = [25, 50, 100] as const
 
 export type TranslationsPageSize = (typeof TRANSLATIONS_PAGE_SIZES)[number]
 
+/** `?version=ALL`: the whole project instead of the current version, which the list shows without the param. */
+export const ALL_VERSIONS = 'ALL'
+
 export const translationsSearchSchema = z.object({
 	// The router JSON-parses search values, so `?search=123` arrives as a number.
 	search: z.coerce.string().trim().max(TRANSLATIONS_SEARCH_MAX_LENGTH).optional().catch(undefined),
@@ -27,8 +30,11 @@ export const translationsSearchSchema = z.object({
 	updatedWithin: translationsUpdatedWithinSchema.optional().catch(undefined),
 	/** Only keys with a placeholder warning (`?warnings=true`), turned on from the warnings banner. */
 	warnings: z.literal(true).optional().catch(undefined),
-	/** Work of one version (`ProjectVersion.id`); edits and new keys on the page go into it. */
-	version: z.uuid().optional().catch(undefined),
+	/** Work of one version (`ProjectVersion.id`; missing = the current version, `ALL` = the whole project); edits and new keys on the page go into it. */
+	version: z
+		.union([z.uuid(), z.literal(ALL_VERSIONS)])
+		.optional()
+		.catch(undefined),
 	/** Hides the key and status columns. */
 	translationsOnly: z.literal(true).optional().catch(undefined),
 	page: z.number().int().min(1).optional().catch(undefined),

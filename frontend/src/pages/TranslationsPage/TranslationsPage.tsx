@@ -29,7 +29,7 @@ import TranslationsViewControls from '@/components/TranslationsViewControls/Tran
 import TranslationsWarningsBanner from '@/components/TranslationsWarningsBanner/TranslationsWarningsBanner'
 import VersionFormModal from '@/components/VersionFormModal/VersionFormModal'
 import VersionLockModal from '@/components/VersionLockModal/VersionLockModal'
-import { TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
+import { ALL_VERSIONS, TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsPage.module.css'
 
@@ -60,8 +60,13 @@ const TranslationsPage = () => {
 	const languages = languagesQuery.data ?? []
 	// A project without versions works as before: no filter, no banner, nothing sent with the edits.
 	const versions = useProjectVersionsQuery(projectId).data?.items ?? []
-	const selectedVersion = versions.find((version) => version.id === search.version)
-	const bannerVersion = selectedVersion ?? versions.find((version) => version.isCurrent)
+	const currentVersion = versions.find((version) => version.isCurrent)
+	// Without `?version=` the list shows the work of the current version (what the editors finish now); `ALL` is the whole project.
+	const versionId = search.version === ALL_VERSIONS ? undefined : (search.version ?? currentVersion?.id)
+	const selectedVersion = versions.find((version) => version.id === versionId)
+	const bannerVersion = selectedVersion ?? currentVersion
+	// The stats count the whole project, so a card and Zrušiť filtre show it; a project without versions keeps the URL clean.
+	const wholeProject = currentVersion ? ALL_VERSIONS : undefined
 	// An editor cannot write into a locked version; the API would refuse it (409), so the cells do not open at all.
 	const writesBlocked = !isAdmin && selectedVersion?.isLocked === true
 	const [importOpened, importModal] = useDisclosure(false)
@@ -95,7 +100,7 @@ const TranslationsPage = () => {
 		updatedById: search.updatedBy,
 		updatedWithin: search.updatedWithin,
 		warnings: search.warnings,
-		versionId: search.version,
+		versionId,
 		sort,
 		page,
 		pageSize,
@@ -129,7 +134,7 @@ const TranslationsPage = () => {
 	// The status badge flips silently for a screen reader; the live region below says it. Clearing first makes a repeated save of the same key announce again.
 	const saveTranslation = async (keyId: string, languageId: string, value: string | null) => {
 		setSavedAnnouncement('')
-		const result = await updateTranslation.mutateAsync({ keyId, languageId, value, versionId: search.version })
+		const result = await updateTranslation.mutateAsync({ keyId, languageId, value, versionId })
 		setSavedAnnouncement(t('translationsPage.editor.saved', { key: data?.items.find((item) => item.keyId === keyId)?.name ?? '' }))
 		return result
 	}
@@ -159,7 +164,7 @@ const TranslationsPage = () => {
 			updatedBy: undefined,
 			updatedWithin: undefined,
 			warnings: undefined,
-			version: undefined,
+			version: wholeProject,
 		})
 
 	const retry = async () => {
@@ -237,7 +242,7 @@ const TranslationsPage = () => {
 							updatedBy: undefined,
 							updatedWithin: undefined,
 							warnings: undefined,
-							version: undefined,
+							version: wholeProject,
 							status: value,
 						})
 					}
@@ -250,7 +255,7 @@ const TranslationsPage = () => {
 					writesBlocked={!isAdmin && bannerVersion.isLocked}
 					untranslated={versionWorkQuery.data?.total}
 					onShow={() => updateSearch({ version: bannerVersion.id })}
-					onClear={() => updateSearch({ version: undefined })}
+					onClear={() => updateSearch({ version: ALL_VERSIONS })}
 					onToggleLock={isAdmin ? lockVersionModal.open : undefined}
 				/>
 			)}
@@ -287,7 +292,7 @@ const TranslationsPage = () => {
 							sort={sort}
 							updatedBy={search.updatedBy}
 							updatedWithin={search.updatedWithin}
-							version={search.version}
+							version={versionId}
 							versions={versions}
 							editors={data?.editors ?? []}
 							namespaces={namespaces}
@@ -328,7 +333,7 @@ const TranslationsPage = () => {
 					onPageSizeChange={(next) => updateSearch({ pageSize: next === TRANSLATIONS_PAGE_SIZES[0] ? undefined : next })}
 				/>
 			)}
-			{isAdmin && <ImportModal projectId={projectId} versions={versions} defaultVersionId={search.version} opened={importOpened} onClose={closeImport} />}
+			{isAdmin && <ImportModal projectId={projectId} versions={versions} defaultVersionId={versionId} opened={importOpened} onClose={closeImport} />}
 			{isAdmin && (
 				<VersionFormModal
 					projectId={projectId}
@@ -346,7 +351,7 @@ const TranslationsPage = () => {
 					languages={languages}
 					namespaces={namespaces}
 					defaultNamespace={search.namespace}
-					versionId={search.version}
+					versionId={versionId}
 					opened={createKeyOpened}
 					onClose={createKeyModal.close}
 					// Shows the new key whatever page or filters were on; an empty namespace means no namespace filter.

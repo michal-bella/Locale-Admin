@@ -468,7 +468,6 @@
 			"locked": "Verze {{name}} je uzamčená.",
 			"lockedEditor": "Verze {{name}} je uzamčená, její překlady upravuje už jen administrátor.",
 			"unlocked": "Verze {{name}} je po termínu odemčená pro dodatečné úpravy.",
-			"show": "Zobrazit práci verze",
 			"clear": "Zrušit filtr verze",
 			"lock": "Zamknout",
 			"unlock": "Odemknout",

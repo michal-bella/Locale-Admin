@@ -460,7 +460,6 @@
 			"locked": "Version {{name}} is locked.",
 			"lockedEditor": "Version {{name}} is locked; only an administrator edits its translations now.",
 			"unlocked": "Version {{name}} is past its end and unlocked for late changes.",
-			"show": "Show the version's work",
 			"clear": "Clear the version filter",
 			"lock": "Lock",
 			"unlock": "Unlock",

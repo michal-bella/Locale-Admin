@@ -320,7 +320,7 @@ test('the list opens on the work of the current version with its countdown; clea
 	await getTranslationField(page, 'orders.empty.title', 'čeština').fill('Zatím nemáte žádné objednávky')
 	expect((await saveTranslation(page)).status()).toBe(200)
 	await expect(getEditTranslationDialog(page)).toBeHidden()
-	await page.getByRole('button', { name: 'Zobraziť prácu verzie' }).click()
+	await pickOption(page, 'Verzia', 'v2.45 (aktuálna)')
 	await expect(page).toHaveURL(translationsPath(project, `?version=${version.id}`))
 	await expectKeys(getTranslationRows(page), ['orders.empty.title'])
 })

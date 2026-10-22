@@ -254,7 +254,6 @@ const TranslationsPage = () => {
 					active={selectedVersion !== undefined}
 					writesBlocked={!isAdmin && bannerVersion.isLocked}
 					untranslated={versionWorkQuery.data?.total}
-					onShow={() => updateSearch({ version: bannerVersion.id })}
 					onClear={() => updateSearch({ version: ALL_VERSIONS })}
 					onToggleLock={isAdmin ? lockVersionModal.open : undefined}
 				/>

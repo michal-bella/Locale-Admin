@@ -183,7 +183,7 @@ describe('TranslationsPage versions', () => {
 		await waitFor(() => expect(router.state.location.search).toEqual({ version: 'ALL' }))
 		await waitFor(() => expect(paramsOf(lastListRequest()).versionId).toBeUndefined())
 		expect(screen.getByRole('combobox', { name: 'Verzia' })).toHaveValue('')
-		expect(screen.getByRole('button', { name: 'Zobraziť prácu verzie' })).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Zrušiť filter verzie' })).not.toBeInTheDocument()
 
 		await pickOption('Verzia', 'v2.45 (aktuálna)')
 		await waitFor(() => expect(router.state.location.search).toEqual({ version: CURRENT.id }))

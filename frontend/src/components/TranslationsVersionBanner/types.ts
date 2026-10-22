@@ -9,7 +9,6 @@ export type TranslationsVersionBannerProps = {
 	untranslated?: number
 	/** The signed-in user cannot write into a locked version (EDITOR, VISITOR). */
 	writesBlocked: boolean
-	onShow: () => void
 	onClear: () => void
 	/** Opens the lock / unlock confirmation of the version; only an ADMIN gets the button. */
 	onToggleLock?: () => void

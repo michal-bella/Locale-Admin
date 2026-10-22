@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Verzie ako kópie prekladov – míľnik D (2026-10-22)
+
+- frontend: stránka Preklady má prepínač **Zobraziť len zmeny** (`?diff=true`) s odznakom **Nové** pri pridaných kľúčoch a zvýraznenou zmenenou bunkou, banner verzie hovorí „Oproti v2.44: 4 nové, 1 zmenený, 0 odstránených kľúčov“, verzia bez importu má prázdny stav s tlačidlom Importovať a bez Pridať kľúč; krok kontroly importu ukazuje prevzaté kľúče z predchádzajúcej verzie a varovanie o odstránených; export má checkbox **Len zmeny oproti predchádzajúcej verzii** ([Frontend](./frontend.md#verzie-na-stránke-preklady))
+
 ### Verzie ako kópie prekladov – míľnik C (2026-10-22)
 
 - API: `GET …/translations?diff=true` vráti iba kľúče pridané alebo zmenené oproti predchádzajúcej verzii s `diff: { added, changedLanguageIds }`; `GET …/versions/:versionId/diff` dá súhrn (`previousVersion`, `added`, `changed`, `removed`); `DELETE …/versions/:versionId` zmaže verziu aj s kľúčmi (aktuálnu nie, 409 `PROJECT_VERSION_CURRENT`) a zapíše `VERSION_DELETED`; prehľad (`/dashboard`) a denná aktivita počítajú jednu verziu (`versionId`, predvolene aktuálna, inak najnovšia) a udalosti v zozname aktivít nesú `version` ([verzie](./api/project-versions.md), [preklady](./api/translations.md), [prehľad](./api/dashboard.md))

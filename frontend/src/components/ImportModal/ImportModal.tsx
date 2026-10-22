@@ -56,7 +56,8 @@ const mergeMapping = (preview: ImportPreviewResponse, previous: ImportColumnMapp
 
 /**
  * Import of a CSV file in two steps (Figma 3:2042 for the first one): upload with local checks and the preview, then the review of
- * the language columns, warnings and counts, and the import itself. The file stays in memory between the steps.
+ * the language columns, warnings and counts (also the keys taken over from the previous version and a warning with the keys of the
+ * version the file lacks, since the import removes them), and the import itself. The file stays in memory between the steps.
  */
 const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }: ImportModalProps) => {
 	const { t } = useTranslation()
@@ -83,6 +84,7 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 	const placeholdersId = useId()
 	const nothingMappedId = useId()
 	const summaryTitleId = useId()
+	const removedTitleId = useId()
 
 	// The footer button that triggered the step change is disabled or replaced, so focus would fall back to the body otherwise.
 	useDidUpdate(() => {
@@ -220,14 +222,14 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 			},
 			{
 				onSuccess: (result) => {
-					notifications.show({
-						color: 'green',
-						message: t('importModal.success', {
-							keys: t('importModal.successKeys', { count: result.keysCreated }),
-							translations: t('importModal.successTranslations', { count: result.translationsCreated }),
-							overwritten: t('importModal.successOverwritten', { count: result.translationsUpdated }),
-						}),
-					})
+					const parts = [
+						t('importModal.successKeys', { count: result.keysCreated }),
+						t('importModal.successTranslations', { count: result.translationsCreated }),
+						t('importModal.successOverwritten', { count: result.translationsUpdated }),
+						result.keysCopied > 0 && t('importModal.successCopied', { count: result.keysCopied }),
+						result.keysRemoved > 0 && t('importModal.successRemoved', { count: result.keysRemoved }),
+					].filter((part) => part !== false)
+					notifications.show({ color: 'green', message: t('importModal.success', { parts: parts.join(', ') }) })
 					resetAndClose()
 				},
 				onError: (error) => {
@@ -372,6 +374,11 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 							{baseUntranslated.length > 0 && <li>{t('importModal.review.summary.baseUntranslated', { count: baseUntranslated.length })}</li>}
 							{skippedCount > 0 && <li>{t('importModal.review.summary.skippedColumns', { count: skippedCount })}</li>}
 							{selectedVersion && <li>{t('importModal.review.summary.version', { name: selectedVersion.name })}</li>}
+							{preview.previousVersion && (
+								<li>
+									{t('importModal.review.summary.copied', { name: preview.previousVersion.name, count: preview.keys.copiedFromPrevious })}
+								</li>
+							)}
 						</ul>
 						{mappedCount === 0 && (
 							<Text id={nothingMappedId} size='xs'>
@@ -404,6 +411,23 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 						)}
 						{unlistedWarnings > 0 && <Text size='xs'>{t('importModal.review.summary.moreWarnings', { count: unlistedWarnings })}</Text>}
 					</div>
+					{preview.removed.total > 0 && (
+						<div className={`${classes.removed} flex flex-col gap-2`}>
+							<Text component='h4' id={removedTitleId} size='sm' fw={600} className={classes.removedTitle}>
+								{t('importModal.review.removed.title', { count: preview.removed.total })}
+							</Text>
+							<ul className={classes.removedList} aria-labelledby={removedTitleId}>
+								{preview.removed.names.map((name) => (
+									<li key={name}>{name}</li>
+								))}
+							</ul>
+							{preview.removed.total > preview.removed.names.length && (
+								<Text size='xs' className={classes.removedTitle}>
+									{t('importModal.review.removed.more', { count: preview.removed.total - preview.removed.names.length })}
+								</Text>
+							)}
+						</div>
+					)}
 					{importError && (
 						<Text size='sm' c='var(--mantine-color-error)' role='alert'>
 							{importError}

@@ -266,6 +266,7 @@
 		"createVersionButton": "Vytvořit verzi",
 		"createKeyButton": "Přidat klíč",
 		"noVersions": "Projekt zatím nemá žádnou verzi. Vytvořte ji a importujte do ní překlady.",
+		"versionEmpty": "Verze {{name}} zatím nemá import. Importujte do ní překlady.",
 		"stats": {
 			"totalKeys": "Celkem klíčů",
 			"translated": "Přeložené",
@@ -333,7 +334,8 @@
 		"view": {
 			"label": "Zobrazení",
 			"EXTENDED": "Všechny jazyky",
-			"COMPACT": "Zdroj → cíl"
+			"COMPACT": "Zdroj → cíl",
+			"diffOnly": "Zobrazit jen změny"
 		},
 		"layout": {
 			"label": "Rozložení",
@@ -356,7 +358,10 @@
 			"clearFilters": "Zrušit filtry",
 			"edit": "Upravit klíč",
 			"editLabel": "Upravit klíč {{key}}",
-			"base": "Základní"
+			"base": "Základní",
+			"diffAdded": "Nové",
+			"diffAddedLabel": "Nový klíč",
+			"diffChanged": "Změněno"
 		},
 		"status": {
 			"TRANSLATED": "Přeložené",
@@ -475,7 +480,21 @@
 			"untranslated_one": "Nepřeložený zůstává {{count}} klíč.",
 			"untranslated_few": "Nepřeložené zůstávají {{count}} klíče.",
 			"untranslated_many": "Nepřeložených zůstává {{count}} klíčů.",
-			"untranslated_other": "Nepřeložených zůstává {{count}} klíčů."
+			"untranslated_other": "Nepřeložených zůstává {{count}} klíčů.",
+			"diff": "Oproti {{previous}}: {{added}}, {{changed}}, {{removed}}.",
+			"diffAdded_one": "{{count}} nový",
+			"diffAdded_few": "{{count}} nové",
+			"diffAdded_many": "{{count}} nových",
+			"diffAdded_other": "{{count}} nových",
+			"diffChanged_one": "{{count}} změněný",
+			"diffChanged_few": "{{count}} změněné",
+			"diffChanged_many": "{{count}} změněných",
+			"diffChanged_other": "{{count}} změněných",
+			"diffRemoved_one": "{{count}} odstraněný klíč",
+			"diffRemoved_few": "{{count}} odstraněné klíče",
+			"diffRemoved_many": "{{count}} odstraněných klíčů",
+			"diffRemoved_other": "{{count}} odstraněných klíčů",
+			"first": "První verze projektu."
 		}
 	},
 	"dashboardPage": {
@@ -700,10 +719,24 @@
 				"moreWarnings_many": "a dalších {{count}} upozornění, která se zde nezobrazují",
 				"moreWarnings_other": "a dalších {{count}} upozornění, která se zde nezobrazují",
 				"version": "Verze: {{name}}",
+				"copied_one": "Převzato z {{name}}: {{count}} klíč",
+				"copied_few": "Převzato z {{name}}: {{count}} klíče",
+				"copied_many": "Převzato z {{name}}: {{count}} klíčů",
+				"copied_other": "Převzato z {{name}}: {{count}} klíčů",
 				"noVersion": "Bez verze"
+			},
+			"removed": {
+				"title_one": "Import odstraní {{count}} klíč verze, který v souboru není:",
+				"title_few": "Import odstraní {{count}} klíče verze, které v souboru nejsou:",
+				"title_many": "Import odstraní {{count}} klíčů verze, které v souboru nejsou:",
+				"title_other": "Import odstraní {{count}} klíčů verze, které v souboru nejsou:",
+				"more_one": "… a další {{count}}",
+				"more_few": "… a další {{count}}",
+				"more_many": "… a dalších {{count}}",
+				"more_other": "… a dalších {{count}}"
 			}
 		},
-		"success": "Import dokončen: {{keys}}, {{translations}}, {{overwritten}}.",
+		"success": "Import dokončen: {{parts}}.",
 		"successKeys_one": "{{count}} nový klíč",
 		"successKeys_few": "{{count}} nové klíče",
 		"successKeys_many": "{{count}} nových klíčů",
@@ -716,6 +749,14 @@
 		"successOverwritten_few": "{{count}} přepsané",
 		"successOverwritten_many": "{{count}} přepsaných",
 		"successOverwritten_other": "{{count}} přepsaných",
+		"successCopied_one": "{{count}} klíč převzatý z předchozí verze",
+		"successCopied_few": "{{count}} klíče převzaté z předchozí verze",
+		"successCopied_many": "{{count}} klíčů převzatých z předchozí verze",
+		"successCopied_other": "{{count}} klíčů převzatých z předchozí verze",
+		"successRemoved_one": "{{count}} klíč odstraněn",
+		"successRemoved_few": "{{count}} klíče odstraněny",
+		"successRemoved_many": "{{count}} klíčů odstraněno",
+		"successRemoved_other": "{{count}} klíčů odstraněno",
 		"version": {
 			"label": "Verze",
 			"description": "Vytvořené klíče a zapsané překlady dostanou tuto verzi.",
@@ -784,7 +825,8 @@
 			"extra": "navíc {{list}}"
 		},
 		"version": {
-			"info": "Export verze {{name}}"
+			"info": "Export verze {{name}}",
+			"diffOnly": "Jen změny oproti předchozí verzi"
 		}
 	},
 	"importIssues": {

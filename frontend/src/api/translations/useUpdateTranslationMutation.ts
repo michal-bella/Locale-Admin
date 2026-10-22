@@ -79,6 +79,7 @@ export const useUpdateTranslationMutation = (projectId: string, listQuery: Trans
 		onSettled: () =>
 			Promise.all([
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.TRANSLATIONS_ALL(projectId) }),
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.VERSION_DIFFS(projectId) }),
 				invalidateDashboard(queryClient, projectId),
 			]),
 	})

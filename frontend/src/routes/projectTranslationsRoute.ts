@@ -29,6 +29,8 @@ export const translationsSearchSchema = z.object({
 	warnings: z.literal(true).optional().catch(undefined),
 	/** The version the list shows (`ProjectVersion.id`; missing = the current version, else the newest); edits and new keys on the page go into it. */
 	version: z.uuid().optional().catch(undefined),
+	/** Only keys added or changed against the previous version (`?diff=true`), the Zobraziť len zmeny switch. */
+	diff: z.literal(true).optional().catch(undefined),
 	/** Hides the key and status columns. */
 	translationsOnly: z.literal(true).optional().catch(undefined),
 	page: z.number().int().min(1).optional().catch(undefined),

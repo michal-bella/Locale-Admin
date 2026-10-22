@@ -15,6 +15,7 @@ export const useCreateTranslationKeyMutation = (projectId: string) => {
 		onSuccess: () =>
 			Promise.all([
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.TRANSLATIONS_ALL(projectId) }),
+				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECTS.VERSION_DIFFS(projectId) }),
 				invalidateDashboard(queryClient, projectId),
 			]),
 	})

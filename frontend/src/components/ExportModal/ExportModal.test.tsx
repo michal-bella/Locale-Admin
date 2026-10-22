@@ -160,6 +160,30 @@ describe('ExportModal', () => {
 		})
 	})
 
+	it('sends diffOnly to the check and the export only with Len zmeny oproti predchádzajúcej verzii checked', async () => {
+		const requests = mockPage()
+		renderApp(PAGE_PATH)
+		const dialog = await openModal()
+		const checks = () => requests.filter((request) => request.url === CHECK_URL)
+		await waitFor(() => expect(checks()).toHaveLength(1))
+		expect((checks()[0]?.params as Record<string, unknown>).diffOnly).toBeUndefined()
+
+		const checkbox = within(dialog).getByRole('checkbox', { name: 'Len zmeny oproti predchádzajúcej verzii' })
+		expect(checkbox).not.toBeChecked()
+		fireEvent.click(checkbox)
+
+		await waitFor(() => expect(checks()).toHaveLength(2))
+		expect(checks()[1]?.params).toMatchObject({ diffOnly: true, versionId: CURRENT_VERSION.id })
+		submit(dialog)
+
+		await waitFor(() => expect(downloads).toEqual(['translations.csv']))
+		expect(exportRequests(requests)[0]?.params).toMatchObject({ diffOnly: true, versionId: CURRENT_VERSION.id })
+
+		// The next opening starts without the diff again.
+		const reopened = await openModal()
+		expect(within(reopened).getByRole('checkbox', { name: 'Len zmeny oproti predchádzajúcej verzii' })).not.toBeChecked()
+	})
+
 	it('exports XLSX: the button, the extension and the request follow the chosen format', async () => {
 		const requests = mockPage()
 		renderApp(PAGE_PATH)

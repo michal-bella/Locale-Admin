@@ -18,7 +18,17 @@ import {
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
-import { ADMIN_USER, CURRENT_VERSION, EDITOR_USER, type MockRoutes, projectListRoute, projectVersion, signedInAs } from '@/test/mockApi'
+import {
+	ADMIN_USER,
+	CURRENT_VERSION,
+	EDITOR_USER,
+	type MockRoutes,
+	projectListRoute,
+	projectVersion,
+	signedInAs,
+	versionDiff,
+	VISITOR_USER,
+} from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -79,6 +89,18 @@ const item = (name: string, target: string | null): TranslationListItem => ({
 
 const WELCOME = item('dashboard.welcome', 'Welcome')
 
+/** An upcoming version nobody imported into yet. */
+const EMPTY = projectVersion({
+	id: '00000000-0000-4000-8000-000000000503',
+	name: 'v2.46',
+	startsAt: dayShift(13),
+	endsAt: dayShift(30),
+	isLocked: true,
+	state: 'UPCOMING',
+	importedAt: null,
+	keyCount: 0,
+})
+
 const response = (items: TranslationListItem[]): TranslationsResponse => ({
 	items,
 	total: items.length,
@@ -113,6 +135,11 @@ const mockPage = ({
 		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [SLOVAK, ENGLISH] },
 		[`GET ${VERSIONS_URL}`]: { status: 200, data: { items: versions } },
 		[`GET ${TRANSLATIONS_URL}`]: { status: 200, data: response([WELCOME]) },
+		[`GET ${VERSIONS_URL}/${CURRENT.id}/diff`]: {
+			status: 200,
+			data: versionDiff({ previousVersion: { id: LOCKED.id, name: LOCKED.name }, added: 4, changed: 1 }),
+		},
+		[`GET ${VERSIONS_URL}/${LOCKED.id}/diff`]: { status: 200, data: versionDiff({ added: 10 }) },
 		...routes,
 	})
 
@@ -412,6 +439,108 @@ describe('TranslationsPage versions', () => {
 		fireEvent.click(within(unlockDialog).getByRole('button', { name: 'Odomknúť' }))
 		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Odomknúť verziu' })).not.toBeInTheDocument())
 		expect(bodyOf(requests.filter((request) => request.method === 'patch').at(-1))).toEqual({ lock: 'UNLOCKED' })
+	})
+
+	it('sums the diff against the previous version up in the banner, or says the version is the first one', async () => {
+		mockPage()
+		renderApp(PAGE_PATH)
+		await findRow('dashboard.welcome')
+
+		expect(await screen.findByText('Oproti v2.44: 4 nové, 1 zmenený, 0 odstránených kľúčov.')).toBeInTheDocument()
+
+		await pickOption('Verzia', 'v2.44')
+		expect(await screen.findByText('Prvá verzia projektu.')).toBeInTheDocument()
+		expect(screen.queryByText(/Oproti v2.44/)).not.toBeInTheDocument()
+	})
+
+	it('shows an empty state inside the card for a version without import and asks for no list or diff', async () => {
+		const requests = mockPage({ versions: [EMPTY, CURRENT, LOCKED] })
+		renderApp(`${PAGE_PATH}?version=${EMPTY.id}`)
+
+		// The sentence is also in the hidden results region; the empty state is the paragraph in the card.
+		const card = (await screen.findAllByText('Verzia v2.46 zatiaľ nemá import. Importujte do nej preklady.'))
+			.find((element) => element.tagName === 'P')
+			?.closest('div')
+		expect(card).toBeDefined()
+		expect(within(card as HTMLElement).getByRole('button', { name: 'Importovať' })).toBeInTheDocument()
+		expect(screen.getByText(`Verzia v2.46 začína o ${daysUntil(EMPTY.startsAt, TODAY)} dní.`)).toBeInTheDocument()
+		expect(screen.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.46')
+		expect(screen.queryByRole('table', { name: 'Zoznam prekladov' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Pridať kľúč' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('switch', { name: 'Zobraziť len zmeny' })).not.toBeInTheDocument()
+		expect(screen.queryByText(/Oproti|Prvá verzia/)).not.toBeInTheDocument()
+		expect(requests.filter((request) => request.url === TRANSLATIONS_URL)).toHaveLength(0)
+		expect(requests.filter((request) => request.url?.endsWith('/diff'))).toHaveLength(0)
+
+		// The same import modal as the header button opens.
+		fireEvent.click(within(card as HTMLElement).getByRole('button', { name: 'Importovať' }))
+		const dialog = await screen.findByRole('dialog', { name: 'Importovať preklady' })
+		expect(within(dialog).getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.46')
+	})
+
+	it('gives an EDITOR the empty state of a version without import without Importovať', async () => {
+		mockPage({ user: EDITOR_USER, versions: [EMPTY, CURRENT, LOCKED] })
+		renderApp(`${PAGE_PATH}?version=${EMPTY.id}`)
+
+		await screen.findAllByText('Verzia v2.46 zatiaľ nemá import. Importujte do nej preklady.')
+		expect(screen.queryByRole('button', { name: 'Importovať' })).not.toBeInTheDocument()
+	})
+
+	it('lists only the changes with Zobraziť len zmeny and marks added keys and changed cells', async () => {
+		const ADDED: TranslationListItem = {
+			...item('dashboard.new', 'New'),
+			keyId: '00000000-0000-4000-8000-000000000902',
+			diff: { added: true, changedLanguageIds: [] },
+		}
+		const CHANGED: TranslationListItem = { ...WELCOME, diff: { added: false, changedLanguageIds: [ENGLISH.id] } }
+		const requests = mockPage({
+			routes: {
+				[`GET ${TRANSLATIONS_URL}`]: (config) => ({
+					status: 200,
+					data: paramsOf(config).diff === true ? response([ADDED, CHANGED]) : response([WELCOME]),
+				}),
+			},
+		})
+		const router = renderApp(`${PAGE_PATH}?page=2`)
+		await findRow('dashboard.welcome')
+		expect(screen.queryByText('Nový kľúč')).not.toBeInTheDocument()
+
+		fireEvent.click(screen.getByRole('switch', { name: 'Zobraziť len zmeny' }))
+
+		await waitFor(() => expect(router.state.location.search).toEqual({ diff: true }))
+		const addedRow = await findRow('dashboard.new')
+		expect(within(addedRow).getByText('Nový kľúč')).toBeInTheDocument()
+		expect(within(addedRow).getByRole('button', { name: 'Preklad kľúča dashboard.new, angličtina: New' })).not.toHaveAttribute('data-changed')
+		const changedRow = await findRow('dashboard.welcome')
+		expect(within(changedRow).queryByText('Nový kľúč')).not.toBeInTheDocument()
+		expect(within(changedRow).getByRole('button', { name: 'Preklad kľúča dashboard.welcome, angličtina: Zmenené: Welcome' })).toHaveAttribute(
+			'data-changed',
+			'true',
+		)
+		expect(within(changedRow).getByRole('button', { name: 'Preklad kľúča dashboard.welcome, slovenčina: Vitajte' })).not.toHaveAttribute('data-changed')
+		expect(screen.getByRole('switch', { name: 'Zobraziť len zmeny' })).toBeChecked()
+		const diffRequest = requests.find((request) => request.url === TRANSLATIONS_URL && paramsOf(request).diff === true)
+		expect(paramsOf(diffRequest)).toMatchObject({ diff: true, versionId: CURRENT.id, page: 1 })
+
+		fireEvent.click(screen.getByRole('switch', { name: 'Zobraziť len zmeny' }))
+		await waitFor(() => expect(router.state.location.search).toEqual({}))
+	})
+
+	it('marks the changes in the read-only table of a VISITOR too', async () => {
+		mockPage({
+			user: VISITOR_USER,
+			routes: {
+				[`GET ${TRANSLATIONS_URL}`]: { status: 200, data: response([{ ...WELCOME, diff: { added: true, changedLanguageIds: [ENGLISH.id] } }]) },
+			},
+		})
+		renderApp(`${PAGE_PATH}?diff=true`)
+
+		const row = await findRow('dashboard.welcome')
+		expect(within(row).getByText('Nový kľúč')).toBeInTheDocument()
+		expect(within(row).getByText('Preklad kľúča dashboard.welcome, angličtina: Zmenené:').closest('[data-readonly]')).toHaveAttribute(
+			'data-changed',
+			'true',
+		)
 	})
 
 	it('shows an EDITOR no Vytvoriť verziu and no lock button', async () => {

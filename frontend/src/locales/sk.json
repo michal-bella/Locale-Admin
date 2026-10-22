@@ -266,6 +266,7 @@
 		"createVersionButton": "Vytvoriť verziu",
 		"createKeyButton": "Pridať kľúč",
 		"noVersions": "Projekt zatiaľ nemá žiadnu verziu. Vytvorte ju a importujte do nej preklady.",
+		"versionEmpty": "Verzia {{name}} zatiaľ nemá import. Importujte do nej preklady.",
 		"stats": {
 			"totalKeys": "Celkom kľúčov",
 			"translated": "Preložené",
@@ -333,7 +334,8 @@
 		"view": {
 			"label": "Zobrazenie",
 			"EXTENDED": "Všetky jazyky",
-			"COMPACT": "Zdroj → cieľ"
+			"COMPACT": "Zdroj → cieľ",
+			"diffOnly": "Zobraziť len zmeny"
 		},
 		"layout": {
 			"label": "Rozloženie",
@@ -356,7 +358,10 @@
 			"clearFilters": "Zrušiť filtre",
 			"edit": "Upraviť kľúč",
 			"editLabel": "Upraviť kľúč {{key}}",
-			"base": "Základný"
+			"base": "Základný",
+			"diffAdded": "Nové",
+			"diffAddedLabel": "Nový kľúč",
+			"diffChanged": "Zmenené"
 		},
 		"status": {
 			"TRANSLATED": "Preložené",
@@ -475,7 +480,21 @@
 			"untranslated_one": "Nepreložený ostáva {{count}} kľúč.",
 			"untranslated_few": "Nepreložené ostávajú {{count}} kľúče.",
 			"untranslated_many": "Nepreložených ostáva {{count}} kľúčov.",
-			"untranslated_other": "Nepreložených ostáva {{count}} kľúčov."
+			"untranslated_other": "Nepreložených ostáva {{count}} kľúčov.",
+			"diff": "Oproti {{previous}}: {{added}}, {{changed}}, {{removed}}.",
+			"diffAdded_one": "{{count}} nový",
+			"diffAdded_few": "{{count}} nové",
+			"diffAdded_many": "{{count}} nových",
+			"diffAdded_other": "{{count}} nových",
+			"diffChanged_one": "{{count}} zmenený",
+			"diffChanged_few": "{{count}} zmenené",
+			"diffChanged_many": "{{count}} zmenených",
+			"diffChanged_other": "{{count}} zmenených",
+			"diffRemoved_one": "{{count}} odstránený kľúč",
+			"diffRemoved_few": "{{count}} odstránené kľúče",
+			"diffRemoved_many": "{{count}} odstránených kľúčov",
+			"diffRemoved_other": "{{count}} odstránených kľúčov",
+			"first": "Prvá verzia projektu."
 		}
 	},
 	"dashboardPage": {
@@ -700,10 +719,24 @@
 				"moreWarnings_many": "a ďalších {{count}} upozornení, ktoré sa tu nezobrazujú",
 				"moreWarnings_other": "a ďalších {{count}} upozornení, ktoré sa tu nezobrazujú",
 				"version": "Verzia: {{name}}",
+				"copied_one": "Prevzaté z {{name}}: {{count}} kľúč",
+				"copied_few": "Prevzaté z {{name}}: {{count}} kľúče",
+				"copied_many": "Prevzaté z {{name}}: {{count}} kľúčov",
+				"copied_other": "Prevzaté z {{name}}: {{count}} kľúčov",
 				"noVersion": "Bez verzie"
+			},
+			"removed": {
+				"title_one": "Import odstráni {{count}} kľúč verzie, ktorý v súbore nie je:",
+				"title_few": "Import odstráni {{count}} kľúče verzie, ktoré v súbore nie sú:",
+				"title_many": "Import odstráni {{count}} kľúčov verzie, ktoré v súbore nie sú:",
+				"title_other": "Import odstráni {{count}} kľúčov verzie, ktoré v súbore nie sú:",
+				"more_one": "… a ďalší {{count}}",
+				"more_few": "… a ďalšie {{count}}",
+				"more_many": "… a ďalších {{count}}",
+				"more_other": "… a ďalších {{count}}"
 			}
 		},
-		"success": "Import dokončený: {{keys}}, {{translations}}, {{overwritten}}.",
+		"success": "Import dokončený: {{parts}}.",
 		"successKeys_one": "{{count}} nový kľúč",
 		"successKeys_few": "{{count}} nové kľúče",
 		"successKeys_many": "{{count}} nových kľúčov",
@@ -716,6 +749,14 @@
 		"successOverwritten_few": "{{count}} prepísané",
 		"successOverwritten_many": "{{count}} prepísaných",
 		"successOverwritten_other": "{{count}} prepísaných",
+		"successCopied_one": "{{count}} kľúč prevzatý z predchádzajúcej verzie",
+		"successCopied_few": "{{count}} kľúče prevzaté z predchádzajúcej verzie",
+		"successCopied_many": "{{count}} kľúčov prevzatých z predchádzajúcej verzie",
+		"successCopied_other": "{{count}} kľúčov prevzatých z predchádzajúcej verzie",
+		"successRemoved_one": "{{count}} kľúč odstránený",
+		"successRemoved_few": "{{count}} kľúče odstránené",
+		"successRemoved_many": "{{count}} kľúčov odstránených",
+		"successRemoved_other": "{{count}} kľúčov odstránených",
 		"version": {
 			"label": "Verzia",
 			"description": "Vytvorené kľúče a zapísané preklady dostanú túto verziu.",
@@ -784,7 +825,8 @@
 			"extra": "navyše {{list}}"
 		},
 		"version": {
-			"info": "Export verzie {{name}}"
+			"info": "Export verzie {{name}}",
+			"diffOnly": "Len zmeny oproti predchádzajúcej verzii"
 		}
 	},
 	"importIssues": {

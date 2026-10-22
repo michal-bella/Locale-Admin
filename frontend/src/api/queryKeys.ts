@@ -22,10 +22,13 @@ export const QUERY_KEYS = {
 		MEMBERS: (projectId: string) => ['projects', projectId, 'members'] as const,
 		LANGUAGES: (projectId: string) => ['projects', projectId, 'languages'] as const,
 		VERSIONS: (projectId: string) => ['projects', projectId, 'versions'] as const,
+		/** Prefix of the diff summaries of every version of the project, under `VERSIONS()` so a version change refetches them too. */
+		VERSION_DIFFS: (projectId: string) => ['projects', projectId, 'versions', 'diff'] as const,
+		VERSION_DIFF: (projectId: string, versionId: string) => ['projects', projectId, 'versions', 'diff', versionId] as const,
 		/** Prefix of every translations page of one project, e.g. to refetch them all after an edit. */
 		TRANSLATIONS_ALL: (projectId: string) => ['projects', projectId, 'translations'] as const,
 		TRANSLATIONS: (projectId: string, query: TranslationsQueryInput) => ['projects', projectId, 'translations', query] as const,
-		EXPORT_CHECK: (projectId: string, query: Pick<ExportCheckQuery, 'languageIds' | 'status' | 'versionId'>) =>
+		EXPORT_CHECK: (projectId: string, query: Pick<ExportCheckQuery, 'languageIds' | 'status' | 'versionId' | 'diffOnly'>) =>
 			['projects', projectId, 'export-check', query] as const,
 		DASHBOARD: (projectId: string) => ['projects', projectId, 'dashboard'] as const,
 		/** Prefix of the activity feed and the daily activity of one project. */

@@ -18,6 +18,11 @@
 	background-color: var(--app-color-untranslated-bg);
 }
 
+/* Changed against the previous version: a brand edge in both schemes (`--app-color-eyebrow` is brand.4 in the dark one). */
+.button[data-changed] {
+	border-inline-start: 3px solid var(--app-color-eyebrow);
+}
+
 .button[data-readonly] {
 	cursor: default;
 }

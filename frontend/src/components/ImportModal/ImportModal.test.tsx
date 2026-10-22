@@ -493,6 +493,62 @@ describe('ImportModal step 2 (review)', () => {
 		expect(await screen.findByRole('option', { name: 'English (en)' })).toHaveAttribute('data-combobox-disabled', 'true')
 	})
 
+	it('shows the keys taken over from the previous version and warns about the keys the import removes', async () => {
+		const names = Array.from({ length: 20 }, (_, index) => `common.removed.${index + 1}`)
+		mockPage({
+			[`POST ${PREVIEW_URL}`]: {
+				status: 200,
+				data: {
+					...PREVIEW,
+					keys: { total: 6, new: 2, existing: 1, copiedFromPrevious: 3 },
+					previousVersion: { id: '00000000-0000-4000-8000-000000000501', name: 'v2.44' },
+					removed: { total: 22, names },
+				},
+			},
+		})
+		renderApp(PAGE_PATH)
+		const dialog = await goToReview()
+
+		expect(summaryItems(dialog)).toContain('Prevzaté z v2.44: 3 kľúče')
+		const removed = within(dialog).getByRole('list', { name: 'Import odstráni 22 kľúčov verzie, ktoré v súbore nie sú:' })
+		expect(
+			within(removed)
+				.getAllByRole('listitem')
+				.map((item) => item.textContent),
+		).toEqual(names)
+		expect(within(dialog).getByText('… a ďalšie 2')).toBeInTheDocument()
+	})
+
+	it('shows neither the taken-over keys of a first version nor a removal warning without removed keys', async () => {
+		mockPage()
+		renderApp(PAGE_PATH)
+		const dialog = await goToReview()
+
+		expect(summaryItems(dialog).some((item) => item?.startsWith('Prevzaté z'))).toBe(false)
+		expect(within(dialog).queryByText(/Import odstráni/)).not.toBeInTheDocument()
+	})
+
+	it('counts the taken-over and removed keys in the result when there are any', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		mockPage({
+			[`POST ${IMPORT_URL}`]: {
+				status: 200,
+				data: { keysCreated: 2, keysCopied: 3, keysRemoved: 1, translationsCreated: 3, translationsUpdated: 1, skippedColumns: 1 },
+			},
+		})
+		renderApp(PAGE_PATH)
+		const dialog = await goToReview()
+
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Importovať' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Importovať preklady' })).not.toBeInTheDocument())
+		expect(show).toHaveBeenCalledWith(
+			expect.objectContaining({
+				message: 'Import dokončený: 2 nové kľúče, 3 nové preklady, 1 prepísaný, 3 kľúče prevzaté z predchádzajúcej verzie, 1 kľúč odstránený.',
+			}),
+		)
+	})
+
 	it('sends the columns and createMissingKeys, shows the result and closes', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		const requests = mockPage({

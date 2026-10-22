@@ -29,10 +29,16 @@
 	cursor: pointer;
 }
 
-/* Pushed to the end of the row, so it reads as a column option apart from the language choice. */
+/* Pushed to the end of the row, so they read as view options apart from the language choice. */
+.switches {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	margin-inline-start: auto;
+}
+
 .switch {
 	flex-shrink: 0;
-	margin-inline-start: auto;
 	padding-inline: 0.25rem;
 	white-space: nowrap;
 }

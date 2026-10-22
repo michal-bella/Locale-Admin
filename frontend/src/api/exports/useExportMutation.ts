@@ -8,11 +8,11 @@ import http from '@/api/http'
 /** Downloads the CSV or XLSX as a Blob. An error body is a Blob too, so it is parsed back to JSON for `getApiErrorCode`. */
 export const useExportMutation = (projectId: string) =>
 	useMutation({
-		mutationFn: async ({ languageIds, status, format, versionId }: ExportQuery) => {
+		mutationFn: async ({ languageIds, status, format, versionId, diffOnly }: ExportQuery) => {
 			try {
 				return (
 					await http.get<Blob>(`/projects/${projectId}/export`, {
-						params: { languageIds: languageIds.join(','), status, format, versionId },
+						params: { languageIds: languageIds.join(','), status, format, versionId, diffOnly },
 						responseType: 'blob',
 					})
 				).data

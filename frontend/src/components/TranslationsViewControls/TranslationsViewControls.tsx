@@ -73,7 +73,8 @@ const LanguageSelect = ({
 
 /**
  * What the translations table shows, apart from the filters: the view and layout switches, source → target in the compact view or the shown languages
- * in the extended one, and Len preklady, which hides the key and status columns. Sits above the table card and scrolls away; only the filters stick.
+ * in the extended one, Zobraziť len zmeny (the diff against the previous version) and Len preklady, which hides the key and status columns.
+ * Sits above the table card and scrolls away; only the filters stick.
  */
 const TranslationsViewControls = ({
 	view,
@@ -86,6 +87,8 @@ const TranslationsViewControls = ({
 	targetLanguage,
 	shownLanguages,
 	translationsOnly,
+	diffOnly,
+	diffAvailable,
 	onChange,
 }: TranslationsViewControlsProps) => {
 	const { t } = useTranslation()
@@ -186,13 +189,24 @@ const TranslationsViewControls = ({
 					comboboxProps={{ width: 260, position: 'bottom-start' }}
 				/>
 			)}
-			<Switch
-				label={t('translationsPage.toolbar.translationsOnly')}
-				checked={translationsOnly === true}
-				onChange={(event) => onChange({ translationsOnly: event.currentTarget.checked || undefined })}
-				className={classes.switch}
-				classNames={{ track: classes.pointer, label: classes.pointer }}
-			/>
+			<div className={classes.switches}>
+				{diffAvailable && (
+					<Switch
+						label={t('translationsPage.view.diffOnly')}
+						checked={diffOnly === true}
+						onChange={(event) => onChange({ diff: event.currentTarget.checked || undefined })}
+						className={classes.switch}
+						classNames={{ track: classes.pointer, label: classes.pointer }}
+					/>
+				)}
+				<Switch
+					label={t('translationsPage.toolbar.translationsOnly')}
+					checked={translationsOnly === true}
+					onChange={(event) => onChange({ translationsOnly: event.currentTarget.checked || undefined })}
+					className={classes.switch}
+					classNames={{ track: classes.pointer, label: classes.pointer }}
+				/>
+			</div>
 		</div>
 	)
 }

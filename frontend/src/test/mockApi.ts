@@ -1,6 +1,6 @@
 import { type AxiosAdapter, AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-import { type AuthUser, type ProjectListItem, type ProjectVersion, ROLE, toVersionDate, VERSION_LOCK } from '@locale/shared'
+import { type AuthUser, type ProjectListItem, type ProjectVersion, ROLE, toVersionDate, VERSION_LOCK, type VersionDiffSummary } from '@locale/shared'
 
 import http from '@/api/http'
 
@@ -119,3 +119,12 @@ export const projectVersion = (overrides: Partial<ProjectVersion> & Pick<Project
 
 /** The current version of a project; every translations page needs one, since the list always shows a version. */
 export const CURRENT_VERSION = projectVersion({ id: '00000000-0000-4000-8000-000000000502', name: 'v2.45', isCurrent: true })
+
+/** Body of `GET /projects/:id/versions/:versionId/diff`; the default is the first version of a project (no previous one, nothing counted). */
+export const versionDiff = (overrides: Partial<VersionDiffSummary> = {}): VersionDiffSummary => ({
+	previousVersion: null,
+	added: 0,
+	changed: 0,
+	removed: 0,
+	...overrides,
+})

@@ -58,7 +58,8 @@ const validateFileName = (name: string): FileNameError | null => {
 
 /**
  * Export of the project translations (Figma 3:2768): format (CSV or XLSX), languages (all by default), status and file name. The server
- * streams the file, the browser saves it under the chosen name. Without Zahrnúť popisy a metadáta kľúčov (not part of the CSV format).
+ * streams the file, the browser saves it under the chosen name. The file holds the whole version, or with Len zmeny oproti predchádzajúcej
+ * verzii only its keys added or changed against the previous version. Without Zahrnúť popisy a metadáta kľúčov (not part of the CSV format).
  */
 const ExportModal = ({ projectId, version, opened, onClose }: ExportModalProps) => {
 	const { t, i18n } = useTranslation()
@@ -74,6 +75,7 @@ const ExportModal = ({ projectId, version, opened, onClose }: ExportModalProps) 
 	const [selectedIds, setSelectedIds] = useState<string[] | null>(null)
 	const [format, setFormat] = useState<ExportFormat>('CSV')
 	const [status, setStatus] = useState<ExportStatus>('ALL')
+	const [diffOnly, setDiffOnly] = useState(false)
 	const [fileName, setFileName] = useState(EXPORT_FILE_NAME_DEFAULT)
 	const [submitted, setSubmitted] = useState(false)
 
@@ -84,7 +86,13 @@ const ExportModal = ({ projectId, version, opened, onClose }: ExportModalProps) 
 	}
 	// The project order of the languages, as the export sends them; the key of the check changes only with the selection.
 	const orderedIds = languages.filter((language) => languageIds.includes(language.id)).map((language) => language.id)
-	const check = useExportCheckQuery(projectId, { languageIds: orderedIds, status, versionId: version.id }, opened && orderedIds.length > 0)
+	// `diffOnly` is a literal `true` in the contract, so off means no param at all.
+	const diffOnlyParam = diffOnly || undefined
+	const check = useExportCheckQuery(
+		projectId,
+		{ languageIds: orderedIds, status, versionId: version.id, diffOnly: diffOnlyParam },
+		opened && orderedIds.length > 0,
+	)
 	const warnings = check.data && check.data.total > 0 ? check.data : null
 	const name = toFileName(fileName)
 	const extension = extensionOf(format)
@@ -106,6 +114,7 @@ const ExportModal = ({ projectId, version, opened, onClose }: ExportModalProps) 
 		setSelectedIds(null)
 		setFormat('CSV')
 		setStatus('ALL')
+		setDiffOnly(false)
 		setFileName(EXPORT_FILE_NAME_DEFAULT)
 		setSubmitted(false)
 		exportMutation.reset()
@@ -123,7 +132,7 @@ const ExportModal = ({ projectId, version, opened, onClose }: ExportModalProps) 
 			return
 		}
 		exportMutation.mutate(
-			{ languageIds: orderedIds, status, format, versionId: version.id },
+			{ languageIds: orderedIds, status, format, versionId: version.id, diffOnly: diffOnlyParam },
 			{
 				onSuccess: (blob) => {
 					const fullName = `${name}${extension}`
@@ -231,9 +240,17 @@ const ExportModal = ({ projectId, version, opened, onClose }: ExportModalProps) 
 					data={exportStatusSchema.options.map((value) => ({ value, label: t(`exportModal.status.${value}`) }))}
 				/>
 			</Input.Wrapper>
-			<Text size='sm' fw={600} c='var(--app-color-text-strong)'>
-				{t('exportModal.version.info', { name: version.name })}
-			</Text>
+			<div className='flex flex-col gap-2'>
+				<Text size='sm' fw={600} c='var(--app-color-text-strong)'>
+					{t('exportModal.version.info', { name: version.name })}
+				</Text>
+				<Checkbox
+					label={t('exportModal.version.diffOnly')}
+					checked={diffOnly}
+					onChange={(event) => setDiffOnly(event.currentTarget.checked)}
+					disabled={isPending}
+				/>
+			</div>
 			<TextInput
 				ref={fileNameRef}
 				label={

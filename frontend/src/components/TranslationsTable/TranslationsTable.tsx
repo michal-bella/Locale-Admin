@@ -1,4 +1,4 @@
-import { Button, Skeleton, Table, Text, Tooltip } from '@mantine/core'
+import { Button, Skeleton, Table, Text, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { Fragment, type PointerEvent as ReactPointerEvent, type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -39,6 +39,7 @@ type Editing = { item: TranslationListItem; language: Language; viaNext?: boolea
  * a group header row starts every run of keys with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first
  * and are grouped inside. `translationsOnly` hides the key and status columns (more room for the languages on a phone); the key stays in the
  * accessible name of every cell. An untranslated cell has a soft red background. A global ADMIN gets an edit button next to every key that opens `EditKeyModal`.
+ * With `item.diff` (the list filtered by Zobraziť len zmeny) an added key wears a „Nové“ badge and a changed cell a brand left border.
  */
 const TranslationsTable = ({
 	projectId,
@@ -166,15 +167,33 @@ const TranslationsTable = ({
 		return base ?? (placeholders(item.name).size > 0 ? item.name : undefined)
 	}
 
+	const isChanged = (item: TranslationListItem, language: Language) => item.diff?.changedLanguageIds.includes(language.id) ?? false
+
 	const translationCell = (item: TranslationListItem, language: Language) => (
 		<TranslationCell
 			cell={item.translations[language.id] ?? EMPTY_CELL}
 			label={t('translationsPage.editor.label', { key: item.name, language: t(`languageNames.${language.tag}`) })}
 			pluralTag={item.plural ? language.tag : undefined}
 			reference={referenceFor(item, language)}
+			changed={isChanged(item, language)}
 			onClick={readOnly ? undefined : () => openTranslation(item, language)}
 		/>
 	)
+
+	// The read-only source of the compact view gets the same marker as a cell when its value changed.
+	const sourceValue = (item: TranslationListItem, language: Language | undefined, className: string | undefined) => {
+		const changed = language !== undefined && isChanged(item, language)
+		return (
+			<span className={`${className} ${changed ? classes.sourceChanged : ''}`}>
+				{changed && <VisuallyHidden>{t('translationsPage.table.diffChanged')}: </VisuallyHidden>}
+				<TranslationValue
+					value={(language && item.translations[language.id])?.value ?? null}
+					pluralTag={item.plural ? language?.tag : undefined}
+					reference={language && referenceFor(item, language)}
+				/>
+			</span>
+		)
+	}
 
 	const languageLabel = (language: Language) => (
 		<span className={classes.languageHeader}>
@@ -199,7 +218,6 @@ const TranslationsTable = ({
 	)
 
 	const renderItem = (item: TranslationListItem, now: Date) => {
-		const source = (sourceLanguage && item.translations[sourceLanguage.id]) ?? EMPTY_CELL
 		const target = (targetLanguage && item.translations[targetLanguage.id]) ?? EMPTY_CELL
 		// The compact view shows when the target changed, the extended one the latest change in any language.
 		const updatedAt = isExtended
@@ -216,6 +234,12 @@ const TranslationsTable = ({
 							<Text component='span' className={classes.key}>
 								{item.name}
 							</Text>
+							{item.diff?.added && (
+								<span className={classes.diffBadge}>
+									<span aria-hidden>{t('translationsPage.table.diffAdded')}</span>
+									<VisuallyHidden>{t('translationsPage.table.diffAddedLabel')}</VisuallyHidden>
+								</span>
+							)}
 							{item.description && (
 								<Tooltip label={item.description} events={TOOLTIP_EVENTS} multiline w={260}>
 									<span
@@ -266,13 +290,7 @@ const TranslationsTable = ({
 									{sourceLanguage && (
 										<div className={classes.stackItem}>
 											<span className={classes.stackLanguage}>{languageLabel(sourceLanguage)}</span>
-											<span className={`${classes.sourceValue} ${classes.stackSource}`}>
-												<TranslationValue
-													value={source.value}
-													pluralTag={item.plural ? sourceLanguage.tag : undefined}
-													reference={referenceFor(item, sourceLanguage)}
-												/>
-											</span>
+											{sourceValue(item, sourceLanguage, `${classes.sourceValue} ${classes.stackSource}`)}
 										</div>
 									)}
 									{targetLanguage && stackedCell(item, targetLanguage)}
@@ -288,15 +306,7 @@ const TranslationsTable = ({
 					))
 				) : (
 					<>
-						<Table.Td className={`${classes.td} ${classes.value}`}>
-							<span className={classes.sourceValue}>
-								<TranslationValue
-									value={source.value}
-									pluralTag={item.plural ? sourceLanguage?.tag : undefined}
-									reference={sourceLanguage && referenceFor(item, sourceLanguage)}
-								/>
-							</span>
-						</Table.Td>
+						<Table.Td className={`${classes.td} ${classes.value}`}>{sourceValue(item, sourceLanguage, classes.sourceValue)}</Table.Td>
 						<Table.Td className={`${classes.td} ${classes.value}`}>{targetLanguage && translationCell(item, targetLanguage)}</Table.Td>
 					</>
 				)}

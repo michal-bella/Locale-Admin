@@ -1,12 +1,12 @@
-import { type APIRequestContext, expect, type Page, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 import { ANONYMOUS } from '../support/auth'
 import { importSample } from '../support/imports'
-import { listLanguages } from '../support/languages'
 import { getMainNavigation } from '../support/layout'
 import { createProject } from '../support/projects'
 import {
 	backgroundOf,
+	createProjectWithKeys,
 	expectKeys,
 	expectStats,
 	expectView,
@@ -22,7 +22,6 @@ import {
 	getTranslationRows,
 	getTranslationField,
 	getTranslationsTable,
-	insertTranslationKeys,
 	openEditTranslationModal,
 	openTranslations,
 	pickOption,
@@ -33,7 +32,7 @@ import {
 	TRANSPARENT,
 } from '../support/translations'
 import { loginAsFreshAdmin } from '../support/users'
-import { createVersion, CURRENT_WINDOW } from '../support/versions'
+import { createProjectWithVersion, createVersion, CURRENT_WINDOW, dayShift } from '../support/versions'
 
 const SENTENCE_KEY = 'Adresa nie je kompletná. Uistite sa'
 
@@ -52,14 +51,6 @@ const KEYS: TestTranslationKey[] = [
 ]
 
 const EXTENDED_UNTRANSLATED_FIRST = ['orders.empty.description', 'orders.empty.title', 'promo.banner', SENTENCE_KEY, 'dashboard.welcome']
-
-const createProjectWithKeys = async (api: APIRequestContext, label: string, keys: TestTranslationKey[], languageTags = ['sk', 'cs', 'en']) => {
-	const project = await createProject(api, label, languageTags)
-	if (keys.length > 0) {
-		await insertTranslationKeys(project.id, await listLanguages(api, project.id), keys)
-	}
-	return project
-}
 
 const expectNoLanguageSelects = async (page: Page) => {
 	await expect(page.getByRole('combobox', { name: 'Zdrojový jazyk' })).toHaveCount(0)
@@ -248,16 +239,29 @@ test('more than 25 keys are paginated and a single namespace has no namespace fi
 	await expect(getTranslationRows(page).first()).toHaveAttribute('data-status', 'UNTRANSLATED')
 })
 
-test('a project without keys shows the empty state with Importovať, which opens the import modal', async ({ page, request }) => {
-	const project = await createProjectWithKeys(request, 'tr-empty', [])
-	await openTranslations(page, project)
+test('a project without versions asks for one; a version without an import shows the import prompt, which opens the import modal', async ({
+	page,
+	request,
+}) => {
+	const project = await createProject(request, 'tr-empty', ['sk', 'cs', 'en'])
+	await page.goto(translationsPath(project))
+	const main = page.getByRole('main')
+	await expect(main.getByText('Projekt zatiaľ nemá žiadnu verziu. Vytvorte ju a importujte do nej preklady.')).toBeVisible()
+	await expect(main.getByRole('button', { name: 'Vytvoriť verziu' })).toBeVisible()
+	await expect(main.getByRole('button', { name: /Importovať|Exportovať|Pridať kľúč/ })).toHaveCount(0)
+	await expect(getTranslationsTable(page)).toHaveCount(0)
 
-	await expect(getTranslationsTable(page).getByText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeVisible()
-	await getTranslationsTable(page).getByRole('button', { name: 'Importovať' }).click()
+	await createVersion(request, project.id, { name: 'v2.45', ...CURRENT_WINDOW })
+	await page.reload()
+	await expect(main.getByText('Verzia v2.45 zatiaľ nemá import. Importujte do nej preklady.').first()).toBeVisible()
+	await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
+	await expect(getTranslationsTable(page)).toHaveCount(0)
+	await expect(main.getByRole('button', { name: 'Pridať kľúč' })).toHaveCount(0)
+	await main.getByRole('button', { name: 'Importovať' }).last().click()
 	await expect(page.getByRole('dialog', { name: 'Importovať preklady' })).toBeVisible()
+	await expect(page.getByRole('dialog', { name: 'Importovať preklady' }).getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
 	await page.keyboard.press('Escape')
 	await expect(page.getByRole('dialog', { name: 'Importovať preklady' })).toHaveCount(0)
-	await expect(getTranslationRows(page)).toHaveCount(0)
 	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('0')
 })
 
@@ -278,11 +282,12 @@ test('no results show Zrušiť filtre, which clears search and status but keeps 
 // The view is saved on the user, so these tests sign in as their own ADMIN and leave the shared one in EXTENDED.
 test('a yellow banner counts the keys with a placeholder warning and its button filters the table by them', async ({ page, request }) => {
 	// import-sample.csv: only cart.items differs (cs „Máte položek“ without {{count}}); en {{ name }} normalizes to the base {{name}}.
-	const project = await createProject(request, 'tr-warnings', ['sk', 'en', 'cs'])
-	await importSample(request, project.id, { sk: 'sk', en: 'en', cs: 'cs' })
+	const project = await createProjectWithVersion(request, 'tr-warnings', ['sk', 'en', 'cs'])
+	await importSample(request, project.id, project.version.id, { sk: 'sk', en: 'en', cs: 'cs' })
 	await openTranslations(page, project)
 
-	const banner = page.getByRole('alert')
+	// The version banner is an alert too, so the warnings one is told apart by its text.
+	const banner = page.getByRole('alert').filter({ hasText: 'premenné' })
 	await expect(banner).toContainText('1 kľúč má premenné, ktoré sa líšia od základného jazyka, napríklad po importe.')
 	await expect(getTranslationRows(page)).toHaveCount(10)
 
@@ -297,32 +302,42 @@ test('a yellow banner counts the keys with a placeholder warning and its button 
 	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
 	await expectKeys(getTranslationRows(page), ['cart.items'])
 
-	await page.getByRole('alert').getByRole('button', { name: 'Zrušiť filter upozornení' }).click()
+	await banner.getByRole('button', { name: 'Zrušiť filter upozornení' }).click()
 	await expect(page).toHaveURL(translationsPath(project))
 	await expect(getTranslationRows(page)).toHaveCount(10)
 })
 
-test('the list opens on the work of the current version with its countdown; clearing the filter shows the whole project', async ({ page, request }) => {
+test('the list opens on the current version with its countdown and keeps the version in the URL; another version has its own copy', async ({
+	page,
+	request,
+}) => {
 	const project = await createProjectWithKeys(request, 'translations-version', KEYS)
-	const version = await createVersion(request, project.id, { name: 'v2.45', ...CURRENT_WINDOW })
+	const next = await createVersion(request, project.id, { name: 'v2.46', startsAt: dayShift(13), endsAt: dayShift(40) })
 	await openTranslations(page, project)
 
 	await expect(page.getByText('Verzia v2.45: ostáva 12 dní do uzamknutia.')).toBeVisible()
+	await expect(page.getByText('Nepreložené ostávajú 4 kľúče.')).toBeVisible()
+	await expect(page.getByText('Prvá verzia projektu.')).toBeVisible()
 	await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
-	await expect(page.getByText('Filtrom nezodpovedá žiadny kľúč.').first()).toBeVisible()
-	await page.getByRole('button', { name: 'Zrušiť filter verzie' }).click()
-	await expect(page).toHaveURL(translationsPath(project, '?version=ALL'))
-	await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('')
 	await expect(getTranslationRows(page)).toHaveCount(KEYS.length)
 
-	// An edit in the whole project goes into the current version by date, so the key becomes its work.
+	// An edit goes into the shown version only; the other version has no keys until its import.
 	await openEditTranslationModal(page, 'orders.empty.title', 'čeština')
 	await getTranslationField(page, 'orders.empty.title', 'čeština').fill('Zatím nemáte žádné objednávky')
 	expect((await saveTranslation(page)).status()).toBe(200)
 	await expect(getEditTranslationDialog(page)).toBeHidden()
+	await expect(page.getByText('Nepreložené ostávajú 3 kľúče.')).toBeVisible()
+
+	await pickOption(page, 'Verzia', 'v2.46')
+	await expect(page).toHaveURL(translationsPath(project, `?version=${next.id}`))
+	await expect(page.getByText('Verzia v2.46 začína o 13 dní.')).toBeVisible()
+	await expect(page.getByRole('main').getByText('Verzia v2.46 zatiaľ nemá import. Importujte do nej preklady.').first()).toBeVisible()
+	await expect(getTranslationsTable(page)).toHaveCount(0)
+
 	await pickOption(page, 'Verzia', 'v2.45 (aktuálna)')
-	await expect(page).toHaveURL(translationsPath(project, `?version=${version.id}`))
-	await expectKeys(getTranslationRows(page), ['orders.empty.title'])
+	await expect(page).toHaveURL(translationsPath(project, `?version=${project.version.id}`))
+	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+	await expect(getTranslationRow(page, 'orders.empty.title')).toContainText('Zatím nemáte žádné objednávky')
 })
 
 test('a project whose placeholders all match has no warnings banner', async ({ page, request }) => {
@@ -330,7 +345,8 @@ test('a project whose placeholders all match has no warnings banner', async ({ p
 	await openTranslations(page, project)
 
 	await expect(getTranslationRows(page)).toHaveCount(KEYS.length)
-	await expect(page.getByRole('alert')).toHaveCount(0)
+	await expect(page.getByRole('alert').filter({ hasText: 'premenné' })).toHaveCount(0)
+	await expect(page.getByRole('alert')).toHaveCount(1)
 })
 
 test.describe('view switch', () => {

@@ -4,13 +4,12 @@ import { MUTATION_HEADERS } from '../support/api'
 import { downloadExport, downloadExportBytes, getExportDialog, openExportModal, SAMPLE_EXPORT } from '../support/exports'
 import { importFile, importPreviewApi, importSample, SAMPLE_CSV } from '../support/imports'
 import { listLanguages } from '../support/languages'
-import { createProject } from '../support/projects'
 import { getTranslationsTable, listTranslations, translationApi, translationsPath } from '../support/translations'
-import { createVersion, CURRENT_WINDOW, PAST_WINDOW } from '../support/versions'
+import { createProjectWithVersion, createVersion, PAST_WINDOW } from '../support/versions'
 
 test('exports every language as translations.csv that imports back without changes', async ({ page, request }) => {
-	const project = await createProject(request, 'export-all', ['sk', 'en', 'cs'])
-	await importSample(request, project.id, { sk: 'sk', en: 'en', cs: 'cs' })
+	const project = await createProjectWithVersion(request, 'export-all', ['sk', 'en', 'cs'])
+	await importSample(request, project.id, project.version.id, { sk: 'sk', en: 'en', cs: 'cs' })
 	await openExportModal(page, project)
 
 	const dialog = getExportDialog(page)
@@ -20,6 +19,8 @@ test('exports every language as translations.csv that imports back without chang
 		await expect(dialog.getByRole('checkbox', { name: language })).toBeChecked()
 	}
 	await expect(dialog.getByRole('radio', { name: 'Všetky' })).toBeChecked()
+	await expect(dialog.getByText('Export verzie v2.45')).toBeVisible()
+	await expect(dialog.getByRole('checkbox', { name: 'Len zmeny oproti predchádzajúcej verzii' })).not.toBeChecked()
 	await expect(dialog.getByRole('textbox', { name: /^Názov súboru/ })).toHaveValue('translations')
 
 	const { fileName, content } = await downloadExport(page)
@@ -29,16 +30,21 @@ test('exports every language as translations.csv that imports back without chang
 	await expect(page.getByText('Preklady sa stiahli do súboru translations.csv.')).toBeVisible()
 	await expect(dialog).toBeHidden()
 
-	const preview = await request.post(importPreviewApi(project.id), { data: { fileName, content }, headers: MUTATION_HEADERS })
+	const preview = await request.post(importPreviewApi(project.id), { data: { fileName, content, versionId: project.version.id }, headers: MUTATION_HEADERS })
 	expect(preview.status()).toBe(200)
-	const { keys, changes } = (await preview.json()) as { keys: { new: number }; changes: { new: number; changed: number }[] }
+	const { keys, changes, removed } = (await preview.json()) as {
+		keys: { new: number }
+		changes: { new: number; changed: number }[]
+		removed: { total: number }
+	}
 	expect(keys.new).toBe(0)
+	expect(removed.total).toBe(0)
 	expect(changes.map(({ new: created, changed }) => created + changed)).toEqual([0, 0, 0])
 })
 
 test('exports the untranslated keys of the checked languages under the chosen name', async ({ page, request }) => {
-	const project = await createProject(request, 'export-filter', ['sk', 'en', 'cs'])
-	await importSample(request, project.id, { sk: 'sk', en: 'en', cs: 'cs' })
+	const project = await createProjectWithVersion(request, 'export-filter', ['sk', 'en', 'cs'])
+	await importSample(request, project.id, project.version.id, { sk: 'sk', en: 'en', cs: 'cs' })
 	await openExportModal(page, project)
 	const dialog = getExportDialog(page)
 
@@ -63,10 +69,10 @@ test('exports the untranslated keys of the checked languages under the chosen na
 })
 
 test('lists a value that would break the CSV and downloads nothing', async ({ page, request }) => {
-	const project = await createProject(request, 'export-unsafe', ['sk', 'en'])
-	await importSample(request, project.id, { sk: 'sk', en: 'en', cs: null })
+	const project = await createProjectWithVersion(request, 'export-unsafe', ['sk', 'en'])
+	await importSample(request, project.id, project.version.id, { sk: 'sk', en: 'en', cs: null })
 	const en = (await listLanguages(request, project.id)).find((language) => language.tag === 'en')!
-	const key = (await listTranslations(request, project.id)).items.find((item) => item.name === 'nav.home')!
+	const key = (await listTranslations(request, project.id, project.version.id)).items.find((item) => item.name === 'nav.home')!
 	const saved = await request.put(translationApi(project.id, key.keyId, en.id), { data: { value: 'Home&nbsp;page' }, headers: MUTATION_HEADERS })
 	expect(saved.status()).toBe(200)
 	let downloaded = false
@@ -84,8 +90,8 @@ test('lists a value that would break the CSV and downloads nothing', async ({ pa
 })
 
 test('exports XLSX as translations.xlsx', async ({ page, request }) => {
-	const project = await createProject(request, 'export-xlsx', ['sk', 'en'])
-	await importSample(request, project.id, { sk: 'sk', en: 'en', cs: null })
+	const project = await createProjectWithVersion(request, 'export-xlsx', ['sk', 'en'])
+	await importSample(request, project.id, project.version.id, { sk: 'sk', en: 'en', cs: null })
 	await openExportModal(page, project)
 	const dialog = getExportDialog(page)
 
@@ -100,40 +106,45 @@ test('exports XLSX as translations.xlsx', async ({ page, request }) => {
 	await expect(page.getByText('Preklady sa stiahli do súboru translations.xlsx.')).toBeVisible()
 })
 
-test('with a version filter exports the project as of that version, or only its work', async ({ page, request }) => {
-	const project = await createProject(request, 'export-version', ['sk', 'en'])
+test('exports the whole file of the shown version, or only the keys added or changed against the previous version', async ({ page, request }) => {
+	const project = await createProjectWithVersion(request, 'export-version', ['sk', 'en'])
 	const [sk, en] = await listLanguages(request, project.id)
 	const old = await createVersion(request, project.id, { name: 'v2.44', ...PAST_WINDOW })
-	const current = await createVersion(request, project.id, { name: 'v2.45', ...CURRENT_WINDOW })
-	await importFile(
-		request,
-		project.id,
-		SAMPLE_CSV,
-		[
-			{ columnIndex: 2, languageId: sk!.id },
-			{ columnIndex: 3, languageId: en!.id },
-			{ columnIndex: 4, languageId: null },
-		],
-		old.id,
-	)
+	const columns = [
+		{ columnIndex: 2, languageId: sk!.id },
+		{ columnIndex: 3, languageId: en!.id },
+		{ columnIndex: 4, languageId: null },
+	]
+	await importFile(request, project.id, old.id, SAMPLE_CSV, columns)
+	// The same file into the current version copies v2.44; one key by hand is its only difference.
+	expect(await importFile(request, project.id, project.version.id, SAMPLE_CSV, columns)).toMatchObject({ keysCreated: 0, keysCopied: 10, keysRemoved: 0 })
 	const created = await request.post(`/api/projects/${project.id}/keys`, {
-		data: { namespace: 'loc', name: 'nav.about', translations: { [sk!.id]: 'O nás' }, versionId: current.id },
+		data: { namespace: 'loc', name: 'nav.about', translations: { [sk!.id]: 'O nás' }, versionId: project.version.id },
 		headers: MUTATION_HEADERS,
 	})
 	expect(created.status()).toBe(201)
 
-	await page.goto(translationsPath(project, `?version=${current.id}`))
+	await page.goto(translationsPath(project, `?version=${project.version.id}`))
 	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
 	await page.getByRole('main').getByRole('button', { name: 'Exportovať' }).click()
 	const dialog = getExportDialog(page)
-	await expect(dialog.getByText('Stav projektu k verzii v2.45')).toBeVisible()
+	await expect(dialog.getByText('Export verzie v2.45')).toBeVisible()
 
-	const asOf = await downloadExport(page)
-	expect(asOf.content).toContain(' nav.about; O nás; null')
-	expect(asOf.content).toContain(' nav.home; Domov; Home')
+	const whole = await downloadExport(page)
+	expect(whole.content).toContain(' nav.about; O nás; null')
+	expect(whole.content).toContain(' nav.home; Domov; Home')
 
 	await page.getByRole('main').getByRole('button', { name: 'Exportovať' }).click()
-	await dialog.getByRole('checkbox', { name: 'Len zmeny tejto verzie' }).check()
-	const onlyWork = await downloadExport(page)
-	expect(onlyWork.content).toBe(['Keys; sk ; en ', '--loc--', ' nav.about; O nás; null', ''].join('\n'))
+	await dialog.getByRole('checkbox', { name: 'Len zmeny oproti predchádzajúcej verzii' }).check()
+	const changes = await downloadExport(page)
+	expect(changes.content).toBe(['Keys; sk ; en ', '--loc--', ' nav.about; O nás; null', ''].join('\n'))
+
+	// The old version is exported as it was: without the new key.
+	await page.goto(translationsPath(project, `?version=${old.id}`))
+	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+	await page.getByRole('main').getByRole('button', { name: 'Exportovať' }).click()
+	await expect(dialog.getByText('Export verzie v2.44')).toBeVisible()
+	const previous = await downloadExport(page)
+	expect(previous.content).not.toContain('nav.about')
+	expect(previous.content).toContain(' nav.home; Domov; Home')
 })

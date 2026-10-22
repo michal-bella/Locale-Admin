@@ -3,7 +3,7 @@ import { type APIRequestContext, expect, type Locator, type Page, type Request, 
 import { MUTATION_HEADERS } from '../support/api'
 import { ANONYMOUS } from '../support/auth'
 import { importSample } from '../support/imports'
-import { createProject, getProjectSettings, projectSettingsApi } from '../support/projects'
+import { getProjectSettings, projectSettingsApi } from '../support/projects'
 import {
 	backgroundOf,
 	expectStats,
@@ -24,6 +24,7 @@ import {
 	TRANSPARENT,
 } from '../support/translations'
 import { loginAsFreshAdmin } from '../support/users'
+import { createProjectWithVersion } from '../support/versions'
 
 const MISMATCH_MESSAGE = 'Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}.'
 const LOCKED_HINT = 'Premenné a HTML značky sú zamknuté, mažú sa celé.'
@@ -38,8 +39,8 @@ const EXTENDED = { translated: 6, untranslated: 4 } as const
 const COMPACT_EN = { translated: 7, untranslated: 3 } as const
 
 const seedProject = async (api: APIRequestContext, label: string) => {
-	const project = await createProject(api, label, ['sk', 'en'])
-	await importSample(api, project.id, { sk: 'sk', en: 'en', cs: null })
+	const project = await createProjectWithVersion(api, label, ['sk', 'en'])
+	await importSample(api, project.id, project.version.id, { sk: 'sk', en: 'en', cs: null })
 	return project
 }
 

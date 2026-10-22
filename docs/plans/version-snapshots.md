@@ -133,6 +133,8 @@ Index `(versionId, namespace, name)` pokrýva zoznam, diff (join predchodcu pod�
 
 ## Míľniky
 
+Stav 2026-10-22: míľniky A až F sú hotové na vetve `feature/version-snapshots` (po jednom commite na míľnik); otvorené otázky 1 a 2 boli rozhodnuté „áno“ (zmena popisu alebo plurálu je zmena kľúča, prázdny predchodca = všetko pridané).
+
 | #   | Obsah                                                                                                                                                                                           | Overenie                                                                                                                            |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | A   | Migrácia `version_snapshots`, kontrakty, `resolveVersion` + zámok mimo okna, zoznam prekladov za verziu, úprava bunky/kľúča bez `versionId`, seed s dvoma verziami, ADR 0007, docs DB a API      | `pnpm verify`; `pnpm db:reset`; api-smoke `GET …/translations?versionId=` (400 bez verzie, 404 cudzia), úprava bunky ako `EDITOR` v uzamknutej 409 |

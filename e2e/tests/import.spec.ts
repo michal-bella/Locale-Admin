@@ -10,6 +10,7 @@ import {
 	getLanguageSelect,
 	getReviewTable,
 	getSummary,
+	getVersionSelect,
 	importApi,
 	importSample,
 	importSuccessMessage,
@@ -21,12 +22,11 @@ import {
 	submitImport,
 } from '../support/imports'
 import { listLanguages } from '../support/languages'
-import { createProject } from '../support/projects'
 import { getRowStatuses, getStat, getTranslationRows, listTranslations } from '../support/translations'
-import { createVersion, CURRENT_WINDOW } from '../support/versions'
+import { createProjectWithVersion, createVersion, PAST_WINDOW } from '../support/versions'
 
 test('imports the sample file, adds the missing language from the review and shows the result in the list', async ({ page, request }) => {
-	const project = await createProject(request, 'import-happy', ['sk', 'en'])
+	const project = await createProjectWithVersion(request, 'import-happy', ['sk', 'en'])
 	await openImportModal(page, project)
 
 	await expect(getImportDialog(page).getByRole('button', { name: 'Pokračovať na kontrolu' })).toBeDisabled()
@@ -50,6 +50,7 @@ test('imports the sample file, adds the missing language from the review and sho
 		'16 nových prekladov',
 		'1 kľúč bez prekladu v základnom jazyku',
 		'1 stĺpec sa preskočí',
+		'Verzia: v2.45',
 	])
 
 	const warningButton = getImportDialog(page).getByRole('button', { name: '1 upozornenie pre stĺpec cs' })
@@ -77,6 +78,7 @@ test('imports the sample file, adds the missing language from the review and sho
 		'0 prekladov sa prepíše',
 		'22 nových prekladov',
 		'1 kľúč bez prekladu v základnom jazyku',
+		'Verzia: v2.45',
 	])
 	await expect(getImportDialog(page).getByText('Počty sú približné')).toHaveCount(0)
 
@@ -92,6 +94,7 @@ test('imports the sample file, adds the missing language from the review and sho
 			{ columnIndex: 4, languageId: languageId('cs') },
 		],
 		createMissingKeys: true,
+		versionId: project.version.id,
 	})
 	await expect(page.getByText(importSuccessMessage(10, 22, 0))).toBeVisible()
 	await expect(getImportDialog(page)).toHaveCount(0)
@@ -105,9 +108,9 @@ test('imports the sample file, adds the missing language from the review and sho
 	await expect(getTranslationRows(page).filter({ hasText: 'promo.banner' }).getByText('Sleva <strong>20 %</strong>', { exact: true })).toBeVisible()
 	await expect(getTranslationRows(page).filter({ hasText: 'cart.items' }).locator('code')).toHaveText(['{{count}}', '{{count}}'])
 
-	const en = await listTranslations(request, project.id, { sourceLanguageId: languageId('sk'), targetLanguageId: languageId('en') })
+	const en = await listTranslations(request, project.id, project.version.id, { sourceLanguageId: languageId('sk'), targetLanguageId: languageId('en') })
 	expect(en.stats).toEqual({ totalKeys: 10, translated: SAMPLE.en.translations, untranslated: SAMPLE.en.untranslated, warnings: 1 })
-	const cs = await listTranslations(request, project.id, { sourceLanguageId: languageId('sk'), targetLanguageId: languageId('cs') })
+	const cs = await listTranslations(request, project.id, project.version.id, { sourceLanguageId: languageId('sk'), targetLanguageId: languageId('cs') })
 	expect(cs.stats).toEqual({ totalKeys: 10, translated: SAMPLE.cs.translations, untranslated: SAMPLE.cs.untranslated, warnings: 1 })
 
 	await page.goto(`/projects/${project.slug}/languages`)
@@ -118,7 +121,7 @@ test('imports the sample file, adds the missing language from the review and sho
 })
 
 test('a column set to Preskočiť is not imported', async ({ page, request }) => {
-	const project = await createProject(request, 'import-skip', ['sk', 'en'])
+	const project = await createProjectWithVersion(request, 'import-skip', ['sk', 'en'])
 	await openImportModal(page, project)
 	await getFileInput(page).setInputFiles(SAMPLE_CSV)
 	await continueToReview(page)
@@ -135,6 +138,7 @@ test('a column set to Preskočiť is not imported', async ({ page, request }) =>
 		'9 nových prekladov',
 		'1 kľúč bez prekladu v základnom jazyku',
 		'2 stĺpce sa preskočia',
+		'Verzia: v2.45',
 	])
 
 	const importRequest = submitImport(page, project.id)
@@ -157,13 +161,15 @@ test('a column set to Preskočiť is not imported', async ({ page, request }) =>
 })
 
 test('importing the same file again creates and overwrites nothing', async ({ page, request }) => {
-	const project = await createProject(request, 'import-repeat', ['sk', 'en', 'cs'])
-	expect(await importSample(request, project.id, { sk: 'sk', en: 'en', cs: 'cs' })).toEqual({
+	const project = await createProjectWithVersion(request, 'import-repeat', ['sk', 'en', 'cs'])
+	expect(await importSample(request, project.id, project.version.id, { sk: 'sk', en: 'en', cs: 'cs' })).toEqual({
 		keysCreated: 10,
+		keysCopied: 0,
+		keysRemoved: 0,
 		translationsCreated: 22,
 		translationsUpdated: 0,
 		skippedColumns: 0,
-		version: null,
+		version: { id: project.version.id, name: 'v2.45' },
 	})
 
 	await openImportModal(page, project)
@@ -178,7 +184,9 @@ test('importing the same file again creates and overwrites nothing', async ({ pa
 		'0 prekladov sa prepíše',
 		'0 nových prekladov',
 		'1 kľúč bez prekladu v základnom jazyku',
+		'Verzia: v2.45',
 	])
+	await expect(getImportDialog(page).getByText(/^Import odstráni/)).toHaveCount(0)
 
 	await getImportDialog(page).getByRole('button', { name: 'Importovať' }).click()
 	await expect(page.getByText(importSuccessMessage(0, 0, 0))).toBeVisible()
@@ -187,7 +195,7 @@ test('importing the same file again creates and overwrites nothing', async ({ pa
 })
 
 test('a broken file shows its issues per line and blocks the review; another file clears them', async ({ page, request }) => {
-	const project = await createProject(request, 'import-broken', ['sk', 'en'])
+	const project = await createProjectWithVersion(request, 'import-broken', ['sk', 'en'])
 	await openImportModal(page, project)
 	await getFileInput(page).setInputFiles(BROKEN_CSV)
 	await getImportDialog(page).getByRole('button', { name: 'Pokračovať na kontrolu' }).click()
@@ -207,7 +215,7 @@ test('a broken file shows its issues per line and blocks the review; another fil
 })
 
 test('a file without the .csv extension is rejected locally without a request', async ({ page, request }) => {
-	const project = await createProject(request, 'import-txt', ['sk', 'en'])
+	const project = await createProjectWithVersion(request, 'import-txt', ['sk', 'en'])
 	await openImportModal(page, project)
 	const importRequests: string[] = []
 	page.on('request', (req) => {
@@ -229,23 +237,29 @@ test('a file without the .csv extension is rejected locally without a request', 
 	await expect(getImportDialog(page).getByRole('button', { name: 'Pokračovať na kontrolu' })).toBeEnabled()
 })
 
-test('imports into the current version preselected in step 1; the keys then show up as the work of the version', async ({ page, request }) => {
-	const project = await createProject(request, 'import-version', ['sk', 'en'])
-	const version = await createVersion(request, project.id, { name: 'v2.45', ...CURRENT_WINDOW })
+test('the current version is preselected in step 1; another version can be chosen and gets its own copy of the keys', async ({ page, request }) => {
+	const project = await createProjectWithVersion(request, 'import-version', ['sk', 'en'])
+	const old = await createVersion(request, project.id, { name: 'v2.44', ...PAST_WINDOW })
 	await openImportModal(page, project)
 
-	const versionSelect = getImportDialog(page).getByRole('combobox', { name: 'Verzia' })
-	await expect(versionSelect).toHaveValue('v2.45 (aktuálna)')
+	await expect(getVersionSelect(page)).toHaveValue('v2.45 (aktuálna)')
+	await getVersionSelect(page).click()
+	await page.getByRole('option', { name: 'v2.44', exact: true }).click()
+	await expect(getVersionSelect(page)).toHaveValue('v2.44')
 	await getFileInput(page).setInputFiles(SAMPLE_CSV)
 	await continueToReview(page)
-	await expect(getSummary(page).getByRole('listitem').last()).toHaveText('Verzia: v2.45')
+	await expect(getSummary(page).getByRole('listitem').last()).toHaveText('Verzia: v2.44')
 
 	const importRequest = submitImport(page, project.id)
-	expect((await importRequest).postDataJSON()).toMatchObject({ versionId: version.id })
+	expect((await importRequest).postDataJSON()).toMatchObject({ versionId: old.id })
+	await expect(page.getByText(importSuccessMessage(10, 16, 0))).toBeVisible()
 	await expect(getImportDialog(page)).toHaveCount(0)
 
-	await page.goto(`/projects/${project.slug}/translations?version=${version.id}`)
-	await expect(getTranslationRows(page)).toHaveCount(SAMPLE.keys)
-	await expect(getTranslationRows(page).first().getByText('v2.45', { exact: true })).toHaveAccessibleName('Vznikol vo verzii v2.45')
+	// The page still shows the current version, which has no import of its own.
 	await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
+	await expect(page.getByRole('main').getByText('Verzia v2.45 zatiaľ nemá import. Importujte do nej preklady.').first()).toBeVisible()
+	await page.goto(`/projects/${project.slug}/translations?version=${old.id}`)
+	await expect(getTranslationRows(page)).toHaveCount(SAMPLE.keys)
+	await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.44')
+	expect((await listTranslations(request, project.id, project.version.id)).total).toBe(0)
 })

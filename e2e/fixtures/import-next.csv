@@ -1,0 +1,14 @@
+Keys; sk ; en 
+--loc--
+ orders.empty.title; Zatiaľ nemáte žiadne objednávky; You have no orders yet
+ orders.empty.description; Nové objednávky sa zobrazia tu.; New orders will appear here.
+ dashboard.welcome; Vitajte späť, {{name}}; Welcome back, {{name}}
+ cart.items; Máte {{count}} položiek; You have {{count}} items
+ promo.banner; Zľava <strong>20 %</strong>; null
+ nav.home; Domov; Home
+ nav.about; O nás; About us
+
+--paths--
+ Adresa nie je kompletná. Uistite sa; Adresa nie je kompletná.; The address is incomplete.
+ Pokračovať do pokladne; Pokračovať do pokladne; Continue to checkout
+ Kontaktujte nás; Kontaktujte nás; Contact us

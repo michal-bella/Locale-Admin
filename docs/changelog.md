@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Verzie ako kópie prekladov – míľnik F (2026-10-22)
+
+- E2E: `versions.spec.ts` prepísaný na model kópií (prázdna verzia, import s prevzatím predchodcu a odstránením kľúčov, diff v zozname a exporte, mazanie verzie, editor mimo okna), ostatné špecifikácie a helpery vytvárajú verziu a posielajú `versionId`; nová fixture `import-next.csv` ([testovanie](./testing.md)); doménová tabuľka v `AGENTS.md` popisuje verzie ako kópie
+
 ### Verzie ako kópie prekladov – míľnik E (2026-10-22)
 
 - frontend: stránka Verzie má stĺpec **Kľúče** („bez importu“ pri prázdnej verzii), čas posledného importu pod názvom a akciu **Zmazať** s potvrdením (`DeleteVersionModal`, aktuálna verzia sa zmazať nedá); Prehľad projektu má výber verzie (predvolene aktuálna), čísla aj denná aktivita sú za zvolenú verziu a udalosti vo feede nesú názov verzie ([Frontend](./frontend.md#stránka-verzie-projektu))

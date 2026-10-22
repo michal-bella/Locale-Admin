@@ -2,8 +2,9 @@ import { type APIRequestContext, expect, type Locator, type Page, type Request }
 
 import { MUTATION_HEADERS } from './api'
 import { withDb } from './db'
-import { type Language } from './languages'
+import { type Language, listLanguages } from './languages'
 import { type ProjectListItem } from './projects'
+import { createProjectWithVersion, type ProjectWithVersion } from './versions'
 
 export const projectTranslationsApi = (projectId: string) => `/api/projects/${projectId}/translations`
 
@@ -15,19 +16,20 @@ export type TranslationsView = 'EXTENDED' | 'COMPACT'
 export type TestTranslationKey = { namespace?: string; name: string; values?: Partial<Record<string, string | null>> }
 
 /**
- * Inserts keys and translations of a test project directly into the DB: there is no API to create keys before the import milestone.
+ * Inserts keys and translations of a version of a test project directly into the DB, so a test gets exact values and counts without an
+ * import. Every key belongs to a version; the version counts as imported (`importedAt`) afterwards, as the list and Pridať kľúč need.
  * The rows cascade with the project, so the teardown deletes them with the `e2e-tmp-` projects.
  */
-export const insertTranslationKeys = (projectId: string, languages: Language[], keys: TestTranslationKey[]) =>
+export const insertTranslationKeys = (projectId: string, versionId: string, languages: Language[], keys: TestTranslationKey[]) =>
 	withDb(async (client) => {
 		const languageIds = new Map(languages.map(({ tag, id }) => [tag, id]))
 		await client.query('BEGIN')
 		try {
 			const inserted = await client.query<{ id: string; namespace: string; name: string }>(
-				`INSERT INTO "TranslationKey" (id, "projectId", namespace, name, "updatedAt")
-				 SELECT gen_random_uuid(), $1, namespace, name, now() FROM unnest($2::text[], $3::text[]) AS input(namespace, name)
+				`INSERT INTO "TranslationKey" (id, "projectId", "versionId", namespace, name, "updatedAt")
+				 SELECT gen_random_uuid(), $1, $2, namespace, name, now() FROM unnest($3::text[], $4::text[]) AS input(namespace, name)
 				 RETURNING id, namespace, name`,
-				[projectId, keys.map(({ namespace = '' }) => namespace), keys.map(({ name }) => name)],
+				[projectId, versionId, keys.map(({ namespace = '' }) => namespace), keys.map(({ name }) => name)],
 			)
 			const keyIds = new Map(inserted.rows.map(({ id, namespace, name }) => [`${namespace}\u0000${name}`, id]))
 			const rows = keys.flatMap(({ namespace = '', name, values = {} }) =>
@@ -44,12 +46,27 @@ export const insertTranslationKeys = (projectId: string, languages: Language[], 
 				 SELECT "keyId", "languageId", value, now() FROM unnest($1::uuid[], $2::uuid[], $3::text[]) AS input("keyId", "languageId", value)`,
 				[rows.map(({ keyId }) => keyId), rows.map(({ languageId }) => languageId), rows.map(({ value }) => value)],
 			)
+			await client.query(`UPDATE "ProjectVersion" SET "importedAt" = coalesce("importedAt", now()) WHERE id = $1`, [versionId])
 			await client.query('COMMIT')
 		} catch (error) {
 			await client.query('ROLLBACK')
 			throw error
 		}
 	})
+
+/** A project with sk (base), cs and en by default, one running version `v2.45` and `keys` inserted into it. */
+export const createProjectWithKeys = async (
+	api: APIRequestContext,
+	label: string,
+	keys: TestTranslationKey[],
+	languageTags = ['sk', 'cs', 'en'],
+): Promise<ProjectWithVersion> => {
+	const project = await createProjectWithVersion(api, label, languageTags)
+	if (keys.length > 0) {
+		await insertTranslationKeys(project.id, project.version.id, await listLanguages(api, project.id), keys)
+	}
+	return project
+}
 
 export const translationApi = (projectId: string, keyId: string, languageId: string) => `/api/projects/${projectId}/keys/${keyId}/translations/${languageId}`
 
@@ -72,6 +89,8 @@ export type TranslationListItem = {
 	status: TranslationStatus
 	/** A cell per project language, keyed by `ProjectLanguage.id`. */
 	translations: Record<string, TranslationCell>
+	/** Only with `diff=true`: the key is not in the previous version, or the languages whose value differs from it. */
+	diff?: { added: boolean; changedLanguageIds: string[] }
 }
 
 export type TranslationsResponse = {
@@ -85,9 +104,12 @@ export type TranslationsResponse = {
 
 export type LanguagePair = { sourceLanguageId: string; targetLanguageId: string }
 
-/** `GET …/translations`: with `pair` in the compact semantics (target decides the row status), without it in the extended one (every language). */
-export const listTranslations = async (api: APIRequestContext, projectId: string, pair?: LanguagePair) => {
-	const response = await api.get(projectTranslationsApi(projectId), { params: pair })
+/**
+ * `GET …/translations` of one version: with `pair` in the compact semantics (target decides the row status), without it in the extended one
+ * (every language); `diff` lists only the keys added or changed against the previous version.
+ */
+export const listTranslations = async (api: APIRequestContext, projectId: string, versionId: string, pair?: LanguagePair, diff?: true) => {
+	const response = await api.get(projectTranslationsApi(projectId), { params: { versionId, ...pair, ...(diff ? { diff: 'true' } : {}) } })
 	expect(response.status(), `GET ${projectTranslationsApi(projectId)}`).toBe(200)
 	return (await response.json()) as TranslationsResponse
 }
@@ -146,6 +168,19 @@ export const getColumnHeaders = (page: Page) => getTranslationsTable(page).getBy
 export const getViewSwitch = (page: Page) => page.getByRole('radiogroup', { name: 'Zobrazenie' })
 
 export const VIEW_LABEL: Record<TranslationsView, string> = { EXTENDED: 'Všetky jazyky', COMPACT: 'Zdroj → cieľ' }
+
+/** The „Zobraziť len zmeny“ switch (`?diff=true`); absent for a version without an import. */
+export const getDiffSwitch = (page: Page) => page.getByRole('switch', { name: 'Zobraziť len zmeny' })
+
+/** Clicks the switch (its input sits over the track and takes the pointer) and waits for the list to settle. */
+export const toggleDiff = async (page: Page, checked: boolean) => {
+	await getDiffSwitch(page).click()
+	await expect(getDiffSwitch(page)).toHaveJSProperty('checked', checked)
+	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+}
+
+/** The „Nové“ badge of an added key in the diff (its accessible text is „Nový kľúč“). */
+export const getNewBadge = (row: Locator) => row.getByText('Nový kľúč', { exact: true })
 
 export const isPreferencesPatch = (req: Request) => req.method() === 'PATCH' && req.url().endsWith(PREFERENCES_API)
 

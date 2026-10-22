@@ -4,7 +4,7 @@ import { type APIRequestContext, expect, test } from '@playwright/test'
 
 import { type AdminUser, MUTATION_HEADERS, readApiError } from '../support/api'
 import { ANONYMOUS, STORAGE_STATE } from '../support/auth'
-import { BROKEN_CSV, importApi, importFile, importPreviewApi, readFixture, SAMPLE_CSV } from '../support/imports'
+import { BROKEN_CSV, importApi, importFile, importPreviewApi, NEXT_CSV, readFixture, SAMPLE_CSV } from '../support/imports'
 import { type Language, listLanguages, projectLanguagesApi } from '../support/languages'
 import {
 	createProject,
@@ -18,7 +18,7 @@ import {
 } from '../support/projects'
 import { insertTranslationKeys, listTranslations, PREFERENCES_API, projectTranslationsApi, translationApi, translationKeyApi } from '../support/translations'
 import { addMember, createEditor, createMember, createProjectOf, newTestUserCredentials } from '../support/users'
-import { createVersion, CURRENT_WINDOW, PAST_WINDOW, versionsApi } from '../support/versions'
+import { createProjectWithVersion, createVersion, CURRENT_WINDOW, PAST_WINDOW, UPCOMING_WINDOW, versionsApi } from '../support/versions'
 
 const CREDENTIALS = { email: 'csrf-check@example.com', password: 'irrelevant' }
 
@@ -434,19 +434,20 @@ test.describe('/api/projects/:projectId/translations', () => {
 		playwright,
 		baseURL,
 	}) => {
-		const project = await createProject(request, 'smoke-tr', ['sk', 'en'])
+		const project = await createProjectWithVersion(request, 'smoke-tr', ['sk', 'en'])
 		const languages = await listLanguages(request, project.id)
 		const [sk, en] = languages
 		// The creator is the only member and no translation has an editor yet, so `editors` lists just them.
 		const me = (await (await request.get('/api/auth/me')).json()) as { id: string }
-		await insertTranslationKeys(project.id, languages, [
+		await insertTranslationKeys(project.id, project.version.id, languages, [
 			{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky', en: null } },
 			{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte, {{name}}', en: 'Welcome, {{name}}' } },
 			{ namespace: 'loc', name: 'legal.terms', values: { sk: null, en: 'Terms' } },
 			{ namespace: 'paths', name: 'Adresa nie je kompletná. Uistite sa', values: { sk: 'Adresa' } },
 		])
 		const url = projectTranslationsApi(project.id)
-		const languageParams = { sourceLanguageId: sk!.id, targetLanguageId: en!.id }
+		const versionParams = { versionId: project.version.id }
+		const languageParams = { ...versionParams, sourceLanguageId: sk!.id, targetLanguageId: en!.id }
 		const key = (name: string, group: string) => ({
 			keyId: expect.any(String),
 			namespace: group.split(':')[0],
@@ -454,7 +455,6 @@ test.describe('/api/projects/:projectId/translations', () => {
 			group,
 			description: null,
 			plural: null,
-			version: null,
 		})
 		// Rows seeded with SQL have no editor.
 		const cell = (value: string | null, updatedAt: unknown = expect.any(String)) => ({
@@ -499,7 +499,7 @@ test.describe('/api/projects/:projectId/translations', () => {
 		expect(new Date(updatedAt).toISOString()).toBe(updatedAt)
 
 		// Extended semantics (no language pair): a row is translated only with a value in every language; the search covers every language.
-		const extended = await request.get(url)
+		const extended = await request.get(url, { params: versionParams })
 		expect(extended.status()).toBe(200)
 		expect(await extended.json()).toMatchObject({
 			items: [
@@ -512,9 +512,9 @@ test.describe('/api/projects/:projectId/translations', () => {
 			stats: { totalKeys: 4, translated: 1, untranslated: 3, warnings: 0 },
 			namespaces: ['loc', 'paths'],
 		})
-		const extendedFiltered = await request.get(url, { params: { status: 'TRANSLATED' } })
+		const extendedFiltered = await request.get(url, { params: { ...versionParams, status: 'TRANSLATED' } })
 		expect(await extendedFiltered.json()).toMatchObject({ items: [{ name: 'dashboard.welcome' }], total: 1 })
-		const extendedSearch = await request.get(url, { params: { search: 'terms' } })
+		const extendedSearch = await request.get(url, { params: { ...versionParams, search: 'terms' } })
 		expect(await extendedSearch.json()).toMatchObject({ items: [{ name: 'legal.terms' }], total: 1 })
 		const compactSearch = await request.get(url, { params: { ...languageParams, search: 'terms' } })
 		expect(await compactSearch.json()).toMatchObject({ items: [{ name: 'legal.terms' }], total: 1 })
@@ -526,12 +526,15 @@ test.describe('/api/projects/:projectId/translations', () => {
 		expect(await pastEnd.json()).toMatchObject({ items: [], total: 4, page: 5 })
 
 		for (const [params, path] of [
-			[{ sourceLanguageId: sk!.id }, 'targetLanguageId'],
-			[{ targetLanguageId: en!.id }, 'sourceLanguageId'],
+			[{ ...versionParams, sourceLanguageId: sk!.id }, 'targetLanguageId'],
+			[{ ...versionParams, targetLanguageId: en!.id }, 'sourceLanguageId'],
 			[{ ...languageParams, sourceLanguageId: 'not-a-uuid' }, 'sourceLanguageId'],
 			[{ ...languageParams, status: 'REVIEW' }, 'status'],
 			[{ ...languageParams, sort: 'RANDOM' }, 'sort'],
 			[{ ...languageParams, pageSize: 101 }, 'pageSize'],
+			[{ ...languageParams, versionId: 'not-a-uuid' }, 'versionId'],
+			[{ sourceLanguageId: sk!.id, targetLanguageId: en!.id }, 'versionId'],
+			[{}, 'versionId'],
 		] as const) {
 			const invalid = await request.get(url, { params })
 			expect(invalid.status(), JSON.stringify(params)).toBe(400)
@@ -540,17 +543,24 @@ test.describe('/api/projects/:projectId/translations', () => {
 			expect(error.details).toEqual([expect.objectContaining({ path, code: expect.any(String) })])
 		}
 		for (const [params, path] of [
-			[{ sourceLanguageId: sk!.id }, 'targetLanguageId'],
-			[{ targetLanguageId: en!.id }, 'sourceLanguageId'],
+			[{ ...versionParams, sourceLanguageId: sk!.id }, 'targetLanguageId'],
+			[{ ...versionParams, targetLanguageId: en!.id }, 'sourceLanguageId'],
+			[{ ...languageParams, versionId: '' }, 'versionId'],
 		] as const) {
 			expect((await readApiError(await request.get(url, { params }))).details).toEqual([expect.objectContaining({ path, code: 'REQUIRED' })])
 		}
 
-		const other = await createProject(request, 'smoke-tr-other', ['sk'])
+		const other = await createProjectWithVersion(request, 'smoke-tr-other', ['sk'])
 		const [otherSk] = await listLanguages(request, other.id)
 		const foreignLanguage = await request.get(url, { params: { ...languageParams, targetLanguageId: otherSk!.id } })
 		expect(foreignLanguage.status()).toBe(404)
 		expect((await readApiError(foreignLanguage)).code).toBe('NOT_FOUND')
+		// Every version has its own keys: a version of another project (or an unknown one) is not a version of this one.
+		for (const versionId of [other.version.id, randomUUID()]) {
+			const foreignVersion = await request.get(url, { params: { ...languageParams, versionId } })
+			expect(foreignVersion.status(), versionId).toBe(404)
+			expect((await readApiError(foreignVersion)).code).toBe('PROJECT_VERSION_NOT_FOUND')
+		}
 
 		const editor = await playwright.request.newContext({ baseURL, storageState: STORAGE_STATE.EDITOR })
 		const foreignProject = await editor.get(url, { params: languageParams })
@@ -574,14 +584,14 @@ test.describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId
 		playwright,
 		baseURL,
 	}) => {
-		const project = await createProject(request, 'smoke-tr-put', ['sk', 'en'])
+		const project = await createProjectWithVersion(request, 'smoke-tr-put', ['sk', 'en'])
 		const languages = await listLanguages(request, project.id)
 		const [sk, en] = languages
-		await insertTranslationKeys(project.id, languages, [
+		await insertTranslationKeys(project.id, project.version.id, languages, [
 			{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte späť, {{name}}', en: null } },
 			{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov' } },
 		])
-		const list = () => listTranslations(request, project.id, { sourceLanguageId: sk!.id, targetLanguageId: en!.id })
+		const list = () => listTranslations(request, project.id, project.version.id, { sourceLanguageId: sk!.id, targetLanguageId: en!.id })
 		const items = (await list()).items
 		const welcome = items.find(({ name }) => name === 'dashboard.welcome')!
 		const home = items.find(({ name }) => name === 'nav.home')!
@@ -661,14 +671,14 @@ test.describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		playwright,
 		baseURL,
 	}) => {
-		const project = await createProject(request, 'smoke-key', ['sk', 'en'])
+		const project = await createProjectWithVersion(request, 'smoke-key', ['sk', 'en'])
 		const languages = await listLanguages(request, project.id)
 		const [sk, en] = languages
-		await insertTranslationKeys(project.id, languages, [
+		await insertTranslationKeys(project.id, project.version.id, languages, [
 			{ namespace: 'loc', name: 'cart.items', values: { sk: 'Máte {{count}} položiek', en: 'You have {{count}} items' } },
 			{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky', en: null } },
 		])
-		const list = () => listTranslations(request, project.id)
+		const list = () => listTranslations(request, project.id, project.version.id)
 		const itemOf = async (keyId: string) => (await list()).items.find((item) => item.keyId === keyId)!
 		const cart = (await list()).items.find(({ name }) => name === 'cart.items')!
 		const url = translationKeyApi(project.id, cart.keyId)
@@ -749,12 +759,13 @@ test.describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		const editor = await playwright.request.newContext({ baseURL, storageState: STORAGE_STATE.EDITOR })
 		const [ownProject] = await listProjects(editor)
 		const [ownSk] = await listLanguages(editor, ownProject!.id)
-		await insertTranslationKeys(ownProject!.id, [ownSk!], [{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov' } }])
-		const ownKey = (await listTranslations(editor, ownProject!.id)).items.find(({ name }) => name === 'nav.home')!
+		const ownVersion = await createVersion(request, ownProject!.id, { name: 'smoke-key', ...CURRENT_WINDOW })
+		await insertTranslationKeys(ownProject!.id, ownVersion.id, [ownSk!], [{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov' } }])
+		const ownKey = (await listTranslations(editor, ownProject!.id, ownVersion.id)).items.find(({ name }) => name === 'nav.home')!
 		const asMember = await editor.patch(translationKeyApi(ownProject!.id, ownKey.keyId), { data: { name: 'nav.start' }, headers: MUTATION_HEADERS })
 		expect(asMember.status()).toBe(403)
 		expect((await readApiError(asMember)).code).toBe('FORBIDDEN')
-		expect((await listTranslations(editor, ownProject!.id)).items.map(({ name }) => name)).toEqual(['nav.home'])
+		expect((await listTranslations(editor, ownProject!.id, ownVersion.id)).items.map(({ name }) => name)).toEqual(['nav.home'])
 		const asNonMember = await editor.patch(url, { data: { name: 'x' }, headers: MUTATION_HEADERS })
 		expect(asNonMember.status()).toBe(404)
 		expect((await readApiError(asNonMember)).code).toBe('NOT_FOUND')
@@ -781,9 +792,9 @@ test.describe('/api/projects/:projectId/imports', () => {
 		playwright,
 		baseURL,
 	}) => {
-		const project = await createProject(request, 'smoke-import', ['sk', 'en'])
+		const project = await createProjectWithVersion(request, 'smoke-import', ['sk', 'en'])
 		const [sk, en] = await listLanguages(request, project.id)
-		const sample = { fileName: 'import-sample.csv', content: readFixture(SAMPLE_CSV) }
+		const sample = { fileName: 'import-sample.csv', content: readFixture(SAMPLE_CSV), versionId: project.version.id }
 
 		const preview = await request.post(importPreviewApi(project.id), { data: sample, headers: MUTATION_HEADERS })
 		expect(preview.status()).toBe(200)
@@ -793,7 +804,7 @@ test.describe('/api/projects/:projectId/imports', () => {
 				{ tag: 'en', columnIndex: 3, match: 'PROJECT', languageId: en!.id, stats: { translations: 7, untranslated: 3, warnings: 0 } },
 				{ tag: 'cs', columnIndex: 4, match: 'CATALOG', stats: { translations: 6, untranslated: 4, warnings: 1 } },
 			],
-			keys: { total: 10, new: 10, existing: 0 },
+			keys: { total: 10, new: 10, existing: 0, copiedFromPrevious: 0 },
 			namespaces: [
 				{ namespace: 'loc', keys: 7 },
 				{ namespace: 'paths', keys: 3 },
@@ -813,8 +824,11 @@ test.describe('/api/projects/:projectId/imports', () => {
 				{ code: 'BASE_LANGUAGE_UNTRANSLATED', line: 9, column: 2, params: { tag: 'sk', key: 'legal.terms', namespace: 'loc' } },
 			],
 			warningsTotal: 3,
+			previousVersion: null,
+			removed: { total: 0, names: [] },
 		})
-		const translations = () => request.get(projectTranslationsApi(project.id), { params: { sourceLanguageId: sk!.id, targetLanguageId: en!.id } })
+		const translations = () =>
+			request.get(projectTranslationsApi(project.id), { params: { versionId: project.version.id, sourceLanguageId: sk!.id, targetLanguageId: en!.id } })
 		expect(await (await translations()).json()).toMatchObject({ stats: { totalKeys: 0 } })
 
 		const columns = [
@@ -822,26 +836,43 @@ test.describe('/api/projects/:projectId/imports', () => {
 			{ columnIndex: 3, languageId: en!.id },
 			{ columnIndex: 4, languageId: null },
 		]
-		expect(await importFile(request, project.id, SAMPLE_CSV, columns)).toEqual({
+		const version = { id: project.version.id, name: 'v2.45' }
+		expect(await importFile(request, project.id, project.version.id, SAMPLE_CSV, columns)).toEqual({
 			keysCreated: 10,
+			keysCopied: 0,
+			keysRemoved: 0,
 			translationsCreated: 16,
 			translationsUpdated: 0,
 			skippedColumns: 1,
-			version: null,
+			version,
 		})
-		expect(await importFile(request, project.id, SAMPLE_CSV, columns)).toEqual({
+		expect(await importFile(request, project.id, project.version.id, SAMPLE_CSV, columns)).toEqual({
 			keysCreated: 0,
+			keysCopied: 0,
+			keysRemoved: 0,
 			translationsCreated: 0,
 			translationsUpdated: 0,
 			skippedColumns: 1,
-			version: null,
+			version,
 		})
 		expect(await (await translations()).json()).toMatchObject({
 			stats: { totalKeys: 10, translated: 7, untranslated: 3, warnings: 0 },
 			namespaces: ['loc', 'paths'],
 		})
 
-		const broken = { fileName: 'import-broken.csv', content: readFixture(BROKEN_CSV) }
+		// The version is required and must belong to the project.
+		for (const url of [importPreviewApi(project.id), importApi(project.id)]) {
+			const withoutVersion = await request.post(url, { data: { ...sample, versionId: undefined, columns }, headers: MUTATION_HEADERS })
+			expect(withoutVersion.status(), url).toBe(400)
+			const error = await readApiError(withoutVersion)
+			expect(error.code).toBe('VALIDATION_ERROR')
+			expect(error.details).toEqual([expect.objectContaining({ path: 'versionId' })])
+			const foreignVersion = await request.post(url, { data: { ...sample, versionId: randomUUID(), columns }, headers: MUTATION_HEADERS })
+			expect(foreignVersion.status(), url).toBe(404)
+			expect((await readApiError(foreignVersion)).code).toBe('PROJECT_VERSION_NOT_FOUND')
+		}
+
+		const broken = { fileName: 'import-broken.csv', content: readFixture(BROKEN_CSV), versionId: project.version.id }
 		for (const url of [importPreviewApi(project.id), importApi(project.id)]) {
 			const response = await request.post(url, { data: { ...broken, columns }, headers: MUTATION_HEADERS })
 			expect(response.status(), url).toBe(422)
@@ -857,7 +888,7 @@ test.describe('/api/projects/:projectId/imports', () => {
 		}
 
 		const tooLarge = await request.post(importPreviewApi(project.id), {
-			data: { fileName: 'big.csv', content: `Keys; sk\n a; ${'x'.repeat(10 * 1024 * 1024)}\n` },
+			data: { fileName: 'big.csv', content: `Keys; sk\n a; ${'x'.repeat(10 * 1024 * 1024)}\n`, versionId: project.version.id },
 			headers: MUTATION_HEADERS,
 		})
 		expect(tooLarge.status()).toBe(413)
@@ -893,18 +924,26 @@ test.describe('/api/projects/:projectId/imports', () => {
 test.describe('/api/projects/:projectId/versions', () => {
 	test.use({ storageState: STORAGE_STATE.ADMIN })
 
-	test('creates, lists, edits and locks versions with the error contract; an EDITOR reads but cannot write, nor into a locked version', async ({
+	test('creates, lists, edits, locks, diffs and deletes versions with the error contract; an EDITOR reads but cannot write, nor into a locked version or one before its start', async ({
 		request,
 		playwright,
 		baseURL,
 	}) => {
 		const project = await createProject(request, 'smoke-versions', ['sk', 'en'])
 		const url = versionsApi(project.id)
+		const [sk, en] = await listLanguages(request, project.id)
+		const columns = [
+			{ columnIndex: 2, languageId: sk!.id },
+			{ columnIndex: 3, languageId: en!.id },
+			{ columnIndex: 4, languageId: null },
+		]
 
 		const current = await createVersion(request, project.id, { name: 'v2.45', ...CURRENT_WINDOW })
-		expect(current).toMatchObject({ lock: 'AUTO', isLocked: false, state: 'ACTIVE', isCurrent: true })
+		expect(current).toMatchObject({ lock: 'AUTO', isLocked: false, state: 'ACTIVE', isCurrent: true, importedAt: null, keyCount: 0 })
 		const past = await createVersion(request, project.id, { name: 'v2.44', ...PAST_WINDOW })
 		expect(past).toMatchObject({ isLocked: true, state: 'LOCKED', isCurrent: false })
+		const upcoming = await createVersion(request, project.id, { name: 'v2.46', ...UPCOMING_WINDOW })
+		expect(upcoming).toMatchObject({ isLocked: true, state: 'UPCOMING', isCurrent: false })
 
 		const sameDay = await request.post(url, {
 			data: { name: 'x', startsAt: CURRENT_WINDOW.startsAt, endsAt: CURRENT_WINDOW.startsAt },
@@ -918,7 +957,7 @@ test.describe('/api/projects/:projectId/versions', () => {
 
 		const list = await request.get(url)
 		expect(list.status()).toBe(200)
-		expect(((await list.json()) as { items: { name: string }[] }).items.map(({ name }) => name)).toEqual(['v2.45', 'v2.44'])
+		expect(((await list.json()) as { items: { name: string }[] }).items.map(({ name }) => name)).toEqual(['v2.46', 'v2.45', 'v2.44'])
 
 		const unlocked = await request.patch(`${url}/${past.id}`, { data: { lock: 'UNLOCKED' }, headers: MUTATION_HEADERS })
 		expect(unlocked.status()).toBe(200)
@@ -926,6 +965,75 @@ test.describe('/api/projects/:projectId/versions', () => {
 		const foreign = await request.patch(`${url}/${randomUUID()}`, { data: { name: 'y' }, headers: MUTATION_HEADERS })
 		expect(foreign.status()).toBe(404)
 		expect((await readApiError(foreign)).code).toBe('PROJECT_VERSION_NOT_FOUND')
+
+		// A key by hand needs a version with an import; the import of v2.45 copies v2.44 and defines its key set.
+		const emptyVersion = await request.post(`/api/projects/${project.id}/keys`, {
+			data: { namespace: 'loc', name: 'a', translations: { [sk!.id]: 'A' }, versionId: current.id },
+			headers: MUTATION_HEADERS,
+		})
+		expect(emptyVersion.status()).toBe(409)
+		expect((await readApiError(emptyVersion)).code).toBe('PROJECT_VERSION_EMPTY')
+		const withoutVersion = await request.post(`/api/projects/${project.id}/keys`, { data: { namespace: 'loc', name: 'a' }, headers: MUTATION_HEADERS })
+		expect(withoutVersion.status()).toBe(400)
+		expect((await readApiError(withoutVersion)).details).toEqual([expect.objectContaining({ path: 'versionId' })])
+		await importFile(request, project.id, past.id, SAMPLE_CSV, columns)
+		expect(
+			await importFile(request, project.id, current.id, NEXT_CSV, [
+				{ columnIndex: 2, languageId: sk!.id },
+				{ columnIndex: 3, languageId: en!.id },
+			]),
+		).toEqual({
+			keysCreated: 2,
+			keysCopied: 8,
+			keysRemoved: 0,
+			translationsCreated: 5,
+			translationsUpdated: 1,
+			skippedColumns: 0,
+			version: { id: current.id, name: 'v2.45' },
+		})
+		const key = await request.post(`/api/projects/${project.id}/keys`, {
+			data: { namespace: 'loc', name: 'a', translations: { [sk!.id]: 'A' }, versionId: current.id },
+			headers: MUTATION_HEADERS,
+		})
+		expect(key.status()).toBe(201)
+		const { keyId } = (await key.json()) as { keyId: string }
+		expect(((await (await request.get(url)).json()) as { items: { name: string; keyCount: number; importedAt: string | null }[] }).items).toEqual([
+			expect.objectContaining({ name: 'v2.46', keyCount: 0, importedAt: null }),
+			expect.objectContaining({ name: 'v2.45', keyCount: 11, importedAt: expect.any(String) }),
+			expect.objectContaining({ name: 'v2.44', keyCount: 10, importedAt: expect.any(String) }),
+		])
+
+		// The diff against the nearest older version: the first version has no predecessor.
+		const diff = await request.get(`${url}/${current.id}/diff`)
+		expect(diff.status()).toBe(200)
+		expect(await diff.json()).toEqual({ previousVersion: { id: past.id, name: 'v2.44' }, added: 3, changed: 2, removed: 2 })
+		expect(await (await request.get(`${url}/${past.id}/diff`)).json()).toEqual({ previousVersion: null, added: 10, changed: 0, removed: 0 })
+		expect(await (await request.get(`${url}/${upcoming.id}/diff`)).json()).toEqual({
+			previousVersion: { id: current.id, name: 'v2.45' },
+			added: 0,
+			changed: 0,
+			removed: 11,
+		})
+		const foreignDiff = await request.get(`${url}/${randomUUID()}/diff`)
+		expect(foreignDiff.status()).toBe(404)
+		expect((await readApiError(foreignDiff)).code).toBe('PROJECT_VERSION_NOT_FOUND')
+		const diffList = await request.get(projectTranslationsApi(project.id), { params: { versionId: current.id, diff: 'true', sort: 'KEY' } })
+		expect(diffList.status()).toBe(200)
+		expect(await diffList.json()).toMatchObject({
+			items: [
+				{ name: 'a', diff: { added: true, changedLanguageIds: [] } },
+				{ name: 'dashboard.welcome', diff: { added: false, changedLanguageIds: [en!.id] } },
+				{ name: 'nav.about', diff: { added: true, changedLanguageIds: [] } },
+				{ name: 'orders.empty.description', diff: { added: false, changedLanguageIds: [en!.id] } },
+				{ name: 'Kontaktujte nás', diff: { added: true, changedLanguageIds: [] } },
+			],
+			total: 5,
+			stats: { totalKeys: 11 },
+		})
+		const plainList = (await (await request.get(projectTranslationsApi(project.id), { params: { versionId: current.id } })).json()) as {
+			items: { diff?: unknown }[]
+		}
+		expect(plainList.items.every((item) => item.diff === undefined)).toBe(true)
 
 		const editor = await createEditor(playwright.request, baseURL)
 		await addMember(request, project.id, editor.id)
@@ -935,26 +1043,51 @@ test.describe('/api/projects/:projectId/versions', () => {
 			(await editorApi.post('/api/auth/login', { data: { email: editor.email, password: editor.password }, headers: MUTATION_HEADERS })).status(),
 		).toBe(200)
 		expect((await editorApi.get(url)).status()).toBe(200)
-		const forbidden = await editorApi.post(url, { data: { name: 'v2.46', ...CURRENT_WINDOW }, headers: MUTATION_HEADERS })
+		const forbidden = await editorApi.post(url, { data: { name: 'v2.47', ...CURRENT_WINDOW }, headers: MUTATION_HEADERS })
 		expect(forbidden.status()).toBe(403)
+		const forbiddenDelete = await editorApi.delete(`${url}/${past.id}`, { data: {}, headers: MUTATION_HEADERS })
+		expect(forbiddenDelete.status()).toBe(403)
 
+		// A version before its start is locked for an editor like a locked one; the cell belongs to the key, so no `versionId` in the body.
+		const upcomingKeys = await request.post(`/api/projects/${project.id}/keys`, {
+			data: { namespace: 'loc', name: 'soon', translations: { [sk!.id]: 'S' }, versionId: upcoming.id },
+			headers: MUTATION_HEADERS,
+		})
+		expect(upcomingKeys.status()).toBe(409)
+		expect((await readApiError(upcomingKeys)).code).toBe('PROJECT_VERSION_EMPTY')
+		await importFile(request, project.id, upcoming.id, SAMPLE_CSV, columns)
+		const soon = (await listTranslations(editorApi, project.id, upcoming.id)).items[0]!
+		const beforeStart = await editorApi.put(translationApi(project.id, soon.keyId, sk!.id), { data: { value: 'B' }, headers: MUTATION_HEADERS })
+		expect(beforeStart.status()).toBe(409)
+		expect((await readApiError(beforeStart)).code).toBe('PROJECT_VERSION_LOCKED')
+		const allowed = await editorApi.put(translationApi(project.id, keyId, sk!.id), { data: { value: 'B' }, headers: MUTATION_HEADERS })
+		expect(allowed.status()).toBe(200)
 		const locked = await request.patch(`${url}/${current.id}`, { data: { lock: 'LOCKED' }, headers: MUTATION_HEADERS })
 		expect(locked.status()).toBe(200)
-		const [sk] = await listLanguages(request, project.id)
-		// A key by hand needs an existing namespace.
-		await insertTranslationKeys(project.id, [sk!], [{ namespace: 'loc', name: 'seed', values: { sk: 'S' } }])
-		const key = await request.post(`/api/projects/${project.id}/keys`, {
-			data: { namespace: 'loc', name: 'a', translations: { [sk!.id]: 'A' } },
-			headers: MUTATION_HEADERS,
-		})
-		expect(key.status()).toBe(201)
-		const { keyId } = (await key.json()) as { keyId: string }
-		const refused = await editorApi.put(translationApi(project.id, keyId, sk!.id), {
-			data: { value: 'B', versionId: current.id },
-			headers: MUTATION_HEADERS,
-		})
+		const refused = await editorApi.put(translationApi(project.id, keyId, sk!.id), { data: { value: 'C' }, headers: MUTATION_HEADERS })
 		expect(refused.status()).toBe(409)
 		expect((await readApiError(refused)).code).toBe('PROJECT_VERSION_LOCKED')
+		const asAdmin = await request.put(translationApi(project.id, keyId, sk!.id), { data: { value: 'C' }, headers: MUTATION_HEADERS })
+		expect(asAdmin.status()).toBe(200)
 		await editorApi.dispose()
+
+		// Deleting: never the current version; a deleted one takes its keys along and the other versions keep their copies.
+		const deleteCurrent = await request.delete(`${url}/${current.id}`, { data: {}, headers: MUTATION_HEADERS })
+		expect(deleteCurrent.status()).toBe(409)
+		expect((await readApiError(deleteCurrent)).code).toBe('PROJECT_VERSION_CURRENT')
+		const withoutCsrfHeader = await request.delete(`${url}/${past.id}`, { data: {} })
+		expect(withoutCsrfHeader.status()).toBe(403)
+		expect((await readApiError(withoutCsrfHeader)).code).toBe('CSRF_REJECTED')
+		const deleted = await request.delete(`${url}/${past.id}`, { data: {}, headers: MUTATION_HEADERS })
+		expect(deleted.status()).toBe(204)
+		const gone = await request.delete(`${url}/${past.id}`, { data: {}, headers: MUTATION_HEADERS })
+		expect(gone.status()).toBe(404)
+		expect((await readApiError(gone)).code).toBe('PROJECT_VERSION_NOT_FOUND')
+		expect(((await (await request.get(url)).json()) as { items: { name: string }[] }).items.map(({ name }) => name)).toEqual(['v2.46', 'v2.45'])
+		expect((await listTranslations(request, project.id, current.id)).total).toBe(11)
+		expect(await (await request.get(`${url}/${current.id}/diff`)).json()).toEqual({ previousVersion: null, added: 11, changed: 0, removed: 0 })
+		const deletedList = await request.get(projectTranslationsApi(project.id), { params: { versionId: past.id } })
+		expect(deletedList.status()).toBe(404)
+		expect((await readApiError(deletedList)).code).toBe('PROJECT_VERSION_NOT_FOUND')
 	})
 })

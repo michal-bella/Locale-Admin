@@ -1,27 +1,28 @@
 import { type APIRequest, type APIRequestContext, expect, type Page, test } from '@playwright/test'
 
 import { STORAGE_STATE } from '../support/auth'
-import { listLanguages, newAdminApi } from '../support/languages'
+import { newAdminApi } from '../support/languages'
 import { getMainNavigation } from '../support/layout'
-import { createProject, type ProjectListItem } from '../support/projects'
+import { type ProjectListItem } from '../support/projects'
 import {
+	createProjectWithKeys,
 	getTranslationField,
 	getTranslationRows,
 	getTranslationsTable,
-	insertTranslationKeys,
 	openEditTranslationModal,
 	openTranslations,
 	saveTranslation,
 } from '../support/translations'
 import { addMember } from '../support/users'
+import { createVersion, PAST_WINDOW } from '../support/versions'
 
 const TIME_ZONE = 'Europe/Bratislava'
 
 test.use({ timezoneId: TIME_ZONE })
 
 /**
- * sk (base), en, cs and 4 keys inserted in the DB (no activity events): only `nav.home` has every language, so 1 of 4 keys (25 %) is
- * translated; sk 4 of 4, en 2 of 4, cs 1 of 4. The ADMIN who creates the project is its only member.
+ * sk (base), en, cs and 4 keys inserted in the DB into the current version `v2.45` (no activity events): only `nav.home` has every language,
+ * so 1 of 4 keys (25 %) is translated; sk 4 of 4, en 2 of 4, cs 1 of 4. The ADMIN who creates the project is its only member.
  */
 const KEYS = [
 	{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov', en: 'Home', cs: 'Domů' } },
@@ -30,11 +31,7 @@ const KEYS = [
 	{ namespace: 'loc', name: 'nav.logout', values: { sk: 'Odhlásiť', en: null } },
 ]
 
-const seedProject = async (api: APIRequestContext) => {
-	const project = await createProject(api, 'dashboard', ['sk', 'en', 'cs'])
-	await insertTranslationKeys(project.id, await listLanguages(api, project.id), KEYS)
-	return project
-}
+const seedProject = (api: APIRequestContext) => createProjectWithKeys(api, 'dashboard', KEYS, ['sk', 'en', 'cs'])
 
 /** Seeds a project as the ADMIN and returns it with the ADMIN API context; the caller disposes the context. */
 const withSeededProject = async (request: APIRequest) => {
@@ -105,8 +102,13 @@ test.describe('ADMIN', () => {
 		await expect(page.getByRole('heading', { level: 1, name: project.name })).toBeVisible()
 	})
 
-	test('shows the header, the four cards, Stav jazykov and no Importovať or Exportovať', async ({ page, playwright }) => {
+	test('shows the header with the version select, the four cards of the current version, Stav jazykov and no Importovať or Exportovať', async ({
+		page,
+		playwright,
+	}) => {
 		const { project, api } = await withSeededProject(playwright.request)
+		// An older, empty version: the select switches the cards to it.
+		await createVersion(api, project.id, { name: 'v2.44', ...PAST_WINDOW })
 		await api.dispose()
 
 		await openDashboard(page, project)
@@ -116,6 +118,7 @@ test.describe('ADMIN', () => {
 		await expect(main.getByText('Aktuálny stav prekladov, jazykov a posledných zmien.', { exact: true })).toBeVisible()
 		await expect(main.getByRole('button', { name: /Importovať|Exportovať/ })).toHaveCount(0)
 		await expect(main.getByRole('link', { name: /Importovať|Exportovať/ })).toHaveCount(0)
+		await expect(main.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
 
 		await expect(getStatValue(page, 'Kľúče')).toHaveText('4')
 		await expect(getStatValue(page, 'Preložené')).toHaveText(/^25\s%$/)
@@ -135,6 +138,16 @@ test.describe('ADMIN', () => {
 		await expect(rows.nth(1).getByRole('link')).toHaveAccessibleName(/^Angličtina: zobraziť nepreložené kľúče, 50\s%$/)
 		await expect(rows.nth(2)).toContainText('Čeština')
 		await expect(rows.nth(2)).toContainText('1 z 4 preložených')
+
+		await main.getByRole('combobox', { name: 'Verzia' }).click()
+		await page.getByRole('option', { name: 'v2.44', exact: true }).click()
+		await expect(main.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.44')
+		await expect(getStats(page)).toHaveAttribute('aria-busy', 'false')
+		await expect(getStatValue(page, 'Kľúče')).toHaveText('0')
+		await expect(getStatValue(page, 'Jazyky')).toHaveText('3')
+		await main.getByRole('combobox', { name: 'Verzia' }).click()
+		await page.getByRole('option', { name: 'v2.45 (aktuálna)', exact: true }).click()
+		await expect(getStatValue(page, 'Kľúče')).toHaveText('4')
 
 		await main.getByRole('link', { name: 'Otvoriť preklady' }).click()
 		await expect(page).toHaveURL(`/projects/${project.slug}/translations`)
@@ -156,6 +169,7 @@ test.describe('ADMIN', () => {
 
 			const today = page.getByRole('list', { name: 'Dnes' })
 			await expect(today.getByRole('listitem').first()).toContainText('úprava prekladu nav.logout (angličtina)')
+			await expect(today.getByRole('listitem').first()).toContainText('· v2.45')
 
 			await expect(getDailySection(page).getByText(`Za posledných 30 dní: ${changesText(total(before) + 1)}`, { exact: true })).toBeVisible()
 			await expect(getDailyRows(page)).toHaveCount(30)

@@ -4,10 +4,12 @@ import { type APIRequest, expect, type Page, test, type TestInfo } from '@playwr
 import { MUTATION_HEADERS } from '../support/api'
 import { ANONYMOUS } from '../support/auth'
 import { getExportDialog } from '../support/exports'
-import { getImportDialog, SAMPLE_CSV } from '../support/imports'
+import { getImportDialog, importFile, importSample, NEXT_CSV, SAMPLE_CSV } from '../support/imports'
 import { listLanguages, newAdminApi } from '../support/languages'
 import { createProject } from '../support/projects'
 import {
+	createProjectWithKeys,
+	getDiffSwitch,
 	getEditTranslationDialog,
 	getTranslationField,
 	insertTranslationKeys,
@@ -19,7 +21,7 @@ import {
 	type TranslationsView,
 } from '../support/translations'
 import { loginAsFreshAdmin } from '../support/users'
-import { createVersion, CURRENT_WINDOW, PAST_WINDOW } from '../support/versions'
+import { createProjectWithVersion, createVersion, getDeleteVersionDialog, getVersionRow, PAST_WINDOW } from '../support/versions'
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 const COLOR_SCHEMES = ['light', 'dark'] as const
@@ -39,7 +41,7 @@ type Screen = {
 	view?: TranslationsView
 }
 
-const inNewProject = (page: 'settings' | 'languages' | 'members' | 'translations') => async (request: APIRequest) => {
+const inNewProject = (page: 'settings' | 'languages' | 'members') => async (request: APIRequest) => {
 	const api = await newAdminApi(request)
 	try {
 		return `/projects/${(await createProject(api, 'a11y')).slug}/${page}`
@@ -48,14 +50,69 @@ const inNewProject = (page: 'settings' | 'languages' | 'members' | 'translations
 	}
 }
 
-/** A running and a locked version, so the table shows both states, the current badge and both lock actions. */
+/** Preklady of a project with a running version `v2.45` holding `import-next.csv` (sk, en), so the modals have a table of 10 keys behind them. */
+const translationsWithNext = async (request: APIRequest) => {
+	const api = await newAdminApi(request)
+	try {
+		const project = await createProjectWithVersion(api, 'a11y')
+		const [sk, en] = await listLanguages(api, project.id)
+		await importFile(api, project.id, project.version.id, NEXT_CSV, [
+			{ columnIndex: 2, languageId: sk!.id },
+			{ columnIndex: 3, languageId: en!.id },
+		])
+		return `/projects/${project.slug}/translations`
+	} finally {
+		await api.dispose()
+	}
+}
+
+/** Preklady of a project with a running version without an import: the empty state of the version with its Importovať. */
+const translationsWithEmptyVersion = async (request: APIRequest) => {
+	const api = await newAdminApi(request)
+	try {
+		return `/projects/${(await createProjectWithVersion(api, 'a11y')).slug}/translations`
+	} finally {
+		await api.dispose()
+	}
+}
+
+/** Preklady of a project without a version: the empty state asking to create one. */
+const translationsWithoutVersions = async (request: APIRequest) => {
+	const api = await newAdminApi(request)
+	try {
+		return `/projects/${(await createProject(api, 'a11y')).slug}/translations`
+	} finally {
+		await api.dispose()
+	}
+}
+
+/** A running and a locked version with an import (key count and the import meta) and an empty upcoming one, so the table shows every state and every action. */
 const versionsWithRows = async (request: APIRequest) => {
 	const api = await newAdminApi(request)
 	try {
-		const project = await createProject(api, 'a11y')
-		await createVersion(api, project.id, { name: 'v2.45', ...CURRENT_WINDOW })
-		await createVersion(api, project.id, { name: 'v2.44', ...PAST_WINDOW })
+		const project = await createProjectWithVersion(api, 'a11y')
+		const past = await createVersion(api, project.id, { name: 'v2.44', ...PAST_WINDOW })
+		await importSample(api, project.id, past.id, { sk: 'sk', en: 'en', cs: null })
+		await importSample(api, project.id, project.version.id, { sk: 'sk', en: 'en', cs: null })
 		return `/projects/${project.slug}/versions`
+	} finally {
+		await api.dispose()
+	}
+}
+
+/** Preklady of `v2.45` imported from `import-next.csv` over `v2.44` from the sample, with Zobraziť len zmeny on: the Nové badge and changed cells. */
+const translationsWithDiff = async (request: APIRequest) => {
+	const api = await newAdminApi(request)
+	try {
+		const project = await createProjectWithVersion(api, 'a11y-diff')
+		const [sk, en] = await listLanguages(api, project.id)
+		const past = await createVersion(api, project.id, { name: 'v2.44', ...PAST_WINDOW })
+		await importSample(api, project.id, past.id, { sk: 'sk', en: 'en', cs: null })
+		await importFile(api, project.id, project.version.id, NEXT_CSV, [
+			{ columnIndex: 2, languageId: sk!.id },
+			{ columnIndex: 3, languageId: en!.id },
+		])
+		return `/projects/${project.slug}/translations?diff=true`
 	} finally {
 		await api.dispose()
 	}
@@ -65,12 +122,16 @@ const versionsWithRows = async (request: APIRequest) => {
 const translationsWithKeys = async (request: APIRequest) => {
 	const api = await newAdminApi(request)
 	try {
-		const project = await createProject(api, 'a11y')
-		await insertTranslationKeys(project.id, await listLanguages(api, project.id), [
-			{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky' } },
-			{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte späť, {{name}}', en: 'Welcome back, {{name}}' } },
-			{ namespace: 'paths', name: 'Adresa nie je kompletná. Uistite sa', values: { sk: 'Adresa nie je kompletná.', en: null } },
-		])
+		const project = await createProjectWithKeys(
+			api,
+			'a11y',
+			[
+				{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky' } },
+				{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte späť, {{name}}', en: 'Welcome back, {{name}}' } },
+				{ namespace: 'paths', name: 'Adresa nie je kompletná. Uistite sa', values: { sk: 'Adresa nie je kompletná.', en: null } },
+			],
+			['sk', 'en'],
+		)
 		return `/projects/${project.slug}/translations`
 	} finally {
 		await api.dispose()
@@ -81,10 +142,12 @@ const translationsWithKeys = async (request: APIRequest) => {
 const translationsWithUnsafeValue = async (request: APIRequest) => {
 	const api = await newAdminApi(request)
 	try {
-		const project = await createProject(api, 'a11y')
-		await insertTranslationKeys(project.id, await listLanguages(api, project.id), [
-			{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov', en: 'Home&nbsp;page' } },
-		])
+		const project = await createProjectWithKeys(
+			api,
+			'a11y',
+			[{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov', en: 'Home&nbsp;page' } }],
+			['sk', 'en'],
+		)
 		return `/projects/${project.slug}/translations`
 	} finally {
 		await api.dispose()
@@ -95,11 +158,13 @@ const translationsWithUnsafeValue = async (request: APIRequest) => {
 const translationsWithPluralKey = async (request: APIRequest) => {
 	const api = await newAdminApi(request)
 	try {
-		const project = await createProject(api, 'a11y-plural')
-		await insertTranslationKeys(project.id, await listLanguages(api, project.id), [
-			{ namespace: 'loc', name: 'cart.items', values: { sk: 'Máte {{count}} položiek', en: 'You have {{count}} items' } },
-		])
-		const { keyId } = (await listTranslations(api, project.id)).items[0]!
+		const project = await createProjectWithKeys(
+			api,
+			'a11y-plural',
+			[{ namespace: 'loc', name: 'cart.items', values: { sk: 'Máte {{count}} položiek', en: 'You have {{count}} items' } }],
+			['sk', 'en'],
+		)
+		const { keyId } = (await listTranslations(api, project.id, project.version.id)).items[0]!
 		const response = await api.patch(translationKeyApi(project.id, keyId), { data: { plural: { variable: 'count' } }, headers: MUTATION_HEADERS })
 		expect(response.status(), `PATCH ${translationKeyApi(project.id, keyId)}`).toBe(200)
 		return `/projects/${project.slug}/translations`
@@ -112,13 +177,13 @@ const translationsWithPluralKey = async (request: APIRequest) => {
 const dashboardWithData = async (request: APIRequest) => {
 	const api = await newAdminApi(request)
 	try {
-		const project = await createProject(api, 'a11y-dashboard', ['sk', 'en', 'cs'])
+		const project = await createProjectWithVersion(api, 'a11y-dashboard', ['sk', 'en', 'cs'])
 		const languages = await listLanguages(api, project.id)
-		await insertTranslationKeys(project.id, languages, [
+		await insertTranslationKeys(project.id, project.version.id, languages, [
 			{ namespace: 'loc', name: 'nav.home', values: { sk: 'Domov', en: 'Home', cs: 'Domů' } },
 			{ namespace: 'loc', name: 'nav.orders', values: { sk: 'Objednávky' } },
 		])
-		const { keyId } = (await listTranslations(api, project.id)).items.find(({ name }) => name === 'nav.orders')!
+		const { keyId } = (await listTranslations(api, project.id, project.version.id)).items.find(({ name }) => name === 'nav.orders')!
 		const en = languages.find(({ tag }) => tag === 'en')!
 		const response = await api.put(translationApi(project.id, keyId, en.id), { data: { value: 'Orders' }, headers: MUTATION_HEADERS })
 		expect(response.status(), `PUT ${translationApi(project.id, keyId, en.id)}`).toBe(200)
@@ -137,6 +202,24 @@ const dashboardReady = async (page: Page) => {
 
 const translationsReady = (page: Page) => expect(page.getByRole('table', { name: 'Zoznam prekladov' })).toHaveAttribute('aria-busy', 'false')
 
+const emptyVersionReady = (page: Page) =>
+	expect(page.getByRole('main').getByText('Verzia v2.45 zatiaľ nemá import. Importujte do nej preklady.').first()).toBeVisible()
+
+const noVersionsReady = (page: Page) =>
+	expect(page.getByRole('main').getByText('Projekt zatiaľ nemá žiadnu verziu. Vytvorte ju a importujte do nej preklady.')).toBeVisible()
+
+const diffReady = async (page: Page) => {
+	await translationsRowsReady(4)(page)
+	await expect(getDiffSwitch(page)).toBeChecked()
+	await expect(page.getByText('Oproti v2.44: 2 nové, 2 zmenené, 2 odstránené kľúče.')).toBeVisible()
+}
+
+/** The confirmation before deleting the locked `v2.44` with its key count. */
+const openDeleteVersionModal = async (page: Page) => {
+	await getVersionRow(page, 'v2.44').getByRole('button', { name: 'Zmazať verziu v2.44' }).click()
+	await expect(getDeleteVersionDialog(page)).toContainText('Zmazanie verzie v2.44 odstráni aj jej 10 kľúčov s prekladmi.')
+}
+
 /** Step 1 with the sample file selected (name, size and the checkbox visible). */
 const openImportUpload = async (page: Page) => {
 	await page.getByRole('main').getByRole('button', { name: 'Importovať' }).first().click()
@@ -144,13 +227,18 @@ const openImportUpload = async (page: Page) => {
 	await expect(getImportDialog(page).getByText('import-sample.csv')).toBeVisible()
 }
 
-/** Step 2 against a project with sk and en: a matched row, an undecided `cs` row with the hint buttons, warning buttons and the summary. */
+/**
+ * Step 2 of the sample against the version holding `import-next.csv` (sk, en): matched rows, an undecided `cs` row with the hint buttons,
+ * warning buttons, the summary with the version and the warning listing the two keys of the version the import would remove.
+ */
 const openImportReview = async (page: Page) => {
 	await openImportUpload(page)
 	await getImportDialog(page).getByRole('button', { name: 'Pokračovať na kontrolu' }).click()
 	await expect(getImportDialog(page).getByRole('table', { name: 'Stĺpce jazykov v súbore' })).toBeVisible()
 	await getImportDialog(page).getByRole('button', { name: '1 upozornenie pre stĺpec cs' }).click()
 	await expect(getImportDialog(page).getByText('Upozornenia pre stĺpec cs')).toBeVisible()
+	await expect(getImportDialog(page).getByText('Verzia: v2.45')).toBeVisible()
+	await expect(getImportDialog(page).getByText('Import odstráni 2 kľúče verzie, ktoré v súbore nie sú:')).toBeVisible()
 }
 
 /** The export modal with its defaults: CSV checked, the other formats disabled, every language, Všetky and the file name. */
@@ -273,27 +361,42 @@ const SCREENS: Screen[] = [
 		prepare: openPluralModal,
 	},
 	{
+		name: 'project translations without versions',
+		path: translationsWithoutVersions,
+		ready: noVersionsReady,
+	},
+	{
+		name: 'project translations of an empty version',
+		path: translationsWithEmptyVersion,
+		ready: emptyVersionReady,
+	},
+	{
+		name: 'project translations diff',
+		path: translationsWithDiff,
+		ready: diffReady,
+	},
+	{
 		name: 'import modal step 1',
-		path: inNewProject('translations'),
-		ready: translationsReady,
+		path: translationsWithEmptyVersion,
+		ready: emptyVersionReady,
 		prepare: openImportUpload,
 	},
 	{
 		name: 'import modal step 2',
-		path: inNewProject('translations'),
-		ready: translationsReady,
+		path: translationsWithNext,
+		ready: translationsRowsReady(10),
 		prepare: openImportReview,
 	},
 	{
 		name: 'export modal',
-		path: inNewProject('translations'),
-		ready: translationsReady,
+		path: translationsWithNext,
+		ready: translationsRowsReady(10),
 		prepare: openExport,
 	},
 	{
 		name: 'export modal with field errors',
-		path: inNewProject('translations'),
-		ready: translationsReady,
+		path: translationsWithNext,
+		ready: translationsRowsReady(10),
 		prepare: openExportWithFieldErrors,
 	},
 	{
@@ -316,6 +419,12 @@ const SCREENS: Screen[] = [
 		name: 'project versions',
 		path: versionsWithRows,
 		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam verzií' }).getByRole('row')).toHaveCount(3),
+	},
+	{
+		name: 'delete version modal',
+		path: versionsWithRows,
+		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam verzií' }).getByRole('row')).toHaveCount(3),
+		prepare: openDeleteVersionModal,
 	},
 	{
 		name: 'profile',

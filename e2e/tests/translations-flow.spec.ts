@@ -44,6 +44,7 @@ import {
 	translationsPath,
 } from '../support/translations'
 import { loginAsFreshAdmin } from '../support/users'
+import { createProjectWithVersion, CURRENT_WINDOW, fillVersionForm, getVersionFormDialog, listVersions } from '../support/versions'
 
 const CS = 'čeština'
 
@@ -102,22 +103,33 @@ const statuses = (count: number, untranslated: number) => [
 test.describe('as a fresh ADMIN', () => {
 	test.use({ storageState: ANONYMOUS })
 
-	test('a new project: import with a missing language, switch to Zdroj → cieľ, translate in the modal, filter, sort, reload and re-import', async ({
+	test('a new project: create the first version, import with a missing language, switch to Zdroj → cieľ, translate in the modal, filter, sort, reload and re-import', async ({
 		page,
 		playwright,
 		baseURL,
 	}) => {
 		await loginAsFreshAdmin(page, playwright.request, baseURL)
 		const project = await createProject(page.request, 'flow', ['sk', 'en'])
-		await openTranslations(page, project)
+		await page.goto(translationsPath(project))
+		const main = page.getByRole('main')
 
-		await expect(getTranslationsTable(page).getByText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeVisible()
+		// Without a version there is nothing to import into: the page offers to create one, and switches to it right away.
+		await expect(main.getByText('Projekt zatiaľ nemá žiadnu verziu. Vytvorte ju a importujte do nej preklady.')).toBeVisible()
 		await expect(getStat(page, 'Celkom kľúčov')).toHaveText('0')
-		await expectView(page, 'EXTENDED')
-		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina Základný', 'angličtina', 'Stav'])
-		await getTranslationsTable(page).getByRole('button', { name: 'Importovať' }).click()
+		await main.getByRole('button', { name: 'Vytvoriť verziu' }).click()
+		const versionDialog = getVersionFormDialog(page, 'create')
+		await fillVersionForm(versionDialog, { name: 'v2.45', ...CURRENT_WINDOW })
+		await versionDialog.getByRole('button', { name: 'Vytvoriť' }).click()
+		await expect(page.getByText('Verzia v2.45 bola vytvorená.')).toBeVisible()
+		const [version] = await listVersions(page.request, project.id)
+		await expect(page).toHaveURL(translationsPath(project, `?version=${version!.id}`))
+		await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
+		await expect(main.getByText('Verzia v2.45 zatiaľ nemá import. Importujte do nej preklady.').first()).toBeVisible()
+		await expect(page.getByText('Verzia v2.45: ostáva 12 dní do uzamknutia.')).toBeVisible()
+		await main.getByRole('button', { name: 'Importovať' }).last().click()
 		await expect(getImportDialog(page)).toBeVisible()
 		await expect(getImportDialog(page).getByText('Krok 1 z 2 · Nahratie')).toBeVisible()
+		await expect(getImportDialog(page).getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
 
 		await getFileInput(page).setInputFiles(SAMPLE_CSV)
 		await expect(getImportDialog(page).getByText('import-sample.csv')).toBeVisible()
@@ -142,15 +154,23 @@ test.describe('as a fresh ADMIN', () => {
 			'0 prekladov sa prepíše',
 			'22 nových prekladov',
 			'1 kľúč bez prekladu v základnom jazyku',
+			'Verzia: v2.45',
 		])
 		expect((await listLanguages(page.request, project.id)).map(({ tag }) => tag).sort()).toEqual(['cs', 'en', 'sk'])
 
-		expect((await submitImport(page, project.id)).postDataJSON()).toMatchObject({ fileName: 'import-sample.csv', createMissingKeys: true })
+		expect((await submitImport(page, project.id)).postDataJSON()).toMatchObject({
+			fileName: 'import-sample.csv',
+			createMissingKeys: true,
+			versionId: version!.id,
+		})
 		await expect(page.getByText(importSuccessMessage(10, 22, 0))).toBeVisible()
 		await expect(getImportDialog(page)).toHaveCount(0)
 
-		// The new language is the last column right away; the row status counts every language.
+		// The new language is the last column right away; the row status counts every language. The version stays in the URL.
+		await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+		await expectView(page, 'EXTENDED')
 		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina Základný', 'angličtina', CS, 'Stav'])
+		await expect(page.getByText('Prvá verzia projektu.')).toBeVisible()
 		await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
 		await expectStats(page, EXTENDED_ALL.translated, EXTENDED_ALL.untranslated)
 		await expect(page.getByRole('progressbar', { name: 'Preložené: 40 %' })).toBeVisible()
@@ -164,7 +184,7 @@ test.describe('as a fresh ADMIN', () => {
 		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina Základný', CS, 'angličtina', 'Stav'])
 
 		await switchView(page, 'COMPACT')
-		await expect(page).toHaveURL(translationsPath(project))
+		await expect(page).toHaveURL(translationsPath(project, `?version=${version!.id}`))
 		await expect(page.getByRole('combobox', { name: 'Zdrojový jazyk' })).toHaveValue('SK')
 		await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('CS')
 		await expect(getColumnHeaders(page)).toHaveText(['Kľúč', 'slovenčina Základný', CS, 'Stav'])
@@ -192,20 +212,20 @@ test.describe('as a fresh ADMIN', () => {
 		await expect(page.getByRole('progressbar', { name: 'Preložené: 70 %' })).toBeVisible()
 
 		await getSearch(page).fill(key)
-		await expect(page).toHaveURL(/\?search=orders\.empty\.title$/)
+		await expect(page).toHaveURL(/[?&]search=orders\.empty\.title(&|$)/)
 		await expectKeys(getTranslationRows(page), [key])
 		await expect(getShownCount(page, 'Zobrazených 1 z 1 kľúča')).toBeVisible()
 		await getSearch(page).clear()
-		await expect(page).toHaveURL(translationsPath(project))
+		await expect(page).toHaveURL(translationsPath(project, `?version=${version!.id}`))
 		await expect(getTranslationRows(page)).toHaveCount(10)
 
 		await pickOption(page, 'Zoradenie', 'Podľa kľúča')
-		await expect(page).toHaveURL(translationsPath(project, '?sort=KEY'))
+		await expect(page).toHaveURL(translationsPath(project, `?version=${version!.id}&sort=KEY`))
 		await expectKeys(getTranslationRows(page), BY_KEY)
 
 		await page.reload()
 		await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
-		await expect(page).toHaveURL(translationsPath(project, '?sort=KEY'))
+		await expect(page).toHaveURL(translationsPath(project, `?version=${version!.id}&sort=KEY`))
 		await expectView(page, 'COMPACT')
 		await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveValue('CS')
 		await expect(page.getByRole('combobox', { name: 'Zoradenie' })).toHaveValue('Podľa kľúča')
@@ -226,6 +246,7 @@ test.describe('as a fresh ADMIN', () => {
 		await expect(getLanguageSelect(page, 'cs')).toHaveValue('Czech (cs)')
 		await expectColumnStats(page, 'cs', SAMPLE.cs, 1, '0 / 0')
 		await expect(getSummary(page).getByRole('listitem')).toContainText(['0 nových kľúčov', '0 prekladov sa prepíše', '0 nových prekladov'])
+		await expect(getImportDialog(page).getByText(/^Import odstráni/)).toHaveCount(0)
 		await submitImport(page, project.id)
 		await expect(page.getByText(importSuccessMessage(0, 0, 0))).toBeVisible()
 		await expect(getImportDialog(page)).toHaveCount(0)
@@ -236,8 +257,8 @@ test.describe('as a fresh ADMIN', () => {
 })
 
 test('a broken file shows its issues with line numbers and imports nothing', async ({ page, request }) => {
-	const project = await createProject(request, 'flow-broken', ['sk', 'en'])
-	await importSample(request, project.id, { sk: 'sk', en: 'en', cs: null })
+	const project = await createProjectWithVersion(request, 'flow-broken', ['sk', 'en'])
+	await importSample(request, project.id, project.version.id, { sk: 'sk', en: 'en', cs: null })
 	await openTranslations(page, project)
 	await expect(getStat(page, 'Celkom kľúčov')).toHaveText('10')
 	await expectStats(page, EXTENDED_SK_EN.translated, EXTENDED_SK_EN.untranslated)
@@ -266,9 +287,9 @@ test('a broken file shows its issues with line numbers and imports nothing', asy
 
 	const languages = await listLanguages(request, project.id)
 	const languageId = (tag: string) => languages.find((language) => language.tag === tag)!.id
-	const compact = await listTranslations(request, project.id, { sourceLanguageId: languageId('sk'), targetLanguageId: languageId('en') })
+	const compact = await listTranslations(request, project.id, project.version.id, { sourceLanguageId: languageId('sk'), targetLanguageId: languageId('en') })
 	expect(compact.stats).toEqual({ totalKeys: 10, translated: SAMPLE.en.translations, untranslated: SAMPLE.en.untranslated, warnings: 0 })
 	expect(compact.items.map(({ name }) => name)).not.toContain('')
-	const extended = await listTranslations(request, project.id)
+	const extended = await listTranslations(request, project.id, project.version.id)
 	expect(extended.stats).toEqual({ totalKeys: 10, translated: EXTENDED_SK_EN.translated, untranslated: EXTENDED_SK_EN.untranslated, warnings: 0 })
 })

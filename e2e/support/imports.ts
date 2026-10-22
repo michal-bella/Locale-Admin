@@ -6,7 +6,7 @@ import { type APIRequestContext, expect, type Page } from '@playwright/test'
 import { MUTATION_HEADERS } from './api'
 import { listLanguages } from './languages'
 import { type ProjectListItem } from './projects'
-import { getTranslationsTable, translationsPath } from './translations'
+import { translationsPath } from './translations'
 
 export const FIXTURES_DIR = path.resolve(import.meta.dirname, '../fixtures')
 
@@ -15,6 +15,12 @@ export const SAMPLE_CSV = path.join(FIXTURES_DIR, 'import-sample.csv')
 
 /** Row 3 has one field too many, row 4 an empty key. */
 export const BROKEN_CSV = path.join(FIXTURES_DIR, 'import-broken.csv')
+
+/**
+ * The next release of `import-sample.csv` (sk, en only): 8 of its keys (without `legal.terms` and `Vrátiť sa do obchodu`), two new ones
+ * (`nav.about`, `Kontaktujte nás`), en `dashboard.welcome` changed (`{{ name }}` → `{{name}}`) and en `orders.empty.description` filled.
+ */
+export const NEXT_CSV = path.join(FIXTURES_DIR, 'import-next.csv')
 
 export const readFixture = (file: string) => readFileSync(file, 'utf8')
 
@@ -26,14 +32,19 @@ export type ImportColumn = { columnIndex: number; languageId: string | null }
 
 export type ImportResult = {
 	keysCreated: number
+	keysCopied: number
+	keysRemoved: number
 	translationsCreated: number
 	translationsUpdated: number
 	skippedColumns: number
-	version: { id: string; name: string } | null
+	version: { id: string; name: string }
 }
 
-/** Imports a fixture through the API as the user of `api`. `columns` follows the contract: every language column of the file once; `versionId` stamps the keys and cells. */
-export const importFile = async (api: APIRequestContext, projectId: string, file: string, columns: ImportColumn[], versionId?: string) => {
+/**
+ * Imports a fixture into a version through the API as the user of `api`. `columns` follows the contract: every language column of the file
+ * once. The import copies the keys of the previous version that are in the file and removes the keys of the version that are not.
+ */
+export const importFile = async (api: APIRequestContext, projectId: string, versionId: string, file: string, columns: ImportColumn[]) => {
 	const response = await api.post(importApi(projectId), {
 		data: { fileName: path.basename(file), content: readFixture(file), columns, versionId },
 		headers: MUTATION_HEADERS,
@@ -54,12 +65,18 @@ export const SAMPLE = {
 	cs: { translations: 6, untranslated: 4 },
 } as const
 
-/** Imports the sample file through the API; `mapping` gives the project language tag per file column (`null` = skip). */
-export const importSample = async (api: APIRequestContext, projectId: string, mapping: Record<(typeof SAMPLE.columns)[number], string | null>) => {
+/** Imports the sample file into a version through the API; `mapping` gives the project language tag per file column (`null` = skip). */
+export const importSample = async (
+	api: APIRequestContext,
+	projectId: string,
+	versionId: string,
+	mapping: Record<(typeof SAMPLE.columns)[number], string | null>,
+) => {
 	const languages = await listLanguages(api, projectId)
 	return importFile(
 		api,
 		projectId,
+		versionId,
 		SAMPLE_CSV,
 		SAMPLE.columns.map((tag, index) => ({
 			columnIndex: index + 2,
@@ -71,8 +88,18 @@ export const importSample = async (api: APIRequestContext, projectId: string, ma
 /** Slovak plural forms: 1, 2–4, 0 and 5+. */
 const plural = (count: number, [one, few, many]: [string, string, string]) => `${count} ${count === 1 ? one : count >= 2 && count <= 4 ? few : many}`
 
-export const importSuccessMessage = (keys: number, created: number, updated: number) =>
-	`Import dokončený: ${plural(keys, ['nový kľúč', 'nové kľúče', 'nových kľúčov'])}, ${plural(created, ['nový preklad', 'nové preklady', 'nových prekladov'])}, ${plural(updated, ['prepísaný', 'prepísané', 'prepísaných'])}.`
+/** The green notification after an import; copied and removed keys are mentioned only when there are any. */
+export const importSuccessMessage = (keys: number, created: number, updated: number, copied = 0, removed = 0) =>
+	`Import dokončený: ${[
+		plural(keys, ['nový kľúč', 'nové kľúče', 'nových kľúčov']),
+		plural(created, ['nový preklad', 'nové preklady', 'nových prekladov']),
+		plural(updated, ['prepísaný', 'prepísané', 'prepísaných']),
+		copied > 0 &&
+			plural(copied, ['kľúč prevzatý z predchádzajúcej verzie', 'kľúče prevzaté z predchádzajúcej verzie', 'kľúčov prevzatých z predchádzajúcej verzie']),
+		removed > 0 && plural(removed, ['kľúč odstránený', 'kľúče odstránené', 'kľúčov odstránených']),
+	]
+		.filter((part) => part !== false)
+		.join(', ')}.`
 
 export const getImportDialog = (page: Page) => page.getByRole('dialog', { name: 'Importovať preklady' })
 
@@ -89,10 +116,15 @@ export const getColumnRow = (page: Page, tag: string) =>
 
 export const getSummary = (page: Page) => getImportDialog(page).getByRole('list', { name: 'Súhrn' })
 
-/** Opens Preklady of `project` and the import modal in step 1. */
+/** The warning block of step 2 listing the keys of the version the import would remove (missing from the file). */
+export const getRemovedList = (page: Page) => getImportDialog(page).getByRole('list', { name: /^Import odstráni / })
+
+export const getVersionSelect = (page: Page) => getImportDialog(page).getByRole('combobox', { name: 'Verzia' })
+
+/** Opens Preklady of `project` and the import modal in step 1 from the header button (there also for a version without an import, which has no table). */
 export const openImportModal = async (page: Page, project: ProjectListItem, query = '') => {
 	await page.goto(translationsPath(project, query))
-	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+	await expect(page.getByRole('combobox', { name: 'Verzia' })).not.toHaveValue('')
 	await page.getByRole('main').getByRole('button', { name: 'Importovať' }).first().click()
 	await expect(getImportDialog(page)).toBeVisible()
 	await expect(getImportDialog(page).getByText('Krok 1 z 2 · Nahratie')).toBeVisible()

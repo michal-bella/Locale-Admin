@@ -18,20 +18,23 @@ import {
 	translationApi,
 } from '../support/translations'
 import { createVisitor, loginViaApi, type TestEditor } from '../support/users'
+import { createVersion, CURRENT_WINDOW, type ProjectVersion } from '../support/versions'
 
 test.use({ storageState: ANONYMOUS })
 
-/** A fresh VISITOR per test, member of a project with the sample keys (imported as the ADMIN); the page is signed in as them. */
+/** A fresh VISITOR per test, member of a project with the sample keys in its current version (imported as the ADMIN); the page is signed in as them. */
 const signInVisitor = async (page: Page, request: Parameters<typeof createVisitor>[0], baseURL: string | undefined) => {
 	const visitor = await createVisitor(request, baseURL)
 	const admin = await newAdminApi(request)
+	let version: ProjectVersion
 	try {
-		await importSample(admin, visitor.projectId, { sk: 'sk', en: 'en', cs: null })
+		version = await createVersion(admin, visitor.projectId, { name: 'v2.45', ...CURRENT_WINDOW })
+		await importSample(admin, visitor.projectId, version.id, { sk: 'sk', en: 'en', cs: null })
 	} finally {
 		await admin.dispose()
 	}
 	await loginViaApi(page, visitor)
-	return visitor
+	return { ...visitor, version }
 }
 
 const projectPath = (visitor: TestEditor, page: string) => `/projects/${visitor.projectSlug}/${page}`
@@ -73,6 +76,9 @@ test('reads, filters and exports the translations without any edit control, and 
 	await expect(main.getByRole('button', { name: 'Exportovať' })).toBeVisible()
 	await expect(main.getByRole('button', { name: 'Importovať' })).toHaveCount(0)
 	await expect(main.getByRole('button', { name: 'Pridať kľúč' })).toHaveCount(0)
+	await expect(main.getByRole('button', { name: 'Vytvoriť verziu' })).toHaveCount(0)
+	await expect(page.getByText('Verzia v2.45: ostáva 12 dní do uzamknutia.')).toBeVisible()
+	await expect(page.getByRole('button', { name: 'Zamknúť' })).toHaveCount(0)
 	await expect(getTranslationRows(page)).toHaveCount(10)
 	// Cells are text: nothing in the body takes the focus and a click opens nothing.
 	await expect(table.locator('tbody').locator('button, a, input, textarea, select, [tabindex]')).toHaveCount(0)
@@ -102,7 +108,7 @@ test('gets 403 from the API for a translation and for leaving the project, 200 f
 	const visitor = await signInVisitor(page, playwright.request, baseURL)
 	const api = page.request
 	const [sk, en] = await listLanguages(api, visitor.projectId)
-	const { items } = await listTranslations(api, visitor.projectId)
+	const { items } = await listTranslations(api, visitor.projectId, visitor.version.id)
 	const key = items.find(({ name }) => name === 'dashboard.welcome')!
 
 	const put = await api.put(translationApi(visitor.projectId, key.keyId, en!.id), { data: { value: 'Changed' }, headers: MUTATION_HEADERS })
@@ -111,10 +117,10 @@ test('gets 403 from the API for a translation and for leaving the project, 200 f
 	const leave = await api.delete(projectMembershipApi(visitor.projectId), { data: {}, headers: MUTATION_HEADERS })
 	expect(leave.status()).toBe(403)
 
-	const exported = await api.get(`/api/projects/${visitor.projectId}/export`, { params: { languageIds: sk!.id } })
+	const exported = await api.get(`/api/projects/${visitor.projectId}/export`, { params: { languageIds: sk!.id, versionId: visitor.version.id } })
 	expect(exported.status()).toBe(200)
 	expect(await exported.text()).toContain('Keys; sk')
-	const after = await listTranslations(api, visitor.projectId)
+	const after = await listTranslations(api, visitor.projectId, visitor.version.id)
 	expect(after.items.find(({ name }) => name === 'dashboard.welcome')!.translations[en!.id]!.value).toBe(key.translations[en!.id]!.value)
 })
 

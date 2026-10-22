@@ -4,7 +4,7 @@ import { MUTATION_HEADERS, readApiError } from '../support/api'
 import { ANONYMOUS, expectLoggedInHome, loginViaUi } from '../support/auth'
 import { importSample } from '../support/imports'
 import { listLanguages, newAdminApi } from '../support/languages'
-import { createProject, getProjectSettings, projectSettingsApi } from '../support/projects'
+import { getProjectSettings, projectSettingsApi } from '../support/projects'
 import {
 	cellOf,
 	expectChips,
@@ -30,13 +30,14 @@ import {
 	translationKeyApi,
 } from '../support/translations'
 import { addMember, createMember } from '../support/users'
+import { createProjectWithVersion, type ProjectWithVersion } from '../support/versions'
 
 const SK = 'slovenčina'
 
 /** `import-sample.csv` with sk (base) and en, `cs` skipped; see `SAMPLE` in `support/imports.ts`. The ADMIN of `api` creates the project and becomes its member. */
 const seedProject = async (api: APIRequestContext, label: string) => {
-	const project = await createProject(api, label, ['sk', 'en'])
-	await importSample(api, project.id, { sk: 'sk', en: 'en', cs: null })
+	const project = await createProjectWithVersion(api, label, ['sk', 'en'])
+	await importSample(api, project.id, project.version.id, { sk: 'sk', en: 'en', cs: null })
 	return project
 }
 
@@ -59,13 +60,13 @@ const trackRequests = (page: Page, matches: (req: Request) => boolean) => {
 	return requests
 }
 
-const itemOf = async (api: APIRequestContext, projectId: string, key: string) =>
-	(await listTranslations(api, projectId)).items.find(({ name }) => name === key)!
+const itemOf = async (api: APIRequestContext, project: ProjectWithVersion, key: string) =>
+	(await listTranslations(api, project.id, project.version.id)).items.find(({ name }) => name === key)!
 
 /** `{ sk, en }` values of `key` straight from the API. */
-const valuesOf = async (api: APIRequestContext, projectId: string, key: string) => {
-	const [sk, en] = await listLanguages(api, projectId)
-	const item = await itemOf(api, projectId, key)
+const valuesOf = async (api: APIRequestContext, project: ProjectWithVersion, key: string) => {
+	const [sk, en] = await listLanguages(api, project.id)
+	const item = await itemOf(api, project, key)
 	return { sk: cellOf(item, sk!).value, en: cellOf(item, en!).value }
 }
 
@@ -122,7 +123,7 @@ test.describe('locked tokens', () => {
 		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, angličtina: Welcome back, {{ name }}!`)
 		await expect(row.locator('code')).toHaveText(['{{name}}', '{{ name }}'])
 		expect(puts).toHaveLength(1)
-		expect((await valuesOf(request, project.id, key)).en).toBe('Welcome back, {{ name }}!')
+		expect((await valuesOf(request, project, key)).en).toBe('Welcome back, {{ name }}!')
 	})
 
 	test('paste inserts plain text with tags and variables as chips, the exact string is saved and tag chips delete whole', async ({ page, request }) => {
@@ -232,7 +233,7 @@ test.describe('Edit key modal', () => {
 		await expect(getTranslationRow(page, 'menu.start').getByText('Odkaz v hlavnom menu', { exact: true })).toHaveCount(0)
 		await info.hover()
 		await expect(page.getByRole('tooltip')).toHaveText('Odkaz v hlavnom menu')
-		expect(await itemOf(request, project.id, 'menu.start')).toMatchObject({ description: 'Odkaz v hlavnom menu', plural: null, group: 'loc:menu' })
+		expect(await itemOf(request, project, 'menu.start')).toMatchObject({ description: 'Odkaz v hlavnom menu', plural: null, group: 'loc:menu' })
 
 		const unchanged = await openEditKeyModal(page, 'menu.start')
 		await expect(unchanged.getByLabel('Popis', { exact: true })).toHaveValue('Odkaz v hlavnom menu')
@@ -265,11 +266,11 @@ test.describe('Edit key modal', () => {
 			await expect(getTranslationRows(page)).toHaveCount(10)
 			await expect(page.getByRole('button', { name: /^Upraviť kľúč / })).toHaveCount(0)
 
-			const item = await itemOf(request, project.id, 'nav.home')
+			const item = await itemOf(request, project, 'nav.home')
 			const response = await request.patch(translationKeyApi(project.id, item.keyId), { data: { name: 'nav.start' }, headers: MUTATION_HEADERS })
 			expect(response.status()).toBe(403)
 			expect((await readApiError(response)).code).toBe('FORBIDDEN')
-			expect((await itemOf(request, project.id, 'nav.home')).name).toBe('nav.home')
+			expect((await itemOf(request, project, 'nav.home')).name).toBe('nav.home')
 		})
 	})
 })
@@ -305,8 +306,8 @@ test.describe('plural forms', () => {
 		await expect(formChips(cells.nth(2))).toHaveText(['One', 'Other'])
 		await expect(cells.nth(2).getByText('Bez prekladu', { exact: true })).toHaveCount(1)
 		await expect(cells.nth(2)).toContainText('You have {{count}} items')
-		expect((await itemOf(request, project.id, key)).plural).toEqual({ variable: 'count' })
-		expect(await valuesOf(request, project.id, key)).toEqual({
+		expect((await itemOf(request, project, key)).plural).toEqual({ variable: 'count' })
+		expect(await valuesOf(request, project, key)).toEqual({
 			sk: '{count, plural, other {Máte {{count}} položiek}}',
 			en: '{count, plural, other {You have {{count}} items}}',
 		})
@@ -330,7 +331,7 @@ test.describe('plural forms', () => {
 		await expect(cells.nth(2).locator('code')).toHaveText(['#', '#'])
 		await expect(cells.nth(2)).toContainText('You have # item')
 		await expect(cells.nth(2)).toContainText('You have # items')
-		expect((await valuesOf(request, project.id, key)).en).toBe('{count, plural, one {You have # item} other {You have # items}}')
+		expect((await valuesOf(request, project, key)).en).toBe('{count, plural, one {You have # item} other {You have # items}}')
 
 		const disable = await openEditKeyModal(page, key)
 		await disable.getByRole('checkbox', { name: 'Použiť plurálové formy' }).uncheck()
@@ -342,8 +343,8 @@ test.describe('plural forms', () => {
 		await expect(formChips(cells.nth(2))).toHaveCount(0)
 		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, angličtina: You have # items`)
 		await expect(getCellButton(row, key, SK)).toHaveText(`Preklad kľúča ${key}, ${SK}: Máte {{count}} položiek`)
-		expect((await itemOf(request, project.id, key)).plural).toBeNull()
-		expect(await valuesOf(request, project.id, key)).toEqual({ sk: 'Máte {{count}} položiek', en: 'You have # items' })
+		expect((await itemOf(request, project, key)).plural).toBeNull()
+		expect(await valuesOf(request, project, key)).toEqual({ sk: 'Máte {{count}} položiek', en: 'You have # items' })
 
 		const rename = await openEditKeyModal(page, key)
 		await rename.getByRole('checkbox', { name: 'Použiť plurálové formy' }).check()
@@ -352,8 +353,8 @@ test.describe('plural forms', () => {
 		expect(renamed.status()).toBe(200)
 		expect(renamed.request().postDataJSON()).toEqual({ plural: { variable: 'n' } })
 		await expect(rename).toHaveCount(0)
-		expect((await itemOf(request, project.id, key)).plural).toEqual({ variable: 'n' })
-		expect((await valuesOf(request, project.id, key)).en).toBe('{n, plural, other {You have # items}}')
+		expect((await itemOf(request, project, key)).plural).toEqual({ variable: 'n' })
+		expect((await valuesOf(request, project, key)).en).toBe('{n, plural, other {You have # items}}')
 
 		const variable = await openEditKeyModal(page, key)
 		await expect(variable.getByLabel('Názov premennej', { exact: true })).toHaveValue('n')
@@ -362,8 +363,8 @@ test.describe('plural forms', () => {
 		expect(reserialized.request().postDataJSON()).toEqual({ plural: { variable: 'num' } })
 		await expect(variable).toHaveCount(0)
 		await expect(formChips(cells.nth(2))).toHaveText(['One', 'Other'])
-		expect((await itemOf(request, project.id, key)).plural).toEqual({ variable: 'num' })
-		expect(await valuesOf(request, project.id, key)).toEqual({
+		expect((await itemOf(request, project, key)).plural).toEqual({ variable: 'num' })
+		expect(await valuesOf(request, project, key)).toEqual({
 			sk: '{num, plural, other {Máte {{count}} položiek}}',
 			en: '{num, plural, other {You have # items}}',
 		})
@@ -381,6 +382,6 @@ test.describe('plural forms', () => {
 		await expect(dialog.getByLabel('Názov premennej', { exact: true })).toHaveAttribute('aria-invalid', 'true')
 		await expect(dialog).toBeVisible()
 		expect(patches).toEqual([])
-		expect((await itemOf(request, project.id, 'cart.items')).plural).toBeNull()
+		expect((await itemOf(request, project, 'cart.items')).plural).toBeNull()
 	})
 })

@@ -420,6 +420,7 @@ export const importFile = (
 				await recordActivity(tx, {
 					projectId,
 					userId,
+					versionId,
 					type: ACTIVITY_TYPE.KEYS_IMPORTED,
 					count: writes.length,
 					payload: {

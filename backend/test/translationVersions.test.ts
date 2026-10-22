@@ -6,7 +6,11 @@ import { describe, expect, it } from 'vitest'
 import {
 	ACTIVITY_TYPE,
 	ERROR_CODE,
+	activityDailyResponseSchema,
+	activityListResponseSchema,
+	dashboardResponseSchema,
 	importPreviewResponseSchema,
+	versionDiffSummarySchema,
 	ROLE,
 	VERSION_LOCK,
 	createTranslationKeyResponseSchema,
@@ -481,5 +485,153 @@ describe('export of the diff', () => {
 			.query({ languageIds, versionId: version.id, diffOnly: 'true' })
 			.set('Cookie', cookie)
 		expect(check.status).toBe(200)
+	})
+})
+
+describe('the diff of a version', () => {
+	/** v1: A, B (sk B), C. v2: A (same), B (sk changed, description added), D (new). */
+	const seed = async (app: App) => {
+		const context = await setup(app)
+		const { project, sk, en } = context
+		const previous = await createVersionRow(project.id, { name: 'v1', ...PAST })
+		const version = await createVersionRow(project.id, { name: 'v2', ...RUNNING })
+		await createKey(project.id, previous.id, 'A', { [sk.id]: 'A', [en.id]: 'A' })
+		await createKey(project.id, previous.id, 'B', { [sk.id]: 'B' })
+		await createKey(project.id, previous.id, 'C', { [sk.id]: 'C' })
+		await createKey(project.id, version.id, 'A', { [sk.id]: 'A', [en.id]: 'A' })
+		const changed = await createKey(project.id, version.id, 'B', { [sk.id]: 'B2' })
+		await getTestPrisma().translationKey.update({ where: { id: changed.id }, data: { description: 'Popis' } })
+		await createKey(project.id, version.id, 'D', { [sk.id]: 'D', [en.id]: 'D' })
+		return { ...context, previous, version }
+	}
+
+	it('lists only the added and changed keys with diff=true, each saying what changed, and sums them up per version', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie, previous, version } = await seed(app)
+
+		const diff = await listOk(app, cookie, project.id, { versionId: version.id, diff: 'true' })
+		expect(diff.items.map(({ name, diff: change }) => [name, change?.added, change?.changedLanguageIds]).sort()).toEqual([
+			['B', false, [sk.id]],
+			['D', true, []],
+		])
+		expect(diff.total).toBe(2)
+		expect(diff.stats.totalKeys).toBe(3)
+		const all = await listOk(app, cookie, project.id, { versionId: version.id })
+		expect(all.items.every((item) => item.diff === undefined)).toBe(true)
+		// The first version has no previous one: everything is added.
+		const first = await listOk(app, cookie, project.id, { versionId: previous.id, diff: '1' })
+		expect(first.items.map(({ name, diff: change }) => [name, change?.added]).sort()).toEqual([
+			['A', true],
+			['B', true],
+			['C', true],
+		])
+
+		const summary = await request(app).get(`/api/projects/${project.id}/versions/${version.id}/diff`).set('Cookie', cookie)
+		expect(summary.status).toBe(200)
+		expect(versionDiffSummarySchema.parse(summary.body)).toEqual({ previousVersion: { id: previous.id, name: 'v1' }, added: 1, changed: 1, removed: 1 })
+		const firstSummary = await request(app).get(`/api/projects/${project.id}/versions/${previous.id}/diff`).set('Cookie', cookie)
+		expect(versionDiffSummarySchema.parse(firstSummary.body)).toEqual({ previousVersion: null, added: 3, changed: 0, removed: 0 })
+		expectErrorCode(
+			await request(app).get(`/api/projects/${project.id}/versions/${randomUUID()}/diff`).set('Cookie', cookie),
+			404,
+			ERROR_CODE.PROJECT_VERSION_NOT_FOUND,
+		)
+	})
+})
+
+describe('deleting a version', () => {
+	const del = (app: App, cookie: string, projectId: string, versionId: string) =>
+		request(app).delete(`/api/projects/${projectId}/versions/${versionId}`).set('Cookie', cookie).set(CSRF_HEADERS).send({})
+
+	it('removes the version with its keys and cells, records VERSION_DELETED and refuses the current version and an EDITOR', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie } = await setup(app)
+		const editorCookie = await addMember(app, project.id, ROLE.EDITOR)
+		const old = await createVersionRow(project.id, { name: 'v1', ...PAST })
+		const current = await createVersionRow(project.id, { name: 'v2', ...RUNNING })
+		const key = await createKey(project.id, old.id, 'A', { [sk.id]: 'A' })
+		await createKey(project.id, current.id, 'A', { [sk.id]: 'A' })
+		await getTestPrisma().activityEvent.create({
+			data: {
+				projectId: project.id,
+				versionId: old.id,
+				type: ACTIVITY_TYPE.KEY_CREATED,
+				payload: { keyId: key.id, namespace: 'loc', name: 'A', languageTags: ['sk'] },
+			},
+		})
+
+		expect((await del(app, editorCookie, project.id, old.id)).status).toBe(403)
+		expectErrorCode(await del(app, cookie, project.id, current.id), 409, ERROR_CODE.PROJECT_VERSION_CURRENT)
+		expectErrorCode(await del(app, cookie, project.id, randomUUID()), 404, ERROR_CODE.PROJECT_VERSION_NOT_FOUND)
+
+		expect((await del(app, cookie, project.id, old.id)).status).toBe(204)
+		expect(await getTestPrisma().projectVersion.findUnique({ where: { id: old.id } })).toBeNull()
+		expect(await getTestPrisma().translationKey.count({ where: { projectId: project.id } })).toBe(1)
+		expect(await getTestPrisma().translation.count({ where: { key: { projectId: project.id } } })).toBe(1)
+		const events = await getTestPrisma().activityEvent.findMany({ where: { projectId: project.id }, orderBy: { createdAt: 'asc' } })
+		expect(events.map(({ type, versionId, payload }) => [type, versionId, payload])).toEqual([
+			[ACTIVITY_TYPE.KEY_CREATED, null, { keyId: key.id, namespace: 'loc', name: 'A', languageTags: ['sk'] }],
+			[ACTIVITY_TYPE.VERSION_DELETED, null, { name: 'v1', keyCount: 1 }],
+		])
+		const list = await request(app).get(`/api/projects/${project.id}/activity`).set('Cookie', cookie)
+		expect(activityListResponseSchema.parse(list.body).items.map((item) => [item.type, item.version])).toEqual([
+			[ACTIVITY_TYPE.VERSION_DELETED, null],
+			[ACTIVITY_TYPE.KEY_CREATED, null],
+		])
+	})
+})
+
+describe('the dashboard and the daily activity of a version', () => {
+	it('sums up the requested version, the default one without a request, and nothing without versions', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const empty = await request(app).get(`/api/projects/${project.id}/dashboard`).set('Cookie', cookie)
+		expect(dashboardResponseSchema.parse(empty.body)).toEqual({
+			version: null,
+			keys: { total: 0, createdLast30Days: 0 },
+			translatedKeys: 0,
+			strings: { filled: 0, total: 0 },
+			baseWords: 0,
+		})
+
+		const old = await createVersionRow(project.id, { name: 'v1', ...PAST })
+		const current = await createVersionRow(project.id, { name: 'v2', ...RUNNING })
+		await createKey(project.id, old.id, 'A', { [sk.id]: 'A' })
+		await createKey(project.id, current.id, 'A', { [sk.id]: 'jeden dva', [en.id]: 'A' })
+		await createKey(project.id, current.id, 'B', { [sk.id]: 'tri' })
+
+		const byDefault = await request(app).get(`/api/projects/${project.id}/dashboard`).set('Cookie', cookie)
+		expect(dashboardResponseSchema.parse(byDefault.body)).toEqual({
+			version: { id: current.id, name: 'v2' },
+			keys: { total: 2, createdLast30Days: 2 },
+			translatedKeys: 1,
+			strings: { filled: 3, total: 4 },
+			baseWords: 3,
+		})
+		const requested = await request(app).get(`/api/projects/${project.id}/dashboard`).query({ versionId: old.id }).set('Cookie', cookie)
+		expect(dashboardResponseSchema.parse(requested.body)).toMatchObject({
+			version: { id: old.id, name: 'v1' },
+			keys: { total: 1 },
+			strings: { filled: 1, total: 2 },
+		})
+		expectErrorCode(
+			await request(app).get(`/api/projects/${project.id}/dashboard`).query({ versionId: randomUUID() }).set('Cookie', cookie),
+			404,
+			ERROR_CODE.PROJECT_VERSION_NOT_FOUND,
+		)
+
+		// The daily chart counts the version's events and the project-level ones; the other version's events stay out.
+		const { user } = await setup(app)
+		const event = (versionId: string | null, count: number) =>
+			getTestPrisma().activityEvent.create({
+				data: { projectId: project.id, userId: user.id, versionId, count, type: ACTIVITY_TYPE.LANGUAGE_ADDED, payload: { tag: 'en' } },
+			})
+		await event(current.id, 5)
+		await event(old.id, 7)
+		await event(null, 1)
+		const daily = await request(app).get(`/api/projects/${project.id}/activity/daily`).query({ range: '7d' }).set('Cookie', cookie)
+		expect(activityDailyResponseSchema.parse(daily.body).days.reduce((sum, day) => sum + day.changes, 0)).toBe(6)
+		const oldDaily = await request(app).get(`/api/projects/${project.id}/activity/daily`).query({ range: '7d', versionId: old.id }).set('Cookie', cookie)
+		expect(activityDailyResponseSchema.parse(oldDaily.body).days.reduce((sum, day) => sum + day.changes, 0)).toBe(8)
 	})
 })

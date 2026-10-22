@@ -37,6 +37,7 @@ enum ACTIVITY_TYPE {
   TRANSLATION_UPDATED
   VERSION_CREATED
   VERSION_UPDATED
+  VERSION_DELETED
 }
 
 /// Lock of a `ProjectVersion`: `AUTO` locks once today is past `endsAt`, `LOCKED` and `UNLOCKED` are set by an ADMIN and win over the dates.
@@ -131,6 +132,7 @@ model ProjectVersion {
   /// Time of the last import; `null` is an empty version (no keys yet). Kept to compare late changes of an older version later.
   importedAt   DateTime?
   keys         TranslationKey[]
+  events       ActivityEvent[]
 
   @@unique([projectId, name])
   @@index([projectId, startsAt(sort: Desc)])
@@ -206,12 +208,16 @@ model ActivityEvent {
   id        String        @id @default(uuid()) @db.Uuid
   projectId String        @db.Uuid
   project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  userId    String?       @db.Uuid
-  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?         @db.Uuid
+  user      User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Version the change belongs to (keys, cells, imports, the version itself); `null` for project-level events and after the version was deleted.
+  versionId String?         @db.Uuid
+  version   ProjectVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
   type      ACTIVITY_TYPE
   payload   Json
-  count     Int           @default(1)
-  createdAt DateTime      @default(now())
+  count     Int             @default(1)
+  createdAt DateTime        @default(now())
 
   @@index([projectId, createdAt(sort: Desc)])
+  @@index([versionId])
 }

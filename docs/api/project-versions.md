@@ -8,13 +8,15 @@ notion_page_id:
 
 Verzia prekladov je pomenované časové okno projektu zhodné s verziou aplikácie v kóde (`v2.45`): `startsAt` je deň, dokedy vývojári dodajú kľúče (code freeze), `endsAt` deň, dokedy editori preklady dokončia a vývojári ich syncujú do release vetvy. Verzia sa zapisuje na kľúče a bunky, ktoré v nej vznikli alebo sa zmenili (od míľnika B plánu [`translation-versions`](../plans/translation-versions.md)); dáta sa nekopírujú. Projekt bez verzií funguje ako doteraz. Schémy sú v `packages/shared/src/projectVersions.ts`, rozhodnutie v [ADR 0006](../decisions/0006-project-versions.md).
 
-| Metóda  | Cesta                                          | Prístup            | Popis                                      |
-| ------- | ---------------------------------------------- | ------------------ | ------------------------------------------ |
-| `GET`   | `/api/projects/:projectId/versions`            | člen alebo `ADMIN` | verzie projektu, najnovší `startsAt` prvý  |
-| `POST`  | `/api/projects/:projectId/versions`            | iba `ADMIN`        | vytvorí verziu                             |
-| `PATCH` | `/api/projects/:projectId/versions/:versionId` | iba `ADMIN`        | zmení názov, dátumy alebo zamkne / odomkne |
+| Metóda   | Cesta                                               | Prístup            | Popis                                                |
+| -------- | --------------------------------------------------- | ------------------ | ---------------------------------------------------- |
+| `GET`    | `/api/projects/:projectId/versions`                 | člen alebo `ADMIN` | verzie projektu, najnovší `startsAt` prvý            |
+| `POST`   | `/api/projects/:projectId/versions`                 | iba `ADMIN`        | vytvorí verziu                                       |
+| `PATCH`  | `/api/projects/:projectId/versions/:versionId`      | iba `ADMIN`        | zmení názov, dátumy alebo zamkne / odomkne           |
+| `DELETE` | `/api/projects/:projectId/versions/:versionId`      | iba `ADMIN`        | zmaže verziu aj s jej kľúčmi a bunkami; aktuálnu nie |
+| `GET`    | `/api/projects/:projectId/versions/:versionId/diff` | člen alebo `ADMIN` | súhrn rozdielu oproti predchádzajúcej verzii         |
 
-Každá verzia má vlastnú kópiu kľúčov a buniek ([ADR 0007](../decisions/0007-version-snapshots.md)): vzniká prázdna (`importedAt = null`, `keyCount = 0`) a naplní ju import. Import skopíruje kľúče najbližšej staršej verzie podľa `startsAt` (**predchádzajúca verzia**, `findPreviousVersion`) a definuje množinu kľúčov verzie (viď [import](./imports.md#zlúčenie-s-dátami-verzie)); do prázdnej verzie sa kľúč ručne pridať nedá (409 `PROJECT_VERSION_EMPTY`). Zmazanie verzie pribudne v míľniku C plánu `version-snapshots`; chybná verzia sa zatiaľ opraví cez `PATCH`. Prístup rieši `requireProjectAccess` ako ostatné cesty projektu (401 bez session, 404 `NOT_FOUND` mimo prístupu), zápisy potrebujú CSRF hlavičku a JSON telo (viď [auth](./auth.md#csrf)).
+Každá verzia má vlastnú kópiu kľúčov a buniek ([ADR 0007](../decisions/0007-version-snapshots.md)): vzniká prázdna (`importedAt = null`, `keyCount = 0`) a naplní ju import. Import skopíruje kľúče najbližšej staršej verzie podľa `startsAt` (**predchádzajúca verzia**, `findPreviousVersion`) a definuje množinu kľúčov verzie (viď [import](./imports.md#zlúčenie-s-dátami-verzie)); do prázdnej verzie sa kľúč ručne pridať nedá (409 `PROJECT_VERSION_EMPTY`). Chybná verzia sa opraví cez `PATCH` alebo zmaže cez `DELETE` (okrem aktuálnej). Prístup rieši `requireProjectAccess` ako ostatné cesty projektu (401 bez session, 404 `NOT_FOUND` mimo prístupu), zápisy potrebujú CSRF hlavičku a JSON telo (viď [auth](./auth.md#csrf)).
 
 ## Uzamknutie
 
@@ -75,6 +77,19 @@ Telo (schéma `updateProjectVersionRequestSchema`): ľubovoľná neprázdna podm
 | 403  | `FORBIDDEN`                  | volajúci nie je `ADMIN`                                               |
 | 404  | `PROJECT_VERSION_NOT_FOUND`  | verzia nepatrí projektu alebo `versionId` nie je UUID                 |
 | 409  | `PROJECT_VERSION_NAME_TAKEN` | nový názov už má iná verzia projektu                                  |
+
+## DELETE /api/projects/:projectId/versions/:versionId
+
+Zmaže verziu aj s jej kľúčmi a bunkami (kaskáda). Vráti `204`. Aktuálna verzia (dnešok v jej okne) sa zmazať nedá: 409 `PROJECT_VERSION_CURRENT`. Zapíše `VERSION_DELETED` s názvom a počtom kľúčov; staršie udalosti verzie si nechajú payload, ale `version` v zozname aktivít majú `null`.
+
+| Kód | `error.code`                | Kedy                                      |
+| --- | --------------------------- | ----------------------------------------- |
+| 404 | `PROJECT_VERSION_NOT_FOUND` | verzia nepatrí projektu alebo nie je UUID |
+| 409 | `PROJECT_VERSION_CURRENT`   | verzia je aktuálna                        |
+
+## GET /api/projects/:projectId/versions/:versionId/diff
+
+Súhrn rozdielu verzie oproti predchádzajúcej (najbližšej staršej podľa `startsAt`), schéma `versionDiffSummarySchema`: `previousVersion` (`{ id, name }` alebo `null` pre prvú verziu), `added` (kľúče, ktoré predchodca nemá), `changed` (kľúče s iným popisom, plurálovou premennou alebo hodnotou v ktoromkoľvek jazyku; chýbajúci riadok = `null`), `removed` (kľúče predchodcu, ktoré táto verzia nemá; v tabuľke verzie nie sú). Prvá verzia: všetko `added`. Rovnaké pravidlo používa `?diff=true` v [zozname prekladov](./translations.md#get-apiprojectsprojectidtranslations) a `diffOnly` v [exporte](./exports.md#query). Cudzia verzia 404 `PROJECT_VERSION_NOT_FOUND`.
 
 ## Verzia pri zápisoch (`resolveVersion`)
 

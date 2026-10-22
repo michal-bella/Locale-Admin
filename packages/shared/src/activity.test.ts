@@ -33,6 +33,7 @@ describe('activityEventDataSchema', () => {
 			},
 			{ type: ACTIVITY_TYPE.VERSION_CREATED, payload: { name: 'v2.45', startsAt: '2026-09-08', endsAt: '2026-09-29' } },
 			{ type: ACTIVITY_TYPE.VERSION_UPDATED, payload: { name: 'v2.45', fields: ['endsAt', 'lock'] } },
+			{ type: ACTIVITY_TYPE.VERSION_DELETED, payload: { name: 'v2.44', keyCount: 2300 } },
 		]
 		expect(events.map((event) => activityEventDataSchema.parse(event))).toEqual(events)
 		expect(new Set(events.map((event) => event.type))).toEqual(new Set(Object.values(ACTIVITY_TYPE)))
@@ -81,6 +82,7 @@ describe('activityListResponseSchema', () => {
 			createdAt: '2026-10-20T08:00:00.000Z',
 			count: 1,
 			user: { id: KEY_ID, name: 'Jana' },
+			version: null,
 			type: ACTIVITY_TYPE.LANGUAGE_ADDED,
 			payload: { tag: 'en' },
 		}

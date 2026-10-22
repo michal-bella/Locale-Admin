@@ -34,6 +34,8 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `GET`    | `/api/projects/:projectId/versions`                             | verzie prekladov projektu (člen, ADMIN), [detail](./project-versions.md)                                       |
 | `POST`   | `/api/projects/:projectId/versions`                             | vytvorenie verzie (ADMIN), [detail](./project-versions.md)                                                     |
 | `PATCH`  | `/api/projects/:projectId/versions/:versionId`                  | zmena názvu, dátumov, zamknutie a odomknutie verzie (ADMIN), [detail](./project-versions.md)                   |
+| `DELETE` | `/api/projects/:projectId/versions/:versionId`                  | zmazanie verzie s kľúčmi (ADMIN, nie aktuálnu), [detail](./project-versions.md)                                |
+| `GET`    | `/api/projects/:projectId/versions/:versionId/diff`             | súhrn rozdielu verzie oproti predchádzajúcej (člen, ADMIN), [detail](./project-versions.md)                    |
 | `GET`    | `/api/projects/:projectId/members`                              | členovia projektu (člen, ADMIN), [detail](./projects.md)                                                       |
 | `POST`   | `/api/projects/:projectId/members`                              | pridanie existujúceho používateľa do projektu (ADMIN), [detail](./projects.md)                                 |
 | `DELETE` | `/api/projects/:projectId/members/:userId`                      | odobranie člena z projektu (ADMIN), [detail](./projects.md)                                                    |
@@ -93,6 +95,7 @@ Každá chyba má tvar `{ error: { code, message, details? } }`.
 | 409  | `PROJECT_VERSION_NAME_TAKEN` | verzia s týmto názvom už v projekte existuje                                                                                   |
 | 409  | `PROJECT_VERSION_LOCKED`     | zápis `EDITOR`-a alebo `VISITOR`-a do uzamknutej verzie (od míľnika B plánu `translation-versions`)                            |
 | 409  | `PROJECT_VERSION_EMPTY`      | ručné pridanie kľúča do verzie, ktorá ešte nemá import                                                                         |
+| 409  | `PROJECT_VERSION_CURRENT`    | zmazanie aktuálnej verzie                                                                                                      |
 | 422  | `IMPORT_FILE_INVALID`        | importovaný súbor má chyby, `details: { issues, total }`                                                                       |
 | 422  | `EXPORT_VALUE_UNSAFE`        | hodnota by rozbila exportované CSV (`;`, nový riadok, `--x--`), `details: { issues, total }`                                   |
 | 429  | `EXPORT_BUSY`                | príliš veľa súbežných exportov, hlavička `Retry-After`                                                                         |

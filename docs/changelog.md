@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Verzie ako kópie prekladov – míľnik C (2026-10-22)
+
+- API: `GET …/translations?diff=true` vráti iba kľúče pridané alebo zmenené oproti predchádzajúcej verzii s `diff: { added, changedLanguageIds }`; `GET …/versions/:versionId/diff` dá súhrn (`previousVersion`, `added`, `changed`, `removed`); `DELETE …/versions/:versionId` zmaže verziu aj s kľúčmi (aktuálnu nie, 409 `PROJECT_VERSION_CURRENT`) a zapíše `VERSION_DELETED`; prehľad (`/dashboard`) a denná aktivita počítajú jednu verziu (`versionId`, predvolene aktuálna, inak najnovšia) a udalosti v zozname aktivít nesú `version` ([verzie](./api/project-versions.md), [preklady](./api/translations.md), [prehľad](./api/dashboard.md))
+- model: `ActivityEvent.versionId` (migrácia `version_activity`), udalosti kľúčov, buniek, importu a verzie sa viažu na verziu ([databáza](./database.md#activityevent))
+
 ### Verzie ako kópie prekladov – míľnik B (2026-10-22)
 
 - API: import kopíruje kľúče najbližšej staršej verzie (so všetkými jazykmi) a definuje množinu kľúčov verzie (kľúče chýbajúce v súbore zmaže); náhľad vracia `keys.copiedFromPrevious`, `previousVersion` a `removed`, výsledok `keysCopied` a `keysRemoved`; `POST …/keys` do verzie bez importu vráti 409 `PROJECT_VERSION_EMPTY`; export má `diffOnly` (iba kľúče pridané alebo zmenené oproti predchádzajúcej verzii) ([import](./api/imports.md#zlúčenie-s-dátami-verzie), [export](./api/exports.md#query), [preklady](./api/translations.md))

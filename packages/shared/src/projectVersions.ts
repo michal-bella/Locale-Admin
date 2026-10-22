@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { VALIDATION_CODE } from './errors'
 import { translationEditorSchema } from './translations'
+import { translationVersionRefSchema } from './versionRef'
 
 export const PROJECT_VERSION_NAME_MAX_LENGTH = 50
 
@@ -92,6 +93,19 @@ export const projectVersionsResponseSchema = z.object({
 })
 
 export type ProjectVersionsResponse = z.infer<typeof projectVersionsResponseSchema>
+
+/**
+ * Body of `GET /api/projects/:projectId/versions/:versionId/diff`: how the version differs from the nearest older one (`previousVersion`,
+ * `null` for the first version: then every key is `added`). `removed` keys exist only in the previous version, so the list cannot show them.
+ */
+export const versionDiffSummarySchema = z.object({
+	previousVersion: translationVersionRefSchema.nullable(),
+	added: z.number().int().nonnegative(),
+	changed: z.number().int().nonnegative(),
+	removed: z.number().int().nonnegative(),
+})
+
+export type VersionDiffSummary = z.infer<typeof versionDiffSummarySchema>
 
 /** `YYYY-MM-DD` of a date in the local calendar of the runtime (the server for the API, the browser for the countdown). */
 export const toVersionDate = (date: Date): string => {

@@ -86,11 +86,18 @@ describe('GET /api/projects/:projectId/dashboard', () => {
 		const res = await get(app, cookie, `/${project.id}/dashboard`)
 
 		expect(res.status).toBe(200)
-		expect(res.body).toEqual({ keys: { total: 5, createdLast30Days: 4 }, translatedKeys: 2, strings: { filled: 9, total: 15 }, baseWords: 5 })
+		expect(res.body).toEqual({
+			version: { id: await versionIdOf(project.id), name: 'v1' },
+			keys: { total: 5, createdLast30Days: 4 },
+			translatedKeys: 2,
+			strings: { filled: 9, total: 15 },
+			baseWords: 5,
+		})
 
 		await createLanguage(project.id, 'cs', 3)
 		const withEmptyLanguage = await get(app, cookie, `/${project.id}/dashboard`)
 		expect(withEmptyLanguage.body).toEqual({
+			version: { id: await versionIdOf(project.id), name: 'v1' },
 			keys: { total: 5, createdLast30Days: 4 },
 			translatedKeys: 0,
 			strings: { filled: 9, total: 20 },
@@ -110,8 +117,15 @@ describe('GET /api/projects/:projectId/dashboard', () => {
 		const emptyRes = await get(app, cookie, `/${empty.id}/dashboard`)
 		const withoutLanguagesRes = await get(app, cookie, `/${withoutLanguages.id}/dashboard`)
 
-		expect(emptyRes.body).toEqual({ keys: { total: 0, createdLast30Days: 0 }, translatedKeys: 0, strings: { filled: 0, total: 0 }, baseWords: 0 })
+		expect(emptyRes.body).toEqual({
+			version: { id: await versionIdOf(empty.id), name: 'v1' },
+			keys: { total: 0, createdLast30Days: 0 },
+			translatedKeys: 0,
+			strings: { filled: 0, total: 0 },
+			baseWords: 0,
+		})
 		expect(withoutLanguagesRes.body).toEqual({
+			version: { id: await versionIdOf(withoutLanguages.id), name: 'v1' },
 			keys: { total: 2, createdLast30Days: 1 },
 			translatedKeys: 0,
 			strings: { filled: 0, total: 0 },
@@ -159,6 +173,7 @@ describe('GET /api/projects/:projectId/activity', () => {
 			id: created[0]?.id,
 			createdAt: '2026-10-20T10:00:00.000Z',
 			count: 1,
+			version: null,
 			user: { id: user.id, name: 'Jana Nováková' },
 			type: ACTIVITY_TYPE.LANGUAGE_ADDED,
 			payload: { tag: 'en' },

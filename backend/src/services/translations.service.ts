@@ -32,7 +32,7 @@ import { recordActivity } from '../lib/activity'
 import { AppError } from '../lib/errors'
 import { recomputePlaceholderWarnings } from '../lib/placeholderWarnings'
 import { type PrismaClient } from '../lib/prisma'
-import { assertProjectVersion, resolveVersion } from '../lib/projectVersions'
+import { assertProjectVersion, findPreviousVersion, resolveVersion } from '../lib/projectVersions'
 
 import { isPrismaError } from './projects.service'
 
@@ -44,6 +44,9 @@ type ItemRow = {
 	description: string | null
 	pluralVariable: string | null
 	untranslated: boolean
+	/** Only with `diff`: see `diffColumnsSql`. */
+	added?: boolean
+	changedLanguageIds?: string[]
 }
 
 export type EditorRow = { id: string; email: string; firstName: string | null; lastName: string | null }
@@ -129,6 +132,20 @@ export const versionDiffSql = (previousVersionId: string | null): Prisma.Sql => 
 				WHERE l."projectId" = k."projectId" AND a.value IS DISTINCT FROM b.value))))`
 }
 
+/** `added` and `changedLanguageIds` of a key `k` against the previous version; without one every key is added with no changed language. */
+const diffColumnsSql = (previousVersionId: string | null): Prisma.Sql => {
+	if (previousVersionId === null) {
+		return Prisma.sql`TRUE AS added, ARRAY[]::uuid[] AS "changedLanguageIds"`
+	}
+	const previousKey = Prisma.sql`SELECT p.id FROM "TranslationKey" p WHERE p."versionId" = ${previousVersionId}::uuid AND p.namespace = k.namespace AND p.name = k.name`
+	return Prisma.sql`NOT EXISTS (${previousKey}) AS added, ARRAY(
+		SELECT l.id FROM "ProjectLanguage" l
+		LEFT JOIN "Translation" a ON a."keyId" = k.id AND a."languageId" = l.id
+		LEFT JOIN "Translation" b ON b."keyId" = (${previousKey}) AND b."languageId" = l.id
+		WHERE l."projectId" = k."projectId" AND EXISTS (${previousKey}) AND a.value IS DISTINCT FROM b.value
+		ORDER BY l.position, l.tag) AS "changedLanguageIds"`
+}
+
 const UPDATED_WITHIN_INTERVAL: Record<TranslationsUpdatedWithin, string> = { DAY: '1 day', WEEK: '7 days', MONTH: '30 days' }
 
 const orderBy = (sort: TranslationsSort, view: ViewSql): Prisma.Sql => {
@@ -156,6 +173,7 @@ const toItem = (row: ItemRow, languageIds: string[], cells: Map<string, CellRow>
 	description: row.description,
 	plural: toPlural(row.pluralVariable),
 	status: row.untranslated ? 'UNTRANSLATED' : 'TRANSLATED',
+	...(row.added === undefined ? {} : { diff: { added: row.added, changedLanguageIds: row.changedLanguageIds ?? [] } }),
 	translations: Object.fromEntries(
 		languageIds.map((languageId) => {
 			const cell = cells.get(`${row.keyId}:${languageId}`)
@@ -189,8 +207,10 @@ const assertProjectLanguages = async (prisma: PrismaClient, projectId: string, l
  * items carry a cell for every language either way. `stats`, `namespaces` and `editors` are the version's, ignoring the filters.
  */
 export const listTranslations = async (prisma: PrismaClient, projectId: string, query: TranslationsQuery): Promise<TranslationsResponse> => {
-	const { sourceLanguageId, targetLanguageId, search, status, namespace, updatedById, updatedWithin, warnings, versionId, sort, page, pageSize } = query
+	const { sourceLanguageId, targetLanguageId, search, status, namespace, updatedById, updatedWithin, warnings, versionId, diff, sort, page, pageSize } = query
 	await assertProjectVersion(prisma, projectId, versionId)
+	// `undefined` without the diff; the previous version (or `null` for the first one) with it.
+	const previousVersionId = diff ? ((await findPreviousVersion(prisma, versionId))?.id ?? null) : undefined
 	if (sourceLanguageId !== undefined && targetLanguageId !== undefined) {
 		await assertProjectLanguages(prisma, projectId, [sourceLanguageId, targetLanguageId])
 	}
@@ -210,6 +230,9 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	if (warnings) {
 		conditions.push(HAS_WARNING_SQL)
 	}
+	if (previousVersionId !== undefined) {
+		conditions.push(versionDiffSql(previousVersionId))
+	}
 	if (updatedById !== undefined || updatedWithin !== undefined) {
 		const updated = [
 			...(updatedById === undefined ? [] : [Prisma.sql`x."updatedById" = ${updatedById}::uuid`]),
@@ -222,6 +245,7 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	const [rows, [count], [stats], namespaces, languages, editors] = await Promise.all([
 		prisma.$queryRaw<ItemRow[]>`
 			SELECT k.id AS "keyId", k.namespace, k.name, ${GROUP_SQL} AS "group", k.description, k."pluralVariable", ${view.untranslated} AS untranslated
+				${previousVersionId === undefined ? Prisma.empty : Prisma.sql`, ${diffColumnsSql(previousVersionId)}`}
 			FROM ${from}
 			ORDER BY ${orderBy(sort, view)}
 			LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
@@ -327,6 +351,7 @@ export const updateTranslation = async (
 			await recordActivity(tx, {
 				projectId,
 				userId,
+				versionId: key.versionId,
 				type: ACTIVITY_TYPE.TRANSLATION_UPDATED,
 				payload: { keyId, namespace: key.namespace, name: key.name, languageTag: language.tag, oldValue, newValue: updated.value },
 			})
@@ -368,7 +393,10 @@ export const updateTranslationKey = async (
 	{ name, description, plural }: UpdateTranslationKeyRequest,
 ): Promise<UpdateTranslationKeyResponse> =>
 	prisma.$transaction(async (tx) => {
-		const key = await tx.translationKey.findFirst({ where: { id: keyId, projectId }, select: { name: true, description: true, pluralVariable: true } })
+		const key = await tx.translationKey.findFirst({
+			where: { id: keyId, projectId },
+			select: { name: true, description: true, pluralVariable: true, versionId: true },
+		})
 		if (!key) {
 			throw keyNotFound()
 		}
@@ -402,6 +430,7 @@ export const updateTranslationKey = async (
 			await recordActivity(tx, {
 				projectId,
 				userId,
+				versionId: key.versionId,
 				type: ACTIVITY_TYPE.KEY_UPDATED,
 				payload: { keyId, namespace: updated.namespace, name: updated.name, fields },
 			})
@@ -499,6 +528,7 @@ export const createTranslationKey = async (
 		await recordActivity(tx, {
 			projectId,
 			userId,
+			versionId,
 			type: ACTIVITY_TYPE.KEY_CREATED,
 			payload: { keyId: key.id, namespace: key.namespace, name: key.name, languageTags: values.map((language) => language.tag) },
 		})

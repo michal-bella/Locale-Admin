@@ -37,7 +37,13 @@ const API = `/projects/${PROJECT.id}`
 const NOW = new Date(2026, 9, 20, 12, 0, 0)
 const hoursAgo = (hours: number) => new Date(NOW.getTime() - hours * 60 * 60 * 1000).toISOString()
 
-const DASHBOARD: DashboardResponse = { keys: { total: 248, createdLast30Days: 12 }, translatedKeys: 221, strings: { filled: 690, total: 744 }, baseWords: 900 }
+const DASHBOARD: DashboardResponse = {
+	version: { id: '00000000-0000-4000-8000-000000000502', name: 'v2.45' },
+	keys: { total: 248, createdLast30Days: 12 },
+	translatedKeys: 221,
+	strings: { filled: 690, total: 744 },
+	baseWords: 900,
+}
 
 const toLanguage = (tag: LanguageListItem['tag'], index: number, translatedCount: number, isBase = false): LanguageListItem => {
 	const supported = SUPPORTED_LANGUAGES.find((language) => language.tag === tag)
@@ -74,7 +80,7 @@ const LUCIA = { id: MEMBERS[1]?.id ?? '', name: 'Lucia Tichá' }
 let eventIndex = 0
 const event = (data: ActivityEventData, createdAt = hoursAgo(1), user: ActivityEvent['user'] = MARTIN): ActivityEvent => {
 	eventIndex += 1
-	return { id: `00000000-0000-4000-8000-0000000004${String(eventIndex).padStart(2, '0')}`, createdAt, count: 1, user, ...data }
+	return { id: `00000000-0000-4000-8000-0000000004${String(eventIndex).padStart(2, '0')}`, createdAt, count: 1, user, version: null, ...data }
 }
 
 const activityPage = (items: ActivityEvent[], nextCursor: string | null = null): ActivityListResponse => ({ items, nextCursor })

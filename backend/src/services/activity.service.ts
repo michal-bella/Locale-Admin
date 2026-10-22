@@ -13,6 +13,7 @@ import {
 import { Prisma } from '../generated/prisma/client'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
+import { assertProjectVersion, findDefaultVersionId, todayVersionDate } from '../lib/projectVersions'
 
 import { EDITOR_SELECT, toEditor, type EditorRow } from './translations.service'
 
@@ -30,15 +31,16 @@ export const listActivity = async (prisma: PrismaClient, projectId: string, { cu
 		where: { projectId, ...after },
 		orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
 		take: limit + 1,
-		select: { id: true, createdAt: true, count: true, type: true, payload: true, user: EDITOR_SELECT },
+		select: { id: true, createdAt: true, count: true, type: true, payload: true, user: EDITOR_SELECT, version: { select: { id: true, name: true } } },
 	})
 	const page = rows.slice(0, limit)
 	return {
-		items: page.map(({ id, createdAt, count, user, type, payload }) => ({
+		items: page.map(({ id, createdAt, count, user, version, type, payload }) => ({
 			id,
 			createdAt: createdAt.toISOString(),
 			count,
 			user: user && toEditor(user),
+			version,
 			...activityEventDataSchema.parse({ type, payload }),
 		})),
 		nextCursor: rows.length > limit ? (page.at(-1)?.id ?? null) : null,
@@ -48,8 +50,9 @@ export const listActivity = async (prisma: PrismaClient, projectId: string, { cu
 /**
  * The days of the range in `timeZone`, ending today there. `createdAt` is a UTC `timestamp` without zone, so it is read as UTC
  * before the conversion; the window bounds are converted the other way, so the filter stays on the `(projectId, createdAt)` index.
+ * With a version only its events count, plus the project-level ones without a version.
  */
-const periodSql = (projectId: string, timeZone: string, days: number) => Prisma.sql`
+const periodSql = (projectId: string, versionId: string | null, timeZone: string, days: number) => Prisma.sql`
 	period AS (
 		SELECT
 			(now() AT TIME ZONE ${timeZone}::text)::date - ${days - 1}::int AS first,
@@ -59,12 +62,21 @@ const periodSql = (projectId: string, timeZone: string, days: number) => Prisma.
 		SELECT e."userId", e.count, ((e."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE ${timeZone}::text)::date AS date
 		FROM "ActivityEvent" e, period p
 		WHERE e."projectId" = ${projectId}::uuid
+			AND (e."versionId" IS NULL OR e."versionId" = ${versionId}::uuid)
 			AND e."createdAt" >= (p.first::timestamp AT TIME ZONE ${timeZone}::text) AT TIME ZONE 'UTC'
 			AND e."createdAt" < ((p.last + 1)::timestamp AT TIME ZONE ${timeZone}::text) AT TIME ZONE 'UTC'
 	)`
 
-export const getActivityDaily = async (prisma: PrismaClient, projectId: string, { range, timeZone }: ActivityDailyQuery): Promise<ActivityDailyResponse> => {
-	const period = periodSql(projectId, timeZone, ACTIVITY_RANGE_DAYS[range])
+export const getActivityDaily = async (
+	prisma: PrismaClient,
+	projectId: string,
+	{ versionId: requested, range, timeZone }: ActivityDailyQuery,
+): Promise<ActivityDailyResponse> => {
+	const versionId = requested ?? (await findDefaultVersionId(prisma, projectId, todayVersionDate()))
+	if (versionId !== null) {
+		await assertProjectVersion(prisma, projectId, versionId)
+	}
+	const period = periodSql(projectId, versionId, timeZone, ACTIVITY_RANGE_DAYS[range])
 	const [days, contributors] = await Promise.all([
 		prisma.$queryRaw<{ date: string; changes: number }[]>`
 			WITH ${period}

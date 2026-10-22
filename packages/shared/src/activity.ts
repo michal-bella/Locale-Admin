@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { translationEditorSchema } from './translations'
+import { translationVersionRefSchema } from './versionRef'
 
 /** Type of an `ActivityEvent` row (Prisma enum `ACTIVITY_TYPE`). */
 export enum ACTIVITY_TYPE {
@@ -17,6 +18,7 @@ export enum ACTIVITY_TYPE {
 	TRANSLATION_UPDATED = 'TRANSLATION_UPDATED',
 	VERSION_CREATED = 'VERSION_CREATED',
 	VERSION_UPDATED = 'VERSION_UPDATED',
+	VERSION_DELETED = 'VERSION_DELETED',
 }
 
 /** Project settings whose change writes `PROJECT_UPDATED`. */
@@ -94,17 +96,22 @@ export const activityEventDataSchema = z.discriminatedUnion('type', [
 	}),
 	event(ACTIVITY_TYPE.VERSION_CREATED, { name: z.string(), startsAt: z.iso.date(), endsAt: z.iso.date() }),
 	event(ACTIVITY_TYPE.VERSION_UPDATED, { name: z.string(), fields: z.array(z.enum(ACTIVITY_VERSION_FIELDS)).min(1) }),
+	event(ACTIVITY_TYPE.VERSION_DELETED, { name: z.string(), keyCount: count }),
 ])
 
 export type ActivityEventData = z.infer<typeof activityEventDataSchema>
 
-/** One event of the feed. `user` is who made the change, `null` after the user was deleted (the payload keeps the snapshot). */
+/**
+ * One event of the feed. `user` is who made the change, `null` after the user was deleted (the payload keeps the snapshot); `version` is
+ * the version the change belongs to (keys, cells, imports, the version itself), `null` for project-level events and after the version was deleted.
+ */
 export const activityEventSchema = z
 	.object({
 		id: z.uuid(),
 		createdAt: z.iso.datetime(),
 		count,
 		user: translationEditorSchema.nullable(),
+		version: translationVersionRefSchema.nullable(),
 	})
 	.and(activityEventDataSchema)
 
@@ -166,6 +173,8 @@ const isTimeZone = (timeZone: string): boolean => {
 
 /** Query of `GET /api/projects/:projectId/activity/daily`; the days are calendar days in `timeZone` (the browser zone). */
 export const activityDailyQuerySchema = z.object({
+	/** The version whose changes count (plus project-level events without a version); left out, the project's default version (current, else newest). */
+	versionId: z.preprocess(emptyToUndefined, z.uuid().optional()),
 	range: z.preprocess(emptyToUndefined, activityRangeSchema.default('30d')),
 	timeZone: z.preprocess(emptyToUndefined, z.string().max(100).refine(isTimeZone).default('UTC')),
 })

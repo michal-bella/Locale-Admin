@@ -102,6 +102,8 @@ const ActivityFeed = ({ projectId, projectSlug }: ActivityFeedProps) => {
 					name: event.payload.name,
 					fields: list(event.payload.fields.map((field) => t(`dashboardPage.activity.versionFields.${field}`))),
 				})
+			case ACTIVITY_TYPE.VERSION_DELETED:
+				return t('dashboardPage.activity.events.versionDeleted', { name: event.payload.name, count: event.payload.keyCount })
 		}
 	}
 

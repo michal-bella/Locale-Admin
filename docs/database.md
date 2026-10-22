@@ -173,15 +173,16 @@ Stav prekladu sa neukladá. **Nepreložené** = riadok pre jazyk chýba alebo `v
 
 Záznam jednej zmeny projektu pre stránku Prehľad (feed aktivity a graf dennej aktivity) a budúcu stránku Aktivita. Tabuľka je iba na pripisovanie: riadky sa nemenia ani nemažú (okrem kaskády), retencia zatiaľ nie je. Rozhodnutie je v [ADR 0005](./decisions/0005-activity-events.md).
 
-| Pole        | Typ                  | Poznámka                                                                                                                        |
-| ----------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `id`        | UUID                 | PK                                                                                                                              |
-| `projectId` | UUID                 | FK na `Project`, pri zmazaní projektu sa zmaže                                                                                  |
-| `userId`    | UUID, nullable       | FK na `User`, kto zmenu urobil; pri zmazaní usera sa nastaví `null`, udalosť ostane                                             |
-| `type`      | enum `ACTIVITY_TYPE` | druh zmeny, viď tabuľku nižšie                                                                                                  |
-| `payload`   | JSON                 | snímka údajov v čase zmeny podľa `type`, validovaná schémou `activityEventDataSchema` v `packages/shared/src/activity.ts`       |
-| `count`     | int                  | default `1`; počet zmenených prekladov, ktoré udalosť predstavuje (import = počet zapísaných buniek), z neho sa ráta denný graf |
-| `createdAt` | datetime             | čas zmeny                                                                                                                       |
+| Pole        | Typ                  | Poznámka                                                                                                                                                                                       |
+| ----------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | UUID                 | PK                                                                                                                                                                                             |
+| `projectId` | UUID                 | FK na `Project`, pri zmazaní projektu sa zmaže                                                                                                                                                 |
+| `userId`    | UUID, nullable       | FK na `User`, kto zmenu urobil; pri zmazaní usera sa nastaví `null`, udalosť ostane                                                                                                            |
+| `versionId` | UUID, nullable       | FK na `ProjectVersion` (`SetNull`): verzia, ku ktorej zmena patrí (kľúče, bunky, import, samotná verzia); `null` pri udalostiach projektu a po zmazaní verzie. Index pre denné súčty za verziu |
+| `type`      | enum `ACTIVITY_TYPE` | druh zmeny, viď tabuľku nižšie                                                                                                                                                                 |
+| `payload`   | JSON                 | snímka údajov v čase zmeny podľa `type`, validovaná schémou `activityEventDataSchema` v `packages/shared/src/activity.ts`                                                                      |
+| `count`     | int                  | default `1`; počet zmenených prekladov, ktoré udalosť predstavuje (import = počet zapísaných buniek), z neho sa ráta denný graf                                                                |
+| `createdAt` | datetime             | čas zmeny                                                                                                                                                                                      |
 
 Index (`projectId`, `createdAt` DESC) pre feed aj denné súčty.
 
@@ -202,6 +203,7 @@ Udalosť zapisuje helper `recordActivity(tx, …)` (`backend/src/lib/activity.ts
 | `TRANSLATION_UPDATED`   | `PUT …/translations/:languageId`, iba ak sa uložená hodnota zmenila                                                    | `{ keyId, namespace, name, languageTag, oldValue, newValue }` (`null` = prázdne)          |
 | `VERSION_CREATED`       | `POST …/versions`                                                                                                      | `{ name, startsAt, endsAt }`                                                              |
 | `VERSION_UPDATED`       | `PATCH …/versions/:versionId`, iba ak sa zmenilo aspoň jedno pole                                                      | `{ name, fields }` – zmenené z `name`, `startsAt`, `endsAt`, `lock`; `name` je nový názov |
+| `VERSION_DELETED`       | `DELETE …/versions/:versionId`                                                                                         | `{ name, keyCount }` – názov a počet zmazaných kľúčov                                     |
 
 Pri `KEYS_IMPORTED` je `count` počet zapísaných buniek (`translationsCreated + translationsUpdated`), `languageTags` sú jazyky, do ktorých sa niečo zapísalo, v poradí projektu. Import, ktorý iba zmení existujúce kľúče na plurálové (bez novej hodnoty a nového kľúča), sa nezaznamenáva. Nezaznamenáva sa ani zmena poradia jazykov (ak nemení základný jazyk) ani projektov, zmazanie projektu ADMIN-om (kaskáda zmaže aj udalosti) a zmeny používateľov.
 
@@ -221,6 +223,7 @@ erDiagram
     User |o--o{ Translation : "naposledy upravil"
     Project ||--o{ ActivityEvent : "má históriu"
     User |o--o{ ActivityEvent : "urobil"
+    ProjectVersion |o--o{ ActivityEvent : "patrí k"
     Project ||--o{ ProjectVersion : "má verzie"
     User |o--o{ ProjectVersion : "vytvoril"
     ProjectVersion ||--o{ TranslationKey : "má kópiu kľúčov"

@@ -558,7 +558,11 @@
 				"keyUpdated": "úprava klíče {{key}}: {{fields}}",
 				"translationUpdated": "úprava překladu {{key}} ({{language}})",
 				"versionCreated": "vytvoření verze {{name}}",
-				"versionUpdated": "úprava verze {{name}}: {{fields}}"
+				"versionUpdated": "úprava verze {{name}}: {{fields}}",
+				"versionDeleted_one": "smazání verze {{name}} ({{count}} klíč)",
+				"versionDeleted_few": "smazání verze {{name}} ({{count}} klíče)",
+				"versionDeleted_many": "smazání verze {{name}} ({{count}} klíčů)",
+				"versionDeleted_other": "smazání verze {{name}} ({{count}} klíčů)"
 			},
 			"projectFields": {
 				"name": "název",
@@ -1226,6 +1230,7 @@
 		"PROJECT_VERSION_NOT_FOUND": "Verze nebyla nalezena. Obnovte stránku a zkuste to znovu.",
 		"PROJECT_VERSION_LOCKED": "Verze je uzamčená. Úpravy může dělat pouze administrátor.",
 		"PROJECT_VERSION_EMPTY": "Verze zatím nemá import. Nejprve do ní importujte překlady.",
+		"PROJECT_VERSION_CURRENT": "Aktuální verzi nelze smazat.",
 		"EXPORT_LANGUAGES_INVALID": "Vybraný jazyk do projektu nepatří. Obnovte stránku a zkuste to znovu.",
 		"EXPORT_VALUE_UNSAFE": "Některé překlady obsahují znaky, které by rozbily soubor CSV. Opravte je a zkuste to znovu.",
 		"EXPORT_BUSY": "Export právě dělá mnoho lidí najednou. Zkuste to za chvíli znovu.",

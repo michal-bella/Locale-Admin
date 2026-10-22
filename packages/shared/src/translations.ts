@@ -68,6 +68,8 @@ export const translationsQuerySchema = z
 		warnings: z.preprocess((value) => (value === true || value === 'true' || value === '1' ? true : undefined), z.literal(true).optional()),
 		/** The version whose keys are listed; every version holds its own copy of the keys (see `ProjectVersion`). */
 		versionId: z.preprocess(emptyToUndefined, z.uuid()),
+		/** `true` (also `'true'` or `'1'`): only keys added or changed against the previous version, each with `diff`. */
+		diff: z.preprocess((value) => (value === true || value === 'true' || value === '1' ? true : undefined), z.literal(true).optional()),
 		sort: z.preprocess(emptyToUndefined, translationsSortSchema.default('UNTRANSLATED_FIRST')),
 		page: z.coerce.number().int().min(1).default(1),
 		pageSize: z.coerce.number().int().min(1).max(TRANSLATIONS_PAGE_SIZE_MAX).default(TRANSLATIONS_PAGE_SIZE_DEFAULT),
@@ -170,6 +172,8 @@ export const translationListItemSchema = z.object({
 	description: z.string().nullable(),
 	plural: translationKeyPluralSchema.nullable(),
 	status: translationStatusSchema,
+	/** Only with `diff=true`: `added` = no key with this namespace and name in the previous version; else the languages whose value differs. */
+	diff: z.object({ added: z.boolean(), changedLanguageIds: z.array(z.uuid()) }).optional(),
 	translations: z.record(z.uuid(), translationCellSchema),
 })
 

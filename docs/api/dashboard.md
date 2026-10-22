@@ -18,24 +18,35 @@ Prístup rieši `requireProjectAccess` ako pri ostatných cestách projektu: bez
 
 ## GET /api/projects/:projectId/dashboard
 
+Query (schéma `dashboardQuerySchema`): `versionId` (voliteľné) – verzia, ktorej čísla sa vrátia; bez neho predvolená verzia projektu (aktuálna podľa dátumu, inak najnovšia podľa `startsAt`). Cudzia verzia 404 `PROJECT_VERSION_NOT_FOUND`. Každá verzia má vlastnú kópiu kľúčov, preto prehľad vždy počíta jednu verziu.
+
 Vráti `200` (schéma `dashboardResponseSchema`):
 
 ```json
-{ "keys": { "total": 248, "createdLast30Days": 12 }, "translatedKeys": 221, "strings": { "filled": 1950, "total": 2232 }, "baseWords": 1830 }
+{
+	"version": { "id": "…", "name": "v2.45" },
+	"keys": { "total": 248, "createdLast30Days": 12 },
+	"translatedKeys": 221,
+	"strings": { "filled": 1950, "total": 2232 },
+	"baseWords": 1830
+}
 ```
 
 | Pole                     | Popis                                                                                                               |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `keys.total`             | počet kľúčov projektu                                                                                               |
+| `version`                | `{ id, name }` počítanej verzie; `null` v projekte bez verzií (potom sú všetky počty 0)                             |
+| `keys.total`             | počet kľúčov verzie                                                                                                 |
 | `keys.createdLast30Days` | kľúče s `createdAt` za posledných 30 dní (30 × 24 h dozadu od teraz)                                                |
 | `translatedKeys`         | kľúče s hodnotou v **každom** jazyku projektu (rovnako ako stav riadku v rozšírenom zobrazení); bez jazykov 0       |
 | `strings.total`          | počet buniek: kľúče × jazyky                                                                                        |
 | `strings.filled`         | bunky s hodnotou (`null` alebo chýbajúci riadok sa nepočíta)                                                        |
 | `baseWords`              | počet slov v hodnotách základného jazyka (úseky bez medzier, `regexp_count(value, '\S+')`); bez základného jazyka 0 |
 
-Prázdny projekt vráti samé nuly. Nový jazyk bez prekladov zvýši `strings.total` a `translatedKeys` klesne na 0, kým sa kľúče do neho nepreložia.
+Projekt bez verzií aj prázdna verzia vrátia samé nuly. Nový jazyk bez prekladov zvýši `strings.total` a `translatedKeys` klesne na 0, kým sa kľúče do neho nepreložia.
 
 ## GET /api/projects/:projectId/activity
+
+Každá udalosť nesie `version` (`{ id, name }` verzie, ku ktorej patrí: kľúče, bunky, import, samotná verzia), `null` pri udalostiach projektu (jazyky, členovia, nastavenia) a po zmazaní verzie. Zoznam je za celý projekt, nefiltruje sa podľa verzie.
 
 Query (schéma `activityListQuerySchema`):
 
@@ -65,10 +76,11 @@ Položka `ActivityEvent` (schéma `activityEventSchema`):
 
 Query (schéma `activityDailyQuerySchema`):
 
-| Parameter  | Typ                | Predvolene | Popis                                                                       |
-| ---------- | ------------------ | ---------- | --------------------------------------------------------------------------- |
-| `range`    | `7d`, `30d`, `90d` | `30d`      | obdobie                                                                     |
-| `timeZone` | IANA zóna          | `UTC`      | zóna, v ktorej sa rátajú kalendárne dni (frontend posiela zónu prehliadača) |
+| Parameter   | Typ                | Predvolene        | Popis                                                                                                                                                                              |
+| ----------- | ------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `versionId` | UUID               | predvolená verzia | verzia, ktorej udalosti sa počítajú (plus udalosti projektu bez verzie: jazyky, členovia, nastavenia); bez neho predvolená verzia projektu, cudzia 404 `PROJECT_VERSION_NOT_FOUND` |
+| `range`     | `7d`, `30d`, `90d` | `30d`             | obdobie                                                                                                                                                                            |
+| `timeZone`  | IANA zóna          | `UTC`             | zóna, v ktorej sa rátajú kalendárne dni (frontend posiela zónu prehliadača)                                                                                                        |
 
 Zóna sa overuje cez `Intl.DateTimeFormat` (rovnako v prehliadači aj v Node). `Intl.supportedValuesOf('timeZone')` sa nepoužíva, lebo v Node a Chrome neobsahuje `UTC`. Posun (`+01:00`) sa odmieta, PostgreSQL by ho čítal ako POSIX zónu s opačným znamienkom.
 

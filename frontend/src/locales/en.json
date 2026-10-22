@@ -540,7 +540,9 @@
 				"keyUpdated": "edited the key {{key}}: {{fields}}",
 				"translationUpdated": "edited the translation {{key}} ({{language}})",
 				"versionCreated": "created the version {{name}}",
-				"versionUpdated": "edited the version {{name}}: {{fields}}"
+				"versionUpdated": "edited the version {{name}}: {{fields}}",
+				"versionDeleted_one": "deleted the version {{name}} ({{count}} key)",
+				"versionDeleted_other": "deleted the version {{name}} ({{count}} keys)"
 			},
 			"projectFields": {
 				"name": "name",
@@ -1198,6 +1200,7 @@
 		"PROJECT_VERSION_NOT_FOUND": "The version was not found. Refresh the page and try again.",
 		"PROJECT_VERSION_LOCKED": "The version is locked. Only an administrator can make changes.",
 		"PROJECT_VERSION_EMPTY": "The version has no import yet. Import translations into it first.",
+		"PROJECT_VERSION_CURRENT": "The current version cannot be deleted.",
 		"EXPORT_LANGUAGES_INVALID": "A selected language does not belong to the project. Reload the page and try again.",
 		"EXPORT_VALUE_UNSAFE": "Some translations contain characters that would break the CSV file. Fix them and try again.",
 		"EXPORT_BUSY": "Too many exports are running right now. Try again in a moment.",

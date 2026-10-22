@@ -21,6 +21,8 @@ import {
 import { createGetProjectSettingsController, createUpdateProjectSettingsController } from '../controllers/projectSettings.controller'
 import {
 	createCreateProjectVersionController,
+	createDeleteProjectVersionController,
+	createGetVersionDiffController,
 	createListProjectVersionsController,
 	createUpdateProjectVersionController,
 } from '../controllers/projectVersions.controller'
@@ -58,6 +60,8 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.get('/:projectId/versions', requireProjectAccess, createListProjectVersionsController(prisma))
 	router.post('/:projectId/versions', requireProjectAccess, requireRole(ROLE.ADMIN), createCreateProjectVersionController(prisma))
 	router.patch('/:projectId/versions/:versionId', requireProjectAccess, requireRole(ROLE.ADMIN), createUpdateProjectVersionController(prisma))
+	router.delete('/:projectId/versions/:versionId', requireProjectAccess, requireRole(ROLE.ADMIN), createDeleteProjectVersionController(prisma))
+	router.get('/:projectId/versions/:versionId/diff', requireProjectAccess, createGetVersionDiffController(prisma))
 	router.get('/:projectId/members', requireProjectAccess, createListProjectMembersController(prisma))
 	router.post('/:projectId/members', requireProjectAccess, requireRole(ROLE.ADMIN), createAddProjectMemberController(prisma))
 	router.delete('/:projectId/members/:userId', requireProjectAccess, requireRole(ROLE.ADMIN), createRemoveProjectMemberController(prisma))

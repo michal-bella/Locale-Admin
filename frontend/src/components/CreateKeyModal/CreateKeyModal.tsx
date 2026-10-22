@@ -39,7 +39,7 @@ const TWO_COLUMNS_FROM = 5
  * "Pridať kľúč" (ADMIN only): a key added by hand into one of the existing namespaces, e.g. one that came up in development after the sheet
  * was locked. Every language of the project has an optional value; an empty one stays untranslated.
  */
-const CreateKeyModal = ({ projectId, languages, namespaces, defaultNamespace, opened, onClose, onCreated }: CreateKeyModalProps) => {
+const CreateKeyModal = ({ projectId, languages, namespaces, defaultNamespace, versionId, opened, onClose, onCreated }: CreateKeyModalProps) => {
 	const { t } = useTranslation()
 	const createKey = useCreateTranslationKeyMutation(projectId)
 	const { isPending } = createKey
@@ -87,7 +87,7 @@ const CreateKeyModal = ({ projectId, languages, namespaces, defaultNamespace, op
 			return
 		}
 		createKey.mutate(
-			{ name: values.name, namespace, translations: values.translations },
+			{ name: values.name, namespace, translations: values.translations, versionId },
 			{
 				onSuccess: (key) => {
 					notifications.show({ color: 'green', message: t('translationsPage.createKeyModal.success', { key: key.name }) })

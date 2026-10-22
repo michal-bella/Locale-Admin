@@ -92,6 +92,7 @@ const mockPage = (routes: Routes = {}, languages: Language[] = [SLOVAK, ENGLISH]
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 		[`GET ${LANGUAGES_URL}`]: { status: 200, data: languages },
+		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [] } },
 		[`GET ${TRANSLATIONS_URL}`]: { status: 200, data: TRANSLATIONS },
 		[`POST ${PREVIEW_URL}`]: { status: 200, data: PREVIEW },
 		...routes,

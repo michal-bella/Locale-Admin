@@ -60,6 +60,7 @@ const mockPage = (
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [SLOVAK, ENGLISH, GERMAN] },
+		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [] } },
 		[`GET /projects/${PROJECT.id}/translations`]: { status: 200, data: TRANSLATIONS },
 		[`GET ${EXPORT_URL}`]: exportResponse,
 		[`GET ${CHECK_URL}`]: checkResponse,

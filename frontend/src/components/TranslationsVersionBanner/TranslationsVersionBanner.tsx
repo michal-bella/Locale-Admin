@@ -1,0 +1,54 @@
+import { Alert, Button } from '@mantine/core'
+import { useTranslation } from 'react-i18next'
+
+import { daysUntil, toVersionDate } from '@locale/shared'
+
+import { Lock, Tag } from '@/components/Icons'
+
+import classes from './TranslationsVersionBanner.module.css'
+import { type TranslationsVersionBannerProps } from './types'
+
+/**
+ * Countdown of a version above the translations card: how long editors have until the version locks, or that it is locked (and, for an
+ * editor, that only an administrator edits it now). The button filters the list to the version's work or clears that filter.
+ */
+const TranslationsVersionBanner = ({ version, active, writesBlocked, onShow, onClear }: TranslationsVersionBannerProps) => {
+	const { t } = useTranslation()
+	// Days are counted in the browser's calendar: the deadline is a day, not a moment.
+	const today = toVersionDate(new Date())
+	const { name } = version
+	const message = (() => {
+		if (version.isLocked) {
+			return t(writesBlocked ? 'translationsPage.version.lockedEditor' : 'translationsPage.version.locked', { name })
+		}
+		if (today < version.startsAt) {
+			return t('translationsPage.version.upcoming', { name, count: daysUntil(version.startsAt, today) })
+		}
+		if (today > version.endsAt) {
+			return t('translationsPage.version.unlocked', { name })
+		}
+		const days = daysUntil(version.endsAt, today)
+		return days === 0 ? t('translationsPage.version.lastDay', { name }) : t('translationsPage.version.remaining', { name, count: days })
+	})()
+
+	return (
+		<Alert
+			color={version.isLocked ? 'blue' : 'gray'}
+			icon={version.isLocked ? <Lock aria-hidden /> : <Tag aria-hidden />}
+			classNames={{ root: classes.root, message: classes.message }}
+		>
+			<span>{message}</span>
+			{active ? (
+				<Button variant='default' size='xs' onClick={onClear}>
+					{t('translationsPage.version.clear')}
+				</Button>
+			) : (
+				<Button variant='default' size='xs' onClick={onShow}>
+					{t('translationsPage.version.show')}
+				</Button>
+			)}
+		</Alert>
+	)
+}
+
+export default TranslationsVersionBanner

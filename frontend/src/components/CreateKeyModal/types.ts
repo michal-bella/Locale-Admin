@@ -8,6 +8,8 @@ export type CreateKeyModalProps = {
 	namespaces: string[]
 	/** Preselected namespace (the active filter); otherwise the only namespace, if there is one. */
 	defaultNamespace?: string
+	/** The version filtered on the page; the key is created in it (without it in the current version by date). */
+	versionId?: string
 	opened: boolean
 	onClose: () => void
 	/** Called with the saved key after the modal closed. */

@@ -321,7 +321,12 @@
 				"WEEK": "Za posledních 7 dní",
 				"MONTH": "Za posledních 30 dní"
 			},
-			"translationsOnly": "Jen překlady"
+			"translationsOnly": "Jen překlady",
+			"version": {
+				"label": "Verze",
+				"placeholder": "Všechny verze",
+				"current": "{{name}} (aktuální)"
+			}
 		},
 		"view": {
 			"label": "Zobrazení",
@@ -349,7 +354,8 @@
 			"clearFilters": "Zrušit filtry",
 			"edit": "Upravit klíč",
 			"editLabel": "Upravit klíč {{key}}",
-			"base": "Základní"
+			"base": "Základní",
+			"version": "Vznikl ve verzi {{name}}"
 		},
 		"status": {
 			"TRANSLATED": "Přeložené",
@@ -447,7 +453,23 @@
 			"summary_many": "Zobrazeno {{shown}} z {{count}} klíčů",
 			"summary_other": "Zobrazeno {{shown}} z {{count}} klíčů"
 		},
-		"exportButton": "Exportovat"
+		"exportButton": "Exportovat",
+		"version": {
+			"remaining_one": "Verze {{name}}: zbývá {{count}} den do uzamčení.",
+			"remaining_few": "Verze {{name}}: zbývají {{count}} dny do uzamčení.",
+			"remaining_many": "Verze {{name}}: zbývá {{count}} dní do uzamčení.",
+			"remaining_other": "Verze {{name}}: zbývá {{count}} dní do uzamčení.",
+			"lastDay": "Verze {{name}}: dnes je poslední den, potom se uzamkne.",
+			"upcoming_one": "Verze {{name}} začíná za {{count}} den.",
+			"upcoming_few": "Verze {{name}} začíná za {{count}} dny.",
+			"upcoming_many": "Verze {{name}} začíná za {{count}} dní.",
+			"upcoming_other": "Verze {{name}} začíná za {{count}} dní.",
+			"locked": "Verze {{name}} je uzamčená.",
+			"lockedEditor": "Verze {{name}} je uzamčená, její překlady upravuje už jen administrátor.",
+			"unlocked": "Verze {{name}} je po termínu odemčená pro dodatečné úpravy.",
+			"show": "Zobrazit práci verze",
+			"clear": "Zrušit filtr verze"
+		}
 	},
 	"dashboardPage": {
 		"eyebrow": "Přehled projektu",
@@ -665,7 +687,9 @@
 				"moreWarnings_one": "a další {{count}} upozornění, které se zde nezobrazuje",
 				"moreWarnings_few": "a další {{count}} upozornění, která se zde nezobrazují",
 				"moreWarnings_many": "a dalších {{count}} upozornění, která se zde nezobrazují",
-				"moreWarnings_other": "a dalších {{count}} upozornění, která se zde nezobrazují"
+				"moreWarnings_other": "a dalších {{count}} upozornění, která se zde nezobrazují",
+				"version": "Verze: {{name}}",
+				"noVersion": "Bez verze"
 			}
 		},
 		"success": "Import dokončen: {{keys}}, {{translations}}, {{overwritten}}.",
@@ -680,7 +704,14 @@
 		"successOverwritten_one": "{{count}} přepsaný",
 		"successOverwritten_few": "{{count}} přepsané",
 		"successOverwritten_many": "{{count}} přepsaných",
-		"successOverwritten_other": "{{count}} přepsaných"
+		"successOverwritten_other": "{{count}} přepsaných",
+		"version": {
+			"label": "Verze",
+			"description": "Vytvořené klíče a zapsané překlady dostanou tuto verzi.",
+			"none": "Bez verze",
+			"current": "{{name}} (aktuální)",
+			"create": "Vytvořit novou"
+		}
 	},
 	"exportModal": {
 		"title": "Exportovat překlady",
@@ -741,6 +772,12 @@
 			"item": "„{{key}}“ ({{language}}): {{details}}.",
 			"missing": "chybí {{list}}",
 			"extra": "navíc {{list}}"
+		},
+		"version": {
+			"asOf": "Stav projektu k verzi {{name}}",
+			"description": "Soubor obsahuje klíče bez verze a klíče verzí, které začínají nejpozději jako tato. Klíče pozdějších verzí v něm nejsou.",
+			"onlyWork": "Jen změny této verze",
+			"onlyWorkDescription": "Pouze klíče, které ve verzi {{name}} vznikly nebo se v ní změnily."
 		}
 	},
 	"importIssues": {

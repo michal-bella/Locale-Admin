@@ -1,0 +1,12 @@
+.root {
+	border: 1px solid var(--app-color-border);
+}
+
+.message {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem 1rem;
+	color: var(--app-color-text-strong);
+}

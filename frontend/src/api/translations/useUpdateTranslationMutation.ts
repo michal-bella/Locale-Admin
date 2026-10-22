@@ -14,7 +14,8 @@ import { invalidateDashboard } from '@/api/dashboard/invalidateDashboard'
 import http from '@/api/http'
 import { QUERY_KEYS } from '@/api/queryKeys'
 
-export type UpdateTranslationVariables = { keyId: string; languageId: string; value: string | null }
+/** `versionId`: the version filtered on the page; without it the API uses the current version by date. */
+export type UpdateTranslationVariables = { keyId: string; languageId: string; value: string | null; versionId?: string }
 
 /** Row status as the API computes it: the target language decides in the compact view, every language in the extended view. */
 const rowStatus = (item: TranslationListItem, targetLanguageId: string | undefined): TranslationListItem['status'] => {
@@ -55,8 +56,8 @@ export const useUpdateTranslationMutation = (projectId: string, listQuery: Trans
 	const targetLanguageId = typeof listQuery?.targetLanguageId === 'string' ? listQuery.targetLanguageId : undefined
 
 	return useMutation({
-		mutationFn: async ({ keyId, languageId, value }: UpdateTranslationVariables) =>
-			(await http.put<UpdateTranslationResponse>(`/projects/${projectId}/keys/${keyId}/translations/${languageId}`, { value })).data,
+		mutationFn: async ({ keyId, languageId, value, versionId }: UpdateTranslationVariables) =>
+			(await http.put<UpdateTranslationResponse>(`/projects/${projectId}/keys/${keyId}/translations/${languageId}`, { value, versionId })).data,
 		onMutate: async (variables) => {
 			if (!listKey) {
 				return { previous: undefined }

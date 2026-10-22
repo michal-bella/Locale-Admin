@@ -317,7 +317,12 @@
 				"WEEK": "In the last 7 days",
 				"MONTH": "In the last 30 days"
 			},
-			"translationsOnly": "Translations only"
+			"translationsOnly": "Translations only",
+			"version": {
+				"label": "Version",
+				"placeholder": "All versions",
+				"current": "{{name}} (current)"
+			}
 		},
 		"view": {
 			"label": "View",
@@ -345,7 +350,8 @@
 			"clearFilters": "Clear filters",
 			"edit": "Edit key",
 			"editLabel": "Edit key {{key}}",
-			"base": "Base"
+			"base": "Base",
+			"version": "Created in version {{name}}"
 		},
 		"status": {
 			"TRANSLATED": "Translated",
@@ -443,7 +449,19 @@
 			"summary_many": "Showing {{shown}} of {{count}} keys",
 			"summary_other": "Showing {{shown}} of {{count}} keys"
 		},
-		"exportButton": "Export"
+		"exportButton": "Export",
+		"version": {
+			"remaining_one": "Version {{name}}: {{count}} day left until it locks.",
+			"remaining_other": "Version {{name}}: {{count}} days left until it locks.",
+			"lastDay": "Version {{name}}: today is the last day, then it locks.",
+			"upcoming_one": "Version {{name}} starts in {{count}} day.",
+			"upcoming_other": "Version {{name}} starts in {{count}} days.",
+			"locked": "Version {{name}} is locked.",
+			"lockedEditor": "Version {{name}} is locked; only an administrator edits its translations now.",
+			"unlocked": "Version {{name}} is past its end and unlocked for late changes.",
+			"show": "Show the version's work",
+			"clear": "Clear the version filter"
+		}
 	},
 	"dashboardPage": {
 		"eyebrow": "Project overview",
@@ -651,7 +669,9 @@
 				"moreWarnings_one": "and {{count}} more warning not shown here",
 				"moreWarnings_few": "and {{count}} more warnings not shown here",
 				"moreWarnings_many": "and {{count}} more warnings not shown here",
-				"moreWarnings_other": "and {{count}} more warnings not shown here"
+				"moreWarnings_other": "and {{count}} more warnings not shown here",
+				"version": "Version: {{name}}",
+				"noVersion": "No version"
 			}
 		},
 		"success": "Import finished: {{keys}}, {{translations}}, {{overwritten}}.",
@@ -666,7 +686,14 @@
 		"successOverwritten_one": "{{count}} overwritten",
 		"successOverwritten_few": "{{count}} overwritten",
 		"successOverwritten_many": "{{count}} overwritten",
-		"successOverwritten_other": "{{count}} overwritten"
+		"successOverwritten_other": "{{count}} overwritten",
+		"version": {
+			"label": "Version",
+			"description": "Created keys and written translations get this version.",
+			"none": "No version",
+			"current": "{{name}} (current)",
+			"create": "Create new"
+		}
 	},
 	"exportModal": {
 		"title": "Export translations",
@@ -723,6 +750,12 @@
 			"item": "“{{key}}” ({{language}}): {{details}}.",
 			"missing": "missing {{list}}",
 			"extra": "extra {{list}}"
+		},
+		"version": {
+			"asOf": "Project as of version {{name}}",
+			"description": "The file holds keys without a version and keys of versions starting no later than this one. Keys of later versions are left out.",
+			"onlyWork": "Only this version's changes",
+			"onlyWorkDescription": "Only keys created or changed in version {{name}}."
 		}
 	},
 	"importIssues": {

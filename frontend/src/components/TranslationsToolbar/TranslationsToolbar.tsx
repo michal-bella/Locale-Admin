@@ -21,11 +21,23 @@ const renderStatusOption = ({ option }: ComboboxLikeRenderOptionInput<ComboboxIt
 }
 
 /**
- * Filters of the translations table (Figma 3:121): search, status, namespace, sort, Editor and Zmenené. What the table shows (view, layout, languages,
+ * Filters of the translations table (Figma 3:121): search, status, namespace, sort, Editor, Zmenené and Verzia. What the table shows (view, layout, languages,
  * Len preklady) lives in `TranslationsViewControls`. The search writes to the URL 300 ms after the last keystroke; the X and Esc clear it right away,
  * as the other filters do.
  */
-const TranslationsToolbar = ({ search, status, namespace, sort, updatedBy, updatedWithin, editors, namespaces, onChange }: TranslationsToolbarProps) => {
+const TranslationsToolbar = ({
+	search,
+	status,
+	namespace,
+	sort,
+	updatedBy,
+	updatedWithin,
+	version,
+	versions,
+	editors,
+	namespaces,
+	onChange,
+}: TranslationsToolbarProps) => {
 	const { t } = useTranslation()
 	const [searchValue, setSearchValue] = useState(search ?? '')
 	const [committedSearch, setCommittedSearch] = useState(search)
@@ -126,6 +138,20 @@ const TranslationsToolbar = ({ search, status, namespace, sort, updatedBy, updat
 					value={updatedBy ?? null}
 					onChange={(value) => onChange({ updatedBy: value ?? undefined })}
 					searchable
+					clearable
+				/>
+			)}
+			{(versions.length > 0 || version !== undefined) && (
+				<Select
+					aria-label={t('translationsPage.toolbar.version.label')}
+					placeholder={t('translationsPage.toolbar.version.placeholder')}
+					className={classes.select}
+					data={versions.map((item) => ({
+						value: item.id,
+						label: item.isCurrent ? t('translationsPage.toolbar.version.current', { name: item.name }) : item.name,
+					}))}
+					value={version ?? null}
+					onChange={(value) => onChange({ version: value ?? undefined })}
 					clearable
 				/>
 			)}

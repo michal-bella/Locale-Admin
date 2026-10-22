@@ -125,6 +125,7 @@ const mockPage = ({
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: languages },
+		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [] } },
 		[`GET ${TRANSLATIONS_URL}`]: typeof translations === 'function' ? translations : { status: 200, data: translations },
 		...routes,
 	})

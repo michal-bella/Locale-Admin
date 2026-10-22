@@ -30,7 +30,7 @@ const EMPTY_VALUES: CreateProjectVersionRequest = { name: '', startsAt: '', ends
  * "Vytvoriť verziu" and "Upraviť verziu" of a project: name matching the code release and the two dates (native date inputs, the
  * contract's `YYYY-MM-DD`). The edit sends every field; the lock is changed from the table, not here.
  */
-const VersionFormModal = ({ projectId, opened, version, onClose }: VersionFormModalProps) => {
+const VersionFormModal = ({ projectId, opened, version, onClose, onCreated, zIndex }: VersionFormModalProps) => {
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
 	const createVersion = useCreateProjectVersionMutation(projectId)
@@ -132,6 +132,7 @@ const VersionFormModal = ({ projectId, opened, version, onClose }: VersionFormMo
 			onSuccess: (created) => {
 				notifications.show({ color: 'green', message: t('versionsPage.form.createSuccess', { name: created.name }) })
 				resetAndClose()
+				onCreated?.(created)
 			},
 			onError: handleError,
 		})
@@ -145,6 +146,7 @@ const VersionFormModal = ({ projectId, opened, version, onClose }: VersionFormMo
 			description={t('versionsPage.form.description')}
 			closeLabel={t('versionsPage.form.close')}
 			isPending={isPending}
+			zIndex={zIndex}
 			onSubmit={(event) => void onSubmit(event)}
 			footer={
 				<>

@@ -60,7 +60,7 @@ const validateFileName = (name: string): FileNameError | null => {
  * Export of the project translations (Figma 3:2768): format (CSV or XLSX), languages (all by default), status and file name. The server
  * streams the file, the browser saves it under the chosen name. Without Zahrnúť popisy a metadáta kľúčov (not part of the CSV format).
  */
-const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
+const ExportModal = ({ projectId, version, opened, onClose }: ExportModalProps) => {
 	const { t, i18n } = useTranslation()
 	const isMobile = useMediaQuery(MOBILE_QUERY) ?? false
 	const { data: languages = [] } = useProjectLanguagesQuery(projectId)
@@ -76,6 +76,8 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 	const [status, setStatus] = useState<ExportStatus>('ALL')
 	const [fileName, setFileName] = useState(EXPORT_FILE_NAME_DEFAULT)
 	const [submitted, setSubmitted] = useState(false)
+	const [onlyVersionWork, setOnlyVersionWork] = useState(false)
+	const versionQuery = version ? { versionId: version.id, versionScope: onlyVersionWork ? ('ONLY' as const) : ('UP_TO' as const) } : {}
 
 	const languageIds = selectedIds ?? languages.map((language) => language.id)
 	const languageName = (tag: Language['tag']) => {
@@ -84,7 +86,7 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 	}
 	// The project order of the languages, as the export sends them; the key of the check changes only with the selection.
 	const orderedIds = languages.filter((language) => languageIds.includes(language.id)).map((language) => language.id)
-	const check = useExportCheckQuery(projectId, { languageIds: orderedIds, status }, opened && orderedIds.length > 0)
+	const check = useExportCheckQuery(projectId, { languageIds: orderedIds, status, ...versionQuery }, opened && orderedIds.length > 0)
 	const warnings = check.data && check.data.total > 0 ? check.data : null
 	const name = toFileName(fileName)
 	const extension = extensionOf(format)
@@ -108,6 +110,7 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 		setStatus('ALL')
 		setFileName(EXPORT_FILE_NAME_DEFAULT)
 		setSubmitted(false)
+		setOnlyVersionWork(false)
 		exportMutation.reset()
 		onClose()
 	}
@@ -123,7 +126,7 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 			return
 		}
 		exportMutation.mutate(
-			{ languageIds: orderedIds, status, format },
+			{ languageIds: orderedIds, status, format, ...versionQuery },
 			{
 				onSuccess: (blob) => {
 					const fullName = `${name}${extension}`
@@ -231,6 +234,21 @@ const ExportModal = ({ projectId, opened, onClose }: ExportModalProps) => {
 					data={exportStatusSchema.options.map((value) => ({ value, label: t(`exportModal.status.${value}`) }))}
 				/>
 			</Input.Wrapper>
+			{version && (
+				<div className='flex flex-col gap-2'>
+					<Text size='sm' fw={600} c='var(--app-color-text-strong)'>
+						{t('exportModal.version.asOf', { name: version.name })}
+					</Text>
+					<Text size='xs'>{t('exportModal.version.description')}</Text>
+					<Checkbox
+						checked={onlyVersionWork}
+						onChange={(event) => setOnlyVersionWork(event.currentTarget.checked)}
+						label={t('exportModal.version.onlyWork')}
+						description={t('exportModal.version.onlyWorkDescription', { name: version.name })}
+						disabled={isPending}
+					/>
+				</div>
+			)}
 			<TextInput
 				ref={fileNameRef}
 				label={

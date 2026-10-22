@@ -1,5 +1,9 @@
+import { type ProjectVersion } from '@locale/shared'
+
 export type ImportModalProps = {
 	projectId: string
+	/** Versions of the project for the Verzia step; the current one is preselected. */
+	versions: ProjectVersion[]
 	opened: boolean
 	onClose: () => void
 }

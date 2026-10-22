@@ -27,6 +27,8 @@ export const translationsSearchSchema = z.object({
 	updatedWithin: translationsUpdatedWithinSchema.optional().catch(undefined),
 	/** Only keys with a placeholder warning (`?warnings=true`), turned on from the warnings banner. */
 	warnings: z.literal(true).optional().catch(undefined),
+	/** Work of one version (`ProjectVersion.id`); edits and new keys on the page go into it. */
+	version: z.uuid().optional().catch(undefined),
 	/** Hides the key and status columns. */
 	translationsOnly: z.literal(true).optional().catch(undefined),
 	page: z.number().int().min(1).optional().catch(undefined),

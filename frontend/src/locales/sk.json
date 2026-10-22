@@ -321,7 +321,12 @@
 				"WEEK": "Za posledných 7 dní",
 				"MONTH": "Za posledných 30 dní"
 			},
-			"translationsOnly": "Len preklady"
+			"translationsOnly": "Len preklady",
+			"version": {
+				"label": "Verzia",
+				"placeholder": "Všetky verzie",
+				"current": "{{name}} (aktuálna)"
+			}
 		},
 		"view": {
 			"label": "Zobrazenie",
@@ -349,7 +354,8 @@
 			"clearFilters": "Zrušiť filtre",
 			"edit": "Upraviť kľúč",
 			"editLabel": "Upraviť kľúč {{key}}",
-			"base": "Základný"
+			"base": "Základný",
+			"version": "Vznikol vo verzii {{name}}"
 		},
 		"status": {
 			"TRANSLATED": "Preložené",
@@ -447,7 +453,23 @@
 			"summary_many": "Zobrazených {{shown}} z {{count}} kľúčov",
 			"summary_other": "Zobrazených {{shown}} z {{count}} kľúčov"
 		},
-		"exportButton": "Exportovať"
+		"exportButton": "Exportovať",
+		"version": {
+			"remaining_one": "Verzia {{name}}: ostáva {{count}} deň do uzamknutia.",
+			"remaining_few": "Verzia {{name}}: ostávajú {{count}} dni do uzamknutia.",
+			"remaining_many": "Verzia {{name}}: ostáva {{count}} dní do uzamknutia.",
+			"remaining_other": "Verzia {{name}}: ostáva {{count}} dní do uzamknutia.",
+			"lastDay": "Verzia {{name}}: dnes je posledný deň, potom sa uzamkne.",
+			"upcoming_one": "Verzia {{name}} začína o {{count}} deň.",
+			"upcoming_few": "Verzia {{name}} začína o {{count}} dni.",
+			"upcoming_many": "Verzia {{name}} začína o {{count}} dní.",
+			"upcoming_other": "Verzia {{name}} začína o {{count}} dní.",
+			"locked": "Verzia {{name}} je uzamknutá.",
+			"lockedEditor": "Verzia {{name}} je uzamknutá, jej preklady upravuje už len administrátor.",
+			"unlocked": "Verzia {{name}} je po termíne odomknutá na dodatočné úpravy.",
+			"show": "Zobraziť prácu verzie",
+			"clear": "Zrušiť filter verzie"
+		}
 	},
 	"dashboardPage": {
 		"eyebrow": "Prehľad projektu",
@@ -665,7 +687,9 @@
 				"moreWarnings_one": "a ďalšie {{count}} upozornenie, ktoré sa tu nezobrazuje",
 				"moreWarnings_few": "a ďalšie {{count}} upozornenia, ktoré sa tu nezobrazujú",
 				"moreWarnings_many": "a ďalších {{count}} upozornení, ktoré sa tu nezobrazujú",
-				"moreWarnings_other": "a ďalších {{count}} upozornení, ktoré sa tu nezobrazujú"
+				"moreWarnings_other": "a ďalších {{count}} upozornení, ktoré sa tu nezobrazujú",
+				"version": "Verzia: {{name}}",
+				"noVersion": "Bez verzie"
 			}
 		},
 		"success": "Import dokončený: {{keys}}, {{translations}}, {{overwritten}}.",
@@ -680,7 +704,14 @@
 		"successOverwritten_one": "{{count}} prepísaný",
 		"successOverwritten_few": "{{count}} prepísané",
 		"successOverwritten_many": "{{count}} prepísaných",
-		"successOverwritten_other": "{{count}} prepísaných"
+		"successOverwritten_other": "{{count}} prepísaných",
+		"version": {
+			"label": "Verzia",
+			"description": "Vytvorené kľúče a zapísané preklady dostanú túto verziu.",
+			"none": "Bez verzie",
+			"current": "{{name}} (aktuálna)",
+			"create": "Vytvoriť novú"
+		}
 	},
 	"exportModal": {
 		"title": "Exportovať preklady",
@@ -741,6 +772,12 @@
 			"item": "„{{key}}“ ({{language}}): {{details}}.",
 			"missing": "chýba {{list}}",
 			"extra": "navyše {{list}}"
+		},
+		"version": {
+			"asOf": "Stav projektu k verzii {{name}}",
+			"description": "Súbor obsahuje kľúče bez verzie a kľúče verzií, ktoré začínajú najneskôr ako táto. Kľúče neskorších verzií v ňom nie sú.",
+			"onlyWork": "Len zmeny tejto verzie",
+			"onlyWorkDescription": "Iba kľúče, ktoré vo verzii {{name}} vznikli alebo sa v nej zmenili."
 		}
 	},
 	"importIssues": {

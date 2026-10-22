@@ -12,6 +12,7 @@ import getApiErrorCode from '@/api/getApiErrorCode'
 import { useUpdatePreferencesMutation } from '@/api/profile/useUpdatePreferencesMutation'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import { useProjectSettingsQuery } from '@/api/projectSettings/projectSettingsQuery'
+import { useProjectVersionsQuery } from '@/api/projectVersions/projectVersionsQuery'
 import { useTranslationsQuery } from '@/api/translations/translationsQuery'
 import { useUpdateTranslationMutation } from '@/api/translations/useUpdateTranslationMutation'
 import CreateKeyModal from '@/components/CreateKeyModal/CreateKeyModal'
@@ -23,6 +24,7 @@ import TranslationStats from '@/components/TranslationStats/TranslationStats'
 import TranslationsPagination from '@/components/TranslationsPagination/TranslationsPagination'
 import TranslationsTable from '@/components/TranslationsTable/TranslationsTable'
 import TranslationsToolbar from '@/components/TranslationsToolbar/TranslationsToolbar'
+import TranslationsVersionBanner from '@/components/TranslationsVersionBanner/TranslationsVersionBanner'
 import TranslationsViewControls from '@/components/TranslationsViewControls/TranslationsViewControls'
 import TranslationsWarningsBanner from '@/components/TranslationsWarningsBanner/TranslationsWarningsBanner'
 import { TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
@@ -53,6 +55,12 @@ const TranslationsPage = () => {
 	const updatePreferences = useUpdatePreferencesMutation()
 	const languagesQuery = useProjectLanguagesQuery(projectId)
 	const languages = languagesQuery.data ?? []
+	// A project without versions works as before: no filter, no banner, nothing sent with the edits.
+	const versions = useProjectVersionsQuery(projectId).data?.items ?? []
+	const selectedVersion = versions.find((version) => version.id === search.version)
+	const bannerVersion = selectedVersion ?? versions.find((version) => version.isCurrent)
+	// An editor cannot write into a locked version; the API would refuse it (409), so the cells do not open at all.
+	const writesBlocked = !isAdmin && selectedVersion?.isLocked === true
 	const [importOpened, importModal] = useDisclosure(false)
 	const [exportOpened, exportModal] = useDisclosure(false)
 	const [createKeyOpened, createKeyModal] = useDisclosure(false)
@@ -82,6 +90,7 @@ const TranslationsPage = () => {
 		updatedById: search.updatedBy,
 		updatedWithin: search.updatedWithin,
 		warnings: search.warnings,
+		versionId: search.version,
 		sort,
 		page,
 		pageSize,
@@ -101,7 +110,7 @@ const TranslationsPage = () => {
 	// The status badge flips silently for a screen reader; the live region below says it. Clearing first makes a repeated save of the same key announce again.
 	const saveTranslation = async (keyId: string, languageId: string, value: string | null) => {
 		setSavedAnnouncement('')
-		const result = await updateTranslation.mutateAsync({ keyId, languageId, value })
+		const result = await updateTranslation.mutateAsync({ keyId, languageId, value, versionId: search.version })
 		setSavedAnnouncement(t('translationsPage.editor.saved', { key: data?.items.find((item) => item.keyId === keyId)?.name ?? '' }))
 		return result
 	}
@@ -124,7 +133,15 @@ const TranslationsPage = () => {
 	}, [isPastEnd, lastPage, navigate])
 
 	const clearFilters = () =>
-		updateSearch({ search: undefined, status: undefined, namespace: undefined, updatedBy: undefined, updatedWithin: undefined, warnings: undefined })
+		updateSearch({
+			search: undefined,
+			status: undefined,
+			namespace: undefined,
+			updatedBy: undefined,
+			updatedWithin: undefined,
+			warnings: undefined,
+			version: undefined,
+		})
 
 	const retry = async () => {
 		const languagesResult = languagesQuery.isError ? await languagesQuery.refetch() : languagesQuery
@@ -196,9 +213,19 @@ const TranslationsPage = () => {
 							updatedBy: undefined,
 							updatedWithin: undefined,
 							warnings: undefined,
+							version: undefined,
 							status: value,
 						})
 					}
+				/>
+			)}
+			{!isError && !isPending && bannerVersion && (
+				<TranslationsVersionBanner
+					version={bannerVersion}
+					active={selectedVersion !== undefined}
+					writesBlocked={!isAdmin && bannerVersion.isLocked}
+					onShow={() => updateSearch({ version: bannerVersion.id })}
+					onClear={() => updateSearch({ version: undefined })}
 				/>
 			)}
 			{!isError && !isPending && data && (data.stats.warnings > 0 || search.warnings) && (
@@ -234,6 +261,8 @@ const TranslationsPage = () => {
 							sort={sort}
 							updatedBy={search.updatedBy}
 							updatedWithin={search.updatedWithin}
+							version={search.version}
+							versions={versions}
 							editors={data?.editors ?? []}
 							namespaces={namespaces}
 							onChange={(patch) => updateSearch(patch)}
@@ -256,7 +285,7 @@ const TranslationsPage = () => {
 						onImport={importModal.open}
 						showGroups={sort !== 'UPDATED'}
 						translationsOnly={search.translationsOnly}
-						readOnly={isVisitor}
+						readOnly={isVisitor || writesBlocked}
 						onSave={saveTranslation}
 					/>
 				</div>
@@ -273,13 +302,14 @@ const TranslationsPage = () => {
 					onPageSizeChange={(next) => updateSearch({ pageSize: next === TRANSLATIONS_PAGE_SIZES[0] ? undefined : next })}
 				/>
 			)}
-			{isAdmin && <ImportModal projectId={projectId} opened={importOpened} onClose={closeImport} />}
+			{isAdmin && <ImportModal projectId={projectId} versions={versions} opened={importOpened} onClose={closeImport} />}
 			{isAdmin && (
 				<CreateKeyModal
 					projectId={projectId}
 					languages={languages}
 					namespaces={namespaces}
 					defaultNamespace={search.namespace}
+					versionId={search.version}
 					opened={createKeyOpened}
 					onClose={createKeyModal.close}
 					// Shows the new key whatever page or filters were on; an empty namespace means no namespace filter.
@@ -295,7 +325,7 @@ const TranslationsPage = () => {
 					}
 				/>
 			)}
-			<ExportModal projectId={projectId} opened={exportOpened} onClose={exportModal.close} />
+			<ExportModal projectId={projectId} version={selectedVersion} opened={exportOpened} onClose={exportModal.close} />
 		</div>
 	)
 }

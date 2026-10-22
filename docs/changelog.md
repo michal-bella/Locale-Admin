@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Verzie prekladov – filter, odpočet, import a export (2026-10-22)
+
+- frontend: stránka Preklady má filter **Verzia** (`?version=`), chip verzie pri kľúči, odpočet dní do uzamknutia verzie a tabuľku iba na čítanie pre editora v uzamknutej verzii; úprava bunky a Pridať kľúč posielajú verziu z filtra; import má krok **Verzia** s vytvorením novej verzie z modálu; export so zapnutým filtrom exportuje stav projektu k verzii alebo iba jej zmeny ([Frontend](./frontend.md#verzie-na-stránke-preklady))
+
 ### Verzie prekladov – stránka Verzie (2026-10-22)
 
 - frontend: stránka **Verzie** (`/projects/$projectSlug/versions`, položka v sidebari projektu) so zoznamom verzií, stavmi Pripravuje sa / Prebieha / Uzamknutá a pre `ADMIN` modálmi Vytvoriť / Upraviť verziu (natívne dátumové polia) a potvrdením Zamknúť / Odomknúť ([Frontend](./frontend.md#stránka-verzie-projektu)); ikony `Tag`, `Lock`, `LockUnlocked`

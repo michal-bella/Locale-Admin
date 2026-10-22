@@ -1,4 +1,4 @@
-import { type TranslationEditor, type TranslationsSort, type TranslationStatus, type TranslationsUpdatedWithin } from '@locale/shared'
+import { type ProjectVersion, type TranslationEditor, type TranslationsSort, type TranslationStatus, type TranslationsUpdatedWithin } from '@locale/shared'
 
 import { type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
@@ -9,6 +9,9 @@ export type TranslationsToolbarProps = {
 	sort: TranslationsSort
 	updatedBy?: string
 	updatedWithin?: TranslationsUpdatedWithin
+	version?: string
+	/** Versions of the project, newest first; the Verzia filter shows only when there is at least one. */
+	versions: ProjectVersion[]
 	/** Members of the project and other users who changed one of its translations, most edits first, for the Editor filter. */
 	editors: TranslationEditor[]
 	/** Every namespace of the project; the namespace filter shows only when there is more than one. */

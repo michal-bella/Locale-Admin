@@ -1,4 +1,4 @@
-import { Button, Checkbox, Collapse, Text } from '@mantine/core'
+import { Button, Checkbox, Collapse, Select, Text } from '@mantine/core'
 import { useDidUpdate, useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { useId, useRef, useState } from 'react'
@@ -20,11 +20,12 @@ import { useImportPreviewMutation } from '@/api/imports/useImportPreviewMutation
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import { useCreateProjectLanguageMutation } from '@/api/projectLanguages/useCreateProjectLanguageMutation'
 import AppModal from '@/components/AppModal/AppModal'
-import { ChevronDown } from '@/components/Icons'
+import { ChevronDown, Plus } from '@/components/Icons'
 import ImportDropzone from '@/components/ImportDropzone/ImportDropzone'
 import ImportIssueList from '@/components/ImportIssueList/ImportIssueList'
 import ImportReviewTable from '@/components/ImportReviewTable/ImportReviewTable'
 import { type ImportColumnMapping } from '@/components/ImportReviewTable/types'
+import VersionFormModal from '@/components/VersionFormModal/VersionFormModal'
 import { IMPORT_REQUEST_MAX_BYTES } from '@/lib/constants'
 
 import classes from './ImportModal.module.css'
@@ -35,6 +36,12 @@ type Step = 'UPLOAD' | 'REVIEW'
 const CSV_EXTENSION = /\.csv$/i
 
 const MOBILE_QUERY = '(max-width: 48em)'
+
+/** Select value for an import without a version; a version is its id. */
+const NO_VERSION = 'NONE'
+
+/** Above the import modal (Mantine's default modal z-index is 200). */
+const VERSION_MODAL_Z_INDEX = 300
 
 const requestBytes = (body: ImportPreviewRequest) => new TextEncoder().encode(JSON.stringify(body)).byteLength
 
@@ -54,7 +61,7 @@ const mergeMapping = (preview: ImportPreviewResponse, previous: ImportColumnMapp
  * Import of a CSV file in two steps (Figma 3:2042 for the first one): upload with local checks and the preview, then the review of
  * the language columns, warnings and counts, and the import itself. The file stays in memory between the steps.
  */
-const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
+const ImportModal = ({ projectId, versions, opened, onClose }: ImportModalProps) => {
 	const { t } = useTranslation()
 	const isMobile = useMediaQuery(MOBILE_QUERY) ?? false
 	const { data: languages = [] } = useProjectLanguagesQuery(projectId)
@@ -65,6 +72,9 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 	const [step, setStep] = useState<Step>('UPLOAD')
 	const [file, setFile] = useState<SelectedImportFile | null>(null)
 	const [createMissingKeys, setCreateMissingKeys] = useState(true)
+	// `null` until the user picks: the current version by date, none without one (also for a version created meanwhile).
+	const [pickedVersionId, setPickedVersionId] = useState<string | null>(null)
+	const [versionFormOpened, versionForm] = useDisclosure(false)
 	const [fileError, setFileError] = useState<string>()
 	const [fileIssues, setFileIssues] = useState<ImportFileInvalidDetails | null>(null)
 	const [preview, setPreview] = useState<ImportPreviewResponse | null>(null)
@@ -86,10 +96,14 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 
 	const isPending = previewMutation.isPending || importMutation.isPending || createLanguage.isPending
 
+	const versionId = pickedVersionId ?? versions.find((version) => version.isCurrent)?.id ?? NO_VERSION
+	const selectedVersion = versions.find((version) => version.id === versionId)
+
 	const resetAndClose = () => {
 		setStep('UPLOAD')
 		setFile(null)
 		setCreateMissingKeys(true)
+		setPickedVersionId(null)
 		setFileError(undefined)
 		setFileIssues(null)
 		setPreview(null)
@@ -205,6 +219,8 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 				content: file.content,
 				columns: preview.columns.map((column) => ({ columnIndex: column.columnIndex, languageId: mapping[column.columnIndex] ?? null })),
 				createMissingKeys,
+				// Left out without a version: the API defaults to none, and a project without versions sends the same body as before.
+				...(versionId === NO_VERSION ? {} : { versionId }),
 			},
 			{
 				onSuccess: (result) => {
@@ -285,6 +301,7 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 			description={t('importModal.description')}
 			closeLabel={t('importModal.close')}
 			isPending={isPending}
+			inBackground={versionFormOpened}
 			size={step === 'UPLOAD' ? 'xl' : 960}
 			fullScreen={isMobile}
 			footer={footer}
@@ -305,6 +322,35 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 							classNames={{ label: classes.createKeysLabel, description: classes.createKeysDescription }}
 						/>
 					</div>
+					<div className='flex flex-wrap items-end gap-2'>
+						<Select
+							label={t('importModal.version.label')}
+							description={t('importModal.version.description')}
+							className='min-w-64 flex-1'
+							data={[
+								{ value: NO_VERSION, label: t('importModal.version.none') },
+								...versions.map((version) => ({
+									value: version.id,
+									label: version.isCurrent ? t('importModal.version.current', { name: version.name }) : version.name,
+								})),
+							]}
+							value={versionId}
+							onChange={(value) => setPickedVersionId(value ?? NO_VERSION)}
+							allowDeselect={false}
+							disabled={isPending}
+						/>
+						<Button variant='default' leftSection={<Plus aria-hidden />} onClick={versionForm.open} disabled={isPending}>
+							{t('importModal.version.create')}
+						</Button>
+					</div>
+					<VersionFormModal
+						projectId={projectId}
+						opened={versionFormOpened}
+						version={null}
+						onClose={versionForm.close}
+						onCreated={(version) => setPickedVersionId(version.id)}
+						zIndex={VERSION_MODAL_Z_INDEX}
+					/>
 				</>
 			)}
 			{step === 'REVIEW' && preview && (
@@ -332,6 +378,7 @@ const ImportModal = ({ projectId, opened, onClose }: ImportModalProps) => {
 							<li>{t('importModal.review.summary.newTranslations', { count: newTranslations })}</li>
 							{baseUntranslated.length > 0 && <li>{t('importModal.review.summary.baseUntranslated', { count: baseUntranslated.length })}</li>}
 							{skippedCount > 0 && <li>{t('importModal.review.summary.skippedColumns', { count: skippedCount })}</li>}
+							{selectedVersion && <li>{t('importModal.review.summary.version', { name: selectedVersion.name })}</li>}
 						</ul>
 						{mappedCount === 0 && (
 							<Text id={nothingMappedId} size='xs'>

@@ -10,10 +10,10 @@ import { type TranslationsVersionBannerProps } from './types'
 
 /**
  * Countdown of a version above the translations card: how long editors have until the version locks, or that it is locked (and, for an
- * editor, that only an administrator edits it now). The button filters the list to the version's work or clears that filter; an ADMIN
+ * editor, that only an administrator edits it now), and how many keys of its work are still untranslated. The button filters the list to the version's work or clears that filter; an ADMIN
  * also locks or unlocks the version from here.
  */
-const TranslationsVersionBanner = ({ version, active, writesBlocked, onShow, onClear, onToggleLock }: TranslationsVersionBannerProps) => {
+const TranslationsVersionBanner = ({ version, active, writesBlocked, untranslated, onShow, onClear, onToggleLock }: TranslationsVersionBannerProps) => {
 	const { t } = useTranslation()
 	// Days are counted in the browser's calendar: the deadline is a day, not a moment.
 	const today = toVersionDate(new Date())
@@ -38,7 +38,10 @@ const TranslationsVersionBanner = ({ version, active, writesBlocked, onShow, onC
 			icon={version.isLocked ? <Lock aria-hidden /> : <Tag aria-hidden />}
 			classNames={{ root: `${classes.root} ${version.isLocked ? '' : classes.neutral}`, message: classes.message }}
 		>
-			<span>{message}</span>
+			<span>
+				<span>{message}</span>
+				{untranslated !== undefined && untranslated > 0 && <span> {t('translationsPage.version.untranslated', { count: untranslated })}</span>}
+			</span>
 			<div className='flex flex-wrap gap-2'>
 				{onToggleLock && (
 					<Button

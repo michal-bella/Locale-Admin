@@ -473,7 +473,11 @@
 			"lock": "Zamknúť",
 			"unlock": "Odomknúť",
 			"lockLabel": "Zamknúť verziu {{name}}",
-			"unlockLabel": "Odomknúť verziu {{name}}"
+			"unlockLabel": "Odomknúť verziu {{name}}",
+			"untranslated_one": "Nepreložený ostáva {{count}} kľúč.",
+			"untranslated_few": "Nepreložené ostávajú {{count}} kľúče.",
+			"untranslated_many": "Nepreložených ostáva {{count}} kľúčov.",
+			"untranslated_other": "Nepreložených ostáva {{count}} kľúčov."
 		}
 	},
 	"dashboardPage": {

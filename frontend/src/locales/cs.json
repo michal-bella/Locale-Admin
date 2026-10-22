@@ -473,7 +473,11 @@
 			"lock": "Zamknout",
 			"unlock": "Odemknout",
 			"lockLabel": "Zamknout verzi {{name}}",
-			"unlockLabel": "Odemknout verzi {{name}}"
+			"unlockLabel": "Odemknout verzi {{name}}",
+			"untranslated_one": "Nepřeložený zůstává {{count}} klíč.",
+			"untranslated_few": "Nepřeložené zůstávají {{count}} klíče.",
+			"untranslated_many": "Nepřeložených zůstává {{count}} klíčů.",
+			"untranslated_other": "Nepřeložených zůstává {{count}} klíčů."
 		}
 	},
 	"dashboardPage": {

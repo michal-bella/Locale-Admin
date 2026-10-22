@@ -465,7 +465,9 @@
 			"lock": "Lock",
 			"unlock": "Unlock",
 			"lockLabel": "Lock version {{name}}",
-			"unlockLabel": "Unlock version {{name}}"
+			"unlockLabel": "Unlock version {{name}}",
+			"untranslated_one": "{{count}} key is still untranslated.",
+			"untranslated_other": "{{count}} keys are still untranslated."
 		}
 	},
 	"dashboardPage": {

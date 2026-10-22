@@ -5,6 +5,8 @@ export type TranslationsVersionBannerProps = {
 	version: ProjectVersion
 	/** The list is filtered to this version. */
 	active: boolean
+	/** Keys of the version's work with a missing translation; shown when known and above zero. */
+	untranslated?: number
 	/** The signed-in user cannot write into a locked version (EDITOR, VISITOR). */
 	writesBlocked: boolean
 	onShow: () => void

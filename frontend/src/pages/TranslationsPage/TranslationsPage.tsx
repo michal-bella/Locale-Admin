@@ -108,6 +108,20 @@ const TranslationsPage = () => {
 			: null
 	const translationsQuery = useTranslationsQuery(projectId, listQuery)
 	const data = translationsQuery.data
+	// The stats count the whole project; the banner says how much of the version's work is still untranslated (one key is enough, the total is what counts).
+	const versionWorkQuery = useTranslationsQuery(
+		projectId,
+		bannerVersion && listQuery
+			? {
+					...(view === 'COMPACT' && sourceLanguage && targetLanguage
+						? { sourceLanguageId: sourceLanguage.id, targetLanguageId: targetLanguage.id }
+						: {}),
+					versionId: bannerVersion.id,
+					status: 'UNTRANSLATED',
+					pageSize: 1,
+				}
+			: null,
+	)
 	const namespaces = data?.namespaces ?? []
 	const updateTranslation = useUpdateTranslationMutation(projectId, listQuery)
 	const [savedAnnouncement, setSavedAnnouncement] = useState('')
@@ -234,6 +248,7 @@ const TranslationsPage = () => {
 					version={bannerVersion}
 					active={selectedVersion !== undefined}
 					writesBlocked={!isAdmin && bannerVersion.isLocked}
+					untranslated={versionWorkQuery.data?.total}
 					onShow={() => updateSearch({ version: bannerVersion.id })}
 					onClear={() => updateSearch({ version: undefined })}
 					onToggleLock={isAdmin ? lockVersionModal.open : undefined}

@@ -183,6 +183,26 @@ describe('TranslationsPage versions', () => {
 		await waitFor(() => expect(router.state.location.search).toEqual({}))
 	})
 
+	it('says how many keys of the version are still untranslated', async () => {
+		const requests = mockPage({
+			routes: {
+				[`GET ${TRANSLATIONS_URL}`]: (config) => ({
+					status: 200,
+					data:
+						paramsOf(config).versionId === CURRENT.id && paramsOf(config).status === 'UNTRANSLATED'
+							? { ...response([]), total: 3 }
+							: response([WELCOME]),
+				}),
+			},
+		})
+		renderApp(PAGE_PATH)
+		await findRow('dashboard.welcome')
+
+		expect(await screen.findByText('Nepreložené ostávajú 3 kľúče.')).toBeInTheDocument()
+		const countRequest = requests.find((request) => request.url === TRANSLATIONS_URL && paramsOf(request).status === 'UNTRANSLATED')
+		expect(paramsOf(countRequest)).toMatchObject({ versionId: CURRENT.id, pageSize: 1 })
+	})
+
 	it('shows no filter and no banner in a project without versions', async () => {
 		mockPage({ versions: [] })
 		renderApp(PAGE_PATH)

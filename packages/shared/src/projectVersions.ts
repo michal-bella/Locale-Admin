@@ -24,8 +24,8 @@ const nameSchema = z.string().trim().min(1).max(PROJECT_VERSION_NAME_MAX_LENGTH)
 
 const endsAfterStarts = (value: { startsAt?: string; endsAt?: string }, context: z.RefinementCtx) => {
 	if (value.startsAt !== undefined && value.endsAt !== undefined && value.endsAt <= value.startsAt) {
-		// Reported with the shared `INVALID` code on `endsAt`, so the form can show it under the field.
-		context.addIssue({ code: 'custom', path: ['endsAt'], message: 'endsAt must be after startsAt', params: { code: VALIDATION_CODE.INVALID } })
+		// No `message`: zod would use it instead of the caller's error map, and the form wants its own text. The API reports it as `INVALID` on `endsAt`.
+		context.addIssue({ code: 'custom', path: ['endsAt'], params: { code: VALIDATION_CODE.INVALID } })
 	}
 }
 

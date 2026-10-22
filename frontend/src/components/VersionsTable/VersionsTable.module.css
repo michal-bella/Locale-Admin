@@ -1,0 +1,82 @@
+.card {
+	overflow-x: auto;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-xl);
+	background-color: var(--app-color-surface);
+}
+
+.th {
+	padding: 0.875rem 2rem;
+	border-bottom: 1px solid var(--app-color-border);
+	background-color: var(--app-color-surface-muted);
+	font-size: var(--mantine-font-size-3xs);
+	font-weight: 700;
+	line-height: 1.5;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--app-color-muted);
+}
+
+.dateColumn {
+	width: 9.5rem;
+}
+
+/* Wide enough for UZAMKNUTÁ with the badge letter spacing; narrower, Mantine would cut it with an ellipsis. */
+.stateColumn {
+	width: 12rem;
+}
+
+.actionsColumn {
+	width: 6.5rem;
+}
+
+.td {
+	padding: 1.1875rem 2rem;
+	border-bottom: 1px solid var(--app-color-border-subtle);
+	vertical-align: top;
+}
+
+.actionsCell {
+	padding-inline: 0 1.25rem;
+	white-space: nowrap;
+}
+
+.tr:last-child .td {
+	border-bottom: 0;
+}
+
+.meta {
+	padding-top: 2px;
+	font-size: var(--mantine-font-size-3xs);
+	line-height: 1.5;
+	color: var(--app-color-muted);
+}
+
+.state {
+	padding-block: 2.5rem;
+	text-align: center;
+}
+
+/* Below 640 px the dates move under the name; the columns would not fit next to the sidebar. */
+@media (max-width: 39.99em) {
+	.tabletUp {
+		display: none;
+	}
+
+	/* The fixed widths would leave the name a few characters; the two remaining columns share the width by content. */
+	.stateColumn,
+	.actionsColumn {
+		width: auto;
+	}
+
+	.td,
+	.th {
+		padding-inline: 0.75rem;
+	}
+}
+
+@media (min-width: 40em) {
+	.phoneOnly {
+		display: none;
+	}
+}

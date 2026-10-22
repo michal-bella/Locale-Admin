@@ -2,7 +2,8 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite-plus'
 
-const apiProxy = { '/api': 'http://localhost:3000' }
+// The target can be moved when port 3000 is taken by another checkout's backend (local verification only).
+const apiProxy = { '/api': process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:3000' }
 
 export default defineConfig({
 	plugins: [react(), tailwindcss()],

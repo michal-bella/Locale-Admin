@@ -9,7 +9,7 @@ import { ROLE } from '@locale/shared'
 import { useMeQuery } from '@/api/auth/meQuery'
 import { projectSettingsQueryOptions } from '@/api/projectSettings/projectSettingsQuery'
 import Brand from '@/components/Brand/Brand'
-import { ArrowRight, ChevronDown, Globe, LayoutGrid, Settings, Shield, Translate, Users } from '@/components/Icons'
+import { ArrowRight, ChevronDown, Globe, LayoutGrid, Settings, Shield, Tag, Translate, Users } from '@/components/Icons'
 import ProjectSwitcher from '@/components/ProjectSwitcher/ProjectSwitcher'
 
 import classes from './Sidebar.module.css'
@@ -111,6 +111,14 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 									params={{ projectSlug }}
 									icon={Globe}
 									label={t('sidebar.languages')}
+									compact={isCompact}
+									onNavigate={onClose}
+								/>
+								<NavItem
+									to='/projects/$projectSlug/versions'
+									params={{ projectSlug }}
+									icon={Tag}
+									label={t('sidebar.versions')}
 									compact={isCompact}
 									onNavigate={onClose}
 								/>

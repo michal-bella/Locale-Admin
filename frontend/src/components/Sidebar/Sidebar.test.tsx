@@ -40,7 +40,7 @@ describe('Sidebar', () => {
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
 
-	it('shows the project name with Preklady first, Prehľad second, then Nastavenia, Jazyky and Členovia inside a project', async () => {
+	it('shows the project name with Preklady first, Prehľad second, then Nastavenia, Jazyky, Verzie and Členovia inside a project', async () => {
 		signedInAs(EDITOR_USER, {
 			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 			[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [] },
@@ -50,10 +50,11 @@ describe('Sidebar', () => {
 		const navigation = await findNavigation()
 
 		const project = within(await navigation.findByRole('list', { name: 'Booking Web' }))
-		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Preklady', 'Prehľad', 'Nastavenia', 'Jazyky', 'Členovia'])
+		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Preklady', 'Prehľad', 'Nastavenia', 'Jazyky', 'Verzie', 'Členovia'])
 		expect(project.getByRole('link', { name: 'Preklady' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/translations`)
 		expect(project.getByRole('link', { name: 'Prehľad' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/dashboard`)
 		expect(project.getByRole('link', { name: 'Jazyky' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/languages`)
+		expect(project.getByRole('link', { name: 'Verzie' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/versions`)
 		expect(project.getByRole('link', { name: 'Členovia' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/members`)
 		await waitFor(() => expect(project.getByRole('link', { name: 'Nastavenia' })).toHaveAttribute('aria-current', 'page'))
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()

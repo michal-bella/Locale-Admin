@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Verzie prekladov – stránka Verzie (2026-10-22)
+
+- frontend: stránka **Verzie** (`/projects/$projectSlug/versions`, položka v sidebari projektu) so zoznamom verzií, stavmi Pripravuje sa / Prebieha / Uzamknutá a pre `ADMIN` modálmi Vytvoriť / Upraviť verziu (natívne dátumové polia) a potvrdením Zamknúť / Odomknúť ([Frontend](./frontend.md#stránka-verzie-projektu)); ikony `Tag`, `Lock`, `LockUnlocked`
+
 ### Verzie prekladov – zápis, filter a export (2026-10-22)
 
 - API: import (`versionId`, predvolene `null`), úprava bunky a Pridať kľúč (`versionId`, inak aktuálna verzia podľa dátumu) zapisujú verziu na kľúče a bunky; uzamknutá verzia vráti `EDITOR`-ovi 409 `PROJECT_VERSION_LOCKED` ([import](./api/imports.md#telo-požiadavky), [preklady](./api/translations.md))

@@ -969,6 +969,91 @@
 			"success": "Jazyk {{name}} byl odebrán z projektu."
 		}
 	},
+	"versionsPage": {
+		"eyebrow": "Lokalizace",
+		"title": "Verze",
+		"description": "Verze překladů odpovídá verzi aplikace v kódu. Od začátku verze vývojáři dodávají klíče, do konce verze editoři dokončí překlady a potom se verze uzamkne.",
+		"descriptionEditor": "Verze překladů odpovídá verzi aplikace v kódu. Do konce verze je třeba dokončit překlady, potom se verze uzamkne a upravuje ji už jen administrátor.",
+		"createButton": "Vytvořit verzi",
+		"state": {
+			"UPCOMING": "Připravuje se",
+			"ACTIVE": "Probíhá",
+			"LOCKED": "Uzamčená"
+		},
+		"table": {
+			"label": "Seznam verzí",
+			"version": "Verze",
+			"startsAt": "Začátek",
+			"endsAt": "Konec",
+			"state": "Stav",
+			"actionsColumn": "Akce",
+			"current": "Aktuální",
+			"dates": "{{startsAt}} – {{endsAt}}",
+			"createdBy": "Vytvořil {{name}}, {{date}}",
+			"createdAt": "Vytvořena {{date}}",
+			"lockedByHand": "Zamčená ručně",
+			"unlockedByHand": "Odemčená pro dodatečné úpravy",
+			"edit": "Upravit",
+			"editLabel": "Upravit verzi {{name}}",
+			"lock": "Zamknout",
+			"lockLabel": "Zamknout verzi {{name}}",
+			"unlock": "Odemknout",
+			"unlockLabel": "Odemknout verzi {{name}}",
+			"empty": "Projekt zatím nemá žádné verze. Vytvořte první nebo ji zadejte při importu.",
+			"emptyEditor": "Projekt zatím nemá žádné verze.",
+			"loadError": "Seznam verzí se nepodařilo načíst.",
+			"retry": "Zkusit znovu"
+		},
+		"form": {
+			"title": {
+				"create": "Vytvořit verzi",
+				"edit": "Upravit verzi"
+			},
+			"description": "Název se shoduje s verzí aplikace v kódu, data vymezují, dokdy vývojáři dodají klíče a dokdy editoři překlady dokončí.",
+			"close": "Zavřít",
+			"cancel": "Zrušit",
+			"submit": {
+				"create": "Vytvořit",
+				"edit": "Uložit"
+			},
+			"name": {
+				"label": "Název verze",
+				"placeholder": "např. v2.45",
+				"description": "Stejný jako verze projektu v kódu."
+			},
+			"startsAt": {
+				"label": "Začátek",
+				"description": "Dokdy vývojáři dodají klíče (code freeze)."
+			},
+			"endsAt": {
+				"label": "Konec",
+				"description": "Dokdy editoři dokončí překlady, potom se verze uzamkne.",
+				"afterStart": "Konec musí být po začátku."
+			},
+			"createSuccess": "Verze {{name}} byla vytvořena.",
+			"editSuccess": "Verze {{name}} byla uložena."
+		},
+		"lockModal": {
+			"title": {
+				"lock": "Zamknout verzi",
+				"unlock": "Odemknout verzi"
+			},
+			"close": "Zavřít",
+			"cancel": "Zrušit",
+			"confirm": {
+				"lock": "Zamknout",
+				"unlock": "Odemknout"
+			},
+			"message": {
+				"lock": "Po zamknutí verze {{name}} může její překlady upravovat už jen administrátor. Verze je potom zdrojem pravdy toho, co je v kódu.",
+				"unlock": "Po odemknutí verze {{name}} mohou editoři znovu upravovat její překlady. Po dodatečných úpravách ji znovu zamkněte, aby se nelišila od kódu."
+			},
+			"success": {
+				"lock": "Verze {{name}} je uzamčená.",
+				"unlock": "Verze {{name}} je odemčená."
+			}
+		}
+	},
 	"projectSettingsPage": {
 		"eyebrow": "Konfigurace",
 		"title": "Nastavení projektu",
@@ -1030,6 +1115,7 @@
 		"allProjects": "Všechny projekty",
 		"backToProject": "Zpět na projekt",
 		"languages": "Jazyky",
+		"versions": "Verze",
 		"admin": "Správa",
 		"adminProjects": "Projekty",
 		"users": "Uživatelé",

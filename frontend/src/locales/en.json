@@ -947,6 +947,91 @@
 			"success": "The language {{name}} has been removed from the project."
 		}
 	},
+	"versionsPage": {
+		"eyebrow": "Localisation",
+		"title": "Versions",
+		"description": "A translation version matches a release of the app. From the start of the version developers deliver keys, by its end editors finish the translations and then the version is locked.",
+		"descriptionEditor": "A translation version matches a release of the app. Translations must be finished by the end of the version; then it is locked and only an administrator can change it.",
+		"createButton": "Create version",
+		"state": {
+			"UPCOMING": "Upcoming",
+			"ACTIVE": "In progress",
+			"LOCKED": "Locked"
+		},
+		"table": {
+			"label": "List of versions",
+			"version": "Version",
+			"startsAt": "Start",
+			"endsAt": "End",
+			"state": "State",
+			"actionsColumn": "Actions",
+			"current": "Current",
+			"dates": "{{startsAt}} – {{endsAt}}",
+			"createdBy": "Created by {{name}}, {{date}}",
+			"createdAt": "Created {{date}}",
+			"lockedByHand": "Locked by hand",
+			"unlockedByHand": "Unlocked for late changes",
+			"edit": "Edit",
+			"editLabel": "Edit version {{name}}",
+			"lock": "Lock",
+			"lockLabel": "Lock version {{name}}",
+			"unlock": "Unlock",
+			"unlockLabel": "Unlock version {{name}}",
+			"empty": "The project has no versions yet. Create the first one or set it on an import.",
+			"emptyEditor": "The project has no versions yet.",
+			"loadError": "The versions could not be loaded.",
+			"retry": "Try again"
+		},
+		"form": {
+			"title": {
+				"create": "Create version",
+				"edit": "Edit version"
+			},
+			"description": "The name matches the release of the app in the code; the dates say by when developers deliver keys and by when editors finish the translations.",
+			"close": "Close",
+			"cancel": "Cancel",
+			"submit": {
+				"create": "Create",
+				"edit": "Save"
+			},
+			"name": {
+				"label": "Version name",
+				"placeholder": "e.g. v2.45",
+				"description": "The same as the project version in the code."
+			},
+			"startsAt": {
+				"label": "Start",
+				"description": "By when developers deliver the keys (code freeze)."
+			},
+			"endsAt": {
+				"label": "End",
+				"description": "By when editors finish the translations; then the version is locked.",
+				"afterStart": "The end must be after the start."
+			},
+			"createSuccess": "Version {{name}} was created.",
+			"editSuccess": "Version {{name}} was saved."
+		},
+		"lockModal": {
+			"title": {
+				"lock": "Lock version",
+				"unlock": "Unlock version"
+			},
+			"close": "Close",
+			"cancel": "Cancel",
+			"confirm": {
+				"lock": "Lock",
+				"unlock": "Unlock"
+			},
+			"message": {
+				"lock": "Once version {{name}} is locked, only an administrator can change its translations. The version is then the source of truth of what is in the code.",
+				"unlock": "Once version {{name}} is unlocked, editors can change its translations again. Lock it again after the late changes so it does not differ from the code."
+			},
+			"success": {
+				"lock": "Version {{name}} is locked.",
+				"unlock": "Version {{name}} is unlocked."
+			}
+		}
+	},
 	"projectSettingsPage": {
 		"eyebrow": "Configuration",
 		"title": "Project settings",
@@ -1008,6 +1093,7 @@
 		"allProjects": "All projects",
 		"backToProject": "Back to project",
 		"languages": "Languages",
+		"versions": "Versions",
 		"admin": "Administration",
 		"adminProjects": "Projects",
 		"users": "Users",

@@ -22,7 +22,7 @@ const STATE_COLOR: Record<ProjectVersionState, string> = { UPCOMING: 'gray', ACT
 
 /**
  * Versions of a project in a card like the languages: name with who created it, the two dates, the state for today and, for an ADMIN,
- * Upraviť and Zamknúť / Odomknúť. Below 640 px the dates move under the name.
+ * Upraviť and Zamknúť / Odomknúť. Below 992 px the dates move under the name, as in the members table.
  */
 const VersionsTable = ({ projectId, onCreate, onEdit, onToggleLock, ref }: VersionsTableProps) => {
 	const { t, i18n } = useTranslation()
@@ -106,16 +106,16 @@ const VersionsTable = ({ projectId, onCreate, onEdit, onToggleLock, ref }: Versi
 							? t('versionsPage.table.createdBy', { name: version.createdBy.name, date: formatDateTime(version.createdAt, i18n.language) })
 							: t('versionsPage.table.createdAt', { date: formatDateTime(version.createdAt, i18n.language) })}
 					</Text>
-					<div className={`${classes.phoneOnly} mt-1`}>{dates(version)}</div>
+					<div className={`${classes.narrowOnly} mt-1`}>{dates(version)}</div>
 				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.tabletUp}`}>
+				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 					<Text size='sm'>{formatDate(version.startsAt, i18n.language)}</Text>
 				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.tabletUp}`}>
+				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 					<Text size='sm'>{formatDate(version.endsAt, i18n.language)}</Text>
 				</Table.Td>
-				<Table.Td className={classes.td}>
-					<Badge variant='light' color={STATE_COLOR[version.state]} radius='xl' size='sm'>
+				<Table.Td className={`${classes.td} ${classes.stateCell}`}>
+					<Badge variant='light' color={STATE_COLOR[version.state]} radius='xl' size='sm' classNames={{ root: classes.stateBadge }}>
 						{t(`versionsPage.state.${version.state}`)}
 					</Badge>
 					{version.isLocked && version.lock === VERSION_LOCK.LOCKED && (
@@ -159,8 +159,8 @@ const VersionsTable = ({ projectId, onCreate, onEdit, onToggleLock, ref }: Versi
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th className={classes.th}>{t('versionsPage.table.version')}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.dateColumn} ${classes.tabletUp}`}>{t('versionsPage.table.startsAt')}</Table.Th>
-						<Table.Th className={`${classes.th} ${classes.dateColumn} ${classes.tabletUp}`}>{t('versionsPage.table.endsAt')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.dateColumn} ${classes.wideOnly}`}>{t('versionsPage.table.startsAt')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.dateColumn} ${classes.wideOnly}`}>{t('versionsPage.table.endsAt')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.stateColumn}`}>{t('versionsPage.table.state')}</Table.Th>
 						{hasActions && (
 							<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>

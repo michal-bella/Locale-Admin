@@ -57,26 +57,57 @@
 	text-align: center;
 }
 
-/* Below 640 px the dates move under the name; the columns would not fit next to the sidebar. */
-@media (max-width: 39.99em) {
-	.tabletUp {
+.stateCell {
+	white-space: nowrap;
+}
+
+.stateCell .meta {
+	white-space: normal;
+}
+
+/* Mantine caps the badge at the cell width and its label hides the overflow, so the table sees no minimum and cuts the text with an
+   ellipsis; sized by its content, the badge asks the table for its full width. */
+.stateBadge {
+	width: max-content;
+	max-width: none;
+}
+
+.narrowOnly {
+	display: none;
+}
+
+/* Same breakpoints as the members table. Below 992 px the three fixed columns would leave the name a few characters, so the dates
+   move under the name and the state column takes what its badge needs. */
+@media (max-width: 61.99em) {
+	.wideOnly {
 		display: none;
 	}
 
-	/* The fixed widths would leave the name a few characters; the two remaining columns share the width by content. */
-	.stateColumn,
+	.narrowOnly {
+		display: block;
+	}
+
+	.stateColumn {
+		width: auto;
+	}
+
+	.th,
+	.td {
+		padding-inline: 1.25rem;
+	}
+}
+
+@media (max-width: 39.99em) {
 	.actionsColumn {
 		width: auto;
 	}
 
-	.td,
-	.th {
+	.th,
+	.td {
 		padding-inline: 0.75rem;
 	}
-}
 
-@media (min-width: 40em) {
-	.phoneOnly {
-		display: none;
+	.actionsCell {
+		padding-inline: 0 0.75rem;
 	}
 }

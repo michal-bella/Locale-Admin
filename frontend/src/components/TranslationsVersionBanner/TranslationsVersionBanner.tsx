@@ -36,7 +36,7 @@ const TranslationsVersionBanner = ({ version, active, writesBlocked, untranslate
 		<Alert
 			color={version.isLocked ? 'blue' : 'gray'}
 			icon={version.isLocked ? <Lock aria-hidden /> : <Tag aria-hidden />}
-			classNames={{ root: `${classes.root} ${version.isLocked ? '' : classes.neutral}`, message: classes.message }}
+			classNames={{ root: `${classes.root} ${version.isLocked ? '' : classes.countdown}`, icon: classes.icon, message: classes.message }}
 		>
 			<span>
 				<span>{message}</span>

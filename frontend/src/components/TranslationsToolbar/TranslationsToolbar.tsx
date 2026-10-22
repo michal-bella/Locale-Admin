@@ -161,9 +161,9 @@ const TranslationsToolbar = ({
 						label: item.isCurrent ? t('translationsPage.toolbar.version.current', { name: item.name }) : item.name,
 					}))}
 					value={version ?? null}
-					// Cleared means the whole project, not the default (the current version).
+					// No clear button: the whole project is reached from the banner, the stats cards and Zrušiť filtre, so the version is not dropped by accident.
 					onChange={(value) => onChange({ version: value ?? ALL_VERSIONS })}
-					clearable
+					allowDeselect={false}
 				/>
 			)}
 			<Select

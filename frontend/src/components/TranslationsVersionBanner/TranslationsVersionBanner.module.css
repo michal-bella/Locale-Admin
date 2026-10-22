@@ -2,12 +2,16 @@
 	border: 1px solid var(--app-color-border);
 }
 
-/* Mantine's gray-light is a neutral near-black in the dark scheme, which clashes with the slate cards; the countdown sits on the card surface
-   with the card's text, like the stats above it. The locked state keeps Mantine's blue. */
-/* Mantine sets --alert-bg inline, so the properties are overridden, not the variables. */
-.neutral {
-	background-color: var(--app-color-surface);
-	color: var(--app-color-text-secondary);
+/* The countdown is the editors' deadline, so it wears the brand tint of the project eyebrow instead of Mantine's gray (a near-black in the
+   dark scheme). Mantine sets --alert-bg inline, so the properties are overridden, not the variables. The locked state keeps Mantine's blue. */
+.countdown {
+	border-color: color-mix(in srgb, var(--mantine-color-brand-6) 35%, var(--app-color-border));
+	background-color: var(--app-color-brand-tint);
+	color: var(--app-color-text-strong);
+}
+
+.countdown .icon {
+	color: var(--app-color-eyebrow);
 }
 
 .message {

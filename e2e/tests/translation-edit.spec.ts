@@ -245,7 +245,8 @@ test('a missing {{name}} shows the mismatch alert and keeps the modal open with 
 	const saved = await saveTranslation(page)
 	expect(saved.status()).toBe(200)
 	await expect(getEditTranslationDialog(page)).toHaveCount(0)
-	await expect(page.getByRole('alert')).toHaveCount(0)
+	// Only the mismatch alert of the modal: the saved value now has a placeholder warning, which the page's yellow banner reports.
+	await expect(page.getByRole('alert').filter({ hasText: 'nezhodujú' })).toHaveCount(0)
 	await expect(row.locator('code')).toHaveText(['{{name}}'])
 	await expect(row).toContainText('Welcome back, friend')
 })

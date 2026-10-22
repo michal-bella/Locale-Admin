@@ -24,12 +24,18 @@ export const importApi = (projectId: string) => `/api/projects/${projectId}/impo
 
 export type ImportColumn = { columnIndex: number; languageId: string | null }
 
-export type ImportResult = { keysCreated: number; translationsCreated: number; translationsUpdated: number; skippedColumns: number }
+export type ImportResult = {
+	keysCreated: number
+	translationsCreated: number
+	translationsUpdated: number
+	skippedColumns: number
+	version: { id: string; name: string } | null
+}
 
-/** Imports a fixture through the API as the user of `api`. `columns` follows the contract: every language column of the file once. */
-export const importFile = async (api: APIRequestContext, projectId: string, file: string, columns: ImportColumn[]) => {
+/** Imports a fixture through the API as the user of `api`. `columns` follows the contract: every language column of the file once; `versionId` stamps the keys and cells. */
+export const importFile = async (api: APIRequestContext, projectId: string, file: string, columns: ImportColumn[], versionId?: string) => {
 	const response = await api.post(importApi(projectId), {
-		data: { fileName: path.basename(file), content: readFixture(file), columns },
+		data: { fileName: path.basename(file), content: readFixture(file), columns, versionId },
 		headers: MUTATION_HEADERS,
 	})
 	expect(response.status(), `POST ${importApi(projectId)}`).toBe(200)

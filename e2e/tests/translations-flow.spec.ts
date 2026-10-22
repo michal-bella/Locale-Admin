@@ -267,8 +267,8 @@ test('a broken file shows its issues with line numbers and imports nothing', asy
 	const languages = await listLanguages(request, project.id)
 	const languageId = (tag: string) => languages.find((language) => language.tag === tag)!.id
 	const compact = await listTranslations(request, project.id, { sourceLanguageId: languageId('sk'), targetLanguageId: languageId('en') })
-	expect(compact.stats).toEqual({ totalKeys: 10, translated: SAMPLE.en.translations, untranslated: SAMPLE.en.untranslated })
+	expect(compact.stats).toEqual({ totalKeys: 10, translated: SAMPLE.en.translations, untranslated: SAMPLE.en.untranslated, warnings: 0 })
 	expect(compact.items.map(({ name }) => name)).not.toContain('')
 	const extended = await listTranslations(request, project.id)
-	expect(extended.stats).toEqual({ totalKeys: 10, translated: EXTENDED_SK_EN.translated, untranslated: EXTENDED_SK_EN.untranslated })
+	expect(extended.stats).toEqual({ totalKeys: 10, translated: EXTENDED_SK_EN.translated, untranslated: EXTENDED_SK_EN.untranslated, warnings: 0 })
 })

@@ -12,6 +12,7 @@ import {
 	expectView,
 	getCellButton,
 	getColumnHeaders,
+	getEditTranslationDialog,
 	getGroupHeaders,
 	getRowStatuses,
 	getSearch,
@@ -19,16 +20,20 @@ import {
 	getStat,
 	getTranslationRow,
 	getTranslationRows,
+	getTranslationField,
 	getTranslationsTable,
 	insertTranslationKeys,
+	openEditTranslationModal,
 	openTranslations,
 	pickOption,
+	saveTranslation,
 	switchView,
 	type TestTranslationKey,
 	translationsPath,
 	TRANSPARENT,
 } from '../support/translations'
 import { loginAsFreshAdmin } from '../support/users'
+import { createVersion, CURRENT_WINDOW } from '../support/versions'
 
 const SENTENCE_KEY = 'Adresa nie je kompletná. Uistite sa'
 
@@ -68,7 +73,7 @@ test('the project index redirects to Preklady, the first sidebar item, in the ex
 	await expect(page).toHaveURL(translationsPath(project))
 	await expect(page.getByRole('heading', { level: 1, name: 'Preklady' })).toBeVisible()
 	const section = getMainNavigation(page).getByRole('list', { name: project.name })
-	await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'Nastavenia', 'Jazyky', 'Členovia'])
+	await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'Nastavenia', 'Jazyky', 'Verzie', 'Členovia'])
 	await expect(section.getByRole('link', { name: 'Preklady' })).toHaveAttribute('aria-current', 'page')
 
 	await expect(page.getByRole('button', { name: 'Importovať' })).toBeEnabled()
@@ -295,6 +300,29 @@ test('a yellow banner counts the keys with a placeholder warning and its button 
 	await page.getByRole('alert').getByRole('button', { name: 'Zrušiť filter upozornení' }).click()
 	await expect(page).toHaveURL(translationsPath(project))
 	await expect(getTranslationRows(page)).toHaveCount(10)
+})
+
+test('the current version counts down above the table; its button filters the list to the version and writes it to the URL', async ({ page, request }) => {
+	const project = await createProjectWithKeys(request, 'translations-version', KEYS)
+	const version = await createVersion(request, project.id, { name: 'v2.45', ...CURRENT_WINDOW })
+	await openTranslations(page, project)
+
+	await expect(page.getByText('Verzia v2.45: ostáva 12 dní do uzamknutia.')).toBeVisible()
+	await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('')
+	await page.getByRole('button', { name: 'Zobraziť prácu verzie' }).click()
+	await expect(page).toHaveURL(translationsPath(project, `?version=${version.id}`))
+	await expect(page.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
+	await expect(getTranslationRows(page)).toHaveCount(0)
+
+	// An edit without a filter goes into the current version by date, so the key becomes its work.
+	await page.getByRole('button', { name: 'Zrušiť filter verzie' }).click()
+	await expect(page).toHaveURL(translationsPath(project))
+	await openEditTranslationModal(page, 'orders.empty.title', 'čeština')
+	await getTranslationField(page, 'orders.empty.title', 'čeština').fill('Zatím nemáte žádné objednávky')
+	expect((await saveTranslation(page)).status()).toBe(200)
+	await expect(getEditTranslationDialog(page)).toBeHidden()
+	await pickOption(page, 'Verzia', 'v2.45 (aktuálna)')
+	await expectKeys(getTranslationRows(page), ['orders.empty.title'])
 })
 
 test('a project whose placeholders all match has no warnings banner', async ({ page, request }) => {

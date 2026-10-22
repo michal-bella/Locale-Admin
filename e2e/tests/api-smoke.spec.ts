@@ -18,6 +18,7 @@ import {
 } from '../support/projects'
 import { insertTranslationKeys, listTranslations, PREFERENCES_API, projectTranslationsApi, translationApi, translationKeyApi } from '../support/translations'
 import { addMember, createEditor, createMember, createProjectOf, newTestUserCredentials } from '../support/users'
+import { createVersion, CURRENT_WINDOW, PAST_WINDOW, versionsApi } from '../support/versions'
 
 const CREDENTIALS = { email: 'csrf-check@example.com', password: 'irrelevant' }
 
@@ -453,6 +454,7 @@ test.describe('/api/projects/:projectId/translations', () => {
 			group,
 			description: null,
 			plural: null,
+			version: null,
 		})
 		// Rows seeded with SQL have no editor.
 		const cell = (value: string | null, updatedAt: unknown = expect.any(String)) => ({
@@ -825,12 +827,14 @@ test.describe('/api/projects/:projectId/imports', () => {
 			translationsCreated: 16,
 			translationsUpdated: 0,
 			skippedColumns: 1,
+			version: null,
 		})
 		expect(await importFile(request, project.id, SAMPLE_CSV, columns)).toEqual({
 			keysCreated: 0,
 			translationsCreated: 0,
 			translationsUpdated: 0,
 			skippedColumns: 1,
+			version: null,
 		})
 		expect(await (await translations()).json()).toMatchObject({
 			stats: { totalKeys: 10, translated: 7, untranslated: 3, warnings: 0 },
@@ -883,5 +887,74 @@ test.describe('/api/projects/:projectId/imports', () => {
 			expect((await readApiError(unauthenticated)).code).toBe('AUTH_UNAUTHENTICATED')
 		}
 		await anonymous.dispose()
+	})
+})
+
+test.describe('/api/projects/:projectId/versions', () => {
+	test.use({ storageState: STORAGE_STATE.ADMIN })
+
+	test('creates, lists, edits and locks versions with the error contract; an EDITOR reads but cannot write, nor into a locked version', async ({
+		request,
+		playwright,
+		baseURL,
+	}) => {
+		const project = await createProject(request, 'smoke-versions', ['sk', 'en'])
+		const url = versionsApi(project.id)
+
+		const current = await createVersion(request, project.id, { name: 'v2.45', ...CURRENT_WINDOW })
+		expect(current).toMatchObject({ lock: 'AUTO', isLocked: false, state: 'ACTIVE', isCurrent: true })
+		const past = await createVersion(request, project.id, { name: 'v2.44', ...PAST_WINDOW })
+		expect(past).toMatchObject({ isLocked: true, state: 'LOCKED', isCurrent: false })
+
+		const sameDay = await request.post(url, {
+			data: { name: 'x', startsAt: CURRENT_WINDOW.startsAt, endsAt: CURRENT_WINDOW.startsAt },
+			headers: MUTATION_HEADERS,
+		})
+		expect(sameDay.status()).toBe(400)
+		expect((await readApiError(sameDay)).details).toEqual([{ path: 'endsAt', code: 'INVALID' }])
+		const duplicate = await request.post(url, { data: { name: 'v2.45', ...CURRENT_WINDOW }, headers: MUTATION_HEADERS })
+		expect(duplicate.status()).toBe(409)
+		expect((await readApiError(duplicate)).code).toBe('PROJECT_VERSION_NAME_TAKEN')
+
+		const list = await request.get(url)
+		expect(list.status()).toBe(200)
+		expect(((await list.json()) as { items: { name: string }[] }).items.map(({ name }) => name)).toEqual(['v2.45', 'v2.44'])
+
+		const unlocked = await request.patch(`${url}/${past.id}`, { data: { lock: 'UNLOCKED' }, headers: MUTATION_HEADERS })
+		expect(unlocked.status()).toBe(200)
+		expect(await unlocked.json()).toMatchObject({ lock: 'UNLOCKED', isLocked: false, state: 'ACTIVE' })
+		const foreign = await request.patch(`${url}/${randomUUID()}`, { data: { name: 'y' }, headers: MUTATION_HEADERS })
+		expect(foreign.status()).toBe(404)
+		expect((await readApiError(foreign)).code).toBe('PROJECT_VERSION_NOT_FOUND')
+
+		const editor = await createEditor(playwright.request, baseURL)
+		await addMember(request, project.id, editor.id)
+		// Explicitly anonymous: a context created inside an ADMIN test inherits its storage state, and a login with that cookie replaces the shared ADMIN session.
+		const editorApi = await playwright.request.newContext({ baseURL, storageState: ANONYMOUS })
+		expect(
+			(await editorApi.post('/api/auth/login', { data: { email: editor.email, password: editor.password }, headers: MUTATION_HEADERS })).status(),
+		).toBe(200)
+		expect((await editorApi.get(url)).status()).toBe(200)
+		const forbidden = await editorApi.post(url, { data: { name: 'v2.46', ...CURRENT_WINDOW }, headers: MUTATION_HEADERS })
+		expect(forbidden.status()).toBe(403)
+
+		const locked = await request.patch(`${url}/${current.id}`, { data: { lock: 'LOCKED' }, headers: MUTATION_HEADERS })
+		expect(locked.status()).toBe(200)
+		const [sk] = await listLanguages(request, project.id)
+		// A key by hand needs an existing namespace.
+		await insertTranslationKeys(project.id, [sk!], [{ namespace: 'loc', name: 'seed', values: { sk: 'S' } }])
+		const key = await request.post(`/api/projects/${project.id}/keys`, {
+			data: { namespace: 'loc', name: 'a', translations: { [sk!.id]: 'A' } },
+			headers: MUTATION_HEADERS,
+		})
+		expect(key.status()).toBe(201)
+		const { keyId } = (await key.json()) as { keyId: string }
+		const refused = await editorApi.put(translationApi(project.id, keyId, sk!.id), {
+			data: { value: 'B', versionId: current.id },
+			headers: MUTATION_HEADERS,
+		})
+		expect(refused.status()).toBe(409)
+		expect((await readApiError(refused)).code).toBe('PROJECT_VERSION_LOCKED')
+		await editorApi.dispose()
 	})
 })

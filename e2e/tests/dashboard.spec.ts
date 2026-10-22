@@ -96,7 +96,7 @@ test.describe('ADMIN', () => {
 		await page.goto(`/projects/${project.slug}`)
 		await expect(page).toHaveURL(`/projects/${project.slug}/translations`)
 		const section = getMainNavigation(page).getByRole('list', { name: project.name })
-		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'Nastavenia', 'Jazyky', 'Členovia'])
+		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'Nastavenia', 'Jazyky', 'Verzie', 'Členovia'])
 
 		const dashboard = section.getByRole('link', { name: 'Prehľad' })
 		await dashboard.click()

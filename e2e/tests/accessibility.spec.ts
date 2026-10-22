@@ -19,6 +19,7 @@ import {
 	type TranslationsView,
 } from '../support/translations'
 import { loginAsFreshAdmin } from '../support/users'
+import { createVersion, CURRENT_WINDOW, PAST_WINDOW } from '../support/versions'
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 const COLOR_SCHEMES = ['light', 'dark'] as const
@@ -42,6 +43,19 @@ const inNewProject = (page: 'settings' | 'languages' | 'members' | 'translations
 	const api = await newAdminApi(request)
 	try {
 		return `/projects/${(await createProject(api, 'a11y')).slug}/${page}`
+	} finally {
+		await api.dispose()
+	}
+}
+
+/** A running and a locked version, so the table shows both states, the current badge and both lock actions. */
+const versionsWithRows = async (request: APIRequest) => {
+	const api = await newAdminApi(request)
+	try {
+		const project = await createProject(api, 'a11y')
+		await createVersion(api, project.id, { name: 'v2.45', ...CURRENT_WINDOW })
+		await createVersion(api, project.id, { name: 'v2.44', ...PAST_WINDOW })
+		return `/projects/${project.slug}/versions`
 	} finally {
 		await api.dispose()
 	}
@@ -297,6 +311,11 @@ const SCREENS: Screen[] = [
 		name: 'project languages',
 		path: inNewProject('languages'),
 		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam jazykov' })).toHaveAttribute('aria-busy', 'false'),
+	},
+	{
+		name: 'project versions',
+		path: versionsWithRows,
+		ready: (page) => expect(page.getByRole('table', { name: 'Zoznam verzií' }).getByRole('row')).toHaveCount(3),
 	},
 	{
 		name: 'profile',

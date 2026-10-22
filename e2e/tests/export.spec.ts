@@ -2,10 +2,11 @@ import { expect, test } from '@playwright/test'
 
 import { MUTATION_HEADERS } from '../support/api'
 import { downloadExport, downloadExportBytes, getExportDialog, openExportModal, SAMPLE_EXPORT } from '../support/exports'
-import { importPreviewApi, importSample } from '../support/imports'
+import { importFile, importPreviewApi, importSample, SAMPLE_CSV } from '../support/imports'
 import { listLanguages } from '../support/languages'
 import { createProject } from '../support/projects'
-import { listTranslations, translationApi } from '../support/translations'
+import { getTranslationsTable, listTranslations, translationApi, translationsPath } from '../support/translations'
+import { createVersion, CURRENT_WINDOW, PAST_WINDOW } from '../support/versions'
 
 test('exports every language as translations.csv that imports back without changes', async ({ page, request }) => {
 	const project = await createProject(request, 'export-all', ['sk', 'en', 'cs'])
@@ -97,4 +98,42 @@ test('exports XLSX as translations.xlsx', async ({ page, request }) => {
 	expect(bytes.subarray(0, 2).toString('latin1')).toBe('PK')
 	expect(bytes.length).toBeGreaterThan(1000)
 	await expect(page.getByText('Preklady sa stiahli do súboru translations.xlsx.')).toBeVisible()
+})
+
+test('with a version filter exports the project as of that version, or only its work', async ({ page, request }) => {
+	const project = await createProject(request, 'export-version', ['sk', 'en'])
+	const [sk, en] = await listLanguages(request, project.id)
+	const old = await createVersion(request, project.id, { name: 'v2.44', ...PAST_WINDOW })
+	const current = await createVersion(request, project.id, { name: 'v2.45', ...CURRENT_WINDOW })
+	await importFile(
+		request,
+		project.id,
+		SAMPLE_CSV,
+		[
+			{ columnIndex: 2, languageId: sk!.id },
+			{ columnIndex: 3, languageId: en!.id },
+			{ columnIndex: 4, languageId: null },
+		],
+		old.id,
+	)
+	const created = await request.post(`/api/projects/${project.id}/keys`, {
+		data: { namespace: 'loc', name: 'nav.about', translations: { [sk!.id]: 'O nás' }, versionId: current.id },
+		headers: MUTATION_HEADERS,
+	})
+	expect(created.status()).toBe(201)
+
+	await page.goto(translationsPath(project, `?version=${current.id}`))
+	await expect(getTranslationsTable(page)).toHaveAttribute('aria-busy', 'false')
+	await page.getByRole('main').getByRole('button', { name: 'Exportovať' }).click()
+	const dialog = getExportDialog(page)
+	await expect(dialog.getByText('Stav projektu k verzii v2.45')).toBeVisible()
+
+	const asOf = await downloadExport(page)
+	expect(asOf.content).toContain(' nav.about; O nás; null')
+	expect(asOf.content).toContain(' nav.home; Domov; Home')
+
+	await page.getByRole('main').getByRole('button', { name: 'Exportovať' }).click()
+	await dialog.getByRole('checkbox', { name: 'Len zmeny tejto verzie' }).check()
+	const onlyWork = await downloadExport(page)
+	expect(onlyWork.content).toBe(['Keys; sk ; en ', '--loc--', ' nav.about; O nás; null', ''].join('\n'))
 })

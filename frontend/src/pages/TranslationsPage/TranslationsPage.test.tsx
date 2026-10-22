@@ -1446,6 +1446,49 @@ describe('TranslationsPage extended view', () => {
 		expect(within(table).getAllByText('loc:orders.empty')[0]?.className).toMatch(/groupLabel/)
 	})
 
+	it('widens a language column by dragging the handle in its header, never below its default width, and keeps the widths out of the URL', async () => {
+		mockPage({ user: EXTENDED_ADMIN, languages: [SLOVAK, ENGLISH] })
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		const header = screen.getByRole('columnheader', { name: 'angličtina' })
+		const handle = header.querySelector('[data-resize-handle]')
+		if (!handle) {
+			throw new Error('Resize handle not found')
+		}
+		expect(handle).toHaveAttribute('aria-hidden', 'true')
+		expect(header.style.width).toBe('')
+		// jsdom lays nothing out, so give the header the 14 rem the stylesheet would.
+		header.getBoundingClientRect = () => ({ width: 224 }) as DOMRect
+
+		fireEvent.pointerDown(handle, { button: 0, clientX: 100 })
+		expect(getTable().parentElement).toHaveAttribute('data-resizing', ENGLISH.id)
+		fireEvent.pointerMove(window, { clientX: 400 })
+		expect(header.style.width).toBe('524px')
+		expect(header.style.minWidth).toBe('524px')
+		fireEvent.pointerMove(window, { clientX: 20 })
+		expect(header.style.width).toBe('224px')
+		fireEvent.pointerUp(window)
+		expect(getTable().parentElement).not.toHaveAttribute('data-resizing')
+		fireEvent.pointerMove(window, { clientX: 600 })
+		expect(header.style.width).toBe('224px')
+
+		// Widened once, the default stays the minimum of the next drag too.
+		header.getBoundingClientRect = () => ({ width: 524 }) as DOMRect
+		fireEvent.pointerDown(handle, { button: 0, clientX: 100 })
+		fireEvent.pointerMove(window, { clientX: 0 })
+		expect(header.style.width).toBe('424px')
+		fireEvent.pointerMove(window, { clientX: -500 })
+		expect(header.style.width).toBe('224px')
+		fireEvent.pointerUp(window)
+
+		const keyHeader = screen.getByRole('columnheader', { name: 'Kľúč' })
+		expect(keyHeader.querySelector('[data-resize-handle]')).toBeNull()
+		expect(keyHeader.style.width).toBe('')
+		expect(window.location.search).toBe('')
+		expect(screen.getByRole('columnheader', { name: 'angličtina' })).toHaveTextContent('angličtina')
+	})
+
 	it('stacks every language in one editable column with the STACKED layout preference', async () => {
 		const user: AuthUser = { ...EXTENDED_ADMIN, preferences: { ...EXTENDED_ADMIN.preferences, translationsLayout: 'STACKED' } }
 		mockPage({ user, languages: [SLOVAK, ENGLISH, CZECH] })

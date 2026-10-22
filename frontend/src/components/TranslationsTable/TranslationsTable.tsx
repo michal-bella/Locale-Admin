@@ -1,6 +1,6 @@
 import { Button, Skeleton, Table, Text, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { Fragment, type ReactNode, useRef, useState } from 'react'
+import { Fragment, type PointerEvent as ReactPointerEvent, type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type Language, placeholders, ROLE, type TranslationCell as TranslationCellData, type TranslationListItem } from '@locale/shared'
@@ -68,6 +68,9 @@ const TranslationsTable = ({
 	const [editing, setEditing] = useState<TranslationListItem | null>(null)
 	const [translationOpened, translationModal] = useDisclosure(false)
 	const [editingTranslation, setEditingTranslation] = useState<Editing | null>(null)
+	const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
+	const [resizing, setResizing] = useState<string | null>(null)
+	const defaultWidths = useRef<Record<string, number>>({})
 	const baseLanguage = languages.find((language) => language.isBase)
 	const isExtended = view === 'EXTENDED'
 	const isStacked = layout === 'STACKED'
@@ -77,6 +80,40 @@ const TranslationsTable = ({
 	const keyClass = `${classes.td} ${classes.keyCell} ${isColumns ? classes.stickyStart : ''}`
 	const statusClass = `${classes.td} ${classes.statusCell} ${isColumns ? classes.stickyEnd : ''}`
 	const tdClass = `${classes.td} ${isStacked ? classes.tdStacked : ''}`
+
+	// Excel-like column resizing; the widths live only here, so a refresh brings the defaults back.
+	// A column can only grow: the width it had before the first drag is its minimum.
+	const startResize = (column: string, event: ReactPointerEvent<HTMLElement>) => {
+		if (event.button !== 0) {
+			return
+		}
+		event.preventDefault()
+		const startX = event.clientX
+		const startWidth = event.currentTarget.parentElement?.getBoundingClientRect().width ?? 0
+		const minWidth = (defaultWidths.current[column] ??= startWidth)
+		const move = (moveEvent: PointerEvent) => {
+			setColumnWidths((widths) => ({ ...widths, [column]: Math.max(minWidth, startWidth + moveEvent.clientX - startX) }))
+		}
+		const stop = () => {
+			window.removeEventListener('pointermove', move)
+			window.removeEventListener('pointerup', stop)
+			window.removeEventListener('pointercancel', stop)
+			setResizing(null)
+		}
+		window.addEventListener('pointermove', move)
+		window.addEventListener('pointerup', stop)
+		window.addEventListener('pointercancel', stop)
+		setResizing(column)
+	}
+
+	const columnStyle = (column: string) => {
+		const width = columnWidths[column]
+		return width === undefined ? undefined : { width, minWidth: width }
+	}
+
+	const resizeHandle = (column: string) => (
+		<span aria-hidden data-resize-handle={column} className={classes.resizeHandle} onPointerDown={(event) => startResize(column, event)} />
+	)
 
 	const openEdit = (item: TranslationListItem) => {
 		setEditing(item)
@@ -352,7 +389,7 @@ const TranslationsTable = ({
 	}
 
 	return (
-		<div className={`${classes.scroll} ${isColumns && !translationsOnly ? classes.scrollExtended : ''}`}>
+		<div className={`${classes.scroll} ${isColumns && !translationsOnly ? classes.scrollExtended : ''}`} data-resizing={resizing ?? undefined}>
 			<Table
 				ref={tableRef}
 				tabIndex={-1}
@@ -376,15 +413,25 @@ const TranslationsTable = ({
 							<Table.Th className={`${classes.th} ${classes.thStacked}`}>{t('translationsPage.table.translations')}</Table.Th>
 						) : isExtended ? (
 							languages.map((language) => (
-								<Table.Th key={language.id} className={`${classes.th} ${classes.languageColumn} ${classes.languageTh}`}>
+								<Table.Th
+									key={language.id}
+									className={`${classes.th} ${classes.languageColumn} ${classes.languageTh} ${classes.resizable}`}
+									style={columnStyle(language.id)}
+								>
 									{languageLabel(language)}
+									{resizeHandle(language.id)}
 								</Table.Th>
 							))
 						) : (
 							<>
 								{[sourceLanguage, targetLanguage].map((language, index) => (
-									<Table.Th key={language?.id ?? index} className={`${classes.th} ${classes.languageTh}`}>
+									<Table.Th
+										key={language?.id ?? index}
+										className={`${classes.th} ${classes.languageTh} ${classes.resizable}`}
+										style={language && columnStyle(language.id)}
+									>
 										{language && languageLabel(language)}
+										{language && resizeHandle(language.id)}
 									</Table.Th>
 								))}
 							</>

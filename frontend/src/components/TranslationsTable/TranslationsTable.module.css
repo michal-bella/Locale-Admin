@@ -2,6 +2,11 @@
 	overflow-x: auto;
 }
 
+.scroll[data-resizing] {
+	cursor: col-resize;
+	user-select: none;
+}
+
 /* Focus scrolling treats the sticky columns as covered, so a cell focused with Tab never lands under them (WCAG 2.4.11). */
 .scrollExtended {
 	scroll-padding-inline: 14rem 8.5rem;
@@ -66,6 +71,38 @@
 .languageTh + .languageTh,
 .value + .value {
 	border-inline-start: 1px dashed var(--app-color-border);
+}
+
+/* Declared before the sticky columns, so a sticky header keeps `position: sticky` and still contains its resize handle. */
+.resizable {
+	position: relative;
+}
+
+/* Drag handle on the right edge of a header cell (Excel-like column resizing); a brand line shows on hover and while dragging. */
+.resizeHandle {
+	position: absolute;
+	inset-block: 0;
+	right: 0;
+	width: 0.5rem;
+	cursor: col-resize;
+	touch-action: none;
+}
+
+.resizeHandle::after {
+	content: '';
+	position: absolute;
+	inset-block: 0.5rem;
+	right: 0;
+	width: 2px;
+	border-radius: 1px;
+	background-color: var(--app-color-eyebrow);
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.resizeHandle:hover::after,
+.resizeHandle:active::after {
+	opacity: 1;
 }
 
 .stickyStart,

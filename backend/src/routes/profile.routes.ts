@@ -1,7 +1,12 @@
 import { Router } from 'express'
 
 import { type Config } from '../config/env'
-import { createGetProfileController, createUpdatePreferencesController, createUpdateProfileController } from '../controllers/profile.controller'
+import {
+	createChangePasswordController,
+	createGetProfileController,
+	createUpdatePreferencesController,
+	createUpdateProfileController,
+} from '../controllers/profile.controller'
 import { type PrismaClient } from '../lib/prisma'
 import { createRequireAuth } from '../middleware/auth.middleware'
 
@@ -11,5 +16,6 @@ export const createProfileRouter = (prisma: PrismaClient, config: Config): Route
 	router.get('/', createGetProfileController(prisma))
 	router.patch('/', createUpdateProfileController(prisma))
 	router.patch('/preferences', createUpdatePreferencesController(prisma))
+	router.put('/password', createChangePasswordController(prisma))
 	return router
 }

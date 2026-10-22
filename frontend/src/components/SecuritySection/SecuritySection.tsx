@@ -1,17 +1,19 @@
 import { Button, Text } from '@mantine/core'
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import ChangePasswordModal from '@/components/ChangePasswordModal/ChangePasswordModal'
 import { Shield } from '@/components/Icons'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 
 import classes from './SecuritySection.module.css'
 import { type SecuritySectionProps } from './types'
 
-/** "Heslo a zabezpečenie" (Figma 3:1912). Changing the password is not in the MVP. */
+/** "Heslo a zabezpečenie" (Figma 3:1912). "Zmeniť heslo" opens `ChangePasswordModal`. */
 const SecuritySection = ({ passwordChangedAt }: SecuritySectionProps) => {
 	const { t, i18n } = useTranslation()
 	const titleId = useId()
+	const [modalOpened, setModalOpened] = useState(false)
 
 	return (
 		<section aria-labelledby={titleId} className={`${classes.card} flex flex-wrap items-center justify-between gap-4`}>
@@ -26,9 +28,10 @@ const SecuritySection = ({ passwordChangedAt }: SecuritySectionProps) => {
 					{t('profilePage.security.passwordChanged', { relative: formatRelativeTime(passwordChangedAt, i18n.language) })}
 				</Text>
 			</div>
-			<Button variant='default' disabled>
+			<Button variant='default' onClick={() => setModalOpened(true)}>
 				{t('profilePage.security.changePassword')}
 			</Button>
+			<ChangePasswordModal opened={modalOpened} onClose={() => setModalOpened(false)} />
 		</section>
 	)
 }

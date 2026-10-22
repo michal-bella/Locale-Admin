@@ -88,6 +88,45 @@ test.describe('EDITOR with a dedicated user', () => {
 		expect(await getProfile(page)).toMatchObject({ email: editor.email, role: 'EDITOR', firstName: 'Ľubomír', lastName: 'Šťastný' })
 	})
 
+	test('changes the password in the modal, stays signed in and signs in again only with the new one', async ({ page, context }) => {
+		await page.goto('/profile')
+		await expect(page.getByRole('heading', PROFILE_HEADING)).toBeVisible()
+		const newPassword = `${editor.password}-new`
+
+		await page.getByRole('button', { name: 'Zmeniť heslo' }).click()
+		const dialog = page.getByRole('dialog', { name: 'Zmeniť heslo' })
+		await expect(dialog).toBeVisible()
+		const currentPassword = dialog.getByLabel('Aktuálne heslo', { exact: true })
+
+		await currentPassword.fill('wrong-password')
+		await dialog.getByLabel('Nové heslo', { exact: true }).fill(newPassword)
+		await dialog.getByLabel('Nové heslo znova', { exact: true }).fill('something-else')
+		await dialog.getByRole('button', { name: 'Zmeniť heslo' }).click()
+		await expect(dialog.getByLabel('Nové heslo znova', { exact: true })).toHaveAccessibleDescription('Heslá sa nezhodujú.')
+
+		await dialog.getByLabel('Nové heslo znova', { exact: true }).fill(newPassword)
+		const rejected = page.waitForResponse((response) => response.url().endsWith('/api/profile/password'))
+		await dialog.getByRole('button', { name: 'Zmeniť heslo' }).click()
+		expect((await rejected).status()).toBe(400)
+		await expect(currentPassword).toHaveAccessibleDescription('Aktuálne heslo nie je správne.')
+		await expect(dialog).toBeVisible()
+
+		await currentPassword.fill(editor.password)
+		const accepted = page.waitForResponse((response) => response.url().endsWith('/api/profile/password'))
+		await dialog.getByRole('button', { name: 'Zmeniť heslo' }).click()
+		expect((await accepted).status()).toBe(200)
+		await expect(page.getByText('Heslo bolo zmenené.')).toBeVisible()
+		await expect(dialog).toBeHidden()
+		await expect(page.getByText('Heslo bolo naposledy zmenené teraz.')).toBeVisible()
+		expect((await page.request.get('/api/profile')).status(), 'session after the change').toBe(200)
+
+		await context.clearCookies()
+		await loginViaUi(page, editor)
+		await expect(page.getByText('Nesprávny e-mail alebo heslo.')).toBeVisible()
+		await loginViaUi(page, { email: editor.email, password: newPassword })
+		await expectLoggedInHome(page)
+	})
+
 	test('blank or too long names show translated field errors and nothing is saved', async ({ page }) => {
 		await page.goto('/profile')
 		await expect(page.getByRole('heading', PROFILE_HEADING)).toBeVisible()
@@ -133,7 +172,7 @@ test.describe('EDITOR', () => {
 		}
 
 		await expect(page.getByRole('button', { name: 'Zmeniť fotografiu' })).toBeDisabled()
-		await expect(page.getByRole('button', { name: 'Zmeniť heslo' })).toBeDisabled()
+		await expect(page.getByRole('button', { name: 'Zmeniť heslo' })).toBeEnabled()
 		await expect(page.getByRole('button', { name: 'Uložiť profil' })).toBeDisabled()
 		await expect(page.getByText(/^Heslo bolo naposledy zmenené /)).toBeVisible()
 	})

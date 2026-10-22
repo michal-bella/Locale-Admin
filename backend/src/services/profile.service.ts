@@ -1,8 +1,17 @@
-import { type AuthUser, ERROR_CODE, type Profile, ROLE, type UpdatePreferencesRequest, type UpdateProfileRequest } from '@locale/shared'
+import {
+	type AuthUser,
+	type ChangePasswordRequest,
+	ERROR_CODE,
+	type Profile,
+	ROLE,
+	type UpdatePreferencesRequest,
+	type UpdateProfileRequest,
+} from '@locale/shared'
 
 import { type Prisma, type User } from '../generated/prisma/client'
 import { type AuthUserRow, ROLE_TO_PRISMA, toAuthUser } from '../lib/authUser'
 import { AppError } from '../lib/errors'
+import { hashPassword, verifyPassword } from '../lib/password'
 import { type PrismaClient } from '../lib/prisma'
 
 const PROFILE_SELECT = {
@@ -53,5 +62,19 @@ export const updatePreferences = async (
 	{ translationsView, translationsLayout }: UpdatePreferencesRequest,
 ): Promise<Profile> => {
 	const user = await prisma.user.update({ where: { id: userId }, data: { translationsView, translationsLayout }, select: PROFILE_SELECT })
+	return toProfile(user)
+}
+
+/** Other sessions of the user stay signed in; the change is only the hash and `passwordChangedAt`. */
+export const changePassword = async (prisma: PrismaClient, userId: string, { currentPassword, newPassword }: ChangePasswordRequest): Promise<Profile> => {
+	const { passwordHash } = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { passwordHash: true } })
+	if (!(await verifyPassword(passwordHash, currentPassword))) {
+		throw new AppError(400, ERROR_CODE.PASSWORD_INCORRECT, 'The current password is incorrect')
+	}
+	const user = await prisma.user.update({
+		where: { id: userId },
+		data: { passwordHash: await hashPassword(newPassword), passwordChangedAt: new Date() },
+		select: PROFILE_SELECT,
+	})
 	return toProfile(user)
 }

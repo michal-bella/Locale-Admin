@@ -1,18 +1,19 @@
 ---
 title: 'API: profil'
-updated: 2026-10-19
+updated: 2026-10-22
 notion_page_id:
 ---
 
 # Profil (`/api/profile`)
 
-Profil prihláseného používateľa: zobrazenie a úprava mena, priezviska a (iba `ADMIN`) vlastnej globálnej roly a jeho preferencie (zobrazenie stránky Preklady). Email sa tu meniť nedá. Schémy sú v `packages/shared/src/profile.ts`.
+Profil prihláseného používateľa: zobrazenie a úprava mena, priezviska a (iba `ADMIN`) vlastnej globálnej roly a jeho preferencie (zobrazenie stránky Preklady) a zmena vlastného hesla. Email sa tu meniť nedá. Schémy sú v `packages/shared/src/profile.ts`.
 
 | Metóda  | Cesta                      | Prihlásenie        | Popis                                           |
 | ------- | -------------------------- | ------------------ | ----------------------------------------------- |
 | `GET`   | `/api/profile`             | `ADMIN` / `EDITOR` | profil prihláseného používateľa                 |
 | `PATCH` | `/api/profile`             | `ADMIN` / `EDITOR` | zmení meno, priezvisko a rolu, vráti profil     |
 | `PATCH` | `/api/profile/preferences` | `ADMIN` / `EDITOR` | zmení zobrazenie stránky Preklady, vráti profil |
+| `PUT`   | `/api/profile/password`    | `ADMIN` / `EDITOR` | zmení heslo po overení aktuálneho, vráti profil |
 
 Router `/api/profile` je za `requireAuth`, rola sa nekontroluje. Bez session vráti 401 `AUTH_UNAUTHENTICATED` (viď [auth](./auth.md#oprávnenia)). Endpoint vždy pracuje s používateľom zo session, ID v tele ani v ceste nie je.
 
@@ -102,6 +103,34 @@ Telo (schéma `updatePreferencesRequestSchema`):
 | 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                                                     |
 | 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo                                                                |
 
+## PUT /api/profile/password
+
+Telo (schéma `changePasswordRequestSchema`):
+
+```json
+{ "currentPassword": "staré heslo", "newPassword": "nové heslo" }
+```
+
+- `currentPassword` je povinné a musí sa zhodovať s aktuálnym heslom (argon2), inak 400 `PASSWORD_INCORRECT` a nič sa nemení.
+- `newPassword` má 8 až 128 znakov (`passwordSchema`, rovnaké pravidlá ako pri vytvorení používateľa). Môže byť rovnaké ako aktuálne.
+- Mení iba prihláseného používateľa: uloží nový hash a nastaví `passwordChangedAt` na teraz. Pri úspechu vráti `200` s novým `Profile`.
+- Zámerne jednoduché: žiadne e-maily, tokeny ani notifikácie. Existujúce sessions (aj v iných prehliadačoch) zostávajú prihlásené.
+
+| HTTP | `code`                 | Kedy                                                                |
+| ---- | ---------------------- | ------------------------------------------------------------------- |
+| 200  |                        | heslo zmenené, telo `Profile`                                       |
+| 400  | `VALIDATION_ERROR`     | chýbajúce pole alebo krátke / dlhé nové heslo, `details` podľa polí |
+| 400  | `PASSWORD_INCORRECT`   | `currentPassword` nesedí                                            |
+| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                      |
+| 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo                                 |
+
+Príklady `details` pri 400 `VALIDATION_ERROR`:
+
+| Situácia                 | `details`                                                                  |
+| ------------------------ | -------------------------------------------------------------------------- |
+| chýba aktuálne heslo     | `[{ "path": "currentPassword", "code": "REQUIRED" }]`                      |
+| nové heslo kratšie ako 8 | `[{ "path": "newPassword", "code": "TOO_SHORT", "params": { "min": 8 } }]` |
+
 ## Príklad (curl)
 
 ```bash
@@ -115,4 +144,7 @@ curl -i -b cookies.txt -X PATCH http://localhost:8080/api/profile \
 curl -i -b cookies.txt -X PATCH http://localhost:8080/api/profile/preferences \
   -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
   -d '{"translationsView":"COMPACT"}'
+curl -i -b cookies.txt -X PUT http://localhost:8080/api/profile/password \
+  -H 'Content-Type: application/json' -H 'X-Requested-With: XMLHttpRequest' \
+  -d '{"currentPassword":"••••••••","newPassword":"••••••••••"}'
 ```

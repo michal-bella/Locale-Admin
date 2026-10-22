@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Zmena hesla v profile (2026-10-22)
+
+- API: `PUT /api/profile/password` s telom `{ currentPassword, newPassword }` overí aktuálne heslo (400 `PASSWORD_INCORRECT`), uloží nový hash a `passwordChangedAt`, vráti `Profile`; sessions zostávajú ([profil](./api/profile.md#put-apiprofilepassword))
+- frontend: tlačidlo **Zmeniť heslo** na stránke Môj profil otvára modál s aktuálnym heslom, novým heslom a jeho potvrdením ([Frontend](./frontend.md#stránka-môj-profil))
+
 ### Verzie prekladov – filter, odpočet, import a export (2026-10-22)
 
 - frontend: stránka Preklady má filter **Verzia** (`?version=`), chip verzie pri kľúči, odpočet dní do uzamknutia verzie a tabuľku iba na čítanie pre editora v uzamknutej verzii; úprava bunky a Pridať kľúč posielajú verziu z filtra; import má krok **Verzia** s vytvorením novej verzie z modálu; export so zapnutým filtrom exportuje stav projektu k verzii alebo iba jej zmeny ([Frontend](./frontend.md#verzie-na-stránke-preklady))

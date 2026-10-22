@@ -51,6 +51,7 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `GET`    | `/api/profile`                                                  | profil prihláseného používateľa, [detail](./profile.md)                                                        |
 | `PATCH`  | `/api/profile`                                                  | úprava mena a priezviska, [detail](./profile.md)                                                               |
 | `PATCH`  | `/api/profile/preferences`                                      | zobrazenie a rozloženie stránky Preklady (`translationsView`, `translationsLayout`), [detail](./profile.md)    |
+| `PUT`    | `/api/profile/password`                                         | zmena vlastného hesla po overení aktuálneho, [detail](./profile.md#put-apiprofilepassword)                     |
 
 ## Chybový kontrakt
 
@@ -68,6 +69,7 @@ Každá chyba má tvar `{ error: { code, message, details? } }`.
 | 400  | `VALIDATION_ERROR`           | nevalidné telo požiadavky (zod) alebo poškodený JSON                                                                           |
 | 400  | `IMPORT_COLUMNS_INVALID`     | priradenie stĺpcov importu k jazykom je neplatné (chýbajúci alebo cudzí stĺpec, cudzí alebo zdvojený jazyk, všetko preskočené) |
 | 400  | `EXPORT_LANGUAGES_INVALID`   | jazyk exportu nepatrí projektu                                                                                                 |
+| 400  | `PASSWORD_INCORRECT`         | aktuálne heslo pri zmene hesla nesedí (viď [profil](./profile.md#put-apiprofilepassword))                                      |
 | 400  | `PLACEHOLDER_MISMATCH`       | preklad nemá rovnaké premenné `{{…}}` ako základný jazyk pri zapnutej ochrane premenných, `details: { missing, extra }`        |
 | 413  | `VALIDATION_ERROR`           | telo požiadavky je väčšie ako 100 KB (okrem ciest importu)                                                                     |
 | 413  | `IMPORT_FILE_TOO_LARGE`      | súbor importu nad 10 MB alebo telo požiadavky importu nad 12 MB                                                                |

@@ -944,7 +944,28 @@
 		"security": {
 			"title": "Heslo a zabezpečenie",
 			"passwordChanged": "Heslo bolo naposledy zmenené {{relative}}.",
-			"changePassword": "Zmeniť heslo"
+			"changePassword": "Zmeniť heslo",
+			"modal": {
+				"title": "Zmeniť heslo",
+				"description": "Zadajte aktuálne heslo a nové heslo. Ostatné prihlásenia zostanú aktívne.",
+				"close": "Zavrieť",
+				"cancel": "Zrušiť",
+				"submit": "Zmeniť heslo",
+				"success": "Heslo bolo zmenené.",
+				"currentPassword": {
+					"label": "Aktuálne heslo",
+					"placeholder": "••••••••"
+				},
+				"newPassword": {
+					"label": "Nové heslo",
+					"placeholder": "Min. {{min}} znakov"
+				},
+				"newPasswordConfirm": {
+					"label": "Nové heslo znova",
+					"placeholder": "••••••••",
+					"mismatch": "Heslá sa nezhodujú."
+				}
+			}
 		},
 		"save": "Uložiť profil",
 		"saveSuccess": "Profil bol uložený."
@@ -1190,6 +1211,7 @@
 		"ALREADY_MEMBER": "Používateľ už je členom projektu.",
 		"SELF_DELETE": "Vlastný účet nemôžete odstrániť.",
 		"LAST_ADMIN": "Posledný administrátor sa nemôže vzdať svojej roly.",
+		"PASSWORD_INCORRECT": "Aktuálne heslo nie je správne.",
 		"IMPORT_FILE_INVALID": "Súbor obsahuje chyby. Opravte ich a nahrajte ho znova.",
 		"IMPORT_FILE_TOO_LARGE": "Súbor je príliš veľký. Maximálna veľkosť je 10 MB.",
 		"IMPORT_COLUMNS_INVALID": "Priradenie stĺpcov k jazykom je neplatné. Skontrolujte jazyky a skúste to znova.",

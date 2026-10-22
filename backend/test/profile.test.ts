@@ -1,7 +1,7 @@
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 
-import { ERROR_CODE, ROLE, VALIDATION_CODE, errorResponseSchema } from '@locale/shared'
+import { ERROR_CODE, ROLE, VALIDATION_CODE, errorResponseSchema, profileSchema } from '@locale/shared'
 
 import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
@@ -277,5 +277,69 @@ describe('PATCH /api/profile/preferences', () => {
 			403,
 			ERROR_CODE.CSRF_REJECTED,
 		)
+	})
+})
+
+describe('PUT /api/profile/password', () => {
+	const NEW_PASSWORD = 'NewPassword456'
+
+	const putPassword = (app: App, cookie: string, body: unknown) =>
+		request(app)
+			.put('/api/profile/password')
+			.set('Cookie', cookie)
+			.set(CSRF_HEADERS)
+			.send(body as object)
+
+	it('changes the password, sets passwordChangedAt and keeps the session', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await loginWithUser(app)
+		const before = (await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })).passwordChangedAt
+
+		const res = await putPassword(app, cookie, { currentPassword: TEST_PASSWORD, newPassword: NEW_PASSWORD })
+
+		expect(res.status).toBe(200)
+		const body = profileSchema.parse(res.body)
+		expect(body).toMatchObject({ id: user.id, email: user.email })
+		expect(res.body).not.toHaveProperty('passwordHash')
+		expect(new Date(body.passwordChangedAt).getTime()).toBeGreaterThan(before.getTime())
+		expect((await request(app).get('/api/profile').set('Cookie', cookie)).status).toBe(200)
+		expectErrorCode(
+			await request(app).post('/api/auth/login').set(CSRF_HEADERS).send({ email: user.email, password: TEST_PASSWORD }),
+			401,
+			ERROR_CODE.AUTH_INVALID_CREDENTIALS,
+		)
+		expect((await request(app).post('/api/auth/login').set(CSRF_HEADERS).send({ email: user.email, password: NEW_PASSWORD })).status).toBe(200)
+	})
+
+	it('returns 400 PASSWORD_INCORRECT for a wrong current password and changes nothing', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await loginWithUser(app)
+		const { passwordHash, passwordChangedAt } = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
+
+		const res = await putPassword(app, cookie, { currentPassword: 'WrongPassword1', newPassword: NEW_PASSWORD })
+
+		expectErrorCode(res, 400, ERROR_CODE.PASSWORD_INCORRECT)
+		expect(await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ passwordHash, passwordChangedAt })
+	})
+
+	it('returns 400 VALIDATION_ERROR with details for a short or missing password', async () => {
+		const app = createTestApp()
+		const { cookie } = await loginWithUser(app)
+
+		const short = await putPassword(app, cookie, { currentPassword: TEST_PASSWORD, newPassword: 'short' })
+		expectErrorCode(short, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(errorResponseSchema.parse(short.body).error.details).toEqual([{ path: 'newPassword', code: VALIDATION_CODE.TOO_SHORT, params: { min: 8 } }])
+		const missing = await putPassword(app, cookie, { newPassword: NEW_PASSWORD })
+		expectErrorCode(missing, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(errorResponseSchema.parse(missing.body).error.details).toEqual([{ path: 'currentPassword', code: VALIDATION_CODE.REQUIRED }])
+	})
+
+	it('returns 401 AUTH_UNAUTHENTICATED without a session and 403 CSRF_REJECTED without the header', async () => {
+		const app = createTestApp()
+		const { cookie } = await loginWithUser(app)
+		const body = { currentPassword: TEST_PASSWORD, newPassword: NEW_PASSWORD }
+
+		expectErrorCode(await request(app).put('/api/profile/password').set(CSRF_HEADERS).send(body), 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
+		expectErrorCode(await request(app).put('/api/profile/password').set('Cookie', cookie).send(body), 403, ERROR_CODE.CSRF_REJECTED)
 	})
 })

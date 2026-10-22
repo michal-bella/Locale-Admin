@@ -21,6 +21,20 @@ const ADMIN_PROFILE = profileOf(ADMIN_USER)
 
 const getSaveButton = () => screen.getByRole('button', { name: 'Uložiť profil' })
 
+const openChangePassword = async () => {
+	fireEvent.click(screen.getByRole('button', { name: 'Zmeniť heslo' }))
+	const dialog = within(await screen.findByRole('dialog', { name: 'Zmeniť heslo' }))
+	return {
+		dialog,
+		fill: (currentPassword: string, newPassword: string, newPasswordConfirm = newPassword) => {
+			fireEvent.change(dialog.getByLabelText('Aktuálne heslo'), { target: { value: currentPassword } })
+			fireEvent.change(dialog.getByLabelText('Nové heslo', { exact: true }), { target: { value: newPassword } })
+			fireEvent.change(dialog.getByLabelText('Nové heslo znova'), { target: { value: newPasswordConfirm } })
+		},
+		submit: () => fireEvent.click(dialog.getByRole('button', { name: 'Zmeniť heslo' })),
+	}
+}
+
 const getMain = () => within(screen.getByRole('main'))
 
 const getTopBar = () => within(screen.getByRole('banner'))
@@ -86,7 +100,7 @@ describe('ProfilePage', () => {
 		// Mantine renders the description inside the <label>, so it is part of the accessible name.
 		expect(screen.getByRole('switch', { name: /^Zmienky a komentáre/ })).toHaveAccessibleDescription('Keď vás niekto označí pri preklade.')
 		expect(screen.getByRole('button', { name: 'Zmeniť fotografiu' })).toBeDisabled()
-		expect(screen.getByRole('button', { name: 'Zmeniť heslo' })).toBeDisabled()
+		expect(screen.getByRole('button', { name: 'Zmeniť heslo' })).toBeEnabled()
 	})
 
 	it('enables Save only when the names change and keeps the card on the saved data', async () => {
@@ -302,5 +316,58 @@ describe('ProfilePage', () => {
 
 		await waitFor(() => expect(router.state.location.pathname).toBe('/profile'))
 		expect(await screen.findByRole('heading', { level: 1, name: 'Môj profil' })).toBeInTheDocument()
+	})
+
+	it('changes the password from the modal and shows the new change time', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		const requests = signedInAs(ADMIN_USER, {
+			'GET /profile': { status: 200, data: ADMIN_PROFILE },
+			'PUT /profile/password': { status: 200, data: { ...ADMIN_PROFILE, passwordChangedAt: new Date().toISOString() } },
+		})
+		await renderProfile()
+		expect(screen.getByText('Heslo bolo naposledy zmenené pred 3 mesiacmi.')).toBeInTheDocument()
+
+		const modal = await openChangePassword()
+		modal.fill('OldPassword123', 'NewPassword456')
+		modal.submit()
+
+		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Heslo bolo zmenené.' })))
+		const put = requests.find((request) => request.method === 'put' && request.url === '/profile/password')
+		expect(JSON.parse(put?.data as string)).toEqual({ currentPassword: 'OldPassword123', newPassword: 'NewPassword456' })
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(screen.getByText('Heslo bolo naposledy zmenené teraz.')).toBeInTheDocument()
+	})
+
+	it('validates the new password and its confirmation before sending', async () => {
+		const requests = signedInAs(ADMIN_USER, { 'GET /profile': { status: 200, data: ADMIN_PROFILE } })
+		await renderProfile()
+
+		const modal = await openChangePassword()
+		modal.fill('OldPassword123', 'short')
+		modal.submit()
+		expect(await modal.dialog.findByText('Zadajte aspoň 8 znakov.')).toBeInTheDocument()
+
+		// The mismatch is a refinement of the whole form; zod runs it only once every field is valid.
+		modal.fill('OldPassword123', 'NewPassword456', 'other')
+		modal.submit()
+		expect(await modal.dialog.findByText('Heslá sa nezhodujú.')).toBeInTheDocument()
+		expect(requests.some((request) => request.url === '/profile/password')).toBe(false)
+	})
+
+	it('shows a wrong current password at the field', async () => {
+		signedInAs(ADMIN_USER, {
+			'GET /profile': { status: 200, data: ADMIN_PROFILE },
+			'PUT /profile/password': apiError(400, 'PASSWORD_INCORRECT'),
+		})
+		await renderProfile()
+
+		const modal = await openChangePassword()
+		modal.fill('WrongPassword1', 'NewPassword456')
+		modal.submit()
+
+		expect(await modal.dialog.findByText('Aktuálne heslo nie je správne.')).toBeInTheDocument()
+		expect(modal.dialog.getByLabelText('Aktuálne heslo')).toHaveAttribute('aria-invalid', 'true')
+		expect(modal.dialog.getByLabelText('Aktuálne heslo')).toHaveFocus()
+		expect(screen.getByRole('dialog', { name: 'Zmeniť heslo' })).toBeInTheDocument()
 	})
 })

@@ -918,7 +918,28 @@
 		"security": {
 			"title": "Password and security",
 			"passwordChanged": "Password was last changed {{relative}}.",
-			"changePassword": "Change password"
+			"changePassword": "Change password",
+			"modal": {
+				"title": "Change password",
+				"description": "Enter your current password and a new one. Your other sessions stay signed in.",
+				"close": "Close",
+				"cancel": "Cancel",
+				"submit": "Change password",
+				"success": "Password has been changed.",
+				"currentPassword": {
+					"label": "Current password",
+					"placeholder": "••••••••"
+				},
+				"newPassword": {
+					"label": "New password",
+					"placeholder": "Min. {{min}} characters"
+				},
+				"newPasswordConfirm": {
+					"label": "Repeat new password",
+					"placeholder": "••••••••",
+					"mismatch": "Passwords do not match."
+				}
+			}
 		},
 		"save": "Save profile",
 		"saveSuccess": "Profile saved."
@@ -1164,6 +1185,7 @@
 		"ALREADY_MEMBER": "The user is already a member of the project.",
 		"SELF_DELETE": "You cannot delete your own account.",
 		"LAST_ADMIN": "The last administrator cannot give up the role.",
+		"PASSWORD_INCORRECT": "The current password is incorrect.",
 		"IMPORT_FILE_INVALID": "The file contains errors. Fix them and upload it again.",
 		"IMPORT_FILE_TOO_LARGE": "The file is too large. The maximum size is 10 MB.",
 		"IMPORT_COLUMNS_INVALID": "The column-to-language mapping is invalid. Check the languages and try again.",

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { authUserSchema, ROLE, userPreferencesSchema } from './auth'
+import { passwordSchema } from './password'
 
 export const PERSON_NAME_MAX_LENGTH = 100
 
@@ -28,3 +29,11 @@ export const updatePreferencesRequestSchema = userPreferencesSchema
 	.refine((body) => body.translationsView !== undefined || body.translationsLayout !== undefined)
 
 export type UpdatePreferencesRequest = z.infer<typeof updatePreferencesRequestSchema>
+
+/** Body of `PUT /api/profile/password`: the current password is checked, the new one must satisfy `passwordSchema`; the response is the `Profile`. */
+export const changePasswordRequestSchema = z.object({
+	currentPassword: z.string().min(1),
+	newPassword: passwordSchema,
+})
+
+export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>

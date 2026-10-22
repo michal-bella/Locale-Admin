@@ -109,7 +109,12 @@ const TranslationsToolbar = ({
 					onChange({ status: parsed.success ? parsed.data : undefined })
 				}}
 				renderOption={renderStatusOption}
-				leftSection={status ? <TranslationStatusBadge status={status} /> : <CheckCircle aria-hidden />}
+				leftSection={
+					<>
+						<CheckCircle aria-hidden />
+						{status && <TranslationStatusBadge status={status} />}
+					</>
+				}
 				leftSectionWidth={status ? 'auto' : undefined}
 				leftSectionProps={{ className: status ? classes.statusBadgeSection : undefined }}
 				// Select only defaults the right section to `none`; without this a click on the badge never reaches the input.

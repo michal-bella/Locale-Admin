@@ -20,12 +20,15 @@
 	min-width: 0;
 }
 
-/* The chosen status shows as the badge in the left section; the input keeps the text for the accessible value but paints it invisible. */
+/* The chosen status shows as the badge next to the icon in the left section; the input keeps the text for the accessible value but paints it invisible. */
 .statusInputWithBadge {
 	color: transparent;
 }
 
 .statusBadgeSection {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
 	padding-inline-start: 0.875rem;
 }
 

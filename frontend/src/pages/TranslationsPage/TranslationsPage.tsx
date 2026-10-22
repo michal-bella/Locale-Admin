@@ -243,7 +243,8 @@ const TranslationsPage = () => {
 			</div>
 			{!isError && (
 				<TranslationStats
-					stats={isPending ? undefined : (data?.stats ?? { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 })}
+					language={view === 'COMPACT' ? targetLanguage : undefined}
+					stats={isPending ? undefined : (data?.stats ?? { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0, untranslatedByLanguage: {} })}
 					status={search.status}
 					// The cards count every key of the version, so a card drops the other row filters to show exactly its number.
 					onStatusChange={(value) =>
@@ -264,6 +265,7 @@ const TranslationsPage = () => {
 					version={version}
 					writesBlocked={!isAdmin && version.isLocked}
 					untranslated={untranslatedQuery.data?.total}
+					language={view === 'COMPACT' ? targetLanguage : undefined}
 					diff={diffQuery.data}
 					onToggleLock={isAdmin ? lockVersionModal.open : undefined}
 				/>

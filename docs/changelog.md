@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Chýbajúce preklady a jazyk v kartách (2026-10-22)
+
+- API: `GET …/translations` vracia v `stats` aj `untranslatedByLanguage` (počet kľúčov verzie bez hodnoty za každý jazyk projektu) ([API](./api/translations.md))
+- frontend: karta Nepreložené ukazuje pri počte kľúčov aj súčet chýbajúcich prekladov „2 % kľúčov · 355 chýbajúcich prekladov“ (vo Všetkých jazykoch za všetky jazyky, v Zdroj → cieľ za cieľový), ktorý klesá s každým vyplneným prekladom; výber Zobrazené jazyky má ✕ na zrušenie výberu a na desktope sa rozťahuje do šírky; v zobrazení Zdroj → cieľ karty Preložené / Nepreložené a banner verzie uvádzajú vlajku a názov cieľového jazyka ([Frontend](./frontend.md))
+
 ### Dátumy verzie a import (2026-10-22)
 
 - frontend: kalendár pri dátumoch verzie zvýrazní dnešok a má pod sebou tlačidlo **Dnes**, ktoré vyplní dnešný dátum a prepne kalendár na aktuálny mesiac; tlačidlo **Vytvoriť novú** v dialógu importu má výšku výberu verzie (44 px); v tabuľke verzií sú „Vytvoril …“ a „Import …“ iba v tooltipe ikony (i) pri názve, nie pod ním; názov verzie a nová akcia **Otvoriť preklady** (aj pre editora) otvoria Preklady s touto verziou; karty Preložené a Nepreložené na Prekladoch majú jemné zelené a červené pozadie a vedľa čísla podiel „93 % kľúčov“; **Uložiť** v modáloch Upraviť preklad, Upraviť kľúč, Upraviť verziu a Upraviť e-mail je disabled, kým sa nič nezmení (Nastavenia projektu a Profil to už mali); ikona ⚠ nesúladu premenných sa ukáže aj pri premennej navyše, v bunke je v rohu mimo ellipsis a v modáli Upraviť preklad pri labeli Preklad ([Frontend](./frontend.md#stránka-verzie-projektu))

@@ -297,7 +297,7 @@ describe('the list and the export read one version', () => {
 		const inV2 = await listOk(app, cookie, project.id, { versionId: v2.id })
 		expect(names(inV2)).toEqual(['A', 'C'])
 		expect(inV2.total).toBe(2)
-		expect(inV2.stats).toEqual({ totalKeys: 2, translated: 1, untranslated: 1, warnings: 0 })
+		expect(inV2.stats).toEqual({ totalKeys: 2, translated: 1, untranslated: 1, warnings: 0, untranslatedByLanguage: expect.any(Object) as unknown })
 		const inV1 = await listOk(app, cookie, project.id, { versionId: v1.id })
 		expect(names(inV1)).toEqual(['A', 'B'])
 		expect(inV1.stats.totalKeys).toBe(2)

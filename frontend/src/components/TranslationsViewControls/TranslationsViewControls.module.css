@@ -14,9 +14,10 @@
 	width: 7rem;
 }
 
+/* As wide as its pills, so on a desktop they stay on one line; it shrinks and wraps them only when the row runs out of room. */
 .languages {
-	flex: 0 0 15rem;
-	min-width: 12rem;
+	flex: 0 1 auto;
+	min-width: 15rem;
 }
 
 /* Mantine keeps 100 px for the (unused) search field next to the pills, which pushes the second pill to a new line. */

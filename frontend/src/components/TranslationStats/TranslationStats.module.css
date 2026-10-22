@@ -1,0 +1,8 @@
+/* The language reads as a note to the card label: the same size, muted, with its flag. */
+.language {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	font-size: var(--mantine-font-size-xs);
+	color: var(--app-color-text-secondary);
+}

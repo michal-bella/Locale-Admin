@@ -213,7 +213,7 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 		expect(res.status).toBe(200)
 		const body = translationsResponseSchema.parse(res.body)
 		expect(body.items[0]?.translations[en.id]).toEqual({ value: 'Save', status: 'TRANSLATED', updatedAt: saved.updatedAt, updatedBy: saved.updatedBy })
-		expect(body.stats).toEqual({ totalKeys: 1, translated: 1, untranslated: 0, warnings: 0 })
+		expect(body.stats).toEqual({ totalKeys: 1, translated: 1, untranslated: 0, warnings: 0, untranslatedByLanguage: expect.any(Object) as unknown })
 	})
 
 	it('returns 400 VALIDATION_ERROR for a missing or too long value', async () => {

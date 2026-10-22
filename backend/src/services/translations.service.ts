@@ -242,7 +242,7 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	}
 	const from = Prisma.sql`"TranslationKey" k ${view.joins} WHERE ${Prisma.join(conditions, ' AND ')}`
 
-	const [rows, [count], [stats], namespaces, languages, editors] = await Promise.all([
+	const [rows, [count], [stats], namespaces, languages, editors, translatedByLanguage] = await Promise.all([
 		prisma.$queryRaw<ItemRow[]>`
 			SELECT k.id AS "keyId", k.namespace, k.name, ${GROUP_SQL} AS "group", k.description, k."pluralVariable", ${view.untranslated} AS untranslated
 				${previousVersionId === undefined ? Prisma.empty : Prisma.sql`, ${diffColumnsSql(previousVersionId)}`}
@@ -267,6 +267,11 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 			SELECT u.id, u.email, u."firstName", u."lastName", COALESCE(e.edits, 0) AS edits
 			FROM "User" u LEFT JOIN edits e ON e.id = u.id
 			WHERE e.id IS NOT NULL OR u.id IN (SELECT "userId" FROM "ProjectMember" WHERE "projectId" = ${projectId}::uuid)`,
+		prisma.$queryRaw<{ languageId: string; translated: number }[]>`
+			SELECT t."languageId", count(*)::int AS translated
+			FROM "Translation" t JOIN "TranslationKey" k ON k.id = t."keyId"
+			WHERE k."versionId" = ${versionId}::uuid AND t.value IS NOT NULL
+			GROUP BY t."languageId"`,
 	])
 	const cellRows = await prisma.translation.findMany({
 		where: { keyId: { in: rows.map((row) => row.keyId) } },
@@ -274,13 +279,20 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	})
 	const cells = new Map(cellRows.map((cell) => [`${cell.keyId}:${cell.languageId}`, cell]))
 	const languageIds = languages.map((language) => language.id)
+	const translatedIn = new Map(translatedByLanguage.map((row) => [row.languageId, row.translated]))
 
 	return {
 		items: rows.map((row) => toItem(row, languageIds, cells)),
 		total: count.total,
 		page,
 		pageSize,
-		stats: { totalKeys: stats.totalKeys, translated: stats.translated, untranslated: stats.totalKeys - stats.translated, warnings: stats.warnings },
+		stats: {
+			totalKeys: stats.totalKeys,
+			translated: stats.translated,
+			untranslated: stats.totalKeys - stats.translated,
+			warnings: stats.warnings,
+			untranslatedByLanguage: Object.fromEntries(languageIds.map((id) => [id, stats.totalKeys - (translatedIn.get(id) ?? 0)])),
+		},
 		namespaces: namespaces.map((row) => row.namespace),
 		editors: editors
 			.map((row) => ({ ...toEditor(row), edits: row.edits }))

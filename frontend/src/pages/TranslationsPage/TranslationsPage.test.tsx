@@ -101,7 +101,7 @@ const response = (overrides: Partial<TranslationsResponse> = {}): TranslationsRe
 	total: ITEMS.length,
 	page: 1,
 	pageSize: 20,
-	stats: { totalKeys: 248, translated: 221, untranslated: 27, warnings: 0 },
+	stats: { totalKeys: 248, translated: 221, untranslated: 27, warnings: 0, untranslatedByLanguage: {} },
 	namespaces: ['loc', 'paths'],
 	editors: [],
 	...overrides,
@@ -559,7 +559,14 @@ describe('TranslationsPage', () => {
 	})
 
 	it('shows the empty state with Importovať that opens the import modal for a project without keys', async () => {
-		mockPage({ translations: response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 }, namespaces: [] }) })
+		mockPage({
+			translations: response({
+				items: [],
+				total: 0,
+				stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0, untranslatedByLanguage: {} },
+				namespaces: [],
+			}),
+		})
 		renderApp(PAGE_PATH)
 
 		expect(await findVisibleText('Projekt zatiaľ nemá žiadne kľúče. Pridáte ich importom súboru.')).toBeInTheDocument()
@@ -576,7 +583,12 @@ describe('TranslationsPage', () => {
 	it('shows an EDITOR Exportovať but no Importovať, also not in the empty state', async () => {
 		mockPage({
 			user: EDITOR_USER,
-			translations: response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 }, namespaces: [] }),
+			translations: response({
+				items: [],
+				total: 0,
+				stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0, untranslatedByLanguage: {} },
+				namespaces: [],
+			}),
 		})
 		renderApp(PAGE_PATH)
 
@@ -586,7 +598,9 @@ describe('TranslationsPage', () => {
 	})
 
 	it('shows the warnings banner with the count, filters by warnings from it and clears the filter again', async () => {
-		const requests = mockPage({ translations: response({ stats: { totalKeys: 248, translated: 221, untranslated: 27, warnings: 3 } }) })
+		const requests = mockPage({
+			translations: response({ stats: { totalKeys: 248, translated: 221, untranslated: 27, warnings: 3, untranslatedByLanguage: {} } }),
+		})
 		const router = renderApp(PAGE_PATH)
 		await screen.findByText('orders.empty.title')
 
@@ -775,7 +789,12 @@ describe('TranslationsPage', () => {
 				status: 200,
 				data: hasKeys
 					? response()
-					: response({ items: [], total: 0, stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 }, namespaces: [] }),
+					: response({
+							items: [],
+							total: 0,
+							stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0, untranslatedByLanguage: {} },
+							namespaces: [],
+						}),
 			}),
 		})
 		renderApp(PAGE_PATH)
@@ -807,6 +826,40 @@ describe('TranslationsPage', () => {
 		expect(await findVisibleText('Showing 4 of 4 keys')).toBeInTheDocument()
 		expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual(['Key', 'Slovak Base', 'English', 'Status'])
 	})
+
+	it('adds the missing translations of every language to the Nepreložené card in the extended view', async () => {
+		mockPage({
+			user: EXTENDED_ADMIN,
+			translations: response({
+				stats: { totalKeys: 248, translated: 221, untranslated: 27, warnings: 0, untranslatedByLanguage: { [SLOVAK.id]: 3, [ENGLISH.id]: 27 } },
+			}),
+		})
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		expect(screen.getByText('11 % kľúčov · 30 chýbajúcich prekladov')).toBeInTheDocument()
+		// The headers stay plain language names.
+		expect(within(getTable()).getByRole('columnheader', { name: 'angličtina' })).toBeInTheDocument()
+	})
+
+	it('names the target language on the cards and in the version banner in the compact view', async () => {
+		mockPage({
+			user: compact(ADMIN_USER),
+			translations: response({
+				stats: { totalKeys: 248, translated: 221, untranslated: 27, warnings: 0, untranslatedByLanguage: { [SLOVAK.id]: 0, [ENGLISH.id]: 27 } },
+			}),
+		})
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		const card = (label: string) => screen.getByText(label, { selector: 'p' }).closest('[data-tone]') as HTMLElement
+		expect(within(card('Preložené')).getByText('angličtina')).toBeInTheDocument()
+		expect(within(card('Nepreložené')).getByText('angličtina')).toBeInTheDocument()
+		expect(within(card('Celkom kľúčov')).queryByText('angličtina')).not.toBeInTheDocument()
+		// The missing translations are the target language's empty cells.
+		expect(within(card('Nepreložené')).getByText('11 % kľúčov · 27 chýbajúcich prekladov')).toBeInTheDocument()
+		expect(await screen.findByText('angličtina:')).toBeInTheDocument()
+	})
 })
 
 const WELCOME = ITEMS[2]!
@@ -817,8 +870,13 @@ const putUrl = (keyId: string) => `/projects/${PROJECT.id}/keys/${keyId}/transla
  * In-memory list: a saved value survives the refetch after the mutation settles. `put` replaces the answer of every PUT (errors); as a
  * function it gets the sent value and falls back to the success answer when it returns `undefined`.
  */
-const mockEditing = (put?: MockResponse | ((value: string | null) => MockResponse | undefined), user: AuthUser = ADMIN_USER, items = ITEMS) => {
-	let current = response({ items, total: items.length })
+const mockEditing = (
+	put?: MockResponse | ((value: string | null) => MockResponse | undefined),
+	user: AuthUser = ADMIN_USER,
+	items = ITEMS,
+	untranslatedByLanguage: Record<string, number> = {},
+) => {
+	let current = response({ items, total: items.length, stats: { ...response().stats, untranslatedByLanguage } })
 	const putRoutes: MockRoutes = Object.fromEntries(
 		items.map((entry) => [
 			`PUT ${putUrl(entry.keyId)}`,
@@ -1107,6 +1165,20 @@ describe('TranslationsPage edit modal', () => {
 		expect(screen.getByText('221')).toBeInTheDocument()
 		expect(screen.queryByText(/Uložené/, { selector: STATUS })).not.toBeInTheDocument()
 		show.mockRestore()
+	})
+
+	it('counts the missing translations up optimistically when a translation is emptied', async () => {
+		const puts = mockEditing(undefined, EXTENDED_ADMIN, ITEMS, { [SLOVAK.id]: 0, [ENGLISH.id]: 27 })
+		const release = holdPuts()
+		renderApp(PAGE_PATH)
+
+		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
+		typeText(fieldOf(dialog, 'Preklad kľúča dashboard.welcome, angličtina'), '   ')
+		save(dialog)
+
+		await waitFor(() => expect(screen.getByText(/· 28 chýbajúcich prekladov$/)).toBeInTheDocument())
+		release()
+		await waitFor(() => expect(puts()).toHaveLength(1))
 	})
 
 	it('keeps Uložiť disabled until the value changes', async () => {
@@ -1626,6 +1698,12 @@ describe('TranslationsPage extended view', () => {
 		await pickOption('Zobrazené jazyky', 'angličtina')
 		await waitFor(() => expect(router.state.location.search).toEqual({ languages: ['cs', 'en'] }))
 		expect(headers()).toEqual(['Kľúč', 'slovenčina Základný', 'angličtina', 'čeština', 'Stav'])
+
+		// Mantine hides the clear button from assistive tech like the pill remove buttons; the keyboard clears with Backspace.
+		fireEvent.click(screen.getByLabelText('Zobraziť všetky jazyky'))
+		await waitFor(() => expect(router.state.location.search).toEqual({}))
+		expect(headers()).toEqual(['Kľúč', 'slovenčina Základný', 'angličtina', 'čeština', 'Stav'])
+		expect(screen.queryByLabelText('Zobraziť všetky jazyky')).not.toBeInTheDocument()
 	})
 
 	it('writes the editor and period filters to the URL and the request', async () => {

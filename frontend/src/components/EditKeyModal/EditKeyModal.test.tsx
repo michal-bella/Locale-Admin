@@ -82,7 +82,7 @@ const mockPage = ({ user = ADMIN_USER, items = [WELCOME, COUNT], patch }: { user
 		total: items.length,
 		page: 1,
 		pageSize: 20,
-		stats: { totalKeys: items.length, translated: items.length, untranslated: 0, warnings: 0 },
+		stats: { totalKeys: items.length, translated: items.length, untranslated: 0, warnings: 0, untranslatedByLanguage: {} },
 		namespaces: ['loc'],
 		editors: [],
 	}

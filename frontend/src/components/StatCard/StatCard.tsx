@@ -11,16 +11,19 @@ import { type StatCardProps } from './types'
 const TONE_COLOR = { brand: 'brand', success: 'teal', danger: 'red' } as const
 
 /** Label, value and icon tile of Figma 3:62 (Preklady) and 3:532 (Prehľad), optionally with a hint, a progress bar and a filter button or link. */
-const StatCard = ({ label, value, hint, share, icon: Icon, tone, percent, filter, link }: StatCardProps) => {
+const StatCard = ({ label, labelSuffix, value, hint, share, icon: Icon, tone, percent, filter, link }: StatCardProps) => {
 	const { t } = useTranslation()
 
 	return (
 		<div data-tone={tone} className={classes.card}>
 			<div className='flex items-start justify-between gap-3'>
 				<div className='flex flex-col gap-1'>
-					<Text fz='xs' fw={500} lh='xs'>
-						{label}
-					</Text>
+					<div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+						<Text fz='xs' fw={500} lh='xs'>
+							{label}
+						</Text>
+						{labelSuffix}
+					</div>
 					{value === undefined ? (
 						<Skeleton height={32} width={64} radius='sm' />
 					) : (

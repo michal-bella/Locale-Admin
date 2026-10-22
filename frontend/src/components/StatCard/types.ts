@@ -1,8 +1,10 @@
 import { type LinkProps } from '@tanstack/react-router'
-import { type ComponentType, type SVGProps } from 'react'
+import { type ComponentType, type ReactNode, type SVGProps } from 'react'
 
 export type StatCardProps = {
 	label: string
+	/** Shown after the label, e.g. the flag and name of the language the counts are for. */
+	labelSuffix?: ReactNode
 	/** `undefined` while loading shows a skeleton. */
 	value?: number | string
 	/** Small line under the value, e.g. "+12 za 30 dní". */

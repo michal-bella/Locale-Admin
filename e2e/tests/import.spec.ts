@@ -109,9 +109,9 @@ test('imports the sample file, adds the missing language from the review and sho
 	await expect(getTranslationRows(page).filter({ hasText: 'cart.items' }).locator('code')).toHaveText(['{{count}}', '{{count}}'])
 
 	const en = await listTranslations(request, project.id, project.version.id, { sourceLanguageId: languageId('sk'), targetLanguageId: languageId('en') })
-	expect(en.stats).toEqual({ totalKeys: 10, translated: SAMPLE.en.translations, untranslated: SAMPLE.en.untranslated, warnings: 1 })
+	expect(en.stats).toMatchObject({ totalKeys: 10, translated: SAMPLE.en.translations, untranslated: SAMPLE.en.untranslated, warnings: 1 })
 	const cs = await listTranslations(request, project.id, project.version.id, { sourceLanguageId: languageId('sk'), targetLanguageId: languageId('cs') })
-	expect(cs.stats).toEqual({ totalKeys: 10, translated: SAMPLE.cs.translations, untranslated: SAMPLE.cs.untranslated, warnings: 1 })
+	expect(cs.stats).toMatchObject({ totalKeys: 10, translated: SAMPLE.cs.translations, untranslated: SAMPLE.cs.untranslated, warnings: 1 })
 
 	await page.goto(`/projects/${project.slug}/languages`)
 	const languagesTable = page.getByRole('table', { name: 'Zoznam jazykov' })

@@ -36,16 +36,24 @@ const applyUpdate = (
 	const updated: TranslationListItem = { ...item, translations: { ...item.translations, [languageId]: cell } }
 	updated.status = rowStatus(updated, targetLanguageId)
 	const delta = updated.status === item.status ? 0 : updated.status === 'TRANSLATED' ? 1 : -1
+	const wasTranslated = item.translations[languageId]?.status === 'TRANSLATED'
+	const cellDelta = Number(cell.status === 'TRANSLATED') - Number(wasTranslated)
+	const byLanguage = data.stats.untranslatedByLanguage
 	return {
 		...data,
 		items: data.items.map((candidate) => (candidate.keyId === keyId ? updated : candidate)),
-		stats: { ...data.stats, translated: data.stats.translated + delta, untranslated: data.stats.untranslated - delta },
+		stats: {
+			...data.stats,
+			translated: data.stats.translated + delta,
+			untranslated: data.stats.untranslated - delta,
+			untranslatedByLanguage: byLanguage[languageId] === undefined ? byLanguage : { ...byLanguage, [languageId]: byLanguage[languageId] - cellDelta },
+		},
 	}
 }
 
 /**
  * `PUT /projects/:id/keys/:keyId/translations/:languageId`. Updates the page `listQuery` in the cache optimistically (the cell with the signed-in user as `updatedBy`, the row
- * status and `stats` when it flips), restores the snapshot on error and refetches every translations page of the project on settle,
+ * status and `stats` when it flips, the language's untranslated count when the cell flips), restores the snapshot on error and refetches every translations page of the project on settle,
  * which also repairs a rollback that undid a concurrent edit of another row.
  */
 export const useUpdateTranslationMutation = (projectId: string, listQuery: TranslationsQueryInput | null) => {

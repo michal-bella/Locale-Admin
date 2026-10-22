@@ -22,3 +22,12 @@
 	gap: 0.5rem 1rem;
 	color: var(--app-color-text-strong);
 }
+
+/* Inline with the sentence: the flag sits on the text line, not above it. */
+.language {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	vertical-align: bottom;
+	font-weight: 600;
+}

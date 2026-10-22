@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { daysUntil, toVersionDate } from '@locale/shared'
 
 import { Lock, LockUnlocked, Tag } from '@/components/Icons'
+import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 
 import classes from './TranslationsVersionBanner.module.css'
 import { type TranslationsVersionBannerProps } from './types'
@@ -13,7 +14,7 @@ import { type TranslationsVersionBannerProps } from './types'
  * editor, that only an administrator edits it now), how many of its keys are still untranslated and how it differs from the previous
  * version. An ADMIN also locks or unlocks the version from here.
  */
-const TranslationsVersionBanner = ({ version, writesBlocked, untranslated, diff, onToggleLock }: TranslationsVersionBannerProps) => {
+const TranslationsVersionBanner = ({ version, writesBlocked, untranslated, language, diff, onToggleLock }: TranslationsVersionBannerProps) => {
 	const { t } = useTranslation()
 	// Days are counted in the browser's calendar: the deadline is a day, not a moment.
 	const today = toVersionDate(new Date())
@@ -41,7 +42,19 @@ const TranslationsVersionBanner = ({ version, writesBlocked, untranslated, diff,
 		>
 			<span>
 				<span>{message}</span>
-				{untranslated !== undefined && untranslated > 0 && <span> {t('translationsPage.version.untranslated', { count: untranslated })}</span>}
+				{untranslated !== undefined && untranslated > 0 && (
+					<span>
+						{' '}
+						{language && (
+							<span className={classes.language}>
+								<LanguageFlag code={language.flagCode} size='xs' />
+								{t('translationsPage.version.untranslatedLanguage', { language: t(`languageNames.${language.tag}`) })}
+							</span>
+						)}
+						{language && ' '}
+						{t('translationsPage.version.untranslated', { count: untranslated })}
+					</span>
+				)}
 				{diff && (
 					<span>
 						{' '}

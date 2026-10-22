@@ -273,6 +273,10 @@
 			"missing": "Nepreložené",
 			"progressLabel": "{{label}}: {{percent}} %",
 			"share": "{{percent}} kľúčov",
+			"missingTranslations_one": "{{count}} chýbajúci preklad",
+			"missingTranslations_few": "{{count}} chýbajúce preklady",
+			"missingTranslations_many": "{{count}} chýbajúcich prekladov",
+			"missingTranslations_other": "{{count}} chýbajúcich prekladov",
 			"showTranslated": "Zobraziť preložené",
 			"showMissing": "Zobraziť nepreložené",
 			"showAll": "Zobraziť všetky"
@@ -312,7 +316,8 @@
 			"languages": {
 				"label": "Zobrazené jazyky",
 				"placeholder": "Všetky jazyky",
-				"remove": "Odobrať {{language}}"
+				"remove": "Odobrať {{language}}",
+				"clear": "Zobraziť všetky jazyky"
 			},
 			"updatedBy": {
 				"label": "Editor",
@@ -478,6 +483,7 @@
 			"unlock": "Odomknúť",
 			"lockLabel": "Zamknúť verziu {{name}}",
 			"unlockLabel": "Odomknúť verziu {{name}}",
+			"untranslatedLanguage": "{{language}}:",
 			"untranslated_one": "Nepreložený ostáva {{count}} kľúč.",
 			"untranslated_few": "Nepreložené ostávajú {{count}} kľúče.",
 			"untranslated_many": "Nepreložených ostáva {{count}} kľúčov.",

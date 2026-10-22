@@ -106,7 +106,7 @@ const response = (items: TranslationListItem[]): TranslationsResponse => ({
 	total: items.length,
 	page: 1,
 	pageSize: 20,
-	stats: { totalKeys: 10, translated: 8, untranslated: 2, warnings: 0 },
+	stats: { totalKeys: 10, translated: 8, untranslated: 2, warnings: 0, untranslatedByLanguage: {} },
 	namespaces: ['loc'],
 	editors: [],
 })
@@ -186,7 +186,7 @@ describe('TranslationsPage versions', () => {
 			routes: {
 				[`GET ${TRANSLATIONS_URL}`]: {
 					status: 200,
-					data: { ...response([WELCOME]), stats: { totalKeys: 10, translated: 8, untranslated: 2, warnings: 1 } },
+					data: { ...response([WELCOME]), stats: { totalKeys: 10, translated: 8, untranslated: 2, warnings: 1, untranslatedByLanguage: {} } },
 				},
 			},
 		})

@@ -148,7 +148,8 @@ describe('GET /api/projects/:projectId/translations', () => {
 			total: 4,
 			page: 1,
 			pageSize: 20,
-			stats: { totalKeys: 4, translated: 2, untranslated: 2, warnings: 0 },
+			// Per language, whatever the view: sk lacks paths/orders, en lacks Zrušiť and the null orders.empty.title.
+			stats: { totalKeys: 4, translated: 2, untranslated: 2, warnings: 0, untranslatedByLanguage: { [sk.id]: 1, [en.id]: 2 } },
 			namespaces: ['loc', 'paths'],
 			editors: [{ id: user.id, name: user.email }],
 		})
@@ -382,7 +383,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			total: 0,
 			page: 1,
 			pageSize: 20,
-			stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 },
+			stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0, untranslatedByLanguage: expect.any(Object) as unknown },
 			namespaces: [],
 			editors: [{ id: user.id, name: user.email }],
 		})
@@ -406,7 +407,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 			])
 			expect(Object.keys(body.items[0]?.translations ?? {}).sort()).toEqual([sk.id, en.id, ru.id].sort())
 			expect(body.items[0]?.translations[ru.id]).toEqual({ value: null, status: 'UNTRANSLATED', updatedAt: null, updatedBy: null })
-			expect(body.stats).toEqual({ totalKeys: 3, translated: 1, untranslated: 2, warnings: 0 })
+			expect(body.stats).toEqual({ totalKeys: 3, translated: 1, untranslated: 2, warnings: 0, untranslatedByLanguage: expect.any(Object) as unknown })
 			expect(names(await listOk(app, cookie, project.id, { status: 'UNTRANSLATED' }))).toEqual(['noRow', 'nullValue'])
 			expect(names(await listOk(app, cookie, project.id, { status: 'TRANSLATED' }))).toEqual(['full'])
 		})
@@ -454,7 +455,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 				total: 0,
 				page: 1,
 				pageSize: 20,
-				stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0 },
+				stats: { totalKeys: 0, translated: 0, untranslated: 0, warnings: 0, untranslatedByLanguage: expect.any(Object) as unknown },
 				namespaces: [],
 				editors: [],
 			})

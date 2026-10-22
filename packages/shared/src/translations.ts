@@ -196,6 +196,8 @@ export const translationsResponseSchema = z.object({
 		untranslated: z.number().int().nonnegative(),
 		/** Keys with at least one cell whose placeholders differ from the base language (`Translation.placeholderWarning`), ignoring filters. */
 		warnings: z.number().int().nonnegative(),
+		/** Keys of the version without a value in a language, per `ProjectLanguage.id` of every project language; ignores the view and the filters. */
+		untranslatedByLanguage: z.record(z.uuid(), z.number().int().nonnegative()),
 	}),
 	namespaces: z.array(z.string()),
 	editors: z.array(translationEditorSchema),

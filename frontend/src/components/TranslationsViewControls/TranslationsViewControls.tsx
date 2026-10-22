@@ -149,6 +149,8 @@ const TranslationsViewControls = ({
 					placeholder={shownLanguages ? undefined : t('translationsPage.toolbar.languages.placeholder')}
 					className={classes.languages}
 					classNames={{ inputField: classes.languagesField }}
+					clearable
+					clearButtonProps={{ 'aria-label': t('translationsPage.toolbar.languages.clear') }}
 					data={filterLanguages.map((language) => ({ value: language.tag, label: t(`languageNames.${language.tag}`) }))}
 					value={shownLanguages ?? []}
 					onChange={(values) => {

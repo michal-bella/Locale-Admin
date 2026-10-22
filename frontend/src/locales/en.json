@@ -271,6 +271,8 @@
 			"missing": "Untranslated",
 			"progressLabel": "{{label}}: {{percent}} %",
 			"share": "{{percent}} of keys",
+			"missingTranslations_one": "{{count}} missing translation",
+			"missingTranslations_other": "{{count}} missing translations",
 			"showTranslated": "Show translated",
 			"showMissing": "Show untranslated",
 			"showAll": "Show all"
@@ -308,7 +310,8 @@
 			"languages": {
 				"label": "Shown languages",
 				"placeholder": "All languages",
-				"remove": "Remove {{language}}"
+				"remove": "Remove {{language}}",
+				"clear": "Show all languages"
 			},
 			"updatedBy": {
 				"label": "Editor",
@@ -470,6 +473,7 @@
 			"unlock": "Unlock",
 			"lockLabel": "Lock version {{name}}",
 			"unlockLabel": "Unlock version {{name}}",
+			"untranslatedLanguage": "{{language}}:",
 			"untranslated_one": "{{count}} key is still untranslated.",
 			"untranslated_other": "{{count}} keys are still untranslated.",
 			"diff": "Compared with {{previous}}: {{added}}, {{changed}}, {{removed}}.",

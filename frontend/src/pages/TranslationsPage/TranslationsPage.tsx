@@ -189,7 +189,7 @@ const TranslationsPage = () => {
 					description={t('translationsPage.description')}
 					titleSize='h2'
 				/>
-				<div className='flex gap-2'>
+				<div className='flex flex-wrap gap-2'>
 					{isAdmin && (
 						<Button variant='default' leftSection={<Tag aria-hidden />} onClick={createVersionModal.open}>
 							{t('translationsPage.createVersionButton')}

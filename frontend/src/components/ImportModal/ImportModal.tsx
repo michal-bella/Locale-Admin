@@ -334,7 +334,7 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 							allowDeselect={false}
 							disabled={isPending}
 						/>
-						<Button variant='default' leftSection={<Plus aria-hidden />} onClick={versionForm.open} disabled={isPending}>
+						<Button variant='default' h={44} leftSection={<Plus aria-hidden />} onClick={versionForm.open} disabled={isPending}>
 							{t('importModal.version.create')}
 						</Button>
 					</div>

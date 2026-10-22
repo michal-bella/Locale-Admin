@@ -1,6 +1,6 @@
 import { Button } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useLoaderData } from '@tanstack/react-router'
+import { useLoaderData, useParams } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -17,6 +17,7 @@ import VersionsTable from '@/components/VersionsTable/VersionsTable'
 /** Versions of the project (named date windows matching the code releases): an ADMIN creates, edits, locks, unlocks and deletes them. */
 const ProjectVersionsPage = () => {
 	const { t } = useTranslation()
+	const { projectSlug } = useParams({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { data: user } = useMeQuery()
 	const isAdmin = user?.role === ROLE.ADMIN
@@ -94,6 +95,7 @@ const ProjectVersionsPage = () => {
 			<VersionsTable
 				ref={tableRef}
 				projectId={projectId}
+				projectSlug={projectSlug}
 				onCreate={isAdmin ? openCreate : undefined}
 				onEdit={isAdmin ? openEdit : undefined}
 				onToggleLock={isAdmin ? openLock : undefined}

@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Dátumy verzie a import (2026-10-22)
+
+- frontend: kalendár pri dátumoch verzie zvýrazní dnešok a má pod sebou tlačidlo **Dnes**, ktoré vyplní dnešný dátum a prepne kalendár na aktuálny mesiac; tlačidlo **Vytvoriť novú** v dialógu importu má výšku výberu verzie (44 px); v tabuľke verzií sú „Vytvoril …“ a „Import …“ iba v tooltipe ikony (i) pri názve, nie pod ním; názov verzie a nová akcia **Otvoriť preklady** (aj pre editora) otvoria Preklady s touto verziou ([Frontend](./frontend.md#stránka-verzie-projektu))
+
 ### Verzie ako kópie prekladov – míľnik F (2026-10-22)
 
 - E2E: `versions.spec.ts` prepísaný na model kópií (prázdna verzia, import s prevzatím predchodcu a odstránením kľúčov, diff v zozname a exporte, mazanie verzie, editor mimo okna), ostatné špecifikácie a helpery vytvárajú verziu a posielajú `versionId`; nová fixture `import-next.csv` ([testovanie](./testing.md)); doménová tabuľka v `AGENTS.md` popisuje verzie ako kópie

@@ -3,6 +3,7 @@ import { Button, type InputWrapperProps, TextInput } from '@mantine/core'
 import { DateInput, DatesProvider } from '@mantine/dates'
 import { notifications } from '@mantine/notifications'
 import { useQueryClient } from '@tanstack/react-query'
+import dayjs from 'dayjs'
 import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -46,6 +47,7 @@ const VersionFormModal = ({ projectId, opened, version, onClose, onCreated, zInd
 	const updateVersion = useUpdateProjectVersionMutation(projectId)
 	const isPending = createVersion.isPending || updateVersion.isPending
 	const mode = version ? 'edit' : 'create'
+	const datePresets = [{ value: dayjs().format('YYYY-MM-DD'), label: t('versionsPage.form.today') }]
 	const {
 		register,
 		control,
@@ -203,6 +205,8 @@ const VersionFormModal = ({ projectId, opened, version, onClose, onCreated, zInd
 										valueFormat={(value) => formatDate(value, i18n.language)}
 										dateParser={parseDateInput}
 										clearable
+										highlightToday
+										presets={datePresets}
 										disabled={isPending}
 										popoverProps={{ classNames: { dropdown: classes.dropdown } }}
 										classNames={{
@@ -212,6 +216,9 @@ const VersionFormModal = ({ projectId, opened, version, onClose, onCreated, zInd
 											day: classes.day,
 											monthsListControl: classes.monthsListControl,
 											yearsListControl: classes.yearsListControl,
+											presetsRoot: classes.presetsRoot,
+											presetsList: classes.presetsList,
+											presetButton: classes.presetButton,
 										}}
 									/>
 								)}

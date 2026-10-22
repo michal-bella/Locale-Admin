@@ -1112,6 +1112,8 @@
 			"unlockLabel": "Odomknúť verziu {{name}}",
 			"delete": "Zmazať",
 			"deleteLabel": "Zmazať verziu {{name}}",
+			"open": "Otvoriť preklady",
+			"openLabel": "Otvoriť preklady verzie {{name}}",
 			"keys": "Kľúče",
 			"keyCount_one": "{{count}} kľúč",
 			"keyCount_few": "{{count}} kľúče",
@@ -1151,6 +1153,7 @@
 				"afterStart": "Koniec musí byť po začiatku."
 			},
 			"datePlaceholder": "Vyberte dátum",
+			"today": "Dnes",
 			"createSuccess": "Verzia {{name}} bola vytvorená.",
 			"editSuccess": "Verzia {{name}} bola uložená."
 		},

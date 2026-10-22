@@ -402,7 +402,8 @@ test.describe('EDITOR', () => {
 		await loginViaApi(page, editor)
 
 		await openVersionsPage(page, editor.projectSlug)
-		await expect(getVersionsTable(page).getByRole('columnheader')).toHaveText(['Verzia', 'Začiatok', 'Koniec', 'Kľúče', 'Stav'])
+		await expect(getVersionsTable(page).getByRole('columnheader')).toHaveText(['Verzia', 'Začiatok', 'Koniec', 'Kľúče', 'Stav', 'Akcie'])
+		await expect(getVersionRow(page, 'v1.0').getByRole('link', { name: 'Otvoriť preklady verzie v1.0' })).toBeVisible()
 		await expect(getVersionRow(page, 'v1.1')).toContainText('Prebieha')
 		await expect(getVersionRow(page, 'v1.2')).toContainText('Pripravuje sa')
 		await expect(getVersionRow(page, 'v1.0')).toContainText('Uzamknutá')

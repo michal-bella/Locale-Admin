@@ -146,15 +146,30 @@ describe('ProjectVersionsPage table', () => {
 		expect(within(locked).getByRole('button', { name: 'Odomknúť verziu v2.44' })).toBeInTheDocument()
 		expect(within(locked).getByRole('button', { name: 'Zmazať verziu v2.44' })).toBeInTheDocument()
 		expect(within(current).queryByRole('button', { name: 'Zmazať verziu v2.45' })).not.toBeInTheDocument()
+		const translationsHref = `/projects/${PROJECT.slug}/translations?version=${CURRENT.id}`
+		expect(within(current).getByRole('link', { name: 'v2.45' })).toHaveAttribute('href', translationsHref)
+		expect(within(current).getByRole('link', { name: 'Otvoriť preklady verzie v2.45' })).toHaveAttribute('href', translationsHref)
 	})
 
-	it('hides the create button and the actions from an EDITOR, also in the empty state', async () => {
+	it('hides the create button from an EDITOR in the empty state', async () => {
 		signedInAs(EDITOR_USER, { ...PROJECT_ROUTES, [`GET ${LIST_URL}`]: versionsResponse([]) })
 		renderApp(PAGE_PATH)
 
 		expect(await screen.findByText('Projekt zatiaľ nemá žiadne verzie.')).toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: 'Vytvoriť verziu' })).not.toBeInTheDocument()
-		expect(screen.queryByRole('columnheader', { name: 'Akcie' })).not.toBeInTheDocument()
+	})
+
+	it('leaves an EDITOR only the links to the translations of a version', async () => {
+		signedInAs(EDITOR_USER, { ...PROJECT_ROUTES, [`GET ${LIST_URL}`]: versionsResponse([CURRENT, LOCKED]) })
+		renderApp(PAGE_PATH)
+
+		const locked = await findRow('v2.44')
+		expect(screen.queryByRole('button', { name: 'Vytvoriť verziu' })).not.toBeInTheDocument()
+		expect(within(locked).getByRole('link', { name: 'Otvoriť preklady verzie v2.44' })).toHaveAttribute(
+			'href',
+			`/projects/${PROJECT.slug}/translations?version=${LOCKED.id}`,
+		)
+		expect(within(locked).queryAllByRole('button')).toHaveLength(0)
 	})
 
 	it('shows the empty state with a button that opens the create modal', async () => {

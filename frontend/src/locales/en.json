@@ -1082,6 +1082,8 @@
 			"unlockLabel": "Unlock version {{name}}",
 			"delete": "Delete",
 			"deleteLabel": "Delete version {{name}}",
+			"open": "Open translations",
+			"openLabel": "Open translations of version {{name}}",
 			"keys": "Keys",
 			"keyCount_one": "{{count}} key",
 			"keyCount_other": "{{count}} keys",
@@ -1119,6 +1121,7 @@
 				"afterStart": "The end must be after the start."
 			},
 			"datePlaceholder": "Pick a date",
+			"today": "Today",
 			"createSuccess": "Version {{name}} was created.",
 			"editSuccess": "Version {{name}} was saved."
 		},

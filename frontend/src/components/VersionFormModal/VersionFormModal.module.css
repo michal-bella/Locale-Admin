@@ -55,3 +55,27 @@
 	font-weight: 600;
 	color: var(--app-color-text-strong);
 }
+
+/* Mantine lays the presets out as a column beside the calendar; the "Dnes" button sits under it instead. */
+.presetsRoot {
+	flex-direction: column-reverse;
+}
+
+.presetsList {
+	margin: 0.5rem 0 0;
+	padding: 0.5rem 0 0;
+	border-inline-end: 0;
+	border-top: 1px solid var(--app-color-border);
+}
+
+.presetButton {
+	border-radius: var(--mantine-radius-sm);
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	text-align: center;
+	color: var(--mantine-color-brand-4);
+}
+
+.day[data-today][data-highlight-today]:not([data-selected]) {
+	border: 1px solid var(--mantine-color-brand-6);
+}

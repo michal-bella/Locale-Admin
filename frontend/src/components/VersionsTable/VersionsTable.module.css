@@ -61,6 +61,23 @@
 	color: var(--app-color-muted);
 }
 
+.nameLink {
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 600;
+	color: var(--app-color-text-strong);
+	text-decoration: none;
+}
+
+.nameLink:hover {
+	color: var(--mantine-color-brand-6);
+	text-decoration: underline;
+}
+
+.infoIcon {
+	display: inline-flex;
+	color: var(--app-color-muted);
+}
+
 .state {
 	padding-block: 2.5rem;
 	text-align: center;

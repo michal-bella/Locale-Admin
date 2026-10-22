@@ -15,6 +15,8 @@ export enum ACTIVITY_TYPE {
 	KEY_CREATED = 'KEY_CREATED',
 	KEY_UPDATED = 'KEY_UPDATED',
 	TRANSLATION_UPDATED = 'TRANSLATION_UPDATED',
+	VERSION_CREATED = 'VERSION_CREATED',
+	VERSION_UPDATED = 'VERSION_UPDATED',
 }
 
 /** Project settings whose change writes `PROJECT_UPDATED`. */
@@ -26,6 +28,11 @@ export type ActivityProjectField = (typeof ACTIVITY_PROJECT_FIELDS)[number]
 export const ACTIVITY_KEY_FIELDS = ['name', 'description', 'pluralVariable'] as const
 
 export type ActivityKeyField = (typeof ACTIVITY_KEY_FIELDS)[number]
+
+/** Version attributes whose change writes `VERSION_UPDATED`. */
+export const ACTIVITY_VERSION_FIELDS = ['name', 'startsAt', 'endsAt', 'lock'] as const
+
+export type ActivityVersionField = (typeof ACTIVITY_VERSION_FIELDS)[number]
 
 // A plain string, not the catalog enum: stored events must stay valid if a tag is ever removed from SUPPORTED_LANGUAGES.
 const languageTag = z.string().min(1)
@@ -82,6 +89,8 @@ export const activityEventDataSchema = z.discriminatedUnion('type', [
 		oldValue: z.string().nullable(),
 		newValue: z.string().nullable(),
 	}),
+	event(ACTIVITY_TYPE.VERSION_CREATED, { name: z.string(), startsAt: z.iso.date(), endsAt: z.iso.date() }),
+	event(ACTIVITY_TYPE.VERSION_UPDATED, { name: z.string(), fields: z.array(z.enum(ACTIVITY_VERSION_FIELDS)).min(1) }),
 ])
 
 export type ActivityEventData = z.infer<typeof activityEventDataSchema>

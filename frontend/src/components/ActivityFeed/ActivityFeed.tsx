@@ -95,6 +95,13 @@ const ActivityFeed = ({ projectId, projectSlug }: ActivityFeedProps) => {
 				})
 			case ACTIVITY_TYPE.TRANSLATION_UPDATED:
 				return t('dashboardPage.activity.events.translationUpdated', { key: event.payload.name, language: languageName(event.payload.languageTag) })
+			case ACTIVITY_TYPE.VERSION_CREATED:
+				return t('dashboardPage.activity.events.versionCreated', { name: event.payload.name })
+			case ACTIVITY_TYPE.VERSION_UPDATED:
+				return t('dashboardPage.activity.events.versionUpdated', {
+					name: event.payload.name,
+					fields: list(event.payload.fields.map((field) => t(`dashboardPage.activity.versionFields.${field}`))),
+				})
 		}
 	}
 

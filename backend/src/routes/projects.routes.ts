@@ -20,6 +20,11 @@ import {
 } from '../controllers/projectMembers.controller'
 import { createGetProjectSettingsController, createUpdateProjectSettingsController } from '../controllers/projectSettings.controller'
 import {
+	createCreateProjectVersionController,
+	createListProjectVersionsController,
+	createUpdateProjectVersionController,
+} from '../controllers/projectVersions.controller'
+import {
 	createCreateProjectController,
 	createLeaveProjectController,
 	createListProjectsController,
@@ -50,6 +55,9 @@ export const createProjectsRouter = (prisma: PrismaClient, config: Config): Rout
 	router.post('/:projectId/languages', requireProjectAccess, requireRole(ROLE.ADMIN), createCreateProjectLanguageController(prisma))
 	router.put('/:projectId/languages/order', requireProjectAccess, requireRole(ROLE.ADMIN), createReorderProjectLanguagesController(prisma))
 	router.delete('/:projectId/languages/:languageId', requireProjectAccess, requireRole(ROLE.ADMIN), createDeleteProjectLanguageController(prisma))
+	router.get('/:projectId/versions', requireProjectAccess, createListProjectVersionsController(prisma))
+	router.post('/:projectId/versions', requireProjectAccess, requireRole(ROLE.ADMIN), createCreateProjectVersionController(prisma))
+	router.patch('/:projectId/versions/:versionId', requireProjectAccess, requireRole(ROLE.ADMIN), createUpdateProjectVersionController(prisma))
 	router.get('/:projectId/members', requireProjectAccess, createListProjectMembersController(prisma))
 	router.post('/:projectId/members', requireProjectAccess, requireRole(ROLE.ADMIN), createAddProjectMemberController(prisma))
 	router.delete('/:projectId/members/:userId', requireProjectAccess, requireRole(ROLE.ADMIN), createRemoveProjectMemberController(prisma))

@@ -31,6 +31,8 @@ describe('activityEventDataSchema', () => {
 				type: ACTIVITY_TYPE.TRANSLATION_UPDATED,
 				payload: { keyId: KEY_ID, namespace: '', name: 'Uložiť', languageTag: 'en', oldValue: null, newValue: 'Save' },
 			},
+			{ type: ACTIVITY_TYPE.VERSION_CREATED, payload: { name: 'v2.45', startsAt: '2026-09-08', endsAt: '2026-09-29' } },
+			{ type: ACTIVITY_TYPE.VERSION_UPDATED, payload: { name: 'v2.45', fields: ['endsAt', 'lock'] } },
 		]
 		expect(events.map((event) => activityEventDataSchema.parse(event))).toEqual(events)
 		expect(new Set(events.map((event) => event.type))).toEqual(new Set(Object.values(ACTIVITY_TYPE)))

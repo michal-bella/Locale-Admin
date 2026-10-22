@@ -1,6 +1,6 @@
 ---
 title: 'API'
-updated: 2026-10-20
+updated: 2026-10-22
 notion_page_id:
 ---
 
@@ -31,6 +31,9 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `POST`   | `/api/projects/:projectId/languages`                            | pridanie jazyka do projektu (člen, ADMIN), [detail](./project-languages.md)                                    |
 | `PUT`    | `/api/projects/:projectId/languages/order`                      | poradie jazykov projektu, prvý je základný (člen, ADMIN), [detail](./project-languages.md)                     |
 | `DELETE` | `/api/projects/:projectId/languages/:languageId`                | odobratie jazyka z projektu (člen, ADMIN), [detail](./project-languages.md)                                    |
+| `GET`    | `/api/projects/:projectId/versions`                             | verzie prekladov projektu (člen, ADMIN), [detail](./project-versions.md)                                       |
+| `POST`   | `/api/projects/:projectId/versions`                             | vytvorenie verzie (ADMIN), [detail](./project-versions.md)                                                     |
+| `PATCH`  | `/api/projects/:projectId/versions/:versionId`                  | zmena názvu, dátumov, zamknutie a odomknutie verzie (ADMIN), [detail](./project-versions.md)                   |
 | `GET`    | `/api/projects/:projectId/members`                              | členovia projektu (člen, ADMIN), [detail](./projects.md)                                                       |
 | `POST`   | `/api/projects/:projectId/members`                              | pridanie existujúceho používateľa do projektu (ADMIN), [detail](./projects.md)                                 |
 | `DELETE` | `/api/projects/:projectId/members/:userId`                      | odobranie člena z projektu (ADMIN), [detail](./projects.md)                                                    |
@@ -60,34 +63,37 @@ Každá chyba má tvar `{ error: { code, message, details? } }`.
 - Pri `EXPORT_VALUE_UNSAFE` je `details` objekt `{ issues, total }` s hodnotami, ktoré by rozbili CSV (viď [export](./exports.md#hodnoty-ktoré-by-súbor-rozbili)).
 - Pri `PLACEHOLDER_MISMATCH` je `details` objekt `{ missing, extra }` (pri `POST …/keys` aj `languageId`) s normalizovanými premennými (viď [preklady](./translations.md#ochrana-premenných)).
 
-| HTTP | `code`                      | Kedy                                                                                                                           |
-| ---- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| 400  | `VALIDATION_ERROR`          | nevalidné telo požiadavky (zod) alebo poškodený JSON                                                                           |
-| 400  | `IMPORT_COLUMNS_INVALID`    | priradenie stĺpcov importu k jazykom je neplatné (chýbajúci alebo cudzí stĺpec, cudzí alebo zdvojený jazyk, všetko preskočené) |
-| 400  | `EXPORT_LANGUAGES_INVALID`  | jazyk exportu nepatrí projektu                                                                                                 |
-| 400  | `PLACEHOLDER_MISMATCH`      | preklad nemá rovnaké premenné `{{…}}` ako základný jazyk pri zapnutej ochrane premenných, `details: { missing, extra }`        |
-| 413  | `VALIDATION_ERROR`          | telo požiadavky je väčšie ako 100 KB (okrem ciest importu)                                                                     |
-| 413  | `IMPORT_FILE_TOO_LARGE`     | súbor importu nad 10 MB alebo telo požiadavky importu nad 12 MB                                                                |
-| 415  | `VALIDATION_ERROR`          | nepodporovaný charset alebo `Content-Encoding` tela požiadavky                                                                 |
-| 401  | `AUTH_INVALID_CREDENTIALS`  | zlý email alebo heslo, neaktívny user                                                                                          |
-| 401  | `AUTH_UNAUTHENTICATED`      | chýba alebo expirovala session                                                                                                 |
-| 403  | `FORBIDDEN`                 | prihlásený bez oprávnenia                                                                                                      |
-| 403  | `CSRF_REJECTED`             | mutácia bez `Content-Type: application/json` a `X-Requested-With`                                                              |
-| 404  | `NOT_FOUND`                 | neexistujúci endpoint alebo záznam (pod `/api/admin/*` iba pre ADMIN, inak 401/403), projekt mimo prístupu                     |
-| 404  | `TRANSLATION_KEY_NOT_FOUND` | kľúč prekladu nie je UUID alebo nepatrí projektu                                                                               |
-| 409  | `EMAIL_TAKEN`               | email už existuje                                                                                                              |
-| 409  | `LANGUAGE_TAKEN`            | jazyk s týmto tagom už v projekte je                                                                                           |
-| 409  | `LANGUAGE_IS_BASE`          | pokus odobrať základný jazyk projektu                                                                                          |
-| 409  | `SLUG_TAKEN`                | projekt s týmto slugom už existuje                                                                                             |
-| 409  | `LAST_MEMBER`               | posledný člen by opustil projekt alebo bol z neho odobraný                                                                     |
-| 409  | `ALREADY_MEMBER`            | používateľ už je členom projektu                                                                                               |
-| 409  | `SELF_DELETE`               | admin chce odstrániť vlastný účet                                                                                              |
-| 409  | `LAST_ADMIN`                | posledný admin by prišiel o rolu `ADMIN` (viď [profil](./profile.md), [správa používateľov](./admin-users.md))                 |
-| 409  | `TRANSLATION_KEY_TAKEN`     | kľúč s týmto názvom už v namespace existuje (premenovanie kľúča)                                                               |
-| 422  | `IMPORT_FILE_INVALID`       | importovaný súbor má chyby, `details: { issues, total }`                                                                       |
-| 422  | `EXPORT_VALUE_UNSAFE`       | hodnota by rozbila exportované CSV (`;`, nový riadok, `--x--`), `details: { issues, total }`                                   |
-| 429  | `EXPORT_BUSY`               | príliš veľa súbežných exportov, hlavička `Retry-After`                                                                         |
-| 429  | `RATE_LIMITED`              | prekročený rate limit, s hlavičkou `Retry-After`                                                                               |
-| 500  | `INTERNAL_ERROR`            | neočakávaná chyba, detail je iba v logu                                                                                        |
+| HTTP | `code`                       | Kedy                                                                                                                           |
+| ---- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 400  | `VALIDATION_ERROR`           | nevalidné telo požiadavky (zod) alebo poškodený JSON                                                                           |
+| 400  | `IMPORT_COLUMNS_INVALID`     | priradenie stĺpcov importu k jazykom je neplatné (chýbajúci alebo cudzí stĺpec, cudzí alebo zdvojený jazyk, všetko preskočené) |
+| 400  | `EXPORT_LANGUAGES_INVALID`   | jazyk exportu nepatrí projektu                                                                                                 |
+| 400  | `PLACEHOLDER_MISMATCH`       | preklad nemá rovnaké premenné `{{…}}` ako základný jazyk pri zapnutej ochrane premenných, `details: { missing, extra }`        |
+| 413  | `VALIDATION_ERROR`           | telo požiadavky je väčšie ako 100 KB (okrem ciest importu)                                                                     |
+| 413  | `IMPORT_FILE_TOO_LARGE`      | súbor importu nad 10 MB alebo telo požiadavky importu nad 12 MB                                                                |
+| 415  | `VALIDATION_ERROR`           | nepodporovaný charset alebo `Content-Encoding` tela požiadavky                                                                 |
+| 401  | `AUTH_INVALID_CREDENTIALS`   | zlý email alebo heslo, neaktívny user                                                                                          |
+| 401  | `AUTH_UNAUTHENTICATED`       | chýba alebo expirovala session                                                                                                 |
+| 403  | `FORBIDDEN`                  | prihlásený bez oprávnenia                                                                                                      |
+| 403  | `CSRF_REJECTED`              | mutácia bez `Content-Type: application/json` a `X-Requested-With`                                                              |
+| 404  | `NOT_FOUND`                  | neexistujúci endpoint alebo záznam (pod `/api/admin/*` iba pre ADMIN, inak 401/403), projekt mimo prístupu                     |
+| 404  | `TRANSLATION_KEY_NOT_FOUND`  | kľúč prekladu nie je UUID alebo nepatrí projektu                                                                               |
+| 404  | `PROJECT_VERSION_NOT_FOUND`  | verzia nie je UUID alebo nepatrí projektu                                                                                      |
+| 409  | `EMAIL_TAKEN`                | email už existuje                                                                                                              |
+| 409  | `LANGUAGE_TAKEN`             | jazyk s týmto tagom už v projekte je                                                                                           |
+| 409  | `LANGUAGE_IS_BASE`           | pokus odobrať základný jazyk projektu                                                                                          |
+| 409  | `SLUG_TAKEN`                 | projekt s týmto slugom už existuje                                                                                             |
+| 409  | `LAST_MEMBER`                | posledný člen by opustil projekt alebo bol z neho odobraný                                                                     |
+| 409  | `ALREADY_MEMBER`             | používateľ už je členom projektu                                                                                               |
+| 409  | `SELF_DELETE`                | admin chce odstrániť vlastný účet                                                                                              |
+| 409  | `LAST_ADMIN`                 | posledný admin by prišiel o rolu `ADMIN` (viď [profil](./profile.md), [správa používateľov](./admin-users.md))                 |
+| 409  | `TRANSLATION_KEY_TAKEN`      | kľúč s týmto názvom už v namespace existuje (premenovanie kľúča)                                                               |
+| 409  | `PROJECT_VERSION_NAME_TAKEN` | verzia s týmto názvom už v projekte existuje                                                                                   |
+| 409  | `PROJECT_VERSION_LOCKED`     | zápis `EDITOR`-a alebo `VISITOR`-a do uzamknutej verzie (od míľnika B plánu `translation-versions`)                            |
+| 422  | `IMPORT_FILE_INVALID`        | importovaný súbor má chyby, `details: { issues, total }`                                                                       |
+| 422  | `EXPORT_VALUE_UNSAFE`        | hodnota by rozbila exportované CSV (`;`, nový riadok, `--x--`), `details: { issues, total }`                                   |
+| 429  | `EXPORT_BUSY`                | príliš veľa súbežných exportov, hlavička `Retry-After`                                                                         |
+| 429  | `RATE_LIMITED`               | prekročený rate limit, s hlavičkou `Retry-After`                                                                               |
+| 500  | `INTERNAL_ERROR`             | neočakávaná chyba, detail je iba v logu                                                                                        |
 
-Pre validáciu tela požiadavky sa používa iba 400; 422 je vyhradené pre chyby v obsahu importovaného súboru a pre hodnoty, ktoré by rozbili exportovaný súbor. Chyby parsovania tela (413, 415 a ďalšie 4xx z `express.json()`) vracajú svoj HTTP status s kódom `VALIDATION_ERROR` (413 na cestách importu s kódom `IMPORT_FILE_TOO_LARGE`) a logujú sa ako `warn`, nie `error`. Kódy `AUTH_*`, `FORBIDDEN`, `CSRF_REJECTED` a `RATE_LIMITED` vracia backend od míľnika B (viď [auth](./auth.md)), `EMAIL_TAKEN` od míľnika C (viď [správa používateľov](./admin-users.md)), `LANGUAGE_TAKEN` a `LANGUAGE_IS_BASE` od stránky Jazyky (viď [jazyky projektu](./project-languages.md)), `SLUG_TAKEN` a `LAST_MEMBER` od projektov, `ALREADY_MEMBER` od pridávania existujúcich používateľov do projektu (viď [projekty](./projects.md)), `SELF_DELETE` od mazania používateľov (viď [správa používateľov](./admin-users.md)), `IMPORT_FILE_INVALID` a `IMPORT_FILE_TOO_LARGE` od kontroly importu, `IMPORT_COLUMNS_INVALID` od zápisu importu (viď [import](./imports.md)), `PLACEHOLDER_MISMATCH` a `TRANSLATION_KEY_NOT_FOUND` od úpravy prekladu, `TRANSLATION_KEY_TAKEN` od úpravy a ručného pridania kľúča (viď [preklady](./translations.md)), `EXPORT_LANGUAGES_INVALID`, `EXPORT_VALUE_UNSAFE` a `EXPORT_BUSY` od exportu (viď [export](./exports.md)).
+Pre validáciu tela požiadavky sa používa iba 400; 422 je vyhradené pre chyby v obsahu importovaného súboru a pre hodnoty, ktoré by rozbili exportovaný súbor. Chyby parsovania tela (413, 415 a ďalšie 4xx z `express.json()`) vracajú svoj HTTP status s kódom `VALIDATION_ERROR` (413 na cestách importu s kódom `IMPORT_FILE_TOO_LARGE`) a logujú sa ako `warn`, nie `error`. Kódy `AUTH_*`, `FORBIDDEN`, `CSRF_REJECTED` a `RATE_LIMITED` vracia backend od míľnika B (viď [auth](./auth.md)), `EMAIL_TAKEN` od míľnika C (viď [správa používateľov](./admin-users.md)), `LANGUAGE_TAKEN` a `LANGUAGE_IS_BASE` od stránky Jazyky (viď [jazyky projektu](./project-languages.md)), `SLUG_TAKEN` a `LAST_MEMBER` od projektov, `ALREADY_MEMBER` od pridávania existujúcich používateľov do projektu (viď [projekty](./projects.md)), `SELF_DELETE` od mazania používateľov (viď [správa používateľov](./admin-users.md)), `IMPORT_FILE_INVALID` a `IMPORT_FILE_TOO_LARGE` od kontroly importu, `IMPORT_COLUMNS_INVALID` od zápisu importu (viď [import](./imports.md)), `PLACEHOLDER_MISMATCH` a `TRANSLATION_KEY_NOT_FOUND` od úpravy prekladu, `TRANSLATION_KEY_TAKEN` od úpravy a ručného pridania kľúča (viď [preklady](./translations.md)), `EXPORT_LANGUAGES_INVALID`, `EXPORT_VALUE_UNSAFE` a `EXPORT_BUSY` od exportu (viď [export](./exports.md)), `PROJECT_VERSION_NAME_TAKEN`, `PROJECT_VERSION_NOT_FOUND` a `PROJECT_VERSION_LOCKED` od verzií projektu (viď [verzie projektu](./project-versions.md)).

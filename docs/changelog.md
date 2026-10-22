@@ -1,12 +1,17 @@
 ---
 title: 'Changelog'
-updated: 2026-10-21
+updated: 2026-10-22
 notion_page_id:
 ---
 
 # Changelog
 
 ## Po fáze 1
+
+### Verzie prekladov – model a API (2026-10-22)
+
+- databáza: tabuľka `ProjectVersion` (názov, `startsAt`, `endsAt`, `lock`) a nullable `versionId` na `TranslationKey` a `Translation` (migrácia `project_versions`); verzia sa nemaže ([Databáza](./database.md#projectversion), [ADR 0006](./decisions/0006-project-versions.md))
+- API: `GET`/`POST …/versions` a `PATCH …/versions/:versionId` (názov, dátumy, ručné zamknutie a odomknutie, iba ADMIN), udalosti `VERSION_CREATED` a `VERSION_UPDATED`, kódy `PROJECT_VERSION_NAME_TAKEN`, `PROJECT_VERSION_NOT_FOUND`, `PROJECT_VERSION_LOCKED` ([API](./api/project-versions.md)). Zápis verzie na kľúče a bunky, filter a export prídu v ďalších míľnikoch plánu [`translation-versions`](./plans/translation-versions.md)
 
 ### Banner upozornení na premenné (2026-10-21)
 

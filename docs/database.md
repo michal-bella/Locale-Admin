@@ -1,6 +1,6 @@
 ---
 title: 'Databáza'
-updated: 2026-10-20
+updated: 2026-10-22
 notion_page_id:
 ---
 
@@ -106,19 +106,39 @@ Vlastné poradie projektov jedného používateľa na indexe `/` (drag and drop,
 
 PK je dvojica (`userId`, `projectId`), index na `projectId`. Riadok ostane aj po odchode z projektu (projekt sa používateľovi aj tak nezobrazí). Migrácia `project_order`.
 
+### ProjectVersion
+
+Verzia prekladov projektu: pomenované časové okno zhodné s verziou aplikácie v kóde (`v2.45`). Dáta sa nekopírujú, verzia je štítok na kľúčoch a bunkách. Správanie API je v [API: verzie projektu](./api/project-versions.md), rozhodnutie v [ADR 0006](./decisions/0006-project-versions.md), plán v [`plans/translation-versions.md`](./plans/translation-versions.md).
+
+| Pole                     | Typ                 | Poznámka                                                                                                                     |
+| ------------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `id`                     | UUID                | PK                                                                                                                           |
+| `projectId`              | UUID                | FK na `Project`, pri zmazaní projektu sa zmaže                                                                               |
+| `name`                   | string              | názov zhodný s verziou v kóde, 1 až 50 znakov, unikátny v projekte                                                           |
+| `startsAt`               | date                | začiatok okna (code freeze): dokedy vývojári dodajú kľúče                                                                    |
+| `endsAt`                 | date                | koniec okna (end of copy + translation): dokedy editori preklady dokončia; vždy po `startsAt`, okná sa môžu prekrývať        |
+| `lock`                   | enum `VERSION_LOCK` | default `AUTO` (uzamknutá odo dňa po `endsAt`), `LOCKED` / `UNLOCKED` nastavené ručne `ADMIN`-om majú prednosť pred dátumami |
+| `createdById`            | UUID, nullable      | FK na `User`, kto verziu vytvoril; pri zmazaní usera `null`                                                                  |
+| `createdAt`, `updatedAt` | datetime            |                                                                                                                              |
+
+Indexy: unikátna dvojica (`projectId`, `name`), (`projectId`, `startsAt` DESC) pre zoznam a hľadanie aktuálnej verzie. Dátumy sú `DATE` bez času; Prisma ich vracia ako UTC polnoc, backend ich číta a zapisuje cez `fromDbDate` / `toDbDate` v `backend/src/lib/projectVersions.ts`, „dnes“ je dátum servera.
+
+Verzia sa nikdy nemaže: `TranslationKey.versionId` a `Translation.versionId` na ňu ukazujú s `Restrict`. Uzamknutá verzia (`isVersionLocked` v `packages/shared`) blokuje zápisy `EDITOR`-a a `VISITOR`-a (409 `PROJECT_VERSION_LOCKED`), `ADMIN` zapisuje vždy. Aktuálna verzia (dnešok medzi dátumami, pri prekryve najneskorší `startsAt`) sa odvodzuje dotazom (`findCurrentVersionId`), neukladá sa.
+
 ### TranslationKey
 
 Kľúč prekladu v projekte. Správanie API je v [API: preklady](./api/translations.md).
 
-| Pole                     | Typ              | Poznámka                                                                       |
-| ------------------------ | ---------------- | ------------------------------------------------------------------------------ |
-| `id`                     | UUID             | PK                                                                             |
-| `projectId`              | UUID             | FK na `Project`, pri zmazaní projektu sa zmaže                                 |
-| `namespace`              | string           | default `""`; názov JSON súboru (`loc`, `paths`), v CSV sekcia `--namespace--` |
-| `name`                   | string           | kľúč, napr. veta `Uložiť` alebo cesta `orders.empty.title`                     |
-| `description`            | string, nullable | popis kľúča pre prekladateľov, max. 500 znakov                                 |
-| `pluralVariable`         | string, nullable | `null` = bežný kľúč; názov číselnej premennej (`count`) = plurálový kľúč       |
-| `createdAt`, `updatedAt` | datetime         |                                                                                |
+| Pole                     | Typ              | Poznámka                                                                                                                                                                                         |
+| ------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                     | UUID             | PK                                                                                                                                                                                               |
+| `projectId`              | UUID             | FK na `Project`, pri zmazaní projektu sa zmaže                                                                                                                                                   |
+| `namespace`              | string           | default `""`; názov JSON súboru (`loc`, `paths`), v CSV sekcia `--namespace--`                                                                                                                   |
+| `name`                   | string           | kľúč, napr. veta `Uložiť` alebo cesta `orders.empty.title`                                                                                                                                       |
+| `description`            | string, nullable | popis kľúča pre prekladateľov, max. 500 znakov                                                                                                                                                   |
+| `pluralVariable`         | string, nullable | `null` = bežný kľúč; názov číselnej premennej (`count`) = plurálový kľúč                                                                                                                         |
+| `versionId`              | UUID, nullable   | FK na `ProjectVersion` (`Restrict`): verzia, v ktorej kľúč vznikol (import alebo Pridať kľúč); `null` bez verzií a pri kľúčoch spred nich. Zapisuje sa od míľnika B plánu `translation-versions` |
+| `createdAt`, `updatedAt` | datetime         |                                                                                                                                                                                                  |
 
 Unikátna trojica (`projectId`, `namespace`, `name`): ten istý kľúč môže byť v projekte vo viacerých namespace. Namespace je súčasť identity kľúča a musí sa zachovať presne, lebo budúci export z neho generuje JSON súbory po jazykoch aj sekcie v CSV. V zozname prekladov slúži ako skupina a filter.
 
@@ -138,8 +158,9 @@ Text kľúča v jednom jazyku projektu.
 | `updatedById`        | UUID, nullable    | FK na `User`, kto naposledy zmenil preklad; pri zmazaní usera sa nastaví `null`                                                                                                                                                                                                                                                                                                                                                                                               |
 | `updatedAt`          | datetime          | posledná zmena                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `placeholderWarning` | boolean, nullable | `true` = premenné hodnoty sa líšia od referencie (hodnota základného jazyka, inak názov kľúča s premennými), `false` = skontrolované a v poriadku (základný jazyk vždy), `null` = ešte nevypočítané; prepočítava sa po kľúčoch v transakcii každého zápisu (úprava, Pridať kľúč, premenovanie, import, zmena základného jazyka) a `null` riadky dopočíta seed pri štarte (`seedPlaceholderWarnings`). Plán [`plans/translation-warnings.md`](./plans/translation-warnings.md) |
+| `versionId`          | UUID, nullable    | FK na `ProjectVersion` (`Restrict`): verzia, v ktorej bola hodnota naposledy zapísaná; zápis, ktorý hodnotu nemení, ju nechá. Zapisuje sa od míľnika B plánu `translation-versions`                                                                                                                                                                                                                                                                                           |
 
-PK je dvojica (`keyId`, `languageId`), index na `languageId`. Kaskády: zmazanie kľúča alebo odobratie jazyka z projektu zmaže jeho preklady, zmazanie používateľa nastaví `updatedById` na `null`.
+PK je dvojica (`keyId`, `languageId`), indexy na `languageId` a `versionId`. Kaskády: zmazanie kľúča alebo odobratie jazyka z projektu zmaže jeho preklady, zmazanie používateľa nastaví `updatedById` na `null`.
 
 Riadky zapisujú dva endpointy:
 
@@ -166,19 +187,21 @@ Index (`projectId`, `createdAt` DESC) pre feed aj denné súčty.
 
 Udalosť zapisuje helper `recordActivity(tx, …)` (`backend/src/lib/activity.ts`) v **tej istej transakcii** ako zmenu, takže zlyhaná zmena (validácia, konflikt, rollback) nezapíše nič. Payload je snímka (tag jazyka, namespace a názov kľúča, meno a e-mail člena, stará a nová hodnota), aby feed ostal čitateľný aj po zmazaní kľúča, jazyka alebo používateľa.
 
-| `type`                  | Kedy sa zapíše                                                                                                         | `payload`                                                                        |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `PROJECT_CREATED`       | `POST /api/projects`                                                                                                   | `{ name }`                                                                       |
-| `PROJECT_UPDATED`       | `PATCH …/settings`, iba ak sa zmenilo aspoň jedno pole                                                                 | `{ fields }` – zmenené z `name`, `slug`, `primaryColor`, `protectVariables`      |
-| `LANGUAGE_ADDED`        | `POST …/languages`                                                                                                     | `{ tag }`                                                                        |
-| `LANGUAGE_REMOVED`      | `DELETE …/languages/:languageId`                                                                                       | `{ tag }`                                                                        |
-| `BASE_LANGUAGE_CHANGED` | základný jazyk sa naozaj zmenil: `baseLanguageId` v `PATCH …/settings` alebo nový prvý jazyk v `PUT …/languages/order` | `{ fromTag, toTag }` (`fromTag` je `null`, ak projekt základný jazyk nemal)      |
-| `MEMBER_ADDED`          | `POST …/members`                                                                                                       | `{ member: { id, firstName, lastName, email } }`                                 |
-| `MEMBER_REMOVED`        | `DELETE …/members/:userId` aj `DELETE …/membership` (odchod)                                                           | `{ member, left }` – `left` je `true`, keď člen odišiel sám                      |
-| `KEYS_IMPORTED`         | `POST …/imports`, ak vytvoril kľúč alebo zapísal hodnotu; jedna udalosť za import                                      | `{ keysCreated, translationsCreated, translationsUpdated, languageTags }`        |
-| `KEY_CREATED`           | `POST …/keys` (ručné pridanie kľúča)                                                                                   | `{ keyId, namespace, name, languageTags }` – jazyky s vyplnenou hodnotou         |
-| `KEY_UPDATED`           | `PATCH …/keys/:keyId`, iba ak sa zmenil názov, popis alebo plurál                                                      | `{ keyId, namespace, name, fields }` – `name` je nový názov                      |
-| `TRANSLATION_UPDATED`   | `PUT …/translations/:languageId`, iba ak sa uložená hodnota zmenila                                                    | `{ keyId, namespace, name, languageTag, oldValue, newValue }` (`null` = prázdne) |
+| `type`                  | Kedy sa zapíše                                                                                                         | `payload`                                                                                 |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `PROJECT_CREATED`       | `POST /api/projects`                                                                                                   | `{ name }`                                                                                |
+| `PROJECT_UPDATED`       | `PATCH …/settings`, iba ak sa zmenilo aspoň jedno pole                                                                 | `{ fields }` – zmenené z `name`, `slug`, `primaryColor`, `protectVariables`               |
+| `LANGUAGE_ADDED`        | `POST …/languages`                                                                                                     | `{ tag }`                                                                                 |
+| `LANGUAGE_REMOVED`      | `DELETE …/languages/:languageId`                                                                                       | `{ tag }`                                                                                 |
+| `BASE_LANGUAGE_CHANGED` | základný jazyk sa naozaj zmenil: `baseLanguageId` v `PATCH …/settings` alebo nový prvý jazyk v `PUT …/languages/order` | `{ fromTag, toTag }` (`fromTag` je `null`, ak projekt základný jazyk nemal)               |
+| `MEMBER_ADDED`          | `POST …/members`                                                                                                       | `{ member: { id, firstName, lastName, email } }`                                          |
+| `MEMBER_REMOVED`        | `DELETE …/members/:userId` aj `DELETE …/membership` (odchod)                                                           | `{ member, left }` – `left` je `true`, keď člen odišiel sám                               |
+| `KEYS_IMPORTED`         | `POST …/imports`, ak vytvoril kľúč alebo zapísal hodnotu; jedna udalosť za import                                      | `{ keysCreated, translationsCreated, translationsUpdated, languageTags }`                 |
+| `KEY_CREATED`           | `POST …/keys` (ručné pridanie kľúča)                                                                                   | `{ keyId, namespace, name, languageTags }` – jazyky s vyplnenou hodnotou                  |
+| `KEY_UPDATED`           | `PATCH …/keys/:keyId`, iba ak sa zmenil názov, popis alebo plurál                                                      | `{ keyId, namespace, name, fields }` – `name` je nový názov                               |
+| `TRANSLATION_UPDATED`   | `PUT …/translations/:languageId`, iba ak sa uložená hodnota zmenila                                                    | `{ keyId, namespace, name, languageTag, oldValue, newValue }` (`null` = prázdne)          |
+| `VERSION_CREATED`       | `POST …/versions`                                                                                                      | `{ name, startsAt, endsAt }`                                                              |
+| `VERSION_UPDATED`       | `PATCH …/versions/:versionId`, iba ak sa zmenilo aspoň jedno pole                                                      | `{ name, fields }` – zmenené z `name`, `startsAt`, `endsAt`, `lock`; `name` je nový názov |
 
 Pri `KEYS_IMPORTED` je `count` počet zapísaných buniek (`translationsCreated + translationsUpdated`), `languageTags` sú jazyky, do ktorých sa niečo zapísalo, v poradí projektu. Import, ktorý iba zmení existujúce kľúče na plurálové (bez novej hodnoty a nového kľúča), sa nezaznamenáva. Nezaznamenáva sa ani zmena poradia jazykov (ak nemení základný jazyk) ani projektov, zmazanie projektu ADMIN-om (kaskáda zmaže aj udalosti) a zmeny používateľov.
 
@@ -198,6 +221,10 @@ erDiagram
     User |o--o{ Translation : "naposledy upravil"
     Project ||--o{ ActivityEvent : "má históriu"
     User |o--o{ ActivityEvent : "urobil"
+    Project ||--o{ ProjectVersion : "má verzie"
+    User |o--o{ ProjectVersion : "vytvoril"
+    ProjectVersion |o--o{ TranslationKey : "vznikol vo"
+    ProjectVersion |o--o{ Translation : "zmenená vo"
     User {
         uuid id PK
         string email UK
@@ -255,6 +282,7 @@ erDiagram
         string name
         string description
         string pluralVariable
+        uuid versionId FK
         datetime createdAt
         datetime updatedAt
     }
@@ -263,6 +291,19 @@ erDiagram
         uuid languageId PK, FK
         string value
         uuid updatedById FK
+        datetime updatedAt
+        boolean placeholderWarning
+        uuid versionId FK
+    }
+    ProjectVersion {
+        uuid id PK
+        uuid projectId FK
+        string name UK
+        date startsAt
+        date endsAt
+        VERSION_LOCK lock
+        uuid createdById FK
+        datetime createdAt
         datetime updatedAt
     }
     ActivityEvent {

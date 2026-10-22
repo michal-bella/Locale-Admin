@@ -35,6 +35,15 @@ enum ACTIVITY_TYPE {
   KEY_CREATED
   KEY_UPDATED
   TRANSLATION_UPDATED
+  VERSION_CREATED
+  VERSION_UPDATED
+}
+
+/// Lock of a `ProjectVersion`: `AUTO` locks once today is past `endsAt`, `LOCKED` and `UNLOCKED` are set by an ADMIN and win over the dates.
+enum VERSION_LOCK {
+  AUTO
+  LOCKED
+  UNLOCKED
 }
 
 model User {
@@ -56,6 +65,7 @@ model User {
   projectOrders      ProjectOrder[]
   translations       Translation[]
   activityEvents     ActivityEvent[]
+  projectVersions    ProjectVersion[]
 }
 
 model Session {
@@ -100,6 +110,29 @@ model Project {
   languages        ProjectLanguage[]
   translationKeys  TranslationKey[]
   activityEvents   ActivityEvent[]
+  versions         ProjectVersion[]
+}
+
+/// A named date window of a project matching a release of the code (`v2.45`). `startsAt`: developers deliver the keys by this day
+/// (code freeze); `endsAt`: editors finish the translations by this day and developers sync them. An ADMIN can rename it, move its dates
+/// and lock or unlock it by hand; it is never deleted (keys and cells point at it with `Restrict`).
+model ProjectVersion {
+  id           String           @id @default(uuid()) @db.Uuid
+  projectId    String           @db.Uuid
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String
+  startsAt     DateTime         @db.Date
+  endsAt       DateTime         @db.Date
+  lock         VERSION_LOCK     @default(AUTO)
+  createdById  String?          @db.Uuid
+  createdBy    User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  keys         TranslationKey[]
+  translations Translation[]
+
+  @@unique([projectId, name])
+  @@index([projectId, startsAt(sort: Desc)])
 }
 
 /// Position of a project in one user's project list (drag and drop on `/`); a project without a row comes after, by name.
@@ -128,36 +161,44 @@ model ProjectMember {
 /// `namespace` is the JSON file of the key (`loc`, `paths`), `""` for none. It is part of the key identity and must be kept exactly for the export.
 /// `pluralVariable` set = plural key: every value is one ICU plural message with this number variable (`serializePluralValue` in @locale/shared).
 model TranslationKey {
-  id             String        @id @default(uuid()) @db.Uuid
-  projectId      String        @db.Uuid
-  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  namespace      String        @default("")
+  id             String          @id @default(uuid()) @db.Uuid
+  projectId      String          @db.Uuid
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  namespace      String          @default("")
   name           String
   description    String?
   pluralVariable String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  /// Version the key was created in (import or „Pridať kľúč“); `null` for projects without versions and for keys created before them.
+  versionId      String?         @db.Uuid
+  version        ProjectVersion? @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   translations   Translation[]
 
   @@unique([projectId, namespace, name])
+  @@index([versionId])
 }
 
 /// The status is derived, never stored: a missing row or `value = null` is untranslated. `""` is never written (saved as `null`).
 model Translation {
-  keyId       String          @db.Uuid
-  key         TranslationKey  @relation(fields: [keyId], references: [id], onDelete: Cascade)
-  languageId  String          @db.Uuid
-  language    ProjectLanguage @relation(fields: [languageId], references: [id], onDelete: Cascade)
-  value       String?
-  updatedById String?         @db.Uuid
-  updatedBy   User?           @relation(fields: [updatedById], references: [id], onDelete: SetNull)
-  updatedAt   DateTime        @updatedAt
+  keyId              String          @db.Uuid
+  key                TranslationKey  @relation(fields: [keyId], references: [id], onDelete: Cascade)
+  languageId         String          @db.Uuid
+  language           ProjectLanguage @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  value              String?
+  updatedById        String?         @db.Uuid
+  updatedBy          User?           @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt          DateTime        @updatedAt
   /// `true` when the value's placeholders differ from the reference (base value, else a key name with placeholders), `false` when checked
   /// and fine (always for the base language), `null` for rows the services have not computed yet (the seed fills them on start).
   placeholderWarning Boolean?
+  /// Version in which the value was last written; a write that leaves the value unchanged keeps it.
+  versionId          String?         @db.Uuid
+  version            ProjectVersion? @relation(fields: [versionId], references: [id], onDelete: Restrict)
 
   @@id([keyId, languageId])
   @@index([languageId])
+  @@index([versionId])
 }
 
 /// Append-only log of project changes for the dashboard, written in the same transaction as the change.

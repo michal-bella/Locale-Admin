@@ -527,7 +527,9 @@
 				"newKeyCount_other": "{{count}} nových kľúčov",
 				"keyCreated": "nový kľúč {{key}}",
 				"keyUpdated": "úprava kľúča {{key}}: {{fields}}",
-				"translationUpdated": "úprava prekladu {{key}} ({{language}})"
+				"translationUpdated": "úprava prekladu {{key}} ({{language}})",
+				"versionCreated": "vytvorenie verzie {{name}}",
+				"versionUpdated": "úprava verzie {{name}}: {{fields}}"
 			},
 			"projectFields": {
 				"name": "názov",
@@ -539,6 +541,12 @@
 				"name": "názov",
 				"description": "popis",
 				"pluralVariable": "plurál"
+			},
+			"versionFields": {
+				"name": "názov",
+				"startsAt": "začiatok",
+				"endsAt": "koniec",
+				"lock": "uzamknutie"
 			}
 		},
 		"daily": {
@@ -1065,6 +1073,9 @@
 		"PLACEHOLDER_MISMATCH": "Premenné v preklade sa nezhodujú so základným jazykom.",
 		"TRANSLATION_KEY_NOT_FOUND": "Kľúč sa nenašiel. Možno ho medzitým niekto odstránil.",
 		"TRANSLATION_KEY_TAKEN": "Kľúč s týmto názvom už v namespace existuje.",
+		"PROJECT_VERSION_NAME_TAKEN": "Verzia s týmto názvom už v projekte existuje.",
+		"PROJECT_VERSION_NOT_FOUND": "Verzia sa nenašla. Obnovte stránku a skúste to znova.",
+		"PROJECT_VERSION_LOCKED": "Verzia je uzamknutá. Úpravy môže robiť iba administrátor.",
 		"EXPORT_LANGUAGES_INVALID": "Vybraný jazyk do projektu nepatrí. Obnovte stránku a skúste to znova.",
 		"EXPORT_VALUE_UNSAFE": "Niektoré preklady obsahujú znaky, ktoré by rozbili CSV súbor. Opravte ich a skúste to znova.",
 		"EXPORT_BUSY": "Export práve robí veľa ľudí naraz. Skúste to o chvíľu znova.",

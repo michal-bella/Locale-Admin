@@ -1,4 +1,4 @@
-import { CloseButton, type ComboboxItem, type ComboboxLikeRenderOptionInput, Select, TextInput } from '@mantine/core'
+import { CloseButton, type ComboboxItem, type ComboboxLikeRenderOptionInput, Select, Switch, TextInput } from '@mantine/core'
 import { useDebouncedCallback } from '@mantine/hooks'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -22,7 +22,8 @@ const renderStatusOption = ({ option }: ComboboxLikeRenderOptionInput<ComboboxIt
 
 /**
  * Filters of the translations table (Figma 3:121): search, sort, status, namespace, Editor, Verzia and Zmenené, each with an icon in the left
- * section so the row of selects reads apart. What the table shows (view, layout, languages, Len preklady) lives in `TranslationsViewControls`. The search writes to the URL 300 ms after the last keystroke; the X and Esc clear it right away,
+ * section so the row of selects reads apart, then the switches Zobraziť len zmeny and Len preklady. How the table is laid out (view, layout,
+ * languages) lives in `TranslationsViewControls`. The search writes to the URL 300 ms after the last keystroke; the X and Esc clear it right away,
  * as the other filters do.
  */
 const TranslationsToolbar = ({
@@ -36,6 +37,9 @@ const TranslationsToolbar = ({
 	versions,
 	editors,
 	namespaces,
+	translationsOnly,
+	diffOnly,
+	diffAvailable,
 	onChange,
 }: TranslationsToolbarProps) => {
 	const { t } = useTranslation()
@@ -179,6 +183,24 @@ const TranslationsToolbar = ({
 				clearable
 				withScrollArea={false}
 			/>
+			<div className={classes.switches}>
+				{diffAvailable && (
+					<Switch
+						label={t('translationsPage.view.diffOnly')}
+						checked={diffOnly === true}
+						onChange={(event) => onChange({ diff: event.currentTarget.checked || undefined })}
+						className={classes.switch}
+						classNames={{ track: classes.pointer, label: classes.pointer }}
+					/>
+				)}
+				<Switch
+					label={t('translationsPage.toolbar.translationsOnly')}
+					checked={translationsOnly === true}
+					onChange={(event) => onChange({ translationsOnly: event.currentTarget.checked || undefined })}
+					className={classes.switch}
+					classNames={{ track: classes.pointer, label: classes.pointer }}
+				/>
+			</div>
 		</div>
 	)
 }

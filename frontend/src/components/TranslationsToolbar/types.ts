@@ -17,6 +17,12 @@ export type TranslationsToolbarProps = {
 	editors: TranslationEditor[]
 	/** Every namespace of the project; the namespace filter shows only when there is more than one. */
 	namespaces: string[]
-	/** Called with the changed URL search params; the page resets the page number. */
+	/** Hides the key and status columns of the table (Len preklady). */
+	translationsOnly?: true
+	/** Lists only the keys added or changed against the previous version (Zobraziť len zmeny). */
+	diffOnly?: true
+	/** The version has an import, so it has a diff; without one the switch is not shown. */
+	diffAvailable: boolean
+	/** Called with the changed URL search params; the page resets the page number (except for Len preklady, which changes only the columns). */
 	onChange: (patch: Partial<TranslationsSearch>) => void
 }

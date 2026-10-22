@@ -1,14 +1,4 @@
-import {
-	type ComboboxItem,
-	type ComboboxLikeRenderOptionInput,
-	MultiSelect,
-	Pill,
-	SegmentedControl,
-	Select,
-	Switch,
-	Tooltip,
-	VisuallyHidden,
-} from '@mantine/core'
+import { type ComboboxItem, type ComboboxLikeRenderOptionInput, MultiSelect, Pill, SegmentedControl, Select, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 
 import { type Language, LANGUAGE_TAGS, translationsLayoutSchema, translationsViewSchema } from '@locale/shared'
@@ -86,9 +76,6 @@ const TranslationsViewControls = ({
 	sourceLanguage,
 	targetLanguage,
 	shownLanguages,
-	translationsOnly,
-	diffOnly,
-	diffAvailable,
 	onChange,
 }: TranslationsViewControlsProps) => {
 	const { t } = useTranslation()
@@ -189,24 +176,6 @@ const TranslationsViewControls = ({
 					comboboxProps={{ width: 260, position: 'bottom-start' }}
 				/>
 			)}
-			<div className={classes.switches}>
-				{diffAvailable && (
-					<Switch
-						label={t('translationsPage.view.diffOnly')}
-						checked={diffOnly === true}
-						onChange={(event) => onChange({ diff: event.currentTarget.checked || undefined })}
-						className={classes.switch}
-						classNames={{ track: classes.pointer, label: classes.pointer }}
-					/>
-				)}
-				<Switch
-					label={t('translationsPage.toolbar.translationsOnly')}
-					checked={translationsOnly === true}
-					onChange={(event) => onChange({ translationsOnly: event.currentTarget.checked || undefined })}
-					className={classes.switch}
-					classNames={{ track: classes.pointer, label: classes.pointer }}
-				/>
-			</div>
 		</div>
 	)
 }

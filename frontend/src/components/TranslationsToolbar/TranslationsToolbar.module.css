@@ -36,10 +36,35 @@
 	color: transparent;
 }
 
-/* Below Tailwind's sm breakpoint every filter takes the full width. */
+/* The switches end the row of filters; as tall as a select, so a row of only switches keeps the rhythm. */
+.switches {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	align-items: center;
+	min-height: 2.75rem;
+	margin-inline-start: auto;
+}
+
+.switch {
+	flex-shrink: 0;
+	padding-inline: 0.25rem;
+	white-space: nowrap;
+}
+
+.pointer {
+	cursor: pointer;
+}
+
+/* Below Tailwind's sm breakpoint every filter takes the full width; the switches sit under them, left-aligned. */
 @media (max-width: 39.99em) {
 	.search,
-	.select {
+	.select,
+	.switches {
 		flex-basis: 100%;
+	}
+
+	.switches {
+		margin-inline-start: 0;
 	}
 }

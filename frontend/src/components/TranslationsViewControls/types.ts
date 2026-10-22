@@ -16,12 +16,6 @@ export type TranslationsViewControlsProps = {
 	targetLanguage?: Language
 	/** Non-base languages the extended view shows next to the base one; `undefined` shows every language. */
 	shownLanguages?: LanguageTag[]
-	/** Hides the key and status columns of the table. */
-	translationsOnly?: true
-	/** Lists only the keys added or changed against the previous version (Zobraziť len zmeny). */
-	diffOnly?: true
-	/** The version has an import, so it has a diff; without one the switch is not shown. */
-	diffAvailable: boolean
 	/** Called with the changed URL search params. */
 	onChange: (patch: Partial<TranslationsSearch>) => void
 }

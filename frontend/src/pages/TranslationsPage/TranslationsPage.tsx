@@ -294,11 +294,8 @@ const TranslationsPage = () => {
 						sourceLanguage={sourceLanguage}
 						targetLanguage={targetLanguage}
 						shownLanguages={search.languages}
-						translationsOnly={search.translationsOnly}
-						diffOnly={search.diff}
-						diffAvailable={versionHasImport}
 						// The shown languages and Len preklady change only the columns, so the page stays; the pair changes what counts as untranslated.
-						onChange={(patch) => updateSearch(patch, { resetPage: !('languages' in patch || 'translationsOnly' in patch) })}
+						onChange={(patch) => updateSearch(patch, { resetPage: !('languages' in patch) })}
 					/>
 					<div className={classes.card}>
 						<div className={classes.toolbar}>
@@ -313,7 +310,11 @@ const TranslationsPage = () => {
 								versions={versions}
 								editors={data?.editors ?? []}
 								namespaces={namespaces}
-								onChange={(patch) => updateSearch(patch)}
+								translationsOnly={search.translationsOnly}
+								diffOnly={search.diff}
+								diffAvailable={versionHasImport}
+								// Len preklady changes only the columns, so the page stays.
+								onChange={(patch) => updateSearch(patch, { resetPage: !('translationsOnly' in patch) })}
 							/>
 						</div>
 						{/* The toolbar stays, so the Verzia select still leads out of an empty version; only the table gives way to the empty state. */}

@@ -262,8 +262,8 @@ describe('ProjectVersionsPage edit and lock', () => {
 		fireEvent.click(within(await findRow('v2.45')).getByRole('button', { name: 'Upraviť verziu v2.45' }))
 		const dialog = await screen.findByRole('dialog', { name: 'Upraviť verziu' })
 		expect(within(dialog).getByLabelText('Názov verzie')).toHaveValue('v2.45')
-		expect(within(dialog).getByLabelText('Začiatok')).toHaveValue('2026-09-08')
-		expect(within(dialog).getByLabelText('Koniec')).toHaveValue('2026-09-29')
+		expect(within(dialog).getByLabelText('Začiatok')).toHaveValue('8. 9. 2026')
+		expect(within(dialog).getByLabelText('Koniec')).toHaveValue('29. 9. 2026')
 
 		fillForm(dialog, { name: 'v2.45.1', endsAt: '2026-10-02' })
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť' }))

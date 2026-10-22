@@ -1,9 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, TextInput } from '@mantine/core'
+import { Button, type InputWrapperProps, TextInput } from '@mantine/core'
+import { DateInput, DatesProvider } from '@mantine/dates'
 import { notifications } from '@mantine/notifications'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -21,17 +22,25 @@ import { useCreateProjectVersionMutation } from '@/api/projectVersions/useCreate
 import { useUpdateProjectVersionMutation } from '@/api/projectVersions/useUpdateProjectVersionMutation'
 import { QUERY_KEYS } from '@/api/queryKeys'
 import AppModal from '@/components/AppModal/AppModal'
+import { parseDateInput, toDayjsLocale } from '@/lib/dateInput'
+import { formatDate } from '@/lib/formatDate'
 
+import classes from './VersionFormModal.module.css'
 import { type VersionFormModalProps } from './types'
 
 const EMPTY_VALUES: CreateProjectVersionRequest = { name: '', startsAt: '', endsAt: '' }
 
+const DATE_FIELDS = ['startsAt', 'endsAt'] as const
+
+/** The input sits right under the label on both fields, so a longer description does not push one of them down. */
+const DATE_WRAPPER_ORDER: NonNullable<InputWrapperProps['inputWrapperOrder']> = ['label', 'input', 'description', 'error']
+
 /**
- * "Vytvoriť verziu" and "Upraviť verziu" of a project: name matching the code release and the two dates (native date inputs, the
- * contract's `YYYY-MM-DD`). The edit sends every field; the lock is changed from the table, not here.
+ * "Vytvoriť verziu" and "Upraviť verziu" of a project: name matching the code release and the two dates (Mantine `DateInput`, typed or
+ * picked from the calendar, held as the contract's `YYYY-MM-DD`). The edit sends every field; the lock is changed from the table, not here.
  */
 const VersionFormModal = ({ projectId, opened, version, onClose, onCreated, zIndex }: VersionFormModalProps) => {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
 	const queryClient = useQueryClient()
 	const createVersion = useCreateProjectVersionMutation(projectId)
 	const updateVersion = useUpdateProjectVersionMutation(projectId)
@@ -39,6 +48,7 @@ const VersionFormModal = ({ projectId, opened, version, onClose, onCreated, zInd
 	const mode = version ? 'edit' : 'create'
 	const {
 		register,
+		control,
 		handleSubmit,
 		setError,
 		reset,
@@ -49,7 +59,7 @@ const VersionFormModal = ({ projectId, opened, version, onClose, onCreated, zInd
 				if (issue.code === 'custom' && issue.path?.[0] === 'endsAt') {
 					return t('versionsPage.form.endsAt.afterStart')
 				}
-				// An empty native date input is '' and fails the format check; it is a missing field, not a malformed date.
+				// An empty date field is '' and fails the format check; it is a missing field, not a malformed date.
 				if (issue.code === 'invalid_format' && issue.input === '') {
 					return t('validation.REQUIRED')
 				}
@@ -170,24 +180,45 @@ const VersionFormModal = ({ projectId, opened, version, onClose, onCreated, zInd
 					error={errors.name?.message}
 					{...register('name')}
 				/>
-				<div className='flex flex-col gap-4 sm:flex-row'>
-					<TextInput
-						type='date'
-						className='flex-1'
-						label={t('versionsPage.form.startsAt.label')}
-						description={t('versionsPage.form.startsAt.description')}
-						error={errors.startsAt?.message}
-						{...register('startsAt')}
-					/>
-					<TextInput
-						type='date'
-						className='flex-1'
-						label={t('versionsPage.form.endsAt.label')}
-						description={t('versionsPage.form.endsAt.description')}
-						error={errors.endsAt?.message}
-						{...register('endsAt')}
-					/>
-				</div>
+				<DatesProvider settings={{ locale: toDayjsLocale(i18n.language) }}>
+					<div className='flex flex-col gap-4 sm:flex-row'>
+						{DATE_FIELDS.map((name) => (
+							<Controller
+								key={name}
+								name={name}
+								control={control}
+								render={({ field, fieldState }) => (
+									<DateInput
+										ref={field.ref}
+										name={field.name}
+										className='flex-1'
+										label={t(`versionsPage.form.${name}.label`)}
+										description={t(`versionsPage.form.${name}.description`)}
+										placeholder={t('versionsPage.form.datePlaceholder')}
+										inputWrapperOrder={DATE_WRAPPER_ORDER}
+										value={field.value || null}
+										onChange={(value) => field.onChange(value ?? '')}
+										onBlur={field.onBlur}
+										error={fieldState.error?.message}
+										valueFormat={(value) => formatDate(value, i18n.language)}
+										dateParser={parseDateInput}
+										clearable
+										disabled={isPending}
+										popoverProps={{ classNames: { dropdown: classes.dropdown } }}
+										classNames={{
+											calendarHeaderLevel: classes.calendarHeaderLevel,
+											calendarHeaderControl: classes.calendarHeaderControl,
+											weekday: classes.weekday,
+											day: classes.day,
+											monthsListControl: classes.monthsListControl,
+											yearsListControl: classes.yearsListControl,
+										}}
+									/>
+								)}
+							/>
+						))}
+					</div>
+				</DatesProvider>
 			</div>
 		</AppModal>
 	)

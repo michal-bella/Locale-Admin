@@ -25,6 +25,12 @@ export const dayShift = (days: number) => {
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
+/** `YYYY-MM-DD` as the date field shows it in `sk` (`8. 9. 2026`). */
+export const formatVersionDate = (isoDate: string) => {
+	const [year, month, day] = isoDate.split('-').map(Number)
+	return `${day}. ${month}. ${year}`
+}
+
 /** A version running today: started 2 days ago, 12 days left. */
 export const CURRENT_WINDOW = { startsAt: dayShift(-2), endsAt: dayShift(12) }
 

@@ -1067,6 +1067,7 @@
 				"description": "By when editors finish the translations; then the version is locked.",
 				"afterStart": "The end must be after the start."
 			},
+			"datePlaceholder": "Pick a date",
 			"createSuccess": "Version {{name}} was created.",
 			"editSuccess": "Version {{name}} was saved."
 		},

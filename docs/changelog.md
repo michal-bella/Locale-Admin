@@ -10,6 +10,7 @@ notion_page_id:
 
 ### Verzie prekladov – vytvorenie a zamknutie zo stránky Preklady (2026-10-22)
 
+- frontend: dátumy verzie vo formulári sú `DateInput` z `@mantine/dates` (nová závislosť s `dayjs`) s kalendárom v štýle aplikácie a lokalizovaným formátom; popisy polí sú pod vstupmi, aby boli obe polia zarovnané ([Frontend](./frontend.md#stránka-verzie-projektu))
 - frontend: stránka Preklady má pre `ADMIN` tlačidlo **Vytvoriť verziu** (nová verzia sa hneď zapne vo filtri) a v banneri verzie **Zamknúť** / **Odomknúť**; import predvolí verziu zapnutú vo filtri namiesto aktuálnej ([Frontend](./frontend.md#verzie-na-stránke-preklady))
 
 ### Zmena hesla v profile (2026-10-22)

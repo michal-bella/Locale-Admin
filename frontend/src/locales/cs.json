@@ -1093,6 +1093,7 @@
 				"description": "Dokdy editoři dokončí překlady, potom se verze uzamkne.",
 				"afterStart": "Konec musí být po začátku."
 			},
+			"datePlaceholder": "Vyberte datum",
 			"createSuccess": "Verze {{name}} byla vytvořena.",
 			"editSuccess": "Verze {{name}} byla uložena."
 		},

@@ -1093,6 +1093,7 @@
 				"description": "Dokedy editori dokončia preklady, potom sa verzia uzamkne.",
 				"afterStart": "Koniec musí byť po začiatku."
 			},
+			"datePlaceholder": "Vyberte dátum",
 			"createSuccess": "Verzia {{name}} bola vytvorená.",
 			"editSuccess": "Verzia {{name}} bola uložená."
 		},

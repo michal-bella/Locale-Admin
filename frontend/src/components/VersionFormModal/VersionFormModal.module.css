@@ -1,0 +1,57 @@
+.dropdown {
+	padding: 0.75rem;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-lg);
+	background-color: var(--app-color-surface);
+	box-shadow: var(--mantine-shadow-modal);
+}
+
+.calendarHeaderLevel {
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 600;
+	color: var(--app-color-text-strong);
+}
+
+.calendarHeaderControl {
+	border-radius: var(--mantine-radius-sm);
+	color: var(--app-color-text-secondary);
+}
+
+.weekday {
+	font-size: var(--mantine-font-size-2xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--app-color-muted);
+}
+
+.day {
+	border-radius: var(--mantine-radius-sm);
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	color: var(--app-color-text-strong);
+}
+
+/* Mantine paints weekends red; the design keeps every day in the text color. */
+.day[data-weekend] {
+	color: var(--app-color-text-strong);
+}
+
+.day[data-outside],
+.day[data-outside][data-weekend] {
+	color: var(--app-color-muted);
+}
+
+.day[data-selected],
+.day[data-selected]:hover {
+	background-color: var(--mantine-color-brand-6);
+	color: var(--mantine-color-white);
+}
+
+.monthsListControl,
+.yearsListControl {
+	border-radius: var(--mantine-radius-sm);
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	color: var(--app-color-text-strong);
+}

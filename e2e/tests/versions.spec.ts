@@ -11,6 +11,7 @@ import {
 	CURRENT_WINDOW,
 	dayShift,
 	fillVersionForm,
+	formatVersionDate,
 	getVersionFormDialog,
 	getVersionRow,
 	getVersionsTable,
@@ -78,8 +79,8 @@ test.describe('ADMIN in a project', () => {
 		await getVersionRow(page, 'v2.45').getByRole('button', { name: 'Upraviť verziu v2.45' }).click()
 		const dialog = getVersionFormDialog(page, 'edit')
 		await expect(dialog.getByRole('textbox', { name: 'Názov verzie' })).toHaveValue('v2.45')
-		await expect(dialog.getByLabel('Začiatok')).toHaveValue(CURRENT_WINDOW.startsAt)
-		await expect(dialog.getByLabel('Koniec')).toHaveValue(CURRENT_WINDOW.endsAt)
+		await expect(dialog.getByLabel('Začiatok')).toHaveValue(formatVersionDate(CURRENT_WINDOW.startsAt))
+		await expect(dialog.getByLabel('Koniec')).toHaveValue(formatVersionDate(CURRENT_WINDOW.endsAt))
 
 		await fillVersionForm(dialog, { name: 'v2.44' })
 		await dialog.getByRole('button', { name: 'Uložiť' }).click()

@@ -23,4 +23,4 @@ Index projektovej dokumentácie. Zdroj pravdy je tento priečinok v repe, Notion
 | [Rozhodnutia](./decisions/README.md)    | architektonické rozhodnutia (ADR)                |
 | [Changelog](./changelog.md)             | čo pribudlo v ktorej fáze                        |
 
-Plány fáz sú v [`plans/`](./plans/phase-1.md) (aktuálny: [členovia projektu z existujúcich používateľov](./plans/project-members.md), predchádzajúci: [zobrazenia prekladov a úprava v modále](./plans/translations-views.md)) a do Notionu sa nesynchronizujú.
+Plány fáz sú v [`plans/`](./plans/phase-1.md) (aktuálny: [verzie prekladov projektu](./plans/translation-versions.md), predchádzajúci: [banner upozornení na premenné](./plans/translation-warnings.md)) a do Notionu sa nesynchronizujú.

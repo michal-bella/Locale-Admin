@@ -22,11 +22,11 @@ type ChartRow = { date: string; changes: number }
  * Denná aktivita (not in Figma): changed translations per calendar day of the browser's time zone as bars, 7 / 30 / 90 days, and the most
  * active members of the period. The chart is hidden from screen readers; they get the summary and a visually hidden table of the days.
  */
-const DailyActivity = ({ projectId }: DailyActivityProps) => {
+const DailyActivity = ({ projectId, versionId }: DailyActivityProps) => {
 	const { t, i18n } = useTranslation()
 	const [range, setRange] = useState<ActivityRange>('30d')
 	const [timeZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone)
-	const { data, isPending, isError, error, refetch, isRefetching } = useActivityDailyQuery(projectId, { range, timeZone })
+	const { data, isPending, isError, error, refetch, isRefetching } = useActivityDailyQuery(projectId, { versionId, range, timeZone })
 	const locale = toIntlLocale(i18n.language)
 
 	// `date` is a calendar day (`YYYY-MM-DD`), which `Date` reads as UTC midnight, so it is formatted in UTC to keep the day.

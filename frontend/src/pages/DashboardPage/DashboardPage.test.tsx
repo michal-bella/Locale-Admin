@@ -19,7 +19,7 @@ import {
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
-import { ADMIN_USER, apiError, EDITOR_USER, type MockRoutes, projectListRoute, signedInAs, VISITOR_USER } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, type MockRoutes, projectListRoute, projectVersion, signedInAs, VISITOR_USER } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const PROJECT: ProjectSettings = {
@@ -37,8 +37,11 @@ const API = `/projects/${PROJECT.id}`
 const NOW = new Date(2026, 9, 20, 12, 0, 0)
 const hoursAgo = (hours: number) => new Date(NOW.getTime() - hours * 60 * 60 * 1000).toISOString()
 
+const CURRENT = projectVersion({ id: '00000000-0000-4000-8000-000000000502', name: 'v2.45', isCurrent: true })
+const PREVIOUS = projectVersion({ id: '00000000-0000-4000-8000-000000000501', name: 'v2.44', isLocked: true, state: 'LOCKED' })
+
 const DASHBOARD: DashboardResponse = {
-	version: { id: '00000000-0000-4000-8000-000000000502', name: 'v2.45' },
+	version: { id: CURRENT.id, name: CURRENT.name },
 	keys: { total: 248, createdLast30Days: 12 },
 	translatedKeys: 221,
 	strings: { filled: 690, total: 744 },
@@ -101,6 +104,7 @@ const routes = (overrides: MockRoutes = {}): MockRoutes => ({
 	...projectListRoute(PROJECT),
 	[`GET ${API}/settings`]: { status: 200, data: PROJECT },
 	[`GET ${API}/dashboard`]: { status: 200, data: DASHBOARD },
+	[`GET ${API}/versions`]: { status: 200, data: { items: [CURRENT, PREVIOUS] } },
 	[`GET ${API}/languages`]: { status: 200, data: LANGUAGES },
 	[`GET ${API}/members`]: { status: 200, data: { members: MEMBERS } },
 	[`GET ${API}/activity`]: { status: 200, data: activityPage([]) },
@@ -123,6 +127,8 @@ const findCard = async (label: string) => {
 const searchOf = (link: HTMLElement) => new URL(link.getAttribute('href') ?? '', 'http://localhost')
 
 const findActivity = async () => within(await screen.findByRole('region', { name: 'Posledná aktivita' }))
+
+const paramsOf = (request: InternalAxiosRequestConfig) => request.params as Record<string, unknown> | undefined
 
 describe('DashboardPage', () => {
 	beforeEach(() => {
@@ -373,14 +379,15 @@ describe('DashboardPage', () => {
 		])
 	})
 
-	it('shows the empty states of a project without keys and activity', async () => {
+	it('shows the empty states of a project without keys, versions and activity, and no version select', async () => {
 		signedInAs(
 			ADMIN_USER,
 			routes({
 				[`GET ${API}/dashboard`]: {
 					status: 200,
-					data: { keys: { total: 0, createdLast30Days: 0 }, translatedKeys: 0, strings: { filled: 0, total: 0 }, baseWords: 0 },
+					data: { version: null, keys: { total: 0, createdLast30Days: 0 }, translatedKeys: 0, strings: { filled: 0, total: 0 }, baseWords: 0 },
 				},
+				[`GET ${API}/versions`]: { status: 200, data: { items: [] } },
 				[`GET ${API}/activity/daily`]: { status: 200, data: { days: DAILY.days.map((day) => ({ ...day, changes: 0 })), contributors: [] } },
 			}),
 		)
@@ -391,6 +398,51 @@ describe('DashboardPage', () => {
 		expect(screen.queryByRole('button', { name: /Importovať/ })).not.toBeInTheDocument()
 		expect(await (await findActivity()).findByText('Zatiaľ žiadna aktivita. Zmeny v projekte sa zobrazia tu.')).toBeInTheDocument()
 		expect(await screen.findByText('V tomto období nikto nič nezmenil.')).toBeInTheDocument()
+		expect(screen.queryByRole('combobox', { name: 'Verzia' })).not.toBeInTheDocument()
+	})
+
+	it('preselects the version the dashboard answered with and sends the chosen one to the dashboard and the daily activity', async () => {
+		const requests = signedInAs(
+			EDITOR_USER,
+			routes({
+				[`GET ${API}/dashboard`]: (config: InternalAxiosRequestConfig) => ({
+					status: 200,
+					data:
+						paramsOf(config)?.versionId === PREVIOUS.id
+							? { ...DASHBOARD, version: { id: PREVIOUS.id, name: PREVIOUS.name }, keys: { total: 26, createdLast30Days: 0 } }
+							: DASHBOARD,
+				}),
+			}),
+		)
+		renderApp(PAGE_PATH)
+
+		const keys = await findCard('Kľúče')
+		await waitFor(() => expect(text(keys)).toContain('248'))
+		expect(screen.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.45 (aktuálna)')
+		expect(paramsOf(requests.find((request) => request.url === `${API}/dashboard`) as InternalAxiosRequestConfig)?.versionId).toBeUndefined()
+
+		fireEvent.click(screen.getByRole('combobox', { name: 'Verzia' }))
+		fireEvent.click(await screen.findByRole('option', { name: 'v2.44' }))
+
+		await waitFor(() => expect(text(keys)).toContain('26'))
+		expect(screen.getByRole('combobox', { name: 'Verzia' })).toHaveValue('v2.44')
+		const byUrl = (url: string) => requests.filter((request) => request.url === url).map((request) => paramsOf(request)?.versionId)
+		expect(byUrl(`${API}/dashboard`)).toEqual([undefined, PREVIOUS.id])
+		await waitFor(() => expect(byUrl(`${API}/activity/daily`)).toEqual([undefined, PREVIOUS.id]))
+	})
+
+	it('shows the version of an event after its time in the feed', async () => {
+		const withVersion = { ...event({ type: ACTIVITY_TYPE.LANGUAGE_ADDED, payload: { tag: 'en' } }), version: { id: CURRENT.id, name: 'v2.45' } }
+		const deleted = event({ type: ACTIVITY_TYPE.VERSION_DELETED, payload: { name: 'v2.43', keyCount: 5 } }, hoursAgo(2))
+		signedInAs(EDITOR_USER, routes({ [`GET ${API}/activity`]: { status: 200, data: activityPage([withVersion, deleted]) } }))
+		renderApp(PAGE_PATH)
+
+		const activity = await findActivity()
+		const rows = within(await activity.findByRole('list', { name: 'Dnes' })).getAllByRole('listitem')
+		expect(rows.map(text)).toEqual([
+			'MKMartin Kováč · pridanie jazyka angličtinapred 1 h · v2.45',
+			'MKMartin Kováč · zmazanie verzie v2.43 (5 kľúčov)pred 2 h',
+		])
 	})
 
 	it('summarizes the daily activity for screen readers and lists the most active members', async () => {
@@ -424,7 +476,7 @@ describe('DashboardPage', () => {
 
 	it('shows a translated error with a retry when the statistics fail', async () => {
 		// The global 3 retries with backoff would delay the error state by seconds.
-		queryClient.setQueryDefaults(QUERY_KEYS.PROJECTS.DASHBOARD(PROJECT.id), { retry: false })
+		queryClient.setQueryDefaults(QUERY_KEYS.PROJECTS.DASHBOARD_ALL(PROJECT.id), { retry: false })
 		let dashboard = apiError(500, 'INTERNAL_ERROR')
 		signedInAs(EDITOR_USER, routes({ [`GET ${API}/dashboard`]: () => dashboard }))
 		renderApp(PAGE_PATH)

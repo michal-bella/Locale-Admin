@@ -7,7 +7,7 @@ import { type ProjectVersion, type ProjectVersionState, VERSION_LOCK } from '@lo
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectVersionsQuery } from '@/api/projectVersions/projectVersionsQuery'
-import { Edit, Lock, LockUnlocked, Plus } from '@/components/Icons'
+import { Edit, Lock, LockUnlocked, Plus, Trash } from '@/components/Icons'
 import RowAction from '@/components/RowAction/RowAction'
 import { formatDate, formatDateTime } from '@/lib/formatDate'
 
@@ -16,17 +16,18 @@ import { type VersionsTableProps } from './types'
 
 const SKELETON_ROWS = 3
 
-const COLUMN_COUNT_WITHOUT_ACTIONS = 4
+const COLUMN_COUNT_WITHOUT_ACTIONS = 5
 
 const STATE_COLOR: Record<ProjectVersionState, string> = { UPCOMING: 'gray', ACTIVE: 'green', LOCKED: 'blue' }
 
 /**
- * Versions of a project in a card like the languages: name with who created it, the two dates, the state for today and, for an ADMIN,
- * Upraviť and Zamknúť / Odomknúť. Below 1200 px the dates move under the name, as in the languages table.
+ * Versions of a project in a card like the languages: name with who created it and the last import, the two dates, the key count, the state
+ * for today and, for an ADMIN, Upraviť, Zamknúť / Odomknúť and Zmazať (not for the current version). Below 1200 px the dates and the key
+ * count move under the name, as in the languages table.
  */
-const VersionsTable = ({ projectId, onCreate, onEdit, onToggleLock, ref }: VersionsTableProps) => {
+const VersionsTable = ({ projectId, onCreate, onEdit, onToggleLock, onDelete, ref }: VersionsTableProps) => {
 	const { t, i18n } = useTranslation()
-	const hasActions = onEdit !== undefined || onToggleLock !== undefined
+	const hasActions = onEdit !== undefined || onToggleLock !== undefined || onDelete !== undefined
 	const columnCount = hasActions ? COLUMN_COUNT_WITHOUT_ACTIONS + 1 : COLUMN_COUNT_WITHOUT_ACTIONS
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectVersionsQuery(projectId)
 	const tableRef = useRef<HTMLTableElement>(null)
@@ -52,6 +53,13 @@ const VersionsTable = ({ projectId, onCreate, onEdit, onToggleLock, ref }: Versi
 			{t('versionsPage.table.dates', { startsAt: formatDate(version.startsAt, i18n.language), endsAt: formatDate(version.endsAt, i18n.language) })}
 		</Text>
 	)
+
+	const keyCount = (version: ProjectVersion, long: boolean) =>
+		version.importedAt === null
+			? t('versionsPage.table.noImport')
+			: long
+				? t('versionsPage.table.keyCount', { count: version.keyCount })
+				: version.keyCount.toLocaleString(i18n.language)
 
 	const renderBody = () => {
 		if (isPending) {
@@ -106,13 +114,26 @@ const VersionsTable = ({ projectId, onCreate, onEdit, onToggleLock, ref }: Versi
 							? t('versionsPage.table.createdBy', { name: version.createdBy.name, date: formatDateTime(version.createdAt, i18n.language) })
 							: t('versionsPage.table.createdAt', { date: formatDateTime(version.createdAt, i18n.language) })}
 					</Text>
-					<div className={`${classes.narrowOnly} mt-1`}>{dates(version)}</div>
+					{version.importedAt !== null && (
+						<Text component='span' className={`${classes.meta} block`}>
+							{t('versionsPage.table.importedAt', { date: formatDateTime(version.importedAt, i18n.language) })}
+						</Text>
+					)}
+					<div className={`${classes.narrowOnly} mt-1`}>
+						{dates(version)}
+						<Text component='span' className={`${classes.meta} block`}>
+							{keyCount(version, true)}
+						</Text>
+					</div>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 					<Text size='sm'>{formatDate(version.startsAt, i18n.language)}</Text>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 					<Text size='sm'>{formatDate(version.endsAt, i18n.language)}</Text>
+				</Table.Td>
+				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
+					<Text size='sm'>{keyCount(version, false)}</Text>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.stateCell}`}>
 					<Badge variant='light' color={STATE_COLOR[version.state]} radius='xl' size='sm' classNames={{ root: classes.stateBadge }}>
@@ -131,22 +152,33 @@ const VersionsTable = ({ projectId, onCreate, onEdit, onToggleLock, ref }: Versi
 				</Table.Td>
 				{hasActions && (
 					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-						{onEdit && (
-							<RowAction
-								icon={Edit}
-								tooltip={t('versionsPage.table.edit')}
-								label={t('versionsPage.table.editLabel', { name: version.name })}
-								onClick={(event) => onEdit(version, event.currentTarget)}
-							/>
-						)}
-						{onToggleLock && (
-							<RowAction
-								icon={version.isLocked ? LockUnlocked : Lock}
-								tooltip={t(version.isLocked ? 'versionsPage.table.unlock' : 'versionsPage.table.lock')}
-								label={t(version.isLocked ? 'versionsPage.table.unlockLabel' : 'versionsPage.table.lockLabel', { name: version.name })}
-								onClick={(event) => onToggleLock(version, event.currentTarget)}
-							/>
-						)}
+						<div className={classes.actions}>
+							{onEdit && (
+								<RowAction
+									icon={Edit}
+									tooltip={t('versionsPage.table.edit')}
+									label={t('versionsPage.table.editLabel', { name: version.name })}
+									onClick={(event) => onEdit(version, event.currentTarget)}
+								/>
+							)}
+							{onToggleLock && (
+								<RowAction
+									icon={version.isLocked ? LockUnlocked : Lock}
+									tooltip={t(version.isLocked ? 'versionsPage.table.unlock' : 'versionsPage.table.lock')}
+									label={t(version.isLocked ? 'versionsPage.table.unlockLabel' : 'versionsPage.table.lockLabel', { name: version.name })}
+									onClick={(event) => onToggleLock(version, event.currentTarget)}
+								/>
+							)}
+							{onDelete && !version.isCurrent && (
+								<RowAction
+									icon={Trash}
+									tooltip={t('versionsPage.table.delete')}
+									label={t('versionsPage.table.deleteLabel', { name: version.name })}
+									danger
+									onClick={(event) => onDelete(version, event.currentTarget)}
+								/>
+							)}
+						</div>
 					</Table.Td>
 				)}
 			</Table.Tr>
@@ -161,6 +193,7 @@ const VersionsTable = ({ projectId, onCreate, onEdit, onToggleLock, ref }: Versi
 						<Table.Th className={classes.th}>{t('versionsPage.table.version')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.dateColumn} ${classes.wideOnly}`}>{t('versionsPage.table.startsAt')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.dateColumn} ${classes.wideOnly}`}>{t('versionsPage.table.endsAt')}</Table.Th>
+						<Table.Th className={`${classes.th} ${classes.keysColumn} ${classes.wideOnly}`}>{t('versionsPage.table.keys')}</Table.Th>
 						<Table.Th className={`${classes.th} ${classes.stateColumn}`}>{t('versionsPage.table.state')}</Table.Th>
 						{hasActions && (
 							<Table.Th className={`${classes.th} ${classes.actionsColumn}`}>

@@ -26,8 +26,12 @@
 	width: 12rem;
 }
 
+.keysColumn {
+	width: 7rem;
+}
+
 .actionsColumn {
-	width: 6.5rem;
+	width: 9rem;
 }
 
 .td {
@@ -39,6 +43,11 @@
 .actionsCell {
 	padding-inline: 0 1.25rem;
 	white-space: nowrap;
+}
+
+.actions {
+	display: flex;
+	gap: 0.25rem;
 }
 
 .tr:last-child .td {
@@ -109,5 +118,15 @@
 
 	.actionsCell {
 		padding-inline: 0 0.75rem;
+	}
+
+	/* Three icons in a row would push the table past the phone's width; stacked they take one icon's width. */
+	.actions {
+		flex-direction: column;
+	}
+
+	/* The creator's e-mail is one unbreakable word wider than the name column; let it break like the members table does. */
+	.meta {
+		overflow-wrap: anywhere;
 	}
 }

@@ -491,6 +491,10 @@
 		"eyebrow": "Project overview",
 		"description": "Current state of translations, languages and recent changes.",
 		"openTranslations": "Open translations",
+		"version": {
+			"label": "Version",
+			"current": "{{name}} (current)"
+		},
 		"lessThan": "< {{percent}}",
 		"moreThan": "> {{percent}}",
 		"stats": {
@@ -1076,6 +1080,13 @@
 			"lockLabel": "Lock version {{name}}",
 			"unlock": "Unlock",
 			"unlockLabel": "Unlock version {{name}}",
+			"delete": "Delete",
+			"deleteLabel": "Delete version {{name}}",
+			"keys": "Keys",
+			"keyCount_one": "{{count}} key",
+			"keyCount_other": "{{count}} keys",
+			"noImport": "no import",
+			"importedAt": "Import {{date}}",
 			"empty": "The project has no versions yet. Create the first one or set it on an import.",
 			"emptyEditor": "The project has no versions yet.",
 			"loadError": "The versions could not be loaded.",
@@ -1130,6 +1141,16 @@
 				"lock": "Version {{name}} is locked.",
 				"unlock": "Version {{name}} is unlocked."
 			}
+		},
+		"deleteModal": {
+			"title": "Delete version",
+			"close": "Close",
+			"cancel": "Cancel",
+			"confirm": "Delete",
+			"message_zero": "Version {{name}} has no import and no keys. The other versions stay as they are.",
+			"message_one": "Deleting version {{name}} also removes its {{count}} key with its translations. The other versions stay as they are.",
+			"message_other": "Deleting version {{name}} also removes its {{count}} keys with their translations. The other versions stay as they are.",
+			"success": "Version {{name}} was deleted."
 		}
 	},
 	"projectSettingsPage": {

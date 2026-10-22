@@ -132,9 +132,12 @@ const ActivityFeed = ({ projectId, projectSlug }: ActivityFeedProps) => {
 					<span className={classes.sentence}>
 						<span className={classes.name}>{name}</span> · {describe(event)}
 					</span>
-					<time dateTime={event.createdAt} title={formatDateTime(event.createdAt, i18n.language)} className={classes.time}>
-						{formatRelativeTime(event.createdAt, i18n.language, now, 'short')}
-					</time>
+					<span className={classes.time}>
+						<time dateTime={event.createdAt} title={formatDateTime(event.createdAt, i18n.language)}>
+							{formatRelativeTime(event.createdAt, i18n.language, now, 'short')}
+						</time>
+						{event.version && <> · {event.version.name}</>}
+					</span>
 				</div>
 				{editedKey ? (
 					<RowAction

@@ -51,8 +51,17 @@ const LOCKED = version({
 	endsAt: '2026-09-01',
 	isLocked: true,
 	state: 'LOCKED',
+	importedAt: '2026-09-02T08:00:00.000Z',
+	keyCount: 26,
 })
-const CURRENT = version({ id: '00000000-0000-4000-8000-000000000502', name: 'v2.45', isCurrent: true, createdBy: null })
+const CURRENT = version({
+	id: '00000000-0000-4000-8000-000000000502',
+	name: 'v2.45',
+	isCurrent: true,
+	createdBy: null,
+	importedAt: '2026-10-01T10:00:00.000Z',
+	keyCount: 30,
+})
 const UPCOMING = version({
 	id: '00000000-0000-4000-8000-000000000503',
 	name: 'v2.46',
@@ -104,7 +113,7 @@ afterEach(() => {
 })
 
 describe('ProjectVersionsPage table', () => {
-	it('renders the rows with dates, states, the current badge and who created the version', async () => {
+	it('renders the rows with dates, states, key counts, the current badge and who created the version', async () => {
 		signedInAs(ADMIN_USER, { ...PROJECT_ROUTES, [`GET ${LIST_URL}`]: versionsResponse([UPCOMING, CURRENT, LOCKED]) })
 		renderApp(PAGE_PATH)
 
@@ -115,12 +124,17 @@ describe('ProjectVersionsPage table', () => {
 		expect(current).toHaveTextContent('29. 9. 2026')
 		expect(current).toHaveTextContent('Prebieha')
 		expect(current).toHaveTextContent('Vytvorená 1. 9. 2026')
+		expect(current).toHaveTextContent('Import 1. 10. 2026')
+		expect(within(current).getByText('30')).toBeInTheDocument()
+		expect(screen.getByRole('columnheader', { name: 'Kľúče' })).toBeInTheDocument()
 		const locked = await findRow('v2.44')
 		expect(locked).toHaveTextContent('Uzamknutá')
 		expect(locked).toHaveTextContent('Vytvoril Michal Bella')
 		expect(locked).not.toHaveTextContent('Zamknutá ručne')
 		const upcoming = await findRow('v2.46')
 		expect(upcoming).toHaveTextContent('Zamknutá ručne')
+		expect(upcoming).toHaveTextContent('bez importu')
+		expect(upcoming).not.toHaveTextContent('Import ')
 		expect(
 			within(getTable())
 				.getAllByRole('row')
@@ -130,6 +144,8 @@ describe('ProjectVersionsPage table', () => {
 		expect(within(current).getByRole('button', { name: 'Upraviť verziu v2.45' })).toBeInTheDocument()
 		expect(within(current).getByRole('button', { name: 'Zamknúť verziu v2.45' })).toBeInTheDocument()
 		expect(within(locked).getByRole('button', { name: 'Odomknúť verziu v2.44' })).toBeInTheDocument()
+		expect(within(locked).getByRole('button', { name: 'Zmazať verziu v2.44' })).toBeInTheDocument()
+		expect(within(current).queryByRole('button', { name: 'Zmazať verziu v2.45' })).not.toBeInTheDocument()
 	})
 
 	it('hides the create button and the actions from an EDITOR, also in the empty state', async () => {
@@ -325,5 +341,71 @@ describe('ProjectVersionsPage edit and lock', () => {
 			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Nastala neočakávaná chyba. Skúste to znova.' })),
 		)
 		expect(screen.getByRole('dialog', { name: 'Zamknúť verziu' })).toBeInTheDocument()
+	})
+})
+
+describe('ProjectVersionsPage delete', () => {
+	it('deletes a version after a confirmation with its key count, shows the notification and refetches the list', async () => {
+		let items = [CURRENT, LOCKED]
+		const requests = signedInAs(ADMIN_USER, {
+			...PROJECT_ROUTES,
+			[`GET ${LIST_URL}`]: () => versionsResponse(items),
+			[`DELETE ${LIST_URL}/${LOCKED.id}`]: () => {
+				items = [CURRENT]
+				return { status: 204 }
+			},
+		})
+		const show = vi.spyOn(notifications, 'show')
+		renderApp(PAGE_PATH)
+
+		fireEvent.click(within(await findRow('v2.44')).getByRole('button', { name: 'Zmazať verziu v2.44' }))
+		const dialog = await screen.findByRole('dialog', { name: 'Zmazať verziu' })
+		expect(dialog).toHaveTextContent('Zmazanie verzie v2.44 odstráni aj jej 26 kľúčov s prekladmi. Ostatné verzie sa nemenia.')
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Zmazať' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		await waitFor(() => expect(within(getTable()).queryByText('v2.44')).not.toBeInTheDocument())
+		const request = requests.find((item) => item.method === 'delete')
+		expect(request?.url).toBe(`${LIST_URL}/${LOCKED.id}`)
+		expect(bodyOf(request)).toEqual({})
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Verzia v2.44 bola zmazaná.' }))
+	})
+
+	it('tells a version without import has no keys and keeps the confirmation open on 409 PROJECT_VERSION_CURRENT', async () => {
+		signedInAs(ADMIN_USER, {
+			...PROJECT_ROUTES,
+			[`GET ${LIST_URL}`]: versionsResponse([UPCOMING, CURRENT]),
+			[`DELETE ${LIST_URL}/${UPCOMING.id}`]: apiError(409, 'PROJECT_VERSION_CURRENT'),
+		})
+		const show = vi.spyOn(notifications, 'show')
+		renderApp(PAGE_PATH)
+
+		fireEvent.click(within(await findRow('v2.46')).getByRole('button', { name: 'Zmazať verziu v2.46' }))
+		const dialog = await screen.findByRole('dialog', { name: 'Zmazať verziu' })
+		expect(dialog).toHaveTextContent('Verzia v2.46 nemá import ani kľúče. Ostatné verzie sa nemenia.')
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Zmazať' }))
+
+		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Aktuálnu verziu nejde zmazať.' })))
+		expect(screen.getByRole('dialog', { name: 'Zmazať verziu' })).toBeInTheDocument()
+	})
+
+	it('closes the confirmation and refetches the list when the version is already gone', async () => {
+		let items = [CURRENT, LOCKED]
+		signedInAs(ADMIN_USER, {
+			...PROJECT_ROUTES,
+			[`GET ${LIST_URL}`]: () => versionsResponse(items),
+			[`DELETE ${LIST_URL}/${LOCKED.id}`]: () => {
+				items = [CURRENT]
+				return apiError(404, 'PROJECT_VERSION_NOT_FOUND')
+			},
+		})
+		renderApp(PAGE_PATH)
+
+		fireEvent.click(within(await findRow('v2.44')).getByRole('button', { name: 'Zmazať verziu v2.44' }))
+		const dialog = await screen.findByRole('dialog', { name: 'Zmazať verziu' })
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Zmazať' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		await waitFor(() => expect(within(getTable()).queryByText('v2.44')).not.toBeInTheDocument())
 	})
 })

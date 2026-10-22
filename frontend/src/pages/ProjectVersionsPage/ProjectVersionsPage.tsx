@@ -7,13 +7,14 @@ import { useTranslation } from 'react-i18next'
 import { type ProjectVersion, ROLE } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
+import DeleteVersionModal from '@/components/DeleteVersionModal/DeleteVersionModal'
 import { Plus } from '@/components/Icons'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import VersionFormModal from '@/components/VersionFormModal/VersionFormModal'
 import VersionLockModal from '@/components/VersionLockModal/VersionLockModal'
 import VersionsTable from '@/components/VersionsTable/VersionsTable'
 
-/** Versions of the project (named date windows matching the code releases): an ADMIN creates, edits, locks and unlocks them. */
+/** Versions of the project (named date windows matching the code releases): an ADMIN creates, edits, locks, unlocks and deletes them. */
 const ProjectVersionsPage = () => {
 	const { t } = useTranslation()
 	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
@@ -21,8 +22,10 @@ const ProjectVersionsPage = () => {
 	const isAdmin = user?.role === ROLE.ADMIN
 	const [formOpened, formModal] = useDisclosure(false)
 	const [lockOpened, lockModal] = useDisclosure(false)
+	const [deleteOpened, deleteModal] = useDisclosure(false)
 	const [editVersion, setEditVersion] = useState<ProjectVersion | null>(null)
 	const [lockVersion, setLockVersion] = useState<ProjectVersion | null>(null)
+	const [deleteVersion, setDeleteVersion] = useState<ProjectVersion | null>(null)
 
 	const tableRef = useRef<HTMLTableElement>(null)
 	const returnFocusRef = useRef<HTMLElement | null>(null)
@@ -62,6 +65,17 @@ const ProjectVersionsPage = () => {
 		restoreFocus()
 	}
 
+	const openDelete = (version: ProjectVersion, trigger: HTMLElement) => {
+		returnFocusRef.current = trigger
+		setDeleteVersion(version)
+		deleteModal.open()
+	}
+
+	const closeDelete = () => {
+		deleteModal.close()
+		restoreFocus()
+	}
+
 	return (
 		<div className='mx-auto flex w-full max-w-[1200px] flex-col gap-6 p-8'>
 			<div className='flex flex-wrap items-end justify-between gap-4'>
@@ -83,9 +97,11 @@ const ProjectVersionsPage = () => {
 				onCreate={isAdmin ? openCreate : undefined}
 				onEdit={isAdmin ? openEdit : undefined}
 				onToggleLock={isAdmin ? openLock : undefined}
+				onDelete={isAdmin ? openDelete : undefined}
 			/>
 			{isAdmin && <VersionFormModal projectId={projectId} opened={formOpened} version={editVersion} onClose={closeForm} />}
 			{isAdmin && <VersionLockModal projectId={projectId} opened={lockOpened} version={lockVersion} onClose={closeLock} />}
+			{isAdmin && <DeleteVersionModal projectId={projectId} opened={deleteOpened} version={deleteVersion} onClose={closeDelete} />}
 		</div>
 	)
 }

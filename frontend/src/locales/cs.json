@@ -501,6 +501,10 @@
 		"eyebrow": "Přehled projektu",
 		"description": "Aktuální stav překladů, jazyků a posledních změn.",
 		"openTranslations": "Otevřít překlady",
+		"version": {
+			"label": "Verze",
+			"current": "{{name}} (aktuální)"
+		},
 		"lessThan": "< {{percent}}",
 		"moreThan": "> {{percent}}",
 		"stats": {
@@ -1106,6 +1110,15 @@
 			"lockLabel": "Zamknout verzi {{name}}",
 			"unlock": "Odemknout",
 			"unlockLabel": "Odemknout verzi {{name}}",
+			"delete": "Smazat",
+			"deleteLabel": "Smazat verzi {{name}}",
+			"keys": "Klíče",
+			"keyCount_one": "{{count}} klíč",
+			"keyCount_few": "{{count}} klíče",
+			"keyCount_many": "{{count}} klíčů",
+			"keyCount_other": "{{count}} klíčů",
+			"noImport": "bez importu",
+			"importedAt": "Import {{date}}",
 			"empty": "Projekt zatím nemá žádné verze. Vytvořte první nebo ji zadejte při importu.",
 			"emptyEditor": "Projekt zatím nemá žádné verze.",
 			"loadError": "Seznam verzí se nepodařilo načíst.",
@@ -1160,6 +1173,18 @@
 				"lock": "Verze {{name}} je uzamčená.",
 				"unlock": "Verze {{name}} je odemčená."
 			}
+		},
+		"deleteModal": {
+			"title": "Smazat verzi",
+			"close": "Zavřít",
+			"cancel": "Zrušit",
+			"confirm": "Smazat",
+			"message_zero": "Verze {{name}} nemá import ani klíče. Ostatní verze se nemění.",
+			"message_one": "Smazání verze {{name}} odstraní i její {{count}} klíč s překlady. Ostatní verze se nemění.",
+			"message_few": "Smazání verze {{name}} odstraní i její {{count}} klíče s překlady. Ostatní verze se nemění.",
+			"message_many": "Smazání verze {{name}} odstraní i její {{count}} klíčů s překlady. Ostatní verze se nemění.",
+			"message_other": "Smazání verze {{name}} odstraní i její {{count}} klíčů s překlady. Ostatní verze se nemění.",
+			"success": "Verze {{name}} byla smazána."
 		}
 	},
 	"projectSettingsPage": {

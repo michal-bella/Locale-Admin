@@ -501,6 +501,10 @@
 		"eyebrow": "Prehľad projektu",
 		"description": "Aktuálny stav prekladov, jazykov a posledných zmien.",
 		"openTranslations": "Otvoriť preklady",
+		"version": {
+			"label": "Verzia",
+			"current": "{{name}} (aktuálna)"
+		},
 		"lessThan": "< {{percent}}",
 		"moreThan": "> {{percent}}",
 		"stats": {
@@ -1106,6 +1110,15 @@
 			"lockLabel": "Zamknúť verziu {{name}}",
 			"unlock": "Odomknúť",
 			"unlockLabel": "Odomknúť verziu {{name}}",
+			"delete": "Zmazať",
+			"deleteLabel": "Zmazať verziu {{name}}",
+			"keys": "Kľúče",
+			"keyCount_one": "{{count}} kľúč",
+			"keyCount_few": "{{count}} kľúče",
+			"keyCount_many": "{{count}} kľúčov",
+			"keyCount_other": "{{count}} kľúčov",
+			"noImport": "bez importu",
+			"importedAt": "Import {{date}}",
 			"empty": "Projekt zatiaľ nemá žiadne verzie. Vytvorte prvú alebo ju zadajte pri importe.",
 			"emptyEditor": "Projekt zatiaľ nemá žiadne verzie.",
 			"loadError": "Zoznam verzií sa nepodarilo načítať.",
@@ -1160,6 +1173,18 @@
 				"lock": "Verzia {{name}} je uzamknutá.",
 				"unlock": "Verzia {{name}} je odomknutá."
 			}
+		},
+		"deleteModal": {
+			"title": "Zmazať verziu",
+			"close": "Zavrieť",
+			"cancel": "Zrušiť",
+			"confirm": "Zmazať",
+			"message_zero": "Verzia {{name}} nemá import ani kľúče. Ostatné verzie sa nemenia.",
+			"message_one": "Zmazanie verzie {{name}} odstráni aj jej {{count}} kľúč s prekladmi. Ostatné verzie sa nemenia.",
+			"message_few": "Zmazanie verzie {{name}} odstráni aj jej {{count}} kľúče s prekladmi. Ostatné verzie sa nemenia.",
+			"message_many": "Zmazanie verzie {{name}} odstráni aj jej {{count}} kľúčov s prekladmi. Ostatné verzie sa nemenia.",
+			"message_other": "Zmazanie verzie {{name}} odstráni aj jej {{count}} kľúčov s prekladmi. Ostatné verzie sa nemenia.",
+			"success": "Verzia {{name}} bola zmazaná."
 		}
 	},
 	"projectSettingsPage": {

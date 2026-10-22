@@ -1,5 +1,6 @@
-import { Button, Text } from '@mantine/core'
+import { Button, Select, Text } from '@mantine/core'
 import { Link, useLoaderData, useParams } from '@tanstack/react-router'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ROLE } from '@locale/shared'
@@ -10,10 +11,11 @@ import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import { useProjectMembersQuery } from '@/api/projectMembers/projectMembersQuery'
 import { useProjectSettingsQuery } from '@/api/projectSettings/projectSettingsQuery'
+import { useProjectVersionsQuery } from '@/api/projectVersions/projectVersionsQuery'
 import ButtonLink from '@/atoms/ButtonLink/ButtonLink'
 import ActivityFeed from '@/components/ActivityFeed/ActivityFeed'
 import DailyActivity from '@/components/DailyActivity/DailyActivity'
-import { ArrowRight, Check, Globe, Key, Users } from '@/components/Icons'
+import { ArrowRight, Check, Globe, Key, Tag, Users } from '@/components/Icons'
 import LanguageStatus from '@/components/LanguageStatus/LanguageStatus'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import StatCard from '@/components/StatCard/StatCard'
@@ -23,7 +25,8 @@ import classes from './DashboardPage.module.css'
 
 /**
  * Prehľad of the project (Figma 3:475) without Importovať and Exportovať: the stat cards, Stav jazykov, Posledná aktivita and Denná aktivita.
- * Languages and members come from their own queries (shared with their pages), the key counts from the dashboard endpoint.
+ * Languages and members come from their own queries (shared with their pages), the key counts from the dashboard endpoint. The numbers and
+ * the daily activity are per version: the select in the header starts on the version the backend answered with (the current one).
  */
 const DashboardPage = () => {
 	const { t, i18n } = useTranslation()
@@ -33,12 +36,15 @@ const DashboardPage = () => {
 	// A VISITOR cannot open Jazyky and Členovia (403), so the links there are not shown.
 	const canManageProject = me?.role !== ROLE.VISITOR
 	const { data: project } = useProjectSettingsQuery(projectId)
-	const dashboardQuery = useDashboardQuery(projectId)
+	const { data: versions } = useProjectVersionsQuery(projectId)
+	const [chosenVersionId, setChosenVersionId] = useState<string>()
+	const dashboardQuery = useDashboardQuery(projectId, { versionId: chosenVersionId })
 	const languagesQuery = useProjectLanguagesQuery(projectId)
 	const membersQuery = useProjectMembersQuery(projectId)
 	const dashboard = dashboardQuery.data
 	const languages = languagesQuery.data
 	const members = membersQuery.data?.members
+	const versionId = chosenVersionId ?? dashboard?.version?.id
 	const statsQueries = [dashboardQuery, languagesQuery, membersQuery]
 	const failedStats = statsQueries.find((query) => query.isError)
 
@@ -53,9 +59,25 @@ const DashboardPage = () => {
 		<div className='mx-auto flex w-full max-w-[1440px] flex-col gap-6 p-8'>
 			<div className='flex flex-wrap items-end justify-between gap-4'>
 				<PageIntro eyebrow={t('dashboardPage.eyebrow')} title={project?.name ?? ''} description={t('dashboardPage.description')} titleSize='h2' />
-				<ButtonLink to='/projects/$projectSlug/translations' params={{ projectSlug }} rightSection={<ArrowRight aria-hidden />}>
-					{t('dashboardPage.openTranslations')}
-				</ButtonLink>
+				<div className='flex flex-wrap items-center gap-3'>
+					{versions && versions.items.length > 0 && (
+						<Select
+							aria-label={t('dashboardPage.version.label')}
+							className={classes.versionSelect}
+							leftSection={<Tag width={16} height={16} aria-hidden />}
+							data={versions.items.map((item) => ({
+								value: item.id,
+								label: item.isCurrent ? t('dashboardPage.version.current', { name: item.name }) : item.name,
+							}))}
+							value={versionId ?? null}
+							onChange={(value) => setChosenVersionId(value ?? undefined)}
+							allowDeselect={false}
+						/>
+					)}
+					<ButtonLink to='/projects/$projectSlug/translations' params={{ projectSlug }} rightSection={<ArrowRight aria-hidden />}>
+						{t('dashboardPage.openTranslations')}
+					</ButtonLink>
+				</div>
 			</div>
 			{failedStats ? (
 				<div role='alert' className={`${classes.empty} flex flex-col items-center gap-1`}>
@@ -129,7 +151,7 @@ const DashboardPage = () => {
 				<LanguageStatus projectId={projectId} projectSlug={projectSlug} manageable={canManageProject} />
 				<ActivityFeed projectId={projectId} projectSlug={projectSlug} />
 			</div>
-			<DailyActivity projectId={projectId} />
+			<DailyActivity projectId={projectId} versionId={chosenVersionId} />
 		</div>
 	)
 }

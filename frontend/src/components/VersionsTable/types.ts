@@ -9,6 +9,8 @@ export type VersionsTableProps = {
 	onEdit?: (version: ProjectVersion, trigger: HTMLElement) => void
 	/** Opens the lock confirmation; it locks an unlocked version and unlocks a locked one. */
 	onToggleLock?: (version: ProjectVersion, trigger: HTMLElement) => void
+	/** Opens the delete confirmation; the table hides the action for the current version, which the API refuses to delete. */
+	onDelete?: (version: ProjectVersion, trigger: HTMLElement) => void
 	/** Focusable (`tabIndex={-1}`) so focus can land on the table when the opener is gone. */
 	ref?: Ref<HTMLTableElement>
 }

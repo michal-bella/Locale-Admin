@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Verzie ako kópie prekladov – míľnik E (2026-10-22)
+
+- frontend: stránka Verzie má stĺpec **Kľúče** („bez importu“ pri prázdnej verzii), čas posledného importu pod názvom a akciu **Zmazať** s potvrdením (`DeleteVersionModal`, aktuálna verzia sa zmazať nedá); Prehľad projektu má výber verzie (predvolene aktuálna), čísla aj denná aktivita sú za zvolenú verziu a udalosti vo feede nesú názov verzie ([Frontend](./frontend.md#stránka-verzie-projektu))
+
 ### Verzie ako kópie prekladov – míľnik D (2026-10-22)
 
 - frontend: stránka Preklady má prepínač **Zobraziť len zmeny** (`?diff=true`) s odznakom **Nové** pri pridaných kľúčoch a zvýraznenou zmenenou bunkou, banner verzie hovorí „Oproti v2.44: 4 nové, 1 zmenený, 0 odstránených kľúčov“, verzia bez importu má prázdny stav s tlačidlom Importovať a bez Pridať kľúč; krok kontroly importu ukazuje prevzaté kľúče z predchádzajúcej verzie a varovanie o odstránených; export má checkbox **Len zmeny oproti predchádzajúcej verzii** ([Frontend](./frontend.md#verzie-na-stránke-preklady))

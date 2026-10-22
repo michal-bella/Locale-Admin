@@ -1,4 +1,4 @@
-import { type ActivityDailyQueryInput, type ExportCheckQuery, type TranslationsQueryInput } from '@locale/shared'
+import { type ActivityDailyQueryInput, type DashboardQuery, type ExportCheckQuery, type TranslationsQueryInput } from '@locale/shared'
 
 export const QUERY_KEYS = {
 	HEALTH: () => ['health'] as const,
@@ -30,7 +30,9 @@ export const QUERY_KEYS = {
 		TRANSLATIONS: (projectId: string, query: TranslationsQueryInput) => ['projects', projectId, 'translations', query] as const,
 		EXPORT_CHECK: (projectId: string, query: Pick<ExportCheckQuery, 'languageIds' | 'status' | 'versionId' | 'diffOnly'>) =>
 			['projects', projectId, 'export-check', query] as const,
-		DASHBOARD: (projectId: string) => ['projects', projectId, 'dashboard'] as const,
+		/** Prefix of the dashboard of one project for every version. */
+		DASHBOARD_ALL: (projectId: string) => ['projects', projectId, 'dashboard'] as const,
+		DASHBOARD: (projectId: string, query: DashboardQuery) => ['projects', projectId, 'dashboard', query] as const,
 		/** Prefix of the activity feed and the daily activity of one project. */
 		ACTIVITY_ALL: (projectId: string) => ['projects', projectId, 'activity'] as const,
 		ACTIVITY_FEED: (projectId: string) => ['projects', projectId, 'activity', 'feed'] as const,

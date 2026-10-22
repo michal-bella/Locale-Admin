@@ -16,3 +16,11 @@
 .link:hover {
 	text-decoration: underline;
 }
+
+.versionSelect {
+	width: 12.5rem;
+}
+
+.versionSelect [data-position='left'] svg {
+	color: var(--app-color-muted);
+}

@@ -181,6 +181,25 @@ afterEach(() => {
 })
 
 describe('TranslationsPage versions', () => {
+	it('drops the diff filter when the warnings banner shows the keys with a warning', async () => {
+		const requests = mockPage({
+			routes: {
+				[`GET ${TRANSLATIONS_URL}`]: {
+					status: 200,
+					data: { ...response([WELCOME]), stats: { totalKeys: 10, translated: 8, untranslated: 2, warnings: 1 } },
+				},
+			},
+		})
+		const router = renderApp(`${PAGE_PATH}?diff=true`)
+		await findRow('dashboard.welcome')
+
+		fireEvent.click(screen.getByRole('button', { name: 'Zobraziť upozornenia' }))
+		await waitFor(() => expect(router.state.location.search).toEqual({ warnings: true }))
+		const last = requests.filter((request) => request.url === TRANSLATIONS_URL && paramsOf(request).status !== 'UNTRANSLATED').at(-1)
+		expect(paramsOf(last)).toMatchObject({ warnings: true })
+		expect(paramsOf(last).diff).toBeUndefined()
+	})
+
 	it('shows the current version by default with its countdown, and another one from the Verzia select', async () => {
 		const requests = mockPage()
 		const router = renderApp(PAGE_PATH)

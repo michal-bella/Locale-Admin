@@ -272,7 +272,8 @@ const TranslationsPage = () => {
 				<TranslationsWarningsBanner
 					count={data.stats.warnings}
 					active={search.warnings === true}
-					onShow={() => updateSearch({ warnings: true })}
+					// The banner counts the whole version, so the list drops the diff filter to show exactly those keys.
+					onShow={() => updateSearch({ warnings: true, diff: undefined })}
 					onClear={() => updateSearch({ warnings: undefined })}
 				/>
 			)}

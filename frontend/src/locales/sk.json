@@ -282,10 +282,10 @@
 			"showAll": "Zobraziť všetky"
 		},
 		"warnings": {
-			"message_one": "{{count}} kľúč má premenné, ktoré sa líšia od základného jazyka, napríklad po importe.",
-			"message_few": "{{count}} kľúče majú premenné, ktoré sa líšia od základného jazyka, napríklad po importe.",
-			"message_many": "{{count}} kľúčov má premenné, ktoré sa líšia od základného jazyka, napríklad po importe.",
-			"message_other": "{{count}} kľúčov má premenné, ktoré sa líšia od základného jazyka, napríklad po importe.",
+			"message_one": "{{count}} kľúč má premenné, ktoré sa líšia od kľúča alebo základného jazyka, napríklad po importe.",
+			"message_few": "{{count}} kľúče majú premenné, ktoré sa líšia od kľúča alebo základného jazyka, napríklad po importe.",
+			"message_many": "{{count}} kľúčov má premenné, ktoré sa líšia od kľúča alebo základného jazyka, napríklad po importe.",
+			"message_other": "{{count}} kľúčov má premenné, ktoré sa líšia od kľúča alebo základného jazyka, napríklad po importe.",
 			"show": "Zobraziť upozornenia",
 			"clear": "Zrušiť filter upozornení"
 		},
@@ -380,7 +380,7 @@
 			"saved": "Uložené: {{key}}",
 			"missing": "Chýbajú: {{list}}.",
 			"extra": "Navyše: {{list}}.",
-			"unknownVariable": "Premenná nie je v základnom jazyku – skontrolujte preklep.",
+			"unknownVariable": "Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.",
 			"formLabel": "{{label}}, {{form}}",
 			"unbalancedBraces": "Zátvorky { a } musia byť vyvážené.",
 			"tooLong": "Preklad je príliš dlhý (max. 10 000 znakov spolu za všetky formy)."
@@ -1301,7 +1301,7 @@
 		"IMPORT_FILE_INVALID": "Súbor obsahuje chyby. Opravte ich a nahrajte ho znova.",
 		"IMPORT_FILE_TOO_LARGE": "Súbor je príliš veľký. Maximálna veľkosť je 10 MB.",
 		"IMPORT_COLUMNS_INVALID": "Priradenie stĺpcov k jazykom je neplatné. Skontrolujte jazyky a skúste to znova.",
-		"PLACEHOLDER_MISMATCH": "Premenné v preklade sa nezhodujú so základným jazykom.",
+		"PLACEHOLDER_MISMATCH": "Premenné v preklade sa nezhodujú s kľúčom alebo základným jazykom.",
 		"TRANSLATION_KEY_NOT_FOUND": "Kľúč sa nenašiel. Možno ho medzitým niekto odstránil.",
 		"TRANSLATION_KEY_TAKEN": "Kľúč s týmto názvom už v namespace existuje.",
 		"PROJECT_VERSION_NAME_TAKEN": "Verzia s týmto názvom už v projekte existuje.",

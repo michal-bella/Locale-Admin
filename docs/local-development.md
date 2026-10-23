@@ -28,7 +28,7 @@ pnpm install
 | --------------- | --------------------------------------------- | -------------------------------------------------- |
 | Spustenie       | `pnpm db:up && pnpm db:migrate && pnpm dev`   | `pnpm stack:up`                                    |
 | DB              | Docker, `localhost:5433`                      | Docker, `localhost:5433`                           |
-| BE              | lokálne, `tsx watch`, `http://localhost:3000` | kontajner, `http://localhost:3001` (iba debug)     |
+| BE              | lokálne, `tsx watch`, `http://localhost:4000` | kontajner, `http://localhost:3001` (iba debug)     |
 | FE              | lokálne, Vite+ s HMR, `http://localhost:5173` | nginx so zbuildovanou SPA, `http://localhost:8080` |
 | Migrácie a seed | `pnpm db:migrate` (spustí aj seed)            | automaticky pri štarte BE kontajnera               |
 | Na čo           | každodenný vývoj, unit a integračné testy     | smoke testy, E2E, akceptačné kritériá              |
@@ -37,13 +37,13 @@ Oba režimy zdieľajú tú istú DB. Porty sa nebijú, takže môžu bežať nar
 
 Všetky checkouty (hlavný aj git worktree) používajú ten istý compose projekt `locale-admin`, teda aj ten istý kontajner `locale-admin-db-1`. Konfigurácia `db` sa medzi checkoutmi líši (absolútna cesta bind mountu `./docker/postgres/init`), takže obyčajné `docker compose up db` z iného checkoutu kontajner znova vytvorí a Postgres spadne uprostred behu iného checkoutu (Prisma `57P03 the database system is shutting down`, stovky 500). Preto `pnpm db:up`, `pnpm stack:up` aj `pnpm test:e2e` spúšťajú `db` s `--no-recreate`: bežiaci kontajner nechajú tak, chýbajúci alebo zastavený spustia. Zmena konfigurácie `db` (napr. image) sa preto neaplikuje sama, treba `docker compose up -d --wait --force-recreate db` (dáta ostanú vo volume). Porty DB (`5433`) a BE kontajnera (`3001`) sú dostupné iba z `localhost`, nie z lokálnej siete.
 
-FE aj BE sú v oboch režimoch na jednom origine: vo vývoji Vite proxy presmeruje `/api` na `localhost:3000` (cieľ zmení premenná `VITE_API_PROXY_TARGET`, napr. keď port 3000 drží backend iného checkoutu; konfigurácia `frontend-5175-api3100` v `.claude/launch.json` tak spustí druhý FE na porte 5175 proti backendu na 3100), v stacku nginx presmeruje `/api` na kontajner `backend`. Pri `NODE_ENV=development` počúva BE iba na `127.0.0.1`, z iného zariadenia v sieti nie je dostupný (inak by šlo obísť rate limit loginu podvrhnutým `X-Forwarded-For`).
+FE aj BE sú v oboch režimoch na jednom origine: vo vývoji Vite proxy presmeruje `/api` na `127.0.0.1:4000` (port 4000, lebo 3000 až 3003 bývajú obsadené inými FE projektmi; `127.0.0.1`, lebo dev backend počúva iba na IPv4 a `localhost` sa v Node najprv preloží na IPv6 `::1`, kde môže na rovnakom porte počúvať iná aplikácia; cieľ zmení premenná `VITE_API_PROXY_TARGET`, napr. keď port 4000 drží backend iného checkoutu; konfigurácia `frontend-5175-api3100` v `.claude/launch.json` tak spustí druhý FE na porte 5175 proti backendu na 3100), v stacku nginx presmeruje `/api` na kontajner `backend`. Pri `NODE_ENV=development` počúva BE iba na `127.0.0.1`, z iného zariadenia v sieti nie je dostupný (inak by šlo obísť rate limit loginu podvrhnutým `X-Forwarded-For`).
 
 ```mermaid
 flowchart LR
   subgraph dev[Vývojový režim]
     B1[Prehliadač] -->|:5173| V[Vite+ dev server]
-    V -->|/api proxy| BE1[tsx watch :3000]
+    V -->|/api proxy| BE1[tsx watch :4000]
   end
   subgraph stack[Produkčný stack]
     B2[Prehliadač / Playwright] -->|:8080| N[nginx]

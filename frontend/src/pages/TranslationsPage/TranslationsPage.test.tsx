@@ -274,7 +274,7 @@ describe('TranslationsPage', () => {
 		})
 	})
 
-	it('marks a variable the base language does not have and a missing one, never in the base language', async () => {
+	it('marks a variable the base language does not have and a missing one, never in the base language of a key without variables', async () => {
 		mockPage({
 			translations: response({
 				items: [
@@ -292,19 +292,33 @@ describe('TranslationsPage', () => {
 		expect(warning.className).toMatch(/chipWarning/)
 		expect(
 			within(target).getByRole('img', {
-				name: 'Chýbajú: {{percentage}}, {{amount}}. Navyše: {{perecentage}}. Premenná nie je v základnom jazyku – skontrolujte preklep.',
+				name: 'Chýbajú: {{percentage}}, {{amount}}. Navyše: {{perecentage}}. Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.',
 			}),
 		).toBeInTheDocument()
 		// An extra variable alone gets the icon too, so a clamped long value still shows the warning.
 		const account = screen.getByRole('button', { name: /Preklad kľúča account, angličtina/ })
-		expect(within(account).getByRole('img', { name: 'Navyše: {{user}}. Premenná nie je v základnom jazyku – skontrolujte preklep.' })).toBeInTheDocument()
+		expect(
+			within(account).getByRole('img', { name: 'Navyše: {{user}}. Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.' }),
+		).toBeInTheDocument()
 		fireEvent.mouseEnter(warning)
-		expect(await screen.findByRole('tooltip')).toHaveTextContent('Premenná nie je v základnom jazyku – skontrolujte preklep.')
+		expect(await screen.findByRole('tooltip')).toHaveTextContent('Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.')
 
 		// The base (source) value and a matching target get neither the chip nor the icon.
 		expect(screen.getByText('{{ percentage }}').className).not.toMatch(/chipWarning/)
 		screen.getAllByText('{{name}}').forEach((chip) => expect(chip.className).not.toMatch(/chipWarning/))
 		expect(screen.getAllByRole('img')).toHaveLength(2)
+	})
+
+	it('checks a sentence key against its name, so the base value that dropped a variable gets the warning', async () => {
+		const name = 'Na udalosť je prihlásených {{count}} ľudí.'
+		mockPage({ translations: response({ items: [item('loc', name, 'Klientom bude odoslaná notifikácia.', '{{count}} clients are booked.')] }) })
+		renderApp(PAGE_PATH)
+		await screen.findByText(name)
+
+		const target = screen.getByRole('button', { name: /Preklad kľúča Na udalosť .*, angličtina/ })
+		expect(within(target).queryByRole('img')).not.toBeInTheDocument()
+		expect(screen.getByRole('img', { name: 'Chýbajú: {{count}}.' })).toBeInTheDocument()
+		expect(screen.getAllByRole('img')).toHaveLength(1)
 	})
 
 	it('writes the search to the URL after typing stops and resets the page', async () => {
@@ -605,7 +619,7 @@ describe('TranslationsPage', () => {
 		await screen.findByText('orders.empty.title')
 
 		const banner = getWarningsBanner()
-		expect(banner).toHaveTextContent('3 kľúče majú premenné, ktoré sa líšia od základného jazyka, napríklad po importe.')
+		expect(banner).toHaveTextContent('3 kľúče majú premenné, ktoré sa líšia od kľúča alebo základného jazyka, napríklad po importe.')
 		fireEvent.click(within(banner).getByRole('button', { name: 'Zobraziť upozornenia' }))
 		await waitFor(() => expect(router.state.location.search).toEqual({ warnings: true }))
 		await waitFor(() => expect(lastParams(requests)).toMatchObject({ warnings: true }))
@@ -1103,13 +1117,15 @@ describe('TranslationsPage edit modal', () => {
 		const field = fieldOf(dialog, 'Preklad kľúča orders.empty.title, angličtina')
 		typeText(field, 'Hello {{user}}')
 		// The label warns while typing, from the base value; the server's mismatch below is the mocked answer.
-		expect(within(dialog).getByRole('img', { name: 'Navyše: {{user}}. Premenná nie je v základnom jazyku – skontrolujte preklep.' })).toBeInTheDocument()
+		expect(
+			within(dialog).getByRole('img', { name: 'Navyše: {{user}}. Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.' }),
+		).toBeInTheDocument()
 		const submit = within(dialog).getByRole('button', { name: 'Uložiť' })
 		act(() => submit.focus())
 		fireEvent.click(submit)
 
 		const alert = await within(dialog).findByRole('alert')
-		expect(alert).toHaveTextContent('Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}. Navyše: {{user}}.')
+		expect(alert).toHaveTextContent('Premenné v preklade sa nezhodujú s kľúčom alebo základným jazykom. Chýbajú: {{name}}. Navyše: {{user}}.')
 		// Uložiť was disabled while it loaded; the invalid field takes the focus instead of the body.
 		expect(field).toHaveFocus()
 		expect(field).toHaveTextContent('Hello {{user}}')

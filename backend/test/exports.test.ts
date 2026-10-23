@@ -525,7 +525,7 @@ const checkOk = async (...args: Parameters<typeof check>) => {
 }
 
 describe('GET /api/projects/:projectId/export/check', () => {
-	it('lists values whose placeholders differ from the base language, in file order, never the base itself', async () => {
+	it('lists values whose placeholders differ from the base language, in file order, never the base of a key without variables', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cs, cookie } = await setup(app)
 		const margin = await createKey(project.id, 'loc', 'margin', {
@@ -559,6 +559,21 @@ describe('GET /api/projects/:projectId/export/check', () => {
 			[named.id, ['{{count}}']],
 			[greeting.id, ['{{name}}']],
 		])
+	})
+
+	it('checks a sentence key against its name, so the base value that dropped a variable is listed and the others are not', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const key = await createKey(project.id, 'loc', 'Prihlásených {{count}} ľudí', {
+			[sk.id]: 'Klientom bude odoslaná notifikácia.',
+			[en.id]: '{{count}} clients are booked.',
+		})
+
+		const body = await checkOk(app, cookie, project.id, { languageIds: `${sk.id},${en.id}` })
+		expect(body).toEqual({
+			warnings: [{ keyId: key.id, namespace: 'loc', key: 'Prihlásených {{count}} ľudí', languageTag: 'sk', missing: ['{{count}}'], extra: [] }],
+			total: 1,
+		})
 	})
 
 	it('checks only the keys the status keeps and only the exported languages', async () => {

@@ -164,14 +164,18 @@ Keď má kľúč zapnuté [plurálové formy](#plurálové-formy), hodnota iná 
 
 ### Ochrana premenných
 
-Keď má projekt zapnuté `protectVariables` (nastavenia projektu, predvolene zapnuté), hodnota v inom ako základnom jazyku musí obsahovať presne tie premenné, ktoré má hodnota kľúča v základnom jazyku, a každú **rovnako veľa ráz** (`{{count}} ({{count}})` oproti `({{count}})` je premenná navyše; pri plurálovom kľúči sa počíta v každej forme zvlášť a berie sa najvyšší počet, takže jazyk s viac formami ako základný nie je nezhoda): i18next `{{…}}` aj ICU argumenty `{name}` (aj `{name, number}`, `date`, `time`; plurálový argument `{count, plural, …}` premennou nie je, premenné v jeho formách áno). Premenná sa normalizuje rovnako ako pri [importe](./imports.md#upozornenia-import-prejde): bez medzier, bez úvodného `-` a bez časti od `,`, takže `{{ count }}`, `{{- count}}` aj `{{count, number}}` sú `{{count}}` a `{rating, number}` je `{rating}`. Kontrola sa preskočí, keď:
+Keď má projekt zapnuté `protectVariables` (nastavenia projektu, predvolene zapnuté), hodnota musí obsahovať presne tie premenné, ktoré má **referencia**, a každú **rovnako veľa ráz** (`{{count}} ({{count}})` oproti `({{count}})` je premenná navyše; pri plurálovom kľúči sa počíta v každej forme zvlášť a berie sa najvyšší počet, takže jazyk s viac formami ako základný nie je nezhoda): i18next `{{…}}` aj ICU argumenty `{name}` (aj `{name, number}`, `date`, `time`; plurálový argument `{count, plural, …}` premennou nie je, premenné v jeho formách áno). Premenná sa normalizuje rovnako ako pri [importe](./imports.md#upozornenia-import-prejde): bez medzier, bez úvodného `-` a bez časti od `,`, takže `{{ count }}`, `{{- count}}` aj `{{count, number}}` sú `{{count}}` a `{rating, number}` je `{rating}`. Referencia (`placeholderReference` v `packages/shared/src/placeholders.ts`, rovnaká pre úpravu, Pridať kľúč, import, kontrolu exportu, upozornenia v zozname aj editor na FE):
 
-- sa upravuje základný jazyk kľúča, ktorého názov neobsahuje premenné (základný jazyk je zdroj pravdy); vetný kľúč ako `Cena do vrátane DPH ({{symbol}})` sa aj v základnom jazyku porovná s premennými vo svojom názve (rovnako pri `POST …/keys`, s `languageId` základného jazyka),
+- **vetný kľúč s premennými** (názov ako `Na udalosť je prihlásených {{count}} ľudí.`, kľúč nie je plurálový): názov kľúča, pre **všetky jazyky vrátane základného**. Hodnota základného jazyka, ktorej premenná chýba, je teda chyba ona, nie preklady, ktoré premennú majú (od 2026-10-23, predtým sa ostatné jazyky porovnávali so základným),
+- **inak** (kľúč v tvare cesty `orders.empty.title`, veta bez premenných, plurálový kľúč, ktorého formy môžu písať počet ako `#`): hodnota základného jazyka; ak je prázdna, názov kľúča, keď premenné obsahuje. Základný jazyk sa v tomto prípade nekontroluje (je zdroj pravdy).
+
+Kontrola sa preskočí, keď:
+
+- referencia neexistuje (základný jazyk kľúča bez premenných v názve, alebo prázdny základný jazyk a názov bez premenných),
 - je `value` `null`,
-- kľúč nemá v základnom jazyku hodnotu (riadok chýba alebo je `null`) a ani jeho názov neobsahuje premenné; inak sa porovná s premennými v názve kľúča (veta ako `Cena do vrátane DPH ({{symbol}})` vyžaduje `{{symbol}}`),
 - projekt má `protectVariables` vypnuté.
 
-Pri nezhode sa nič nezapíše a vráti sa 400 `PLACEHOLDER_MISMATCH` s `details: { missing, extra }` – normalizované premenné, ktoré sú v hodnote menej ráz ako v základnom jazyku (`missing`), a ktoré sú v nej viac ráz (`extra`); každá premenná raz.
+Pri nezhode sa nič nezapíše a vráti sa 400 `PLACEHOLDER_MISMATCH` s `details: { missing, extra }` – normalizované premenné, ktoré sú v hodnote menej ráz ako v referencii (`missing`), a ktoré sú v nej viac ráz (`extra`); každá premenná raz.
 
 Úprava neberie advisory lock importu: jeden riadok sa zapíše atomicky a súbežný import ostane konzistentný, iba jeho počty (`changes`) môžu byť o tento riadok posunuté.
 
@@ -188,7 +192,7 @@ Schéma `updateTranslationResponseSchema`, rovnaký tvar ako `target` v zozname:
 | HTTP | `code`                      | Kedy                                                                                                                                                                                       |
 | ---- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 400  | `VALIDATION_ERROR`          | chýba `value`, nie je string ani `null`, má viac ako 10 000 znakov, alebo pri plurálovom kľúči nie je plurálová správa s premennou kľúča (`details: [{ path: "value", code: "INVALID" }]`) |
-| 400  | `PLACEHOLDER_MISMATCH`      | premenné sa líšia od základného jazyka (viď vyššie), `details: { missing, extra }`                                                                                                         |
+| 400  | `PLACEHOLDER_MISMATCH`      | premenné sa líšia od referencie (viď vyššie), `details: { missing, extra }`                                                                                                                |
 | 401  | `AUTH_UNAUTHENTICATED`      | bez session                                                                                                                                                                                |
 | 403  | `CSRF_REJECTED`             | bez `X-Requested-With` alebo JSON tela                                                                                                                                                     |
 | 403  | `FORBIDDEN`                 | člen s rolou `VISITOR`                                                                                                                                                                     |
@@ -217,7 +221,7 @@ Telo (schéma `createTranslationKeyRequestSchema`):
 | `translations` | objekt `{ [languageId]: string \| null }` | voliteľné; hodnoty v jazykoch projektu, max. 10 000 znakov; prázdna hodnota, `null` aj vynechaný jazyk = nepreložené (riadok `Translation` sa nevytvorí)                                                                                                                     |
 | `versionId`    | UUID                                      | povinné; verzia, do ktorej kľúč (a jeho vyplnené bunky) patrí; verzia už musí mať import (inak 409 `PROJECT_VERSION_EMPTY`) a namespace musí v nej existovať. Cudzia verzia 404 `PROJECT_VERSION_NOT_FOUND`, uzamknutá pre inú rolu než `ADMIN` 409 `PROJECT_VERSION_LOCKED` |
 
-Pri zapnutej ochrane premenných (`protectVariables`) musí každá vyplnená hodnota nezákladného jazyka mať rovnaké premenné ako vyplnená hodnota základného jazyka (alebo ako názov kľúča, ak základný jazyk ostal prázdny a názov premenné obsahuje), inak 400 `PLACEHOLDER_MISMATCH` s `details` `{ missing, extra, languageId }` pre prvý jazyk v poradí projektu, ktorý sa líši. Kľúč aj hodnoty sa zapíšu v jednej transakcii s udalosťou `KEY_CREATED` ([databáza](../database.md)); vytvorenie čaká na prípadný bežiaci import projektu. Uložené hodnoty majú `updatedById` prihláseného administrátora.
+Pri zapnutej ochrane premenných (`protectVariables`) musí každá vyplnená hodnota mať rovnaké premenné ako jej [referencia](#ochrana-premenných) (vetný kľúč s premennými: názov kľúča aj pre základný jazyk; inak hodnota základného jazyka, prípadne názov kľúča, ak základný jazyk ostal prázdny), inak 400 `PLACEHOLDER_MISMATCH` s `details` `{ missing, extra, languageId }` pre prvý jazyk v poradí projektu, ktorý sa líši. Kľúč aj hodnoty sa zapíšu v jednej transakcii s udalosťou `KEY_CREATED` ([databáza](../database.md)); vytvorenie čaká na prípadný bežiaci import projektu. Uložené hodnoty majú `updatedById` prihláseného administrátora.
 
 ### Odpoveď 201
 
@@ -239,7 +243,7 @@ Schéma `createTranslationKeyResponseSchema` (rovnaká ako odpoveď `PATCH`): no
 | HTTP | `code`                  | Kedy                                                                                                                                                                   |
 | ---- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 400  | `VALIDATION_ERROR`      | prázdny alebo pridlhý `name`; `namespace`, ktorý projekt nemá (`details: [{ path: "namespace", code: "INVALID" }]`); jazyk mimo projektu (`path: "translations.<id>"`) |
-| 400  | `PLACEHOLDER_MISMATCH`  | premenné hodnoty sa líšia od základného jazyka (viď vyššie)                                                                                                            |
+| 400  | `PLACEHOLDER_MISMATCH`  | premenné hodnoty sa líšia od referencie (viď vyššie)                                                                                                                   |
 | 401  | `AUTH_UNAUTHENTICATED`  | bez session                                                                                                                                                            |
 | 403  | `FORBIDDEN`             | člen projektu bez globálnej role `ADMIN`                                                                                                                               |
 | 403  | `CSRF_REJECTED`         | bez `X-Requested-With` alebo JSON tela                                                                                                                                 |

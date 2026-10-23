@@ -8,6 +8,17 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Referencia premenných pri vetných kľúčoch (2026-10-23)
+
+- shared: `placeholderReference(key, baseValue, isBase)` určuje, s čím sa porovnávajú premenné bunky. Vetný kľúč s premennými (nie plurálový) je referenciou pre všetky jazyky vrátane základného; inak hodnota základného jazyka (prípadne názov kľúča, keď je prázdna) a základný jazyk sa nekontroluje
+- backend: úprava bunky, Pridať kľúč, náhľad importu, kontrola exportu aj `Translation.placeholderWarning` používajú túto referenciu; základný jazyk, ktorému chýba premenná vetného kľúča, má upozornenie a preklady, ktoré ju majú, už nie. Migrácia `recompute_placeholder_warnings` vynuluje príznak a seed ho pri štarte prepočíta ([API](./api/translations.md#ochrana-premenných))
+- backend: import prepočíta upozornenia aj kľúčov, ktoré iba zmenil na plurálové (bez zápisu hodnoty); náhľad importu pri prázdnej bunke základného jazyka porovnáva s hodnotou, ktorá v projekte ostane
+- frontend: ⚠ v tabuľke a živá kontrola v modáli **Upraviť preklad** aj pre základný jazyk vetného kľúča; texty „Premenné v preklade sa nezhodujú s kľúčom alebo základným jazykom.“, „Premenná nie je v kľúči ani v základnom jazyku…“ a banner „…ktoré sa líšia od kľúča alebo základného jazyka…“
+
+### Port dev backendu (2026-10-23)
+
+- lokálny vývoj: dev backend počúva na porte **4000** namiesto 3000 (`PORT` v `.env`, predvolená hodnota v `env.ts`) a Vite proxy mieri na `http://127.0.0.1:4000`. Na 3000 až 3003 bežia iné FE projekty a `localhost:3000` sa v Node preložil na IPv6 `::1`, kde počúval Vite iného projektu, takže `/api` nešlo do backendu. V existujúcom `.env` treba zmeniť `PORT=3000` na `PORT=4000`. Docker stack sa nemení ([Lokálny vývoj](./local-development.md))
+
 ### Lišta filtrov v Prekladoch (2026-10-22)
 
 - frontend: výber **Verzia** je v lište filtrov tretí, hneď za zoradením; selecty rastú najviac do 16 rem, takže zalomený filter **Zmenené** sa v zobrazení Zdroj → cieľ už neroztiahne cez celý druhý riadok ([Frontend](./frontend.md))

@@ -278,7 +278,9 @@ const openTranslationMismatch = async (page: Page) => {
 	const field = getTranslationField(page, 'dashboard.welcome')
 	await field.fill('Welcome back, friend')
 	expect((await saveTranslation(page)).status()).toBe(400)
-	await expect(getEditTranslationDialog(page).getByRole('alert')).toHaveText('Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}.')
+	await expect(getEditTranslationDialog(page).getByRole('alert')).toHaveText(
+		'Premenné v preklade sa nezhodujú s kľúčom alebo základným jazykom. Chýbajú: {{name}}.',
+	)
 	await expect(field).toHaveAttribute('aria-invalid', 'true')
 }
 

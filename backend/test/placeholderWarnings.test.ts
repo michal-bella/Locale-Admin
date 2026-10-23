@@ -54,7 +54,7 @@ const flagsOf = async (keyId: string) => {
 }
 
 describe('Translation.placeholderWarning', () => {
-	it('is set by a translation edit and cleared again, never on the base language', async () => {
+	it('is set by a translation edit and cleared again, never on the base language of a key without variables', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie } = await setup(app)
 		const key = await createKey(project.id, 'items', { [sk.id]: 'Máte {{count}} položiek' })
@@ -147,6 +147,19 @@ describe('Translation.placeholderWarning', () => {
 		expect(settings.status).toBe(200)
 		// en is the base now: its cell is fine by definition and sk has {{count}} once against twice.
 		expect(await flagsOf(other.id)).toEqual({ sk: true, en: false })
+	})
+
+	it('flags the base value of a sentence key that dropped a variable, not the languages that kept it', async () => {
+		const app = createTestApp()
+		const { project, sk, en } = await setup(app)
+		const key = await createKey(project.id, 'Na udalosť je prihlásených {{count}} ľudí.', {
+			[sk.id]: 'Klientom bude odoslaná notifikácia.',
+			[en.id]: '{{count}} clients are already booked.',
+		})
+
+		await seedPlaceholderWarnings(getTestPrisma())
+
+		expect(await flagsOf(key.id)).toEqual({ sk: true, en: false })
 	})
 
 	it('seedPlaceholderWarnings fills only the rows that are still null and reports the keys it touched', async () => {

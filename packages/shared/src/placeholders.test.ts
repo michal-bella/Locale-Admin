@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { comparePlaceholders, placeholders } from './placeholders'
+import { comparePlaceholders, placeholderReference, placeholders } from './placeholders'
 
 describe('placeholders', () => {
 	it('normalizes i18next variants and keeps the order of first appearance', () => {
@@ -43,5 +43,30 @@ describe('placeholders', () => {
 			missing: [],
 			extra: ['{{count}}'],
 		})
+	})
+})
+
+describe('placeholderReference', () => {
+	const sentence = { name: 'Na udalosť je prihlásených {{count}} ľudí.', plural: false }
+
+	it('uses a sentence key with variables for every language, the base included', () => {
+		expect(placeholderReference(sentence, 'Klientom bude odoslaná notifikácia.', true)).toBe(sentence.name)
+		expect(placeholderReference(sentence, 'Klientom bude odoslaná notifikácia.', false)).toBe(sentence.name)
+	})
+
+	it('uses the base value for a key without variables and does not check the base', () => {
+		const path = { name: 'orders.empty.title', plural: false }
+		expect(placeholderReference(path, 'Máte {{count}} objednávok', false)).toBe('Máte {{count}} objednávok')
+		expect(placeholderReference(path, 'Máte {{count}} objednávok', true)).toBeNull()
+		expect(placeholderReference(path, null, false)).toBeNull()
+	})
+
+	it('keeps the base value for a plural key, whose forms may write the count as #', () => {
+		const plural = { name: '{{count}} položiek', plural: true }
+		expect(placeholderReference(plural, '{count, plural, one {# položka} other {# položiek}}', false)).toBe(
+			'{count, plural, one {# položka} other {# položiek}}',
+		)
+		expect(placeholderReference(plural, null, false)).toBe(plural.name)
+		expect(placeholderReference(plural, '{count, plural, other {# položiek}}', true)).toBeNull()
 	})
 })

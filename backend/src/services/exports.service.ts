@@ -10,7 +10,7 @@ import {
 	type ExportQuery,
 	type ExportStatus,
 	type ExportWarning,
-	placeholders,
+	placeholderReference,
 } from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
@@ -24,7 +24,7 @@ import { versionDiffSql } from './translations.service'
 
 type Tx = Prisma.TransactionClient
 
-type KeyRow = { id: string; namespace: string; name: string }
+type KeyRow = { id: string; namespace: string; name: string; pluralVariable: string | null }
 
 /**
  * Where the file goes: `start` runs once the file is known to be valid, before anything is written. CSV goes through `write`,
@@ -71,7 +71,7 @@ async function* rowBatches(
 			? Prisma.sql`AND (k.namespace COLLATE "C" > ${last.namespace} OR (k.namespace = ${last.namespace} AND k.name COLLATE "C" > ${last.name}))`
 			: Prisma.empty
 		const keys = await tx.$queryRaw<KeyRow[]>`
-			SELECT k.id, k.namespace, k.name
+			SELECT k.id, k.namespace, k.name, k."pluralVariable"
 			FROM "TranslationKey" k
 			WHERE k."projectId" = ${projectId}::uuid ${version} ${after}
 			ORDER BY k.namespace COLLATE "C", k.name COLLATE "C"
@@ -91,6 +91,7 @@ async function* rowBatches(
 				keyId: key.id,
 				namespace: key.namespace,
 				key: key.name,
+				plural: key.pluralVariable !== null,
 				values: languageIds.map((languageId) => values.get(`${key.id}:${languageId}`) ?? null),
 				base: baseLanguageId === undefined ? null : (values.get(`${key.id}:${baseLanguageId}`) ?? null),
 			}))
@@ -210,8 +211,8 @@ export const exportTranslations = async (prisma: PrismaClient, projectId: string
 }
 
 /**
- * Placeholder mismatches the planned export would carry: every non-base exported value is compared with the base language value (or the
- * key name when the base is empty and the name has placeholders), as the edit and import checks do. The same keys as the export
+ * Placeholder mismatches the planned export would carry: every exported value is compared with `placeholderReference` (a sentence key
+ * with variables, else the base language value), as the edit and import checks do. The same keys as the export
  * (status over the exported languages); the base language is the reference even when it is not exported.
  */
 export const checkExport = async (prisma: PrismaClient, projectId: string, query: ExportCheckQuery): Promise<ExportCheckResponse> => {
@@ -233,13 +234,10 @@ export const checkExport = async (prisma: PrismaClient, projectId: string, query
 			let total = 0
 			for await (const rows of rowBatches(tx, projectId, languageIds, query.status, version, base?.id)) {
 				for (const row of rows) {
-					const reference = row.base ?? (placeholders(row.key).size > 0 ? row.key : null)
-					if (reference === null) {
-						continue
-					}
 					languages.forEach((language, index) => {
 						const value = row.values[index]
-						if (language.isBase || value === null || value === undefined) {
+						const reference = placeholderReference({ name: row.key, plural: row.plural === true }, row.base ?? null, language.isBase)
+						if (reference === null || value === null || value === undefined) {
 							return
 						}
 						const { missing, extra } = comparePlaceholders(reference, value)

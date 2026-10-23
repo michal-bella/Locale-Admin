@@ -24,7 +24,7 @@ import {
 	type UpdateTranslationKeyResponse,
 	type UpdateTranslationResponse,
 	comparePlaceholders,
-	placeholders,
+	placeholderReference,
 } from '@locale/shared'
 
 import { Prisma, type Translation } from '../generated/prisma/client'
@@ -333,11 +333,10 @@ export const updateTranslation = async (
 	}
 
 	if (value !== null && key.project.protectVariables) {
-		// The base language is the source of truth, so it is only checked against its own key name (a sentence key names its variables).
 		const base = language.isBase
 			? null
 			: await prisma.translation.findFirst({ where: { keyId, language: { projectId, isBase: true } }, select: { value: true } })
-		const reference = base?.value ?? (placeholders(key.name).size > 0 ? key.name : null)
+		const reference = placeholderReference({ name: key.name, plural: key.pluralVariable !== null }, base?.value ?? null, language.isBase)
 		if (reference !== null) {
 			const { missing, extra } = comparePlaceholders(reference, value)
 			if (missing.length > 0 || extra.length > 0) {
@@ -486,8 +485,7 @@ export const createTranslationKey = async (
 	})
 
 	if (project.protectVariables) {
-		const base = values.find((language) => language.isBase)
-		const nameReference = placeholders(name).size > 0 ? name : null
+		const baseValue = values.find((language) => language.isBase)?.value ?? null
 		const mismatch = (reference: string, language: (typeof values)[number]) => {
 			const { missing, extra } = comparePlaceholders(reference, language.value)
 			if (missing.length > 0 || extra.length > 0) {
@@ -498,13 +496,11 @@ export const createTranslationKey = async (
 				})
 			}
 		}
-		// A sentence key names its variables, so the base value must match the name; the other languages then follow the base value.
-		if (base && nameReference !== null) {
-			mismatch(nameReference, base)
-		}
-		const reference = base?.value ?? nameReference
-		if (reference !== null) {
-			values.filter((item) => !item.isBase).forEach((language) => mismatch(reference, language))
+		for (const language of values) {
+			const reference = placeholderReference({ name, plural: false }, baseValue, language.isBase)
+			if (reference !== null) {
+				mismatch(reference, language)
+			}
 		}
 	}
 

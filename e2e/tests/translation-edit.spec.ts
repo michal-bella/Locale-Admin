@@ -26,7 +26,7 @@ import {
 import { loginAsFreshAdmin } from '../support/users'
 import { createProjectWithVersion } from '../support/versions'
 
-const MISMATCH_MESSAGE = 'Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}.'
+const MISMATCH_MESSAGE = 'Premenné v preklade sa nezhodujú s kľúčom alebo základným jazykom. Chýbajú: {{name}}.'
 const LOCKED_HINT = 'Premenné a HTML značky sú zamknuté, mažú sa celé.'
 const SK = 'slovenčina'
 

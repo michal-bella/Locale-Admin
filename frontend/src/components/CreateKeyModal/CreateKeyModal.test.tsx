@@ -214,7 +214,7 @@ describe('CreateKeyModal', () => {
 		fireEvent.change(within(dialog).getByLabelText(/angličtina/i), { target: { value: 'Hello' } })
 		submit(dialog)
 
-		expect(await within(dialog).findByText('Premenné v preklade sa nezhodujú so základným jazykom. Chýbajú: {{name}}.')).toBeInTheDocument()
+		expect(await within(dialog).findByText('Premenné v preklade sa nezhodujú s kľúčom alebo základným jazykom. Chýbajú: {{name}}.')).toBeInTheDocument()
 		expect(within(dialog).getByLabelText(/angličtina/i)).toHaveAttribute('aria-invalid', 'true')
 	})
 

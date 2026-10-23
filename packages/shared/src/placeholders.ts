@@ -47,3 +47,20 @@ export const comparePlaceholders = (base: string, value: string): { missing: str
 		extra: [...own].filter(([placeholder, count]) => (expected.get(placeholder) ?? 0) < count).map(([placeholder]) => placeholder),
 	}
 }
+
+/**
+ * What a cell's placeholders are compared with, or `null` when it is not checked. A sentence key that names variables is the reference
+ * for every language, the base included, so a base value that dropped a variable is the one flagged. Otherwise the base value is the
+ * reference (the key name while the base is empty) and the base itself is not checked. A plural key keeps the base value, because its
+ * forms may write the count as `#`.
+ */
+export const placeholderReference = (key: { name: string; plural: boolean }, baseValue: string | null, isBase: boolean): string | null => {
+	const nameHasPlaceholders = placeholders(key.name).size > 0
+	if (nameHasPlaceholders && !key.plural) {
+		return key.name
+	}
+	if (isBase) {
+		return null
+	}
+	return baseValue ?? (nameHasPlaceholders ? key.name : null)
+}

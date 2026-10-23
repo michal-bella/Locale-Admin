@@ -177,6 +177,17 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 		expect(await putOk(app, cookie, project.id, key.id, sk.id, 'Cena vrátane DPH ({{ symbol }})')).toMatchObject({ status: 'TRANSLATED' })
 	})
 
+	it('checks the other languages of a sentence key against the key name, not a base value that dropped a variable', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cookie } = await setup(app)
+		const key = await createKey(project.id, 'Na udalosť je prihlásených {{count}} ľudí.', { [sk.id]: 'Klientom bude odoslaná notifikácia.' })
+
+		expect(await putOk(app, cookie, project.id, key.id, en.id, '{{count}} clients are already booked.')).toMatchObject({ status: 'TRANSLATED' })
+		const res = await put(app, cookie, project.id, key.id, en.id, 'Clients will be notified.')
+		expectErrorCode(res, 400, ERROR_CODE.PLACEHOLDER_MISMATCH)
+		expect(placeholderDetails(res)).toEqual({ missing: ['{{count}}'], extra: [] })
+	})
+
 	it('takes the placeholders from the key name when the base value is null or missing', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie } = await setup(app)

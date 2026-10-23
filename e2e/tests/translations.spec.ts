@@ -288,7 +288,7 @@ test('a yellow banner counts the keys with a placeholder warning and its button 
 
 	// The version banner is an alert too, so the warnings one is told apart by its text.
 	const banner = page.getByRole('alert').filter({ hasText: 'premenné' })
-	await expect(banner).toContainText('1 kľúč má premenné, ktoré sa líšia od základného jazyka, napríklad po importe.')
+	await expect(banner).toContainText('1 kľúč má premenné, ktoré sa líšia od kľúča alebo základného jazyka, napríklad po importe.')
 	await expect(getTranslationRows(page)).toHaveCount(10)
 
 	await banner.getByRole('button', { name: 'Zobraziť upozornenia' }).click()

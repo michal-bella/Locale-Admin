@@ -3,7 +3,7 @@ import { useDisclosure } from '@mantine/hooks'
 import { Fragment, type PointerEvent as ReactPointerEvent, type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type Language, placeholders, ROLE, type TranslationCell as TranslationCellData, type TranslationListItem } from '@locale/shared'
+import { type Language, placeholderReference, ROLE, type TranslationCell as TranslationCellData, type TranslationListItem } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -158,13 +158,13 @@ const TranslationsTable = ({
 		</Table.Tr>
 	)
 
-	// What the API compares a value against: the base language value, or the key name when the base is empty and the name has placeholders.
+	// What the API compares a value against (`placeholderReference`); undefined when the cell is not checked.
 	const referenceFor = (item: TranslationListItem, language: Language): string | undefined => {
-		if (!baseLanguage || language.isBase) {
+		if (!baseLanguage) {
 			return undefined
 		}
 		const base = item.translations[baseLanguage.id]?.value ?? null
-		return base ?? (placeholders(item.name).size > 0 ? item.name : undefined)
+		return placeholderReference({ name: item.name, plural: item.plural !== null }, base, language.isBase) ?? undefined
 	}
 
 	const isChanged = (item: TranslationListItem, language: Language) => item.diff?.changedLanguageIds.includes(language.id) ?? false

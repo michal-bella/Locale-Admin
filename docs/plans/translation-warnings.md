@@ -6,6 +6,8 @@ notion_page_id:
 
 # Banner upozornení na premenné
 
+> **Zmena 2026-10-23:** referenciou premenných je pri vetnom kľúči s premennými jeho názov pre všetky jazyky vrátane základného, takže upozornenie dostane základný jazyk, ktorému premenná chýba, a nie preklady, ktoré ju majú. Ostatné kľúče ostávajú pri hodnote základného jazyka. Pravidlo: [API: ochrana premenných](../api/translations.md#ochrana-premenných).
+
 ## Kontext
 
 Tabuľka prekladov už ukazuje nezhody premenných oproti základnému jazyku: žltý chip pri premennej, ktorú základný jazyk nemá, a výstražnú ikonu pri chýbajúcej premennej. Vznikajú najmä importom (import ich iba ohlási a zapíše) a pri starších dátach. Editor sa o nich dozvie až keď na riadok natrafí alebo pri exporte (kontrola pred exportom). Tento plán pridáva na stránku Preklady **žltý banner**: „N kľúčov má premenné, ktoré sa líšia od základného jazyka“ a tlačidlo **Zobraziť upozornenia**, ktoré vyfiltruje iba riadky s aspoň jednou nezhodou. Banner nič nevypisuje, zdrojom pravdy ostáva tabuľka.

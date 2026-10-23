@@ -18,6 +18,7 @@ import {
 	type ImportResult,
 	type ROLE,
 	comparePlaceholders,
+	placeholderReference,
 } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
@@ -204,17 +205,16 @@ export const previewImport = async (prisma: PrismaClient, projectId: string, ver
 			const value = row.values[index] ?? null
 			column.stats[value === null ? 'untranslated' : 'translations'] += 1
 			const position = { line: row.line, column: column.columnIndex }
-			if (index === baseIndex) {
-				if (value === null) {
-					column.stats.warnings += 1
-					warnings.push({ code: 'BASE_LANGUAGE_UNTRANSLATED', ...position, params: { tag: column.tag, key: row.key, namespace: row.namespace } })
-				}
+			if (index === baseIndex && value === null) {
+				column.stats.warnings += 1
+				warnings.push({ code: 'BASE_LANGUAGE_UNTRANSLATED', ...position, params: { tag: column.tag, key: row.key, namespace: row.namespace } })
 				return
 			}
-			if (value === null || baseValue === null) {
+			const reference = value === null ? null : placeholderReference({ name: row.key, plural: pluralVariable !== null }, baseValue, index === baseIndex)
+			if (value === null || reference === null) {
 				return
 			}
-			const { missing, extra } = comparePlaceholders(baseValue, value)
+			const { missing, extra } = comparePlaceholders(reference, value)
 			if (missing.length > 0 || extra.length > 0) {
 				column.stats.warnings += 1
 				warnings.push({

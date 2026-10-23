@@ -188,6 +188,25 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 		])
 	})
 
+	it('checks every column of a sentence key against the key name, the base language included', async () => {
+		const app = createTestApp()
+		const { project, cookie } = await setup(app)
+
+		const body = await previewOk(app, cookie, project.id, [
+			'Keys; sk ; en',
+			' Prihlásených {{count}} ľudí; Klientom bude odoslaná notifikácia.; {{count}} clients are booked.',
+		])
+
+		expect(body.warnings).toEqual([
+			{
+				code: 'PLACEHOLDER_MISMATCH',
+				line: 2,
+				column: 2,
+				params: { tag: 'sk', key: 'Prihlásených {{count}} ľudí', namespace: '', missing: '{{count}}', extra: '' },
+			},
+		])
+	})
+
 	it('treats i18next unescaped and formatted placeholders as the plain variable', async () => {
 		const app = createTestApp()
 		const { project, cookie } = await setup(app)

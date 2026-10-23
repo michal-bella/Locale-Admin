@@ -17,6 +17,11 @@
 	border-color: var(--mantine-color-error);
 }
 
+/* Variables differ from the base language: orange, between the red of an empty cell and the neutral one. */
+.button[data-warning] {
+	border-color: var(--mantine-color-orange-6);
+}
+
 /* Changed against the previous version: a brand edge in both schemes (`--app-color-eyebrow` is brand.4 in the dark one). */
 .button[data-changed] {
 	border-inline-start: 3px solid var(--app-color-eyebrow);

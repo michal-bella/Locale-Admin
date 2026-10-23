@@ -311,13 +311,21 @@ describe('TranslationsPage', () => {
 		expect(
 			within(account).getByRole('img', { name: 'Navyše: {{user}}. Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.' }),
 		).toBeInTheDocument()
+		// The cell has an orange border and explains the warning on hover of the whole cell; the chip and icon inside have no tooltips.
+		expect(target).toHaveAttribute('data-warning', 'true')
+		expect(account).toHaveAttribute('data-warning', 'true')
 		fireEvent.mouseEnter(warning)
-		expect(await screen.findByRole('tooltip')).toHaveTextContent('Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.')
+		expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+		fireEvent.mouseEnter(target)
+		expect(await screen.findByRole('tooltip')).toHaveTextContent(
+			'Chýbajú: {{percentage}}, {{amount}}. Navyše: {{perecentage}}. Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.',
+		)
 
 		// The base (source) value and a matching target get neither the chip nor the icon.
 		expect(screen.getByText('{{ percentage }}').className).not.toMatch(/chipWarning/)
 		screen.getAllByText('{{name}}').forEach((chip) => expect(chip.className).not.toMatch(/chipWarning/))
 		expect(screen.getAllByRole('img')).toHaveLength(2)
+		expect(screen.getByRole('button', { name: /Preklad kľúča greeting, angličtina/ })).not.toHaveAttribute('data-warning')
 	})
 
 	it('checks a sentence key against its name, so the base value that dropped a variable gets the warning', async () => {

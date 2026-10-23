@@ -11,6 +11,7 @@ notion_page_id:
 ### Zvýraznenie zmien bez filtra (2026-10-23)
 
 - API: `GET …/translations` vracia v položke `diff: { added, changedLanguageIds }` vždy, keď verzia má predchádzajúcu, nielen s `diff=true`; prvá verzia projektu `diff` neposiela
+- frontend: bunka s nezhodou premenných má oranžový rámček a varovanie ukáže tooltip pri hoveri na celú bunku, nie iba na ikonu
 - frontend: stĺpce jazykov sa dajú rozťahovať iba vo Všetkých jazykoch a najviac na 800 px; v Zdroj → cieľ ťahadlo zaniklo, a tým aj chyba, keď sa stĺpec vo Všetkých jazykoch nedal zúžiť pod šírku nameranú v Zdroj → cieľ
 - frontend: Zdroj → cieľ ukazuje pri kľúči čas aj vtedy, keď cieľ ešte nikto nezapísal (najnovšia zmena v ktoromkoľvek jazyku)
 - frontend: zobrazenie Zdroj → cieľ má rovnako husté bunky ako Všetky jazyky (padding 6 / 12 px, rámček 4 / 8 px)

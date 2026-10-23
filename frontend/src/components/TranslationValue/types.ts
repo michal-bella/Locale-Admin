@@ -7,4 +7,6 @@ export type TranslationValueProps = {
 	 * as the API checks it). A chip outside it gets a warning, and a value with placeholders missing or extra a warning icon after it. `undefined` checks nothing.
 	 */
 	reference?: string
+	/** `false` inside a table cell: the warning icon and chips get no tooltips of their own, the cell shows the message on hover. */
+	tooltips?: boolean
 }

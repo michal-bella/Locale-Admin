@@ -15,7 +15,7 @@ const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
  * like in `TokenEditor`, as escaped text, so `<strong>` shows up as typed and never renders. With `basePlaceholders` a chip the base
  * language does not have is a warning chip with a tooltip.
  */
-const TranslationText = ({ value, pluralHash = false, basePlaceholders }: TranslationTextProps) => {
+const TranslationText = ({ value, pluralHash = false, basePlaceholders, chipTooltips = true }: TranslationTextProps) => {
 	const { t } = useTranslation()
 	return (
 		<span className={classes.text}>
@@ -31,6 +31,13 @@ const TranslationText = ({ value, pluralHash = false, basePlaceholders }: Transl
 					)
 				}
 				if (token.type === 'placeholder' && isUnknownPlaceholder(token.value, basePlaceholders)) {
+					if (!chipTooltips) {
+						return (
+							<code key={index} className={`${classes.chip} ${classes.chipWarning}`}>
+								{token.value}
+							</code>
+						)
+					}
 					return (
 						<Tooltip key={index} label={t('translationsPage.editor.unknownVariable')} events={TOOLTIP_EVENTS} multiline w={260}>
 							<code className={`${classes.chip} ${classes.chipWarning}`}>{token.value}</code>

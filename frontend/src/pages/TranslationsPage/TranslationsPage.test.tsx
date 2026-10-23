@@ -213,6 +213,17 @@ describe('TranslationsPage', () => {
 		expect(within(getRow('orders.empty.title')).getByText('Bez prekladu')).toBeInTheDocument()
 	})
 
+	it('falls back to the latest change in any language when the target was never written', async () => {
+		const sourceOnly = item('loc', 'orders.empty.title', 'Zatiaľ tu nie sú žiadne objednávky', null)
+		sourceOnly.translations[SLOVAK.id] = cell('Zatiaľ tu nie sú žiadne objednávky', minutesAgo(5))
+		mockPage({ translations: response({ items: [sourceOnly] }) })
+		renderApp(PAGE_PATH)
+
+		await screen.findByText('orders.empty.title')
+		const updated = within(getRow('orders.empty.title')).getByText('pred 5 min')
+		expect(updated).toHaveAttribute('datetime', sourceOnly.translations[SLOVAK.id]?.updatedAt)
+	})
+
 	it('asks for the base language → first other language, untranslated first, page 1 of 25 by default', async () => {
 		const requests = mockPage({ languages: [SLOVAK, CZECH, ENGLISH] })
 		renderApp(PAGE_PATH)
@@ -300,13 +311,21 @@ describe('TranslationsPage', () => {
 		expect(
 			within(account).getByRole('img', { name: 'Navyše: {{user}}. Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.' }),
 		).toBeInTheDocument()
+		// The cell has an orange border and explains the warning on hover of the whole cell; the chip and icon inside have no tooltips.
+		expect(target).toHaveAttribute('data-warning', 'true')
+		expect(account).toHaveAttribute('data-warning', 'true')
 		fireEvent.mouseEnter(warning)
-		expect(await screen.findByRole('tooltip')).toHaveTextContent('Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.')
+		expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+		fireEvent.mouseEnter(target)
+		expect(await screen.findByRole('tooltip')).toHaveTextContent(
+			'Chýbajú: {{percentage}}, {{amount}}. Navyše: {{perecentage}}. Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.',
+		)
 
 		// The base (source) value and a matching target get neither the chip nor the icon.
 		expect(screen.getByText('{{ percentage }}').className).not.toMatch(/chipWarning/)
 		screen.getAllByText('{{name}}').forEach((chip) => expect(chip.className).not.toMatch(/chipWarning/))
 		expect(screen.getAllByRole('img')).toHaveLength(2)
+		expect(screen.getByRole('button', { name: /Preklad kľúča greeting, angličtina/ })).not.toHaveAttribute('data-warning')
 	})
 
 	it('checks a sentence key against its name, so the base value that dropped a variable gets the warning', async () => {
@@ -539,7 +558,7 @@ describe('TranslationsPage', () => {
 		expect(getRow('dashboard.welcome')).toHaveAttribute('data-status', 'TRANSLATED')
 	})
 
-	it('shows {{var}} as chips and HTML as plain text', async () => {
+	it('shows {{var}} and HTML tags as chips, never rendering the HTML', async () => {
 		mockPage({
 			translations: response({
 				items: [
@@ -557,8 +576,10 @@ describe('TranslationsPage', () => {
 		expect(count.getByText('položiek', { exact: false })).toBeInTheDocument()
 
 		const terms = getRow('terms.link')
-		expect(within(terms).getByText('Súhlasím s <a href="/terms">podmienkami</a>')).toBeInTheDocument()
-		expect(within(terms).getByText('<strong>Bold</strong><img src=x onerror=alert(1)>')).toBeInTheDocument()
+		expect(within(terms).getByText('<a href="/terms">').tagName).toBe('CODE')
+		expect(terms).toHaveTextContent('Súhlasím s <a href="/terms">podmienkami</a>')
+		expect(within(terms).getByText('<strong>').tagName).toBe('CODE')
+		expect(within(terms).getByText('<img src=x onerror=alert(1)>').tagName).toBe('CODE')
 		expect(terms.querySelector('a, strong, img')).toBeNull()
 	})
 
@@ -1573,7 +1594,7 @@ describe('TranslationsPage extended view', () => {
 		expect(within(table).getAllByText('loc:orders.empty')[0]?.className).toMatch(/groupLabel/)
 	})
 
-	it('widens a language column by dragging the handle in its header, never below its default width, and keeps the widths out of the URL', async () => {
+	it('widens a language column by dragging the handle in its header, never below its default width nor past 800 px, and keeps the widths out of the URL', async () => {
 		mockPage({ user: EXTENDED_ADMIN, languages: [SLOVAK, ENGLISH] })
 		renderApp(PAGE_PATH)
 		await screen.findByText('orders.empty.title')
@@ -1593,6 +1614,8 @@ describe('TranslationsPage extended view', () => {
 		fireEvent.pointerMove(window, { clientX: 400 })
 		expect(header.style.width).toBe('524px')
 		expect(header.style.minWidth).toBe('524px')
+		fireEvent.pointerMove(window, { clientX: 2000 })
+		expect(header.style.width).toBe('800px')
 		fireEvent.pointerMove(window, { clientX: 20 })
 		expect(header.style.width).toBe('224px')
 		fireEvent.pointerUp(window)
@@ -1614,6 +1637,14 @@ describe('TranslationsPage extended view', () => {
 		expect(keyHeader.style.width).toBe('')
 		expect(window.location.search).toBe('')
 		expect(screen.getByRole('columnheader', { name: 'angličtina' })).toHaveTextContent('angličtina')
+	})
+
+	it('has no column resizing in the compact view', async () => {
+		mockPage()
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		expect(getTable().querySelector('[data-resize-handle]')).toBeNull()
 	})
 
 	it('stacks every language in one editable column with the STACKED layout preference', async () => {

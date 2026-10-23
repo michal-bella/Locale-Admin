@@ -18,6 +18,13 @@
 	white-space: nowrap;
 }
 
+/* An HTML tag: neutral like the editor's tag token (`TokenEditor` `.tag`), so it reads apart from the brand variable chips. */
+.chipTag {
+	border-color: var(--app-color-border);
+	background-color: var(--app-color-surface-muted);
+	color: var(--app-color-text-secondary);
+}
+
 /* A variable the base language does not have: most likely a typo. The editor chips reuse it. */
 .chipWarning {
 	border-color: color-mix(in srgb, var(--app-color-warning-text) 40%, transparent);

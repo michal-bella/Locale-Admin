@@ -44,7 +44,7 @@ type ItemRow = {
 	description: string | null
 	pluralVariable: string | null
 	untranslated: boolean
-	/** Only with `diff`: see `diffColumnsSql`. */
+	/** Only when the version has a previous one: see `diffColumnsSql`. */
 	added?: boolean
 	changedLanguageIds?: string[]
 }
@@ -132,11 +132,8 @@ export const versionDiffSql = (previousVersionId: string | null): Prisma.Sql => 
 				WHERE l."projectId" = k."projectId" AND a.value IS DISTINCT FROM b.value))))`
 }
 
-/** `added` and `changedLanguageIds` of a key `k` against the previous version; without one every key is added with no changed language. */
-const diffColumnsSql = (previousVersionId: string | null): Prisma.Sql => {
-	if (previousVersionId === null) {
-		return Prisma.sql`TRUE AS added, ARRAY[]::uuid[] AS "changedLanguageIds"`
-	}
+/** `added` and `changedLanguageIds` of a key `k` against the previous version. The first version has none, so its keys carry no diff. */
+const diffColumnsSql = (previousVersionId: string): Prisma.Sql => {
 	const previousKey = Prisma.sql`SELECT p.id FROM "TranslationKey" p WHERE p."versionId" = ${previousVersionId}::uuid AND p.namespace = k.namespace AND p.name = k.name`
 	return Prisma.sql`NOT EXISTS (${previousKey}) AS added, ARRAY(
 		SELECT l.id FROM "ProjectLanguage" l
@@ -209,8 +206,7 @@ const assertProjectLanguages = async (prisma: PrismaClient, projectId: string, l
 export const listTranslations = async (prisma: PrismaClient, projectId: string, query: TranslationsQuery): Promise<TranslationsResponse> => {
 	const { sourceLanguageId, targetLanguageId, search, status, namespace, updatedById, updatedWithin, warnings, versionId, diff, sort, page, pageSize } = query
 	await assertProjectVersion(prisma, projectId, versionId)
-	// `undefined` without the diff; the previous version (or `null` for the first one) with it.
-	const previousVersionId = diff ? ((await findPreviousVersion(prisma, versionId))?.id ?? null) : undefined
+	const previousVersionId = (await findPreviousVersion(prisma, versionId))?.id ?? null
 	if (sourceLanguageId !== undefined && targetLanguageId !== undefined) {
 		await assertProjectLanguages(prisma, projectId, [sourceLanguageId, targetLanguageId])
 	}
@@ -230,7 +226,7 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	if (warnings) {
 		conditions.push(HAS_WARNING_SQL)
 	}
-	if (previousVersionId !== undefined) {
+	if (diff) {
 		conditions.push(versionDiffSql(previousVersionId))
 	}
 	if (updatedById !== undefined || updatedWithin !== undefined) {
@@ -245,7 +241,7 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 	const [rows, [count], [stats], namespaces, languages, editors, translatedByLanguage] = await Promise.all([
 		prisma.$queryRaw<ItemRow[]>`
 			SELECT k.id AS "keyId", k.namespace, k.name, ${GROUP_SQL} AS "group", k.description, k."pluralVariable", ${view.untranslated} AS untranslated
-				${previousVersionId === undefined ? Prisma.empty : Prisma.sql`, ${diffColumnsSql(previousVersionId)}`}
+				${previousVersionId === null ? Prisma.empty : Prisma.sql`, ${diffColumnsSql(previousVersionId)}`}
 			FROM ${from}
 			ORDER BY ${orderBy(sort, view)}
 			LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,

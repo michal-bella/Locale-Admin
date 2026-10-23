@@ -8,6 +8,19 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Zvýraznenie zmien bez filtra (2026-10-23)
+
+- API: `GET …/translations` vracia v položke `diff: { added, changedLanguageIds }` vždy, keď verzia má predchádzajúcu, nielen s `diff=true`; prvá verzia projektu `diff` neposiela
+- frontend: bunka s nezhodou premenných má oranžový rámček a varovanie ukáže tooltip pri hoveri na celú bunku, nie iba na ikonu
+- frontend: stĺpce jazykov sa dajú rozťahovať iba vo Všetkých jazykoch a najviac na 800 px; v Zdroj → cieľ ťahadlo zaniklo, a tým aj chyba, keď sa stĺpec vo Všetkých jazykoch nedal zúžiť pod šírku nameranú v Zdroj → cieľ
+- frontend: Zdroj → cieľ ukazuje pri kľúči čas aj vtedy, keď cieľ ešte nikto nezapísal (najnovšia zmena v ktoromkoľvek jazyku)
+- frontend: zobrazenie Zdroj → cieľ má rovnako husté bunky ako Všetky jazyky (padding 6 / 12 px, rámček 4 / 8 px)
+- frontend: nepreložená bunka tabuľky je prázdna s červeným rámčekom bez červeného pozadia, text „Bez prekladu“ ostal len pre čítačky
+- frontend: v úzkej tabuľke Prekladov (pod 65 rem) ukazuje stĺpec Stav iba farebnú bodku, aby sa zmestil tretí jazyk
+- frontend: HTML tagy v hodnotách (`<strong>`, `<a href="…">`, …) sú v tabuľke a v hodnote základného jazyka v modáli neutrálny chip ako v editore, odlíšený od chipu premennej
+- frontend: názov kľúča a zdrojový text kompaktného zobrazenia majú stlmenú farbu `--mantine-color-text`, aby vynikli preklady
+- frontend: odznak **Nové** a ľavý okraj zmenenej bunky sú v tabuľke Prekladov vždy (okrem prvej verzie), **Zobraziť len zmeny** už len filtruje riadky; zmenená bunka má tooltip „Zmenené oproti predchádzajúcej verzii“
+
 ### Zastarané API (2026-10-23)
 
 - frontend: route guardy a loader projektu volajú `queryClient.query` namiesto zastaraných `ensureQueryData` a `fetchQuery` (TanStack Query 5.104; `ensureQueryData` → `query({ ...options, staleTime: 'static' })`, správanie rovnaké); formuláre používajú `SubmitEvent` / `SubmitEventHandler` namiesto zastaraných `FormEvent` / `FormEventHandler` z `@types/react`

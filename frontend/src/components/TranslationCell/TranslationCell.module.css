@@ -14,8 +14,12 @@
 }
 
 .button[data-status='UNTRANSLATED'] {
-	border-color: transparent;
-	background-color: var(--app-color-untranslated-bg);
+	border-color: var(--mantine-color-error);
+}
+
+/* Variables differ from the base language: orange, between the red of an empty cell and the neutral one. */
+.button[data-warning] {
+	border-color: var(--mantine-color-orange-6);
 }
 
 /* Changed against the previous version: a brand edge in both schemes (`--app-color-eyebrow` is brand.4 in the dark one). */
@@ -42,6 +46,8 @@
 	-webkit-box-orient: vertical;
 	-webkit-line-clamp: 2;
 	overflow: hidden;
+	/* An untranslated cell has no visible text; one line keeps it as tall as a translated one. */
+	min-height: 1lh;
 }
 
 /* The line clamp would hide a warning icon after a long value; it sits at the end of the first line in space kept free for it. The space is

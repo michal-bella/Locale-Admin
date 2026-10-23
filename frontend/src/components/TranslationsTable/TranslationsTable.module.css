@@ -1,4 +1,5 @@
 .scroll {
+	container-type: inline-size;
 	overflow-x: auto;
 }
 
@@ -172,6 +173,17 @@ th.stickyEnd {
 	text-align: center;
 }
 
+/* Matches `TranslationStatusBadge` `collapsible`: only the dot shows, so the column gives its width to a third language. */
+@container (max-width: 64.99rem) {
+	.statusColumn {
+		width: 4rem;
+	}
+
+	.statusCell {
+		padding-inline: 0.5rem;
+	}
+}
+
 /* Softer than the cell tints, so the status column reads as a verdict and not as another translation. */
 .row[data-status='TRANSLATED'] .statusCell {
 	background-color: var(--app-color-status-translated-bg);
@@ -215,7 +227,7 @@ th.stickyEnd {
 	font-size: var(--mantine-font-size-xs);
 	font-weight: 600;
 	line-height: 1.5;
-	color: var(--app-color-label);
+	color: var(--mantine-color-text);
 	overflow-wrap: anywhere;
 }
 
@@ -244,8 +256,9 @@ th.stickyEnd {
 	color: var(--app-color-text-strong);
 }
 
-/* The read-only source text in the compact view; the editable cells clamp themselves. */
+/* The read-only source text in the compact view; the editable cells clamp themselves. Muted, so the target the editor fills stands out. */
 .sourceValue {
+	color: var(--mantine-color-text);
 	display: -webkit-box;
 	-webkit-box-orient: vertical;
 	-webkit-line-clamp: 2;
@@ -311,30 +324,31 @@ th.stickyEnd {
 	overflow-wrap: anywhere;
 }
 
-/* Every language as a column: tighter cells and a smaller value font, so more languages and rows fit on screen. */
-.extended .th {
+/* Both views in columns: tighter cells, so more rows (and in the extended view more languages) fit on screen. */
+.dense .th {
 	padding: 0.5rem 0.75rem;
 }
 
-.extended .td {
+.dense .td {
 	padding: 0.375rem 0.75rem;
 }
 
-.extended .value {
-	font-size: var(--mantine-font-size-sm);
-	line-height: 1.4;
-}
-
-.extended .value button {
+.dense .value button {
 	padding: 0.25rem 0.5rem;
 }
 
-.extended .groupCell {
+.dense .groupCell {
 	padding: 0.375rem 0.75rem;
 }
 
-.extended .groupLabel {
+.dense .groupLabel {
 	left: 0.75rem;
+}
+
+/* Every language as a column: a smaller value font as well. */
+.extended .value {
+	font-size: var(--mantine-font-size-sm);
+	line-height: 1.4;
 }
 
 .state {

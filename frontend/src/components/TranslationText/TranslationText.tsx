@@ -11,19 +11,33 @@ import { type TranslationTextProps } from './types'
 const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
 
 /**
- * A translation value with `{{var}}` (also `{{ var }}`) as chips (Figma 3:177), and `#` too for a plural form. Everything else, HTML
- * included, is plain text: React escapes it, so `<strong>` shows up as typed and never renders. With `basePlaceholders` a chip the base
+ * A translation value with `{{var}}` (also `{{ var }}`) as chips (Figma 3:177), and `#` too for a plural form. HTML tags are neutral chips
+ * like in `TokenEditor`, as escaped text, so `<strong>` shows up as typed and never renders. With `basePlaceholders` a chip the base
  * language does not have is a warning chip with a tooltip.
  */
-const TranslationText = ({ value, pluralHash = false, basePlaceholders }: TranslationTextProps) => {
+const TranslationText = ({ value, pluralHash = false, basePlaceholders, chipTooltips = true }: TranslationTextProps) => {
 	const { t } = useTranslation()
 	return (
 		<span className={classes.text}>
-			{tokenize(value, { tags: false, hash: pluralHash }).map((token, index) => {
+			{tokenize(value, { hash: pluralHash }).map((token, index) => {
 				if (token.type === 'text') {
 					return token.value
 				}
+				if (token.type === 'tag') {
+					return (
+						<code key={index} className={`${classes.chip} ${classes.chipTag}`}>
+							{token.value}
+						</code>
+					)
+				}
 				if (token.type === 'placeholder' && isUnknownPlaceholder(token.value, basePlaceholders)) {
+					if (!chipTooltips) {
+						return (
+							<code key={index} className={`${classes.chip} ${classes.chipWarning}`}>
+								{token.value}
+							</code>
+						)
+					}
 					return (
 						<Tooltip key={index} label={t('translationsPage.editor.unknownVariable')} events={TOOLTIP_EVENTS} multiline w={260}>
 							<code className={`${classes.chip} ${classes.chipWarning}`}>{token.value}</code>

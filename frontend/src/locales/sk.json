@@ -367,7 +367,8 @@
 			"base": "Základný",
 			"diffAdded": "Nové",
 			"diffAddedLabel": "Nový kľúč",
-			"diffChanged": "Zmenené"
+			"diffChanged": "Zmenené",
+			"diffChangedTooltip": "Zmenené oproti predchádzajúcej verzii"
 		},
 		"status": {
 			"TRANSLATED": "Preložené",

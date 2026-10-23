@@ -505,7 +505,7 @@ describe('the diff of a version', () => {
 		return { ...context, previous, version }
 	}
 
-	it('lists only the added and changed keys with diff=true, each saying what changed, and sums them up per version', async () => {
+	it('marks what changed on every key, lists only the added and changed ones with diff=true and sums them up per version', async () => {
 		const app = createTestApp()
 		const { project, sk, cookie, previous, version } = await seed(app)
 
@@ -517,14 +517,15 @@ describe('the diff of a version', () => {
 		expect(diff.total).toBe(2)
 		expect(diff.stats.totalKeys).toBe(3)
 		const all = await listOk(app, cookie, project.id, { versionId: version.id })
-		expect(all.items.every((item) => item.diff === undefined)).toBe(true)
-		// The first version has no previous one: everything is added.
-		const first = await listOk(app, cookie, project.id, { versionId: previous.id, diff: '1' })
-		expect(first.items.map(({ name, diff: change }) => [name, change?.added]).sort()).toEqual([
-			['A', true],
-			['B', true],
-			['C', true],
+		expect(all.items.map(({ name, diff: change }) => [name, change?.added, change?.changedLanguageIds]).sort()).toEqual([
+			['A', false, []],
+			['B', false, [sk.id]],
+			['D', true, []],
 		])
+		// The first version has no previous one: the filter keeps every key, none carries a diff.
+		const first = await listOk(app, cookie, project.id, { versionId: previous.id, diff: '1' })
+		expect(first.items.map(({ name }) => name).sort()).toEqual(['A', 'B', 'C'])
+		expect(first.items.every((item) => item.diff === undefined)).toBe(true)
 
 		const summary = await request(app).get(`/api/projects/${project.id}/versions/${version.id}/diff`).set('Cookie', cookie)
 		expect(summary.status).toBe(200)

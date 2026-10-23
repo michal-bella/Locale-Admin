@@ -7,6 +7,8 @@ export type PluralFormsProps = {
 	tag: string
 	/** Normalized placeholders of the base language, see `TranslationText`. */
 	basePlaceholders?: Set<string>
+	/** See `TranslationText`. */
+	chipTooltips?: boolean
 }
 
 export type PluralFormChipProps = {

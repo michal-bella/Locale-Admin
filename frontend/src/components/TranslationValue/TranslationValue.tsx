@@ -11,7 +11,7 @@ import classes from './TranslationValue.module.css'
 import { type TranslationValueProps } from './types'
 
 /** Read-only value of a key in one language: the placeholder for `null`, stacked forms for a plural key, chips for variables otherwise. */
-const TranslationValue = ({ value, pluralTag, reference }: TranslationValueProps) => {
+const TranslationValue = ({ value, pluralTag, reference, tooltips = true }: TranslationValueProps) => {
 	const { t } = useTranslation()
 	if (value === null) {
 		return (
@@ -25,11 +25,11 @@ const TranslationValue = ({ value, pluralTag, reference }: TranslationValueProps
 	return (
 		<>
 			{pluralTag ? (
-				<PluralForms value={value} tag={pluralTag} basePlaceholders={basePlaceholders} />
+				<PluralForms value={value} tag={pluralTag} basePlaceholders={basePlaceholders} chipTooltips={tooltips} />
 			) : (
-				<TranslationText value={value} basePlaceholders={basePlaceholders} />
+				<TranslationText value={value} basePlaceholders={basePlaceholders} chipTooltips={tooltips} />
 			)}
-			<PlaceholderWarning missing={missing} extra={extra} />
+			<PlaceholderWarning missing={missing} extra={extra} tooltip={tooltips} />
 		</>
 	)
 }

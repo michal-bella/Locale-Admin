@@ -4,4 +4,6 @@ export type TranslationTextProps = {
 	pluralHash?: boolean
 	/** Normalized placeholders of the base language; a chip outside the set gets a warning. `undefined` checks nothing. */
 	basePlaceholders?: Set<string>
+	/** `false` inside a table cell: a warning chip has no tooltip of its own, the cell's tooltip explains it. */
+	chipTooltips?: boolean
 }

@@ -24,6 +24,8 @@ import { type TranslationsTableProps } from './types'
 
 const SKELETON_ROWS = 5
 
+const COLUMN_MAX_WIDTH = 800
+
 // Like the warning icons: not focusable, so touch opens the hint and Tab still goes from cell to cell.
 const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
 
@@ -39,7 +41,7 @@ type Editing = { item: TranslationListItem; language: Language; viaNext?: boolea
  * a group header row starts every run of keys with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first
  * and are grouped inside. `translationsOnly` hides the key and status columns (more room for the languages on a phone); the key stays in the
  * accessible name of every cell. An untranslated cell has a soft red background. A global ADMIN gets an edit button next to every key that opens `EditKeyModal`.
- * With `item.diff` (the list filtered by Zobraziť len zmeny) an added key wears a „Nové“ badge and a changed cell a brand left border.
+ * With `item.diff` (every version but the first) an added key wears a „Nové“ badge and a changed cell a brand left border.
  */
 const TranslationsTable = ({
 	projectId,
@@ -82,8 +84,9 @@ const TranslationsTable = ({
 	const statusClass = `${classes.td} ${classes.statusCell} ${isColumns ? classes.stickyEnd : ''}`
 	const tdClass = `${classes.td} ${isStacked ? classes.tdStacked : ''}`
 
-	// Excel-like column resizing; the widths live only here, so a refresh brings the defaults back.
-	// A column can only grow: the width it had before the first drag is its minimum.
+	// Excel-like column resizing, only in the extended view (the compact one fills the card with two fixed columns, and a width measured
+	// there would become the minimum here); the widths live only here, so a refresh brings the defaults back.
+	// A column can only grow: the width it had before the first drag is its minimum, `COLUMN_MAX_WIDTH` its maximum (unless the minimum is wider).
 	const startResize = (column: string, event: ReactPointerEvent<HTMLElement>) => {
 		if (event.button !== 0) {
 			return
@@ -93,7 +96,7 @@ const TranslationsTable = ({
 		const startWidth = event.currentTarget.parentElement?.getBoundingClientRect().width ?? 0
 		const minWidth = (defaultWidths.current[column] ??= startWidth)
 		const move = (moveEvent: PointerEvent) => {
-			setColumnWidths((widths) => ({ ...widths, [column]: Math.max(minWidth, startWidth + moveEvent.clientX - startX) }))
+			setColumnWidths((widths) => ({ ...widths, [column]: Math.max(minWidth, Math.min(COLUMN_MAX_WIDTH, startWidth + moveEvent.clientX - startX)) }))
 		}
 		const stop = () => {
 			window.removeEventListener('pointermove', move)
@@ -184,14 +187,16 @@ const TranslationsTable = ({
 	const sourceValue = (item: TranslationListItem, language: Language | undefined, className: string | undefined) => {
 		const changed = language !== undefined && isChanged(item, language)
 		return (
-			<span className={`${className} ${changed ? classes.sourceChanged : ''}`}>
-				{changed && <VisuallyHidden>{t('translationsPage.table.diffChanged')}: </VisuallyHidden>}
-				<TranslationValue
-					value={(language && item.translations[language.id])?.value ?? null}
-					pluralTag={item.plural ? language?.tag : undefined}
-					reference={language && referenceFor(item, language)}
-				/>
-			</span>
+			<Tooltip label={t('translationsPage.table.diffChangedTooltip')} disabled={!changed} events={TOOLTIP_EVENTS}>
+				<span className={`${className} ${changed ? classes.sourceChanged : ''}`}>
+					{changed && <VisuallyHidden>{t('translationsPage.table.diffChanged')}: </VisuallyHidden>}
+					<TranslationValue
+						value={(language && item.translations[language.id])?.value ?? null}
+						pluralTag={item.plural ? language?.tag : undefined}
+						reference={language && referenceFor(item, language)}
+					/>
+				</span>
+			</Tooltip>
 		)
 	}
 
@@ -219,13 +224,12 @@ const TranslationsTable = ({
 
 	const renderItem = (item: TranslationListItem, now: Date) => {
 		const target = (targetLanguage && item.translations[targetLanguage.id]) ?? EMPTY_CELL
-		// The compact view shows when the target changed, the extended one the latest change in any language.
-		const updatedAt = isExtended
-			? Object.values(item.translations).reduce<string | null>(
-					(latest, cell) => (cell.updatedAt && (!latest || cell.updatedAt > latest) ? cell.updatedAt : latest),
-					null,
-				)
-			: target.updatedAt
+		const latestUpdatedAt = Object.values(item.translations).reduce<string | null>(
+			(latest, cell) => (cell.updatedAt && (!latest || cell.updatedAt > latest) ? cell.updatedAt : latest),
+			null,
+		)
+		// The compact view shows when the target changed, else (a target never written) the latest change in any language like the extended one.
+		const updatedAt = isExtended ? latestUpdatedAt : (target.updatedAt ?? latestUpdatedAt)
 		return (
 			<Table.Tr key={item.keyId} data-status={item.status} className={classes.row}>
 				{!translationsOnly && (
@@ -312,7 +316,7 @@ const TranslationsTable = ({
 				)}
 				{!isStacked && !translationsOnly && (
 					<Table.Td className={statusClass}>
-						<TranslationStatusBadge status={item.status} />
+						<TranslationStatusBadge status={item.status} collapsible />
 					</Table.Td>
 				)}
 			</Table.Tr>
@@ -401,7 +405,7 @@ const TranslationsTable = ({
 				aria-label={t('translationsPage.table.label')}
 				aria-busy={isPending}
 				withRowBorders={false}
-				className={`${classes.table} ${isColumns ? classes.extended : ''}`}
+				className={`${classes.table} ${isColumns ? classes.extended : ''} ${isStacked ? '' : classes.dense}`}
 				data-view={view}
 				data-layout={isStacked ? 'STACKED' : undefined}
 			>
@@ -430,13 +434,8 @@ const TranslationsTable = ({
 						) : (
 							<>
 								{[sourceLanguage, targetLanguage].map((language, index) => (
-									<Table.Th
-										key={language?.id ?? index}
-										className={`${classes.th} ${classes.languageTh} ${classes.resizable}`}
-										style={language && columnStyle(language.id)}
-									>
+									<Table.Th key={language?.id ?? index} className={`${classes.th} ${classes.languageTh}`}>
 										{language && languageLabel(language)}
-										{language && resizeHandle(language.id)}
 									</Table.Th>
 								))}
 							</>

@@ -19,6 +19,8 @@ import {
 	type ImportIssue,
 } from '@locale/shared'
 
+import { seedPlaceholderWarnings } from '../src/lib/placeholderWarnings'
+
 import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
@@ -562,6 +564,42 @@ describe('POST /api/projects/:projectId/imports', () => {
 			existing: 'count',
 			kept: 'n',
 		})
+	})
+
+	it('recomputes the warnings of a key it makes plural even when no value changes', async () => {
+		const app = createTestApp()
+		const { project, sk, en, cs, cookie } = await setup(app)
+		const prisma = getTestPrisma()
+		const values = { sk: '{count, plural, other {# položiek}}', en: '{count, plural, other {# items}}' }
+		const key = await createKey(project.id, 'loc', '{{count}} items', { [sk.id]: values.sk, [en.id]: values.en })
+		// Not plural yet, so the sentence key is the reference and neither value has {{count}}.
+		await seedPlaceholderWarnings(prisma)
+		const flags = async () =>
+			(await prisma.translation.findMany({ where: { keyId: key.id }, select: { placeholderWarning: true } })).map((row) => row.placeholderWarning)
+		expect(await flags()).toEqual([true, true])
+
+		const result = await importOk(
+			app,
+			cookie,
+			project.id,
+			['Keys; sk ; en ; cs', '--loc--', `{{count}} items; ${values.sk}; ${values.en}; `],
+			allColumns(sk, en, cs),
+		)
+
+		expect(result).toMatchObject({ translationsCreated: 0, translationsUpdated: 0 })
+		expect((await prisma.translationKey.findUniqueOrThrow({ where: { id: key.id } })).pluralVariable).toBe('count')
+		expect(await flags()).toEqual([false, false])
+	})
+
+	it('compares with the stored base value of a plural key when the file leaves the base cell empty', async () => {
+		const app = createTestApp()
+		const { project, sk, cookie } = await setup(app)
+		const key = await createKey(project.id, 'loc', '{{count}} items', { [sk.id]: '{count, plural, other {# položiek}}' })
+		await getTestPrisma().translationKey.update({ where: { id: key.id }, data: { pluralVariable: 'count' } })
+
+		const body = await previewOk(app, cookie, project.id, ['Keys; sk ; en', '--loc--', '{{count}} items; ; {count, plural, other {# items}}'])
+
+		expect(body.warnings.filter((warning) => warning.code === 'PLACEHOLDER_MISMATCH')).toEqual([])
 	})
 
 	it('detects a plural from the stored values and writes a plural wrapped in text as a plain plural message, counted like the preview', async () => {

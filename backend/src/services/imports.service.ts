@@ -200,7 +200,9 @@ export const previewImport = async (prisma: PrismaClient, projectId: string, ver
 			change[classifyValue(valueToWrite(row.values[index] ?? null, pluralVariable), projectKey?.values.get(languageId) ?? null)] += 1
 		}
 
-		const baseValue = baseIndex === -1 ? null : (row.values[baseIndex] ?? null)
+		// An empty or missing base cell keeps the stored value, so that is what the other columns are compared with after the import.
+		const fileBaseValue = baseIndex === -1 ? null : (row.values[baseIndex] ?? null)
+		const baseValue = fileBaseValue ?? (baseLanguageId === undefined ? null : (projectKey?.values.get(baseLanguageId) ?? null))
 		columns.forEach((column, index) => {
 			const value = row.values[index] ?? null
 			column.stats[value === null ? 'untranslated' : 'translations'] += 1
@@ -412,7 +414,8 @@ export const importFile = (
 				await tx.translationKey.deleteMany({ where: { id: { in: batch.map((key) => key.id) } } })
 			}
 
-			await recomputePlaceholderWarnings(tx, [...createdKeyIds.values(), ...writes.map(({ keyId }) => keyId)])
+			// A key made plural changes its reference (`placeholderReference`) even when no value was written.
+			await recomputePlaceholderWarnings(tx, [...createdKeyIds.values(), ...madePlural.map(({ keyId }) => keyId), ...writes.map(({ keyId }) => keyId)])
 			await tx.projectVersion.update({ where: { id: versionId }, data: { importedAt: writtenAt } })
 
 			if (createdKeyIds.size > 0 || copied.length > 0 || removed.length > 0 || writes.length > 0) {

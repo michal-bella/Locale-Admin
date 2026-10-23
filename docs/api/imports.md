@@ -70,7 +70,7 @@ Vracia ich preview v `warnings` (max. 1 000, `IMPORT_WARNINGS_MAX`, v poradí s�
 | `BASE_LANGUAGE_UNTRANSLATED` | hodnota v stĺpci základného jazyka projektu je `null`                                                                                                                                                                                                                                                                                                                                                                               | riadok, stĺpec          | `tag`, `key`, `namespace`                     |
 
 - `missing` sú premenné, ktoré sú v hodnote menej ráz ako v základnom jazyku, `extra` tie, ktoré sú v nej viac ráz; obe ako text spojený `, ` (napr. `{{count}}, {{name}}`), prázdny reťazec ak nie sú.
-- `BASE_LANGUAGE_UNTRANSLATED` sa kontroluje iba vtedy, keď súbor obsahuje stĺpec základného jazyka projektu. Premenné sa porovnávajú pre každý stĺpec s vyplnenou hodnotou (aj `CATALOG` a `UNKNOWN`), ktorý má referenciu: pri vetnom kľúči s premennými aj stĺpec základného jazyka, inak ostatné stĺpce voči vyplnenej hodnote základného jazyka (alebo názvu kľúča s premennými, keď je prázdna).
+- `BASE_LANGUAGE_UNTRANSLATED` sa kontroluje iba vtedy, keď súbor obsahuje stĺpec základného jazyka projektu. Premenné sa porovnávajú pre každý stĺpec s vyplnenou hodnotou (aj `CATALOG` a `UNKNOWN`), ktorý má referenciu: pri vetnom kľúči s premennými aj stĺpec základného jazyka, inak ostatné stĺpce voči hodnote základného jazyka zo súboru; keď je jej bunka prázdna alebo stĺpec chýba, voči hodnote, ktorá v projekte ostane (import ju neprepíše), a až potom voči názvu kľúča s premennými.
 
 ## POST /api/projects/:projectId/imports/preview
 

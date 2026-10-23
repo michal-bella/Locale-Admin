@@ -12,6 +12,7 @@ notion_page_id:
 
 - shared: `placeholderReference(key, baseValue, isBase)` určuje, s čím sa porovnávajú premenné bunky. Vetný kľúč s premennými (nie plurálový) je referenciou pre všetky jazyky vrátane základného; inak hodnota základného jazyka (prípadne názov kľúča, keď je prázdna) a základný jazyk sa nekontroluje
 - backend: úprava bunky, Pridať kľúč, náhľad importu, kontrola exportu aj `Translation.placeholderWarning` používajú túto referenciu; základný jazyk, ktorému chýba premenná vetného kľúča, má upozornenie a preklady, ktoré ju majú, už nie. Migrácia `recompute_placeholder_warnings` vynuluje príznak a seed ho pri štarte prepočíta ([API](./api/translations.md#ochrana-premenných))
+- backend: import prepočíta upozornenia aj kľúčov, ktoré iba zmenil na plurálové (bez zápisu hodnoty); náhľad importu pri prázdnej bunke základného jazyka porovnáva s hodnotou, ktorá v projekte ostane
 - frontend: ⚠ v tabuľke a živá kontrola v modáli **Upraviť preklad** aj pre základný jazyk vetného kľúča; texty „Premenné v preklade sa nezhodujú s kľúčom alebo základným jazykom.“, „Premenná nie je v kľúči ani v základnom jazyku…“ a banner „…ktoré sa líšia od kľúča alebo základného jazyka…“
 
 ### Port dev backendu (2026-10-23)

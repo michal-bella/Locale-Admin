@@ -1586,7 +1586,7 @@ describe('TranslationsPage extended view', () => {
 		expect(within(table).getAllByText('loc:orders.empty')[0]?.className).toMatch(/groupLabel/)
 	})
 
-	it('widens a language column by dragging the handle in its header, never below its default width, and keeps the widths out of the URL', async () => {
+	it('widens a language column by dragging the handle in its header, never below its default width nor past 800 px, and keeps the widths out of the URL', async () => {
 		mockPage({ user: EXTENDED_ADMIN, languages: [SLOVAK, ENGLISH] })
 		renderApp(PAGE_PATH)
 		await screen.findByText('orders.empty.title')
@@ -1606,6 +1606,8 @@ describe('TranslationsPage extended view', () => {
 		fireEvent.pointerMove(window, { clientX: 400 })
 		expect(header.style.width).toBe('524px')
 		expect(header.style.minWidth).toBe('524px')
+		fireEvent.pointerMove(window, { clientX: 2000 })
+		expect(header.style.width).toBe('800px')
 		fireEvent.pointerMove(window, { clientX: 20 })
 		expect(header.style.width).toBe('224px')
 		fireEvent.pointerUp(window)
@@ -1627,6 +1629,14 @@ describe('TranslationsPage extended view', () => {
 		expect(keyHeader.style.width).toBe('')
 		expect(window.location.search).toBe('')
 		expect(screen.getByRole('columnheader', { name: 'angličtina' })).toHaveTextContent('angličtina')
+	})
+
+	it('has no column resizing in the compact view', async () => {
+		mockPage()
+		renderApp(PAGE_PATH)
+		await screen.findByText('orders.empty.title')
+
+		expect(getTable().querySelector('[data-resize-handle]')).toBeNull()
 	})
 
 	it('stacks every language in one editable column with the STACKED layout preference', async () => {

@@ -24,6 +24,8 @@ import { type TranslationsTableProps } from './types'
 
 const SKELETON_ROWS = 5
 
+const COLUMN_MAX_WIDTH = 800
+
 // Like the warning icons: not focusable, so touch opens the hint and Tab still goes from cell to cell.
 const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
 
@@ -82,8 +84,9 @@ const TranslationsTable = ({
 	const statusClass = `${classes.td} ${classes.statusCell} ${isColumns ? classes.stickyEnd : ''}`
 	const tdClass = `${classes.td} ${isStacked ? classes.tdStacked : ''}`
 
-	// Excel-like column resizing; the widths live only here, so a refresh brings the defaults back.
-	// A column can only grow: the width it had before the first drag is its minimum.
+	// Excel-like column resizing, only in the extended view (the compact one fills the card with two fixed columns, and a width measured
+	// there would become the minimum here); the widths live only here, so a refresh brings the defaults back.
+	// A column can only grow: the width it had before the first drag is its minimum, `COLUMN_MAX_WIDTH` its maximum (unless the minimum is wider).
 	const startResize = (column: string, event: ReactPointerEvent<HTMLElement>) => {
 		if (event.button !== 0) {
 			return
@@ -93,7 +96,7 @@ const TranslationsTable = ({
 		const startWidth = event.currentTarget.parentElement?.getBoundingClientRect().width ?? 0
 		const minWidth = (defaultWidths.current[column] ??= startWidth)
 		const move = (moveEvent: PointerEvent) => {
-			setColumnWidths((widths) => ({ ...widths, [column]: Math.max(minWidth, startWidth + moveEvent.clientX - startX) }))
+			setColumnWidths((widths) => ({ ...widths, [column]: Math.max(minWidth, Math.min(COLUMN_MAX_WIDTH, startWidth + moveEvent.clientX - startX)) }))
 		}
 		const stop = () => {
 			window.removeEventListener('pointermove', move)
@@ -431,13 +434,8 @@ const TranslationsTable = ({
 						) : (
 							<>
 								{[sourceLanguage, targetLanguage].map((language, index) => (
-									<Table.Th
-										key={language?.id ?? index}
-										className={`${classes.th} ${classes.languageTh} ${classes.resizable}`}
-										style={language && columnStyle(language.id)}
-									>
+									<Table.Th key={language?.id ?? index} className={`${classes.th} ${classes.languageTh}`}>
 										{language && languageLabel(language)}
-										{language && resizeHandle(language.id)}
 									</Table.Th>
 								))}
 							</>

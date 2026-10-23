@@ -42,7 +42,7 @@ Run from the repo root. Package manager is **pnpm** only (never npm or yarn).
 
 | Command                                                              | What                                                                                |
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `pnpm dev`                                                           | FE (`:5173`) + BE (`:3000`) locally with hot reload. Needs `pnpm db:up`             |
+| `pnpm dev`                                                           | FE (`:5173`) + BE (`:4000`) locally with hot reload. Needs `pnpm db:up`             |
 | `pnpm db:up` / `db:down`                                             | Postgres in Docker                                                                  |
 | `pnpm db:migrate` / `db:seed` / `db:reset`                           | Prisma migrate dev + seed / seed only / drop, migrate, seed                         |
 | `pnpm stack:up` / `stack:down` / `stack:logs [service]`              | production stack in Docker on `http://localhost:8080`                               |

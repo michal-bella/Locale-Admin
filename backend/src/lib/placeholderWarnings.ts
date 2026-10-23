@@ -1,4 +1,4 @@
-import { comparePlaceholders, placeholders } from '@locale/shared'
+import { comparePlaceholders, placeholderReference } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
 
@@ -12,17 +12,18 @@ const KEY_BATCH_SIZE = 2000
 type KeyRow = {
 	id: string
 	name: string
+	pluralVariable: string | null
 	translations: { languageId: string; value: string | null; placeholderWarning: boolean | null; language: { isBase: boolean } }[]
 }
 
-/** Same reference as the edit and export checks: the base value, or the key name when the base is empty and the name has placeholders. */
-const referenceOf = (key: KeyRow): string | null => {
-	const base = key.translations.find((row) => row.language.isBase)?.value ?? null
-	return base ?? (placeholders(key.name).size > 0 ? key.name : null)
-}
-
-const hasWarning = (reference: string | null, row: KeyRow['translations'][number]): boolean => {
-	if (row.language.isBase || row.value === null || reference === null) {
+/** Same reference as the edit, import and export checks (`placeholderReference`); the base is checked only against a sentence key. */
+const hasWarning = (key: KeyRow, row: KeyRow['translations'][number]): boolean => {
+	if (row.value === null) {
+		return false
+	}
+	const base = key.translations.find((item) => item.language.isBase)?.value ?? null
+	const reference = placeholderReference({ name: key.name, plural: key.pluralVariable !== null }, base, row.language.isBase)
+	if (reference === null) {
 		return false
 	}
 	const { missing, extra } = comparePlaceholders(reference, row.value)
@@ -35,14 +36,14 @@ const recomputeBatch = async (db: Db, keyIds: string[]) => {
 		select: {
 			id: true,
 			name: true,
+			pluralVariable: true,
 			translations: { select: { languageId: true, value: true, placeholderWarning: true, language: { select: { isBase: true } } } },
 		},
 	})
 	const changed: { keyId: string; languageId: string; warning: boolean }[] = []
 	for (const key of keys) {
-		const reference = referenceOf(key)
 		for (const row of key.translations) {
-			const warning = hasWarning(reference, row)
+			const warning = hasWarning(key, row)
 			if (row.placeholderWarning !== warning) {
 				changed.push({ keyId: key.id, languageId: row.languageId, warning })
 			}
@@ -61,7 +62,7 @@ const recomputeBatch = async (db: Db, keyIds: string[]) => {
 
 /**
  * Sets `Translation.placeholderWarning` for every cell of the keys: `true` when the value's placeholders differ from the reference,
- * `false` otherwise (always for the base language). Call it in the transaction of every write that can change a value, a key
+ * `false` otherwise (the base language only ever against a sentence key with variables). Call it in the transaction of every write that can change a value, a key
  * name or the base language, so the flag the list filters by is never stale.
  */
 export const recomputePlaceholderWarnings = async (db: Db, keyIds: string[]): Promise<void> => {
@@ -99,7 +100,7 @@ export const seedPlaceholderWarnings = async (prisma: PrismaClient): Promise<num
 		const keyIds = pending.map(({ keyId }) => keyId)
 		await prisma.$transaction(async (tx) => {
 			await recomputePlaceholderWarnings(tx, keyIds)
-			// A base-language row stays null when its value is fine and nothing else changed it; settle it so the loop ends.
+			// A row stays null when its value is fine and nothing else changed it; settle it so the loop ends.
 			await tx.translation.updateMany({ where: { keyId: { in: keyIds }, placeholderWarning: null }, data: { placeholderWarning: false } })
 		})
 		total += keyIds.length

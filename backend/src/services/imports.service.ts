@@ -18,6 +18,7 @@ import {
 	type ImportResult,
 	type ROLE,
 	comparePlaceholders,
+	placeholderReference,
 } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
@@ -199,22 +200,23 @@ export const previewImport = async (prisma: PrismaClient, projectId: string, ver
 			change[classifyValue(valueToWrite(row.values[index] ?? null, pluralVariable), projectKey?.values.get(languageId) ?? null)] += 1
 		}
 
-		const baseValue = baseIndex === -1 ? null : (row.values[baseIndex] ?? null)
+		// An empty or missing base cell keeps the stored value, so that is what the other columns are compared with after the import.
+		const fileBaseValue = baseIndex === -1 ? null : (row.values[baseIndex] ?? null)
+		const baseValue = fileBaseValue ?? (baseLanguageId === undefined ? null : (projectKey?.values.get(baseLanguageId) ?? null))
 		columns.forEach((column, index) => {
 			const value = row.values[index] ?? null
 			column.stats[value === null ? 'untranslated' : 'translations'] += 1
 			const position = { line: row.line, column: column.columnIndex }
-			if (index === baseIndex) {
-				if (value === null) {
-					column.stats.warnings += 1
-					warnings.push({ code: 'BASE_LANGUAGE_UNTRANSLATED', ...position, params: { tag: column.tag, key: row.key, namespace: row.namespace } })
-				}
+			if (index === baseIndex && value === null) {
+				column.stats.warnings += 1
+				warnings.push({ code: 'BASE_LANGUAGE_UNTRANSLATED', ...position, params: { tag: column.tag, key: row.key, namespace: row.namespace } })
 				return
 			}
-			if (value === null || baseValue === null) {
+			const reference = value === null ? null : placeholderReference({ name: row.key, plural: pluralVariable !== null }, baseValue, index === baseIndex)
+			if (value === null || reference === null) {
 				return
 			}
-			const { missing, extra } = comparePlaceholders(baseValue, value)
+			const { missing, extra } = comparePlaceholders(reference, value)
 			if (missing.length > 0 || extra.length > 0) {
 				column.stats.warnings += 1
 				warnings.push({
@@ -412,7 +414,8 @@ export const importFile = (
 				await tx.translationKey.deleteMany({ where: { id: { in: batch.map((key) => key.id) } } })
 			}
 
-			await recomputePlaceholderWarnings(tx, [...createdKeyIds.values(), ...writes.map(({ keyId }) => keyId)])
+			// A key made plural changes its reference (`placeholderReference`) even when no value was written.
+			await recomputePlaceholderWarnings(tx, [...createdKeyIds.values(), ...madePlural.map(({ keyId }) => keyId), ...writes.map(({ keyId }) => keyId)])
 			await tx.projectVersion.update({ where: { id: versionId }, data: { importedAt: writtenAt } })
 
 			if (createdKeyIds.size > 0 || copied.length > 0 || removed.length > 0 || writes.length > 0) {

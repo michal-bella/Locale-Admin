@@ -14,6 +14,7 @@ import {
 	type TranslationListItem,
 	updateTranslationRequestSchema,
 	VALIDATION_CODE,
+	placeholderReference,
 	placeholders,
 } from '@locale/shared'
 
@@ -109,8 +110,13 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	const lockedHintId = useId()
 	const errorId = useId()
 	const baseValue = baseLanguage && baseLanguage.id !== language.id ? (item.translations[baseLanguage.id]?.value ?? null) : undefined
-	// Same reference as the API check: the base value, or the key name when the base is empty and the name has placeholders.
-	const reference = baseValue === undefined ? undefined : (baseValue ?? (placeholders(item.name).size > 0 ? item.name : undefined))
+	const reference = baseLanguage
+		? (placeholderReference(
+				{ name: item.name, plural: item.plural !== null },
+				item.translations[baseLanguage.id]?.value ?? null,
+				baseLanguage.id === language.id,
+			) ?? undefined)
+		: undefined
 	const basePlaceholders = reference === undefined ? undefined : placeholders(reference)
 	const draftValue = plural
 		? serializePluralValue({ variable: plural.variable, forms: Object.fromEntries(forms.map((form) => [form, draft[form] ?? ''])) })

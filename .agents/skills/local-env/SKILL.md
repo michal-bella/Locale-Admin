@@ -12,7 +12,7 @@ Human-facing docs: `docs/local-development.md`. All commands from the repo root.
 |       | Dev mode                                               | Production stack                                                  |
 | ----- | ------------------------------------------------------ | ----------------------------------------------------------------- |
 | Start | `pnpm db:up && pnpm db:migrate && pnpm dev`            | `pnpm stack:up` (db `--no-recreate`, then backend + frontend)     |
-| URLs  | FE `http://localhost:5173`, BE `http://localhost:3000` | `http://localhost:8080` (nginx), BE debug `http://localhost:3001` |
+| URLs  | FE `http://localhost:5173`, BE `http://localhost:4000` | `http://localhost:8080` (nginx), BE debug `http://localhost:3001` |
 | Stop  | Ctrl+C, `pnpm db:down`                                 | `pnpm stack:down`                                                 |
 
 Both modes share the same Postgres (`localhost:5433`, DB `locale`). Ports do not collide, both can run at once.
@@ -50,7 +50,7 @@ Prisma model names are quoted PascalCase tables (`"User"`, `"Session"`), columns
 | Symptom                                                             | Fix                                                                                                                                                                       |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Missing .env`                                                      | `cp .env.example .env`                                                                                                                                                    |
-| port 5433 / 3000 / 5173 / 8080 in use                               | `lsof -i :<port>`; change `DB_PORT` (and both DB URLs) in `.env` or stop the other process                                                                                |
+| port 5433 / 4000 / 5173 / 8080 in use                               | `lsof -i :<port>`; change `DB_PORT` (and both DB URLs) in `.env` or stop the other process                                                                                |
 | `stack:up` hangs at backend                                         | `pnpm stack:logs backend`: ENV validation error names the variable; migration or DB connection errors follow                                                              |
 | BE exits `Invalid environment variables: SEED_ADMIN_PASSWORD`       | set it in `.env` (min. 8 chars)                                                                                                                                           |
 | deep link like `/admin/users` returns nginx 404                     | check `try_files … /index.html` in `docker/nginx/default.conf`                                                                                                            |

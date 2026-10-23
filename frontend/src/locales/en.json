@@ -278,8 +278,8 @@
 			"showAll": "Show all"
 		},
 		"warnings": {
-			"message_one": "{{count}} key has variables that differ from the base language, for example after an import.",
-			"message_other": "{{count}} keys have variables that differ from the base language, for example after an import.",
+			"message_one": "{{count}} key has variables that differ from the key or the base language, for example after an import.",
+			"message_other": "{{count}} keys have variables that differ from the key or the base language, for example after an import.",
 			"show": "Show warnings",
 			"clear": "Clear the warnings filter"
 		},
@@ -374,7 +374,7 @@
 			"saved": "Saved: {{key}}",
 			"missing": "Missing: {{list}}.",
 			"extra": "Extra: {{list}}.",
-			"unknownVariable": "The variable is not in the base language – check for a typo.",
+			"unknownVariable": "The variable is not in the key or the base language – check for a typo.",
 			"formLabel": "{{label}}, {{form}}",
 			"unbalancedBraces": "Braces { and } must be balanced.",
 			"tooLong": "The translation is too long (max. 10,000 characters across all forms)."
@@ -1015,9 +1015,10 @@
 			"coverage": "Coverage",
 			"translatedOf": "{{translated}} / {{total}}",
 			"translatedOfLong": "{{translated}} of {{total}} translated",
-			"percent": "{{percent}}%",
-			"coverageLabel": "Coverage of {{name}}: {{percent}}%",
+			"coverageLabel": "Coverage of {{name}}: {{percent}}",
 			"base": "Base",
+			"open": "Open translations",
+			"openLabel": "Open translations into {{name}}",
 			"deleteLabel": "Remove language {{name}}",
 			"actionsColumn": "Actions",
 			"delete": "Remove",
@@ -1264,7 +1265,7 @@
 		"IMPORT_FILE_INVALID": "The file contains errors. Fix them and upload it again.",
 		"IMPORT_FILE_TOO_LARGE": "The file is too large. The maximum size is 10 MB.",
 		"IMPORT_COLUMNS_INVALID": "The column-to-language mapping is invalid. Check the languages and try again.",
-		"PLACEHOLDER_MISMATCH": "The variables in the translation do not match the base language.",
+		"PLACEHOLDER_MISMATCH": "The variables in the translation do not match the key or the base language.",
 		"TRANSLATION_KEY_NOT_FOUND": "The key was not found. Someone may have removed it meanwhile.",
 		"TRANSLATION_KEY_TAKEN": "A key with this name already exists in the namespace.",
 		"PROJECT_VERSION_NAME_TAKEN": "A version with this name already exists in the project.",

@@ -11,7 +11,7 @@ describe('parseEnv', () => {
 	it('applies defaults', () => {
 		expect(parseEnv(VALID_ENV)).toEqual({
 			nodeEnv: 'development',
-			port: 3000,
+			port: 4000,
 			logLevel: 'info',
 			databaseUrl: VALID_ENV.DATABASE_URL,
 			appVersion: '0.0.0',

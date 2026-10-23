@@ -64,7 +64,7 @@ describe('TokenEditor', () => {
 		expect(known?.className).not.toMatch(/chipWarning/)
 
 		fireEvent.mouseOver(typo as Element)
-		expect(await screen.findByRole('tooltip')).toHaveTextContent('Premenná nie je v základnom jazyku – skontrolujte preklep.')
+		expect(await screen.findByRole('tooltip')).toHaveTextContent('Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.')
 		fireEvent.mouseOver(known as Element)
 		expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
 	})

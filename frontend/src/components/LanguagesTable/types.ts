@@ -5,6 +5,7 @@ import { type Language } from '@locale/shared'
 /** Each callback gets the button that opened it, so the page can return focus there when the modal closes. */
 export type LanguagesTableProps = {
 	projectId: string
+	projectSlug: string
 	/** Only for an ADMIN, who alone adds languages; without it the empty state has no add button. */
 	onAdd?: (trigger: HTMLElement) => void
 	/** Only for an ADMIN, who alone removes languages; without it the table has no actions column. */

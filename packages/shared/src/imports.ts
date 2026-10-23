@@ -30,6 +30,7 @@ export const IMPORT_ERROR_CODES = [
 	'HEADER_EMPTY_TAG',
 	'HEADER_DUPLICATE_TAG',
 	'ROW_COLUMN_COUNT',
+	'ROW_UNCLOSED_QUOTE',
 	'ROW_EMPTY_KEY',
 	'ROW_DUPLICATE_KEY',
 	'KEY_TOO_LONG',
@@ -47,7 +48,7 @@ export type ImportIssueCode = z.infer<typeof importIssueCodeSchema>
 
 /**
  * One finding in an imported file. The FE translates `code` with `params`, never shows server text.
- * `line` and `column` are 1-based positions in the file: line 1 is the header, column 1 is `Keys`.
+ * `line` and `column` are 1-based positions in the file: line 1 is the header, column 1 is the key column.
  *
  * `params` by code: `ROW_COLUMN_COUNT` `{ expected, actual }`, `ROW_DUPLICATE_KEY` `{ key, namespace, firstLine }`,
  * `KEY_TOO_LONG` `{ max, length }` (UTF-8 bytes), `HEADER_DUPLICATE_TAG` `{ tag, firstColumn }`, `NAMESPACE_INVALID` `{ namespace }`,

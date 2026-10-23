@@ -274,8 +274,14 @@ const TranslationsPage = () => {
 				<TranslationsWarningsBanner
 					count={data.stats.warnings}
 					active={search.warnings === true}
-					// The banner counts the whole version, so the list drops the diff filter to show exactly those keys.
-					onShow={() => updateSearch({ warnings: true, diff: undefined })}
+					// The banner counts the whole version, so the list drops the diff filter to show exactly those keys. A warning can be in any
+					// language, so the list also shows every one: the extended view without a language selection.
+					onShow={() => {
+						if (view === 'COMPACT') {
+							changePreferences({ translationsView: 'EXTENDED' })
+						}
+						updateSearch({ warnings: true, diff: undefined, languages: undefined })
+					}}
 					onClear={() => updateSearch({ warnings: undefined })}
 				/>
 			)}

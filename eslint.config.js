@@ -37,6 +37,7 @@ export default defineConfig([
 		},
 		rules: {
 			'@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+			'@typescript-eslint/no-deprecated': 'error',
 			'@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
 			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
 			'@typescript-eslint/naming-convention': ['error', { selector: 'enum', format: ['UPPER_CASE'] }, { selector: 'enumMember', format: ['UPPER_CASE'] }],

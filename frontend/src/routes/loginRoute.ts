@@ -8,7 +8,7 @@ export const loginRoute = createRoute({
 	path: '/login',
 	beforeLoad: async ({ context }) => {
 		// Any failure (401, backend down) means the login form is the right page to show.
-		const user = await context.queryClient.ensureQueryData(meQueryOptions).catch(() => null)
+		const user = await context.queryClient.query({ ...meQueryOptions, staleTime: 'static' }).catch(() => null)
 		if (user) {
 			redirect({ to: '/', throw: true })
 		}

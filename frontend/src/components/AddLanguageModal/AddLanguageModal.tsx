@@ -1,6 +1,6 @@
 import { Button, Select } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { type FormEvent, useRef, useState } from 'react'
+import { type SubmitEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ERROR_CODE } from '@locale/shared'
@@ -39,7 +39,7 @@ const AddLanguageModal = ({ projectId, opened, onClose, languages }: AddLanguage
 		}
 	}
 
-	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+	const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
 		event.preventDefault()
 		if (!selected || isPending) {
 			return

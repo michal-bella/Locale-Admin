@@ -1,6 +1,6 @@
 import { Button, Select, Skeleton, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { type FormEvent, useRef, useState } from 'react'
+import { type SubmitEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ERROR_CODE } from '@locale/shared'
@@ -41,7 +41,7 @@ const AddUserProjectModal = ({ user, opened, onClose }: AddUserProjectModalProps
 		}
 	}
 
-	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+	const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
 		event.preventDefault()
 		const picked = options.find((option) => option.value === projectId)
 		if (!picked || isPending) {

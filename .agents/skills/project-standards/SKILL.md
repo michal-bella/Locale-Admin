@@ -27,6 +27,7 @@ Tabs (width 4), no semicolons, single quotes (also in JSX), trailing commas, pri
 
 - TypeScript **6.0.3** (not 7: `typescript-eslint` does not support it yet, see `docs/decisions/0003-typescript-6.md`).
 - Strict mode, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` (use `import { type X }` for type-only imports; ESLint fixes it).
+- `@typescript-eslint/no-deprecated` is an error: use the replacement the deprecation note names (`tsc` alone does not report deprecated APIs).
 - Use `type`, never `interface` (lint rule).
 - Enums and enum members are `UPPER_CASE` with string values: `enum ERROR_CODE { NOT_FOUND = 'NOT_FOUND' }`.
 - Constants are `UPPER_CASE`, objects with `as const`.

@@ -10,7 +10,7 @@ export const authenticatedRoute = createRoute({
 	id: '_authenticated',
 	beforeLoad: async ({ context }) => {
 		try {
-			const user = await context.queryClient.ensureQueryData(meQueryOptions)
+			const user = await context.queryClient.query({ ...meQueryOptions, staleTime: 'static' })
 			return { user }
 		} catch (error) {
 			if (isUnauthorizedError(error)) {

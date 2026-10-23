@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Zastarané API (2026-10-23)
+
+- frontend: route guardy a loader projektu volajú `queryClient.query` namiesto zastaraných `ensureQueryData` a `fetchQuery` (TanStack Query 5.104; `ensureQueryData` → `query({ ...options, staleTime: 'static' })`, správanie rovnaké); formuláre používajú `SubmitEvent` / `SubmitEventHandler` namiesto zastaraných `FormEvent` / `FormEventHandler` z `@types/react`
+- nástroje: ESLint pravidlo `@typescript-eslint/no-deprecated` je zapnuté ako chyba, `pnpm lint` zachytí použitie zastaraného API
+
 ### Lokálny vývoj (2026-10-22)
 
 - backend: `pnpm dev` z interaktívneho terminálu sa už nezasekne na `prisma generate` (v `--parallel` behu dostával SIGTTIN a backend nikdy nepočúval, SPA ukazovala „Niečo sa pokazilo“); dev skript mu dáva stdin z `/dev/null`

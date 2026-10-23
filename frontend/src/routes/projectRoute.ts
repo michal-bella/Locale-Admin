@@ -21,8 +21,8 @@ export const projectRoute = createRoute({
 	loader: async ({ context: { queryClient }, params: { projectSlug } }) => {
 		// A project created or renamed after the list was cached is not in it yet, so a miss refetches once before the 404.
 		const projectId =
-			findProjectId(await queryClient.ensureQueryData(projectsQueryOptions), projectSlug) ??
-			findProjectId(await queryClient.fetchQuery({ ...projectsQueryOptions, staleTime: 0 }), projectSlug)
+			findProjectId(await queryClient.query({ ...projectsQueryOptions, staleTime: 'static' }), projectSlug) ??
+			findProjectId(await queryClient.query({ ...projectsQueryOptions, staleTime: 0 }), projectSlug)
 		if (!projectId) {
 			// notFound({ throw: true }) would not narrow projectId; the thrown value is TanStack's control-flow object, as in its docs.
 			// eslint-disable-next-line @typescript-eslint/only-throw-error
@@ -30,7 +30,7 @@ export const projectRoute = createRoute({
 		}
 		try {
 			// No retries: a 404 is the answer, not a glitch, and the not-found page should not wait for the backoff.
-			await queryClient.ensureQueryData({ ...projectSettingsQueryOptions(projectId), retry: false })
+			await queryClient.query({ ...projectSettingsQueryOptions(projectId), staleTime: 'static', retry: false })
 		} catch (error) {
 			if (getApiErrorCode(error) === ERROR_CODE.NOT_FOUND) {
 				notFound({ throw: true })

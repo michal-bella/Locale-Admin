@@ -1,10 +1,12 @@
-import { VisuallyHidden } from '@mantine/core'
+import { Tooltip, VisuallyHidden } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 
 import TranslationValue from '@/components/TranslationValue/TranslationValue'
 
 import classes from './TranslationCell.module.css'
 import { type TranslationCellProps } from './types'
+
+const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
 
 /**
  * A translation in the table: a button with the read-only value that opens `EditTranslationModal`, or the same box as plain text without
@@ -21,14 +23,18 @@ const TranslationCell = ({ cell, label, pluralTag, reference, changed = false, o
 		</span>
 	)
 	const changedAttribute = changed || undefined
-	return onClick ? (
-		<button type='button' className={classes.button} data-status={cell.status} data-changed={changedAttribute} onClick={onClick}>
-			{content}
-		</button>
-	) : (
-		<div className={classes.button} data-status={cell.status} data-changed={changedAttribute} data-readonly>
-			{content}
-		</div>
+	return (
+		<Tooltip label={t('translationsPage.table.diffChangedTooltip')} disabled={!changed} events={TOOLTIP_EVENTS}>
+			{onClick ? (
+				<button type='button' className={classes.button} data-status={cell.status} data-changed={changedAttribute} onClick={onClick}>
+					{content}
+				</button>
+			) : (
+				<div className={classes.button} data-status={cell.status} data-changed={changedAttribute} data-readonly>
+					{content}
+				</div>
+			)}
+		</Tooltip>
 	)
 }
 

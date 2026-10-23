@@ -19,3 +19,23 @@
 	border-radius: 50%;
 	background-color: currentColor;
 }
+
+/* The table's `.scroll` is the container: below three extended language columns plus the full Stav column, the badge shrinks to its dot. */
+@container (max-width: 64.99rem) {
+	.collapsible {
+		padding-inline: 0.5rem;
+	}
+
+	.collapsibleSection {
+		margin: 0;
+	}
+
+	.collapsibleLabel {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+}

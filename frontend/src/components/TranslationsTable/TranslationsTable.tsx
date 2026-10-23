@@ -39,7 +39,7 @@ type Editing = { item: TranslationListItem; language: Language; viaNext?: boolea
  * a group header row starts every run of keys with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first
  * and are grouped inside. `translationsOnly` hides the key and status columns (more room for the languages on a phone); the key stays in the
  * accessible name of every cell. An untranslated cell has a soft red background. A global ADMIN gets an edit button next to every key that opens `EditKeyModal`.
- * With `item.diff` (the list filtered by Zobraziť len zmeny) an added key wears a „Nové“ badge and a changed cell a brand left border.
+ * With `item.diff` (every version but the first) an added key wears a „Nové“ badge and a changed cell a brand left border.
  */
 const TranslationsTable = ({
 	projectId,
@@ -184,14 +184,16 @@ const TranslationsTable = ({
 	const sourceValue = (item: TranslationListItem, language: Language | undefined, className: string | undefined) => {
 		const changed = language !== undefined && isChanged(item, language)
 		return (
-			<span className={`${className} ${changed ? classes.sourceChanged : ''}`}>
-				{changed && <VisuallyHidden>{t('translationsPage.table.diffChanged')}: </VisuallyHidden>}
-				<TranslationValue
-					value={(language && item.translations[language.id])?.value ?? null}
-					pluralTag={item.plural ? language?.tag : undefined}
-					reference={language && referenceFor(item, language)}
-				/>
-			</span>
+			<Tooltip label={t('translationsPage.table.diffChangedTooltip')} disabled={!changed} events={TOOLTIP_EVENTS}>
+				<span className={`${className} ${changed ? classes.sourceChanged : ''}`}>
+					{changed && <VisuallyHidden>{t('translationsPage.table.diffChanged')}: </VisuallyHidden>}
+					<TranslationValue
+						value={(language && item.translations[language.id])?.value ?? null}
+						pluralTag={item.plural ? language?.tag : undefined}
+						reference={language && referenceFor(item, language)}
+					/>
+				</span>
+			</Tooltip>
 		)
 	}
 
@@ -312,7 +314,7 @@ const TranslationsTable = ({
 				)}
 				{!isStacked && !translationsOnly && (
 					<Table.Td className={statusClass}>
-						<TranslationStatusBadge status={item.status} />
+						<TranslationStatusBadge status={item.status} collapsible />
 					</Table.Td>
 				)}
 			</Table.Tr>

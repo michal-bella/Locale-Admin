@@ -5,7 +5,7 @@ import classes from './TranslationStatusBadge.module.css'
 import { type TranslationStatusBadgeProps } from './types'
 
 /** Status of a translation as a pill with a dot: Preložené in teal, Nepreložené in red. Used in the table's Stav column and the status filter. */
-const TranslationStatusBadge = ({ status }: TranslationStatusBadgeProps) => {
+const TranslationStatusBadge = ({ status, collapsible = false }: TranslationStatusBadgeProps) => {
 	const { t } = useTranslation()
 
 	return (
@@ -15,7 +15,8 @@ const TranslationStatusBadge = ({ status }: TranslationStatusBadgeProps) => {
 			radius='xl'
 			tt='none'
 			leftSection={<span aria-hidden className={classes.dot} />}
-			className={classes.badge}
+			className={`${classes.badge} ${collapsible ? classes.collapsible : ''}`}
+			classNames={collapsible ? { label: classes.collapsibleLabel, section: classes.collapsibleSection } : undefined}
 		>
 			{t(`translationsPage.status.${status}`)}
 		</Badge>

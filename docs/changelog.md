@@ -8,6 +8,14 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Zvýraznenie zmien bez filtra (2026-10-23)
+
+- API: `GET …/translations` vracia v položke `diff: { added, changedLanguageIds }` vždy, keď verzia má predchádzajúcu, nielen s `diff=true`; prvá verzia projektu `diff` neposiela
+- frontend: v úzkej tabuľke Prekladov (pod 65 rem) ukazuje stĺpec Stav iba farebnú bodku, aby sa zmestil tretí jazyk
+- frontend: HTML tagy v hodnotách (`<strong>`, `<a href="…">`, …) sú v tabuľke a v hodnote základného jazyka v modáli neutrálny chip ako v editore, odlíšený od chipu premennej
+- frontend: názov kľúča a zdrojový text kompaktného zobrazenia majú stlmenú farbu `--mantine-color-text`, aby vynikli preklady
+- frontend: odznak **Nové** a ľavý okraj zmenenej bunky sú v tabuľke Prekladov vždy (okrem prvej verzie), **Zobraziť len zmeny** už len filtruje riadky; zmenená bunka má tooltip „Zmenené oproti predchádzajúcej verzii“
+
 ### Zastarané API (2026-10-23)
 
 - frontend: route guardy a loader projektu volajú `queryClient.query` namiesto zastaraných `ensureQueryData` a `fetchQuery` (TanStack Query 5.104; `ensureQueryData` → `query({ ...options, staleTime: 'static' })`, správanie rovnaké); formuláre používajú `SubmitEvent` / `SubmitEventHandler` namiesto zastaraných `FormEvent` / `FormEventHandler` z `@types/react`

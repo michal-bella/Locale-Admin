@@ -539,7 +539,7 @@ describe('TranslationsPage', () => {
 		expect(getRow('dashboard.welcome')).toHaveAttribute('data-status', 'TRANSLATED')
 	})
 
-	it('shows {{var}} as chips and HTML as plain text', async () => {
+	it('shows {{var}} and HTML tags as chips, never rendering the HTML', async () => {
 		mockPage({
 			translations: response({
 				items: [
@@ -557,8 +557,10 @@ describe('TranslationsPage', () => {
 		expect(count.getByText('položiek', { exact: false })).toBeInTheDocument()
 
 		const terms = getRow('terms.link')
-		expect(within(terms).getByText('Súhlasím s <a href="/terms">podmienkami</a>')).toBeInTheDocument()
-		expect(within(terms).getByText('<strong>Bold</strong><img src=x onerror=alert(1)>')).toBeInTheDocument()
+		expect(within(terms).getByText('<a href="/terms">').tagName).toBe('CODE')
+		expect(terms).toHaveTextContent('Súhlasím s <a href="/terms">podmienkami</a>')
+		expect(within(terms).getByText('<strong>').tagName).toBe('CODE')
+		expect(within(terms).getByText('<img src=x onerror=alert(1)>').tagName).toBe('CODE')
 		expect(terms.querySelector('a, strong, img')).toBeNull()
 	})
 

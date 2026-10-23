@@ -361,7 +361,8 @@
 			"base": "Base",
 			"diffAdded": "New",
 			"diffAddedLabel": "New key",
-			"diffChanged": "Changed"
+			"diffChanged": "Changed",
+			"diffChangedTooltip": "Changed since the previous version"
 		},
 		"status": {
 			"TRANSLATED": "Translated",

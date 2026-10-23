@@ -12,6 +12,7 @@ notion_page_id:
 
 - frontend: route guardy a loader projektu volajú `queryClient.query` namiesto zastaraných `ensureQueryData` a `fetchQuery` (TanStack Query 5.104; `ensureQueryData` → `query({ ...options, staleTime: 'static' })`, správanie rovnaké); formuláre používajú `SubmitEvent` / `SubmitEventHandler` namiesto zastaraných `FormEvent` / `FormEventHandler` z `@types/react`
 - nástroje: ESLint pravidlo `@typescript-eslint/no-deprecated` je zapnuté ako chyba, `pnpm lint` zachytí použitie zastaraného API
+- agenti: role `frontend-developer` a `backend-developer` nesmú použiť zastarané API ani pridať zastaranú závislosť (opravia ju pred commitom); `code-reviewer` to kontroluje ako finding `medium` (už predtým zastarané balíky nie sú finding kroku)
 
 ### Lokálny vývoj (2026-10-22)
 

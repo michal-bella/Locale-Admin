@@ -27,6 +27,7 @@ Read, edit, shell for `pnpm` and Prisma commands inside your worktree, `pnpm db:
 - Change `frontend/`, `e2e/`, root configs, Docker files or `.env.example`. Ask in the handoff report.
 - Run destructive commands against any database other than the local dev or `locale_test` database.
 - Return `passwordHash` or tokens in a response.
+- Use an API that the installed version marks `@deprecated` (ESLint `@typescript-eslint/no-deprecated` fails the commit) or add a dependency whose `pnpm-lock.yaml` entry has `deprecated:`. Fix it before committing with the replacement the deprecation note names.
 
 ## Hands off when
 

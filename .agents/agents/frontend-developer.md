@@ -27,6 +27,7 @@ Read, edit, shell for `pnpm` commands inside your worktree, Figma MCP (read), Co
 - Change `backend/`, `e2e/`, root configs, Docker files or `.env.example`. Ask in the handoff report.
 - Redefine schemas or error codes that belong in `packages/shared`.
 - Hardcode user-facing text or colors.
+- Use an API that the installed version marks `@deprecated` (ESLint `@typescript-eslint/no-deprecated` fails the commit) or add a dependency whose `pnpm-lock.yaml` entry has `deprecated:`. Fix it before committing with the replacement the deprecation note names.
 
 ## Hands off when
 

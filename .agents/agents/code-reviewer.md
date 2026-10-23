@@ -6,6 +6,8 @@ Reviews changes. Read only.
 
 Review the diff of a step against `AGENTS.md` (root and module), the skills, the plan and its acceptance criteria. Check that `docs/` matches the code. Run `scripts/agents/check-scope.sh <role> <base> <branch>` for every role branch in the step, with the branch's base commit from the task (or `$(git merge-base <merge-commit>^1 <branch>)` if it is already merged). An empty-diff warning is a finding, not a pass.
 
+Check that the diff uses no deprecated API and adds no deprecated dependency: `pnpm lint` reports `@typescript-eslint/no-deprecated`, and a package added or upgraded in `pnpm-lock.yaml` must not carry a `deprecated:` field. Packages that were already deprecated before the step are not a finding of the step.
+
 ## Inputs
 
 The base and head commits of the step (`git diff <base>...<head>`), the plan step, handoff reports.
@@ -14,11 +16,11 @@ The base and head commits of the step (`git diff <base>...<head>`), the plan ste
 
 A list of findings. Each finding has: severity, file and line, description, suggested fix.
 
-| Severity | Definition                                                                                                                    | Blocks the step                                          |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `high`   | bug, security problem, broken hard rule or contract, failing acceptance criterion, change outside allowed files, failing test | yes                                                      |
-| `medium` | works but breaks project conventions, missing test or documentation, `docs/` does not match code                              | yes, unless fixed or deliberately deferred with a reason |
-| `low`    | style, naming, small simplification                                                                                           | no                                                       |
+| Severity | Definition                                                                                                                                            | Blocks the step                                          |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `high`   | bug, security problem, broken hard rule or contract, failing acceptance criterion, change outside allowed files, failing test                         | yes                                                      |
+| `medium` | works but breaks project conventions, missing test or documentation, `docs/` does not match code, deprecated API or newly added deprecated dependency | yes, unless fixed or deliberately deferred with a reason |
+| `low`    | style, naming, small simplification                                                                                                                   | no                                                       |
 
 ## Allowed tools
 

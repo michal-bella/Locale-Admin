@@ -10,7 +10,8 @@ const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
 
 /**
  * A translation in the table: a button with the read-only value that opens `EditTranslationModal`, or the same box as plain text without
- * `onClick`; an untranslated cell has a soft red background, a `changed` one a brand left border.
+ * `onClick`; an untranslated cell is an empty box with a soft red background and a red border (Bez prekladu only for screen readers), a
+ * `changed` one a brand left border.
  */
 const TranslationCell = ({ cell, label, pluralTag, reference, changed = false, onClick }: TranslationCellProps) => {
 	const { t } = useTranslation()
@@ -19,7 +20,11 @@ const TranslationCell = ({ cell, label, pluralTag, reference, changed = false, o
 			<VisuallyHidden>
 				{label}:{changed && ` ${t('translationsPage.table.diffChanged')}:`}
 			</VisuallyHidden>{' '}
-			<TranslationValue value={cell.value} pluralTag={pluralTag} reference={reference} />
+			{cell.value === null ? (
+				<VisuallyHidden>{t('translationsPage.table.emptyValue')}</VisuallyHidden>
+			) : (
+				<TranslationValue value={cell.value} pluralTag={pluralTag} reference={reference} />
+			)}
 		</span>
 	)
 	const changedAttribute = changed || undefined

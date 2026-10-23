@@ -221,13 +221,12 @@ const TranslationsTable = ({
 
 	const renderItem = (item: TranslationListItem, now: Date) => {
 		const target = (targetLanguage && item.translations[targetLanguage.id]) ?? EMPTY_CELL
-		// The compact view shows when the target changed, the extended one the latest change in any language.
-		const updatedAt = isExtended
-			? Object.values(item.translations).reduce<string | null>(
-					(latest, cell) => (cell.updatedAt && (!latest || cell.updatedAt > latest) ? cell.updatedAt : latest),
-					null,
-				)
-			: target.updatedAt
+		const latestUpdatedAt = Object.values(item.translations).reduce<string | null>(
+			(latest, cell) => (cell.updatedAt && (!latest || cell.updatedAt > latest) ? cell.updatedAt : latest),
+			null,
+		)
+		// The compact view shows when the target changed, else (a target never written) the latest change in any language like the extended one.
+		const updatedAt = isExtended ? latestUpdatedAt : (target.updatedAt ?? latestUpdatedAt)
 		return (
 			<Table.Tr key={item.keyId} data-status={item.status} className={classes.row}>
 				{!translationsOnly && (
@@ -403,7 +402,7 @@ const TranslationsTable = ({
 				aria-label={t('translationsPage.table.label')}
 				aria-busy={isPending}
 				withRowBorders={false}
-				className={`${classes.table} ${isColumns ? classes.extended : ''}`}
+				className={`${classes.table} ${isColumns ? classes.extended : ''} ${isStacked ? '' : classes.dense}`}
 				data-view={view}
 				data-layout={isStacked ? 'STACKED' : undefined}
 			>

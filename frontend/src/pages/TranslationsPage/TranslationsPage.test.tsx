@@ -213,6 +213,17 @@ describe('TranslationsPage', () => {
 		expect(within(getRow('orders.empty.title')).getByText('Bez prekladu')).toBeInTheDocument()
 	})
 
+	it('falls back to the latest change in any language when the target was never written', async () => {
+		const sourceOnly = item('loc', 'orders.empty.title', 'Zatiaľ tu nie sú žiadne objednávky', null)
+		sourceOnly.translations[SLOVAK.id] = cell('Zatiaľ tu nie sú žiadne objednávky', minutesAgo(5))
+		mockPage({ translations: response({ items: [sourceOnly] }) })
+		renderApp(PAGE_PATH)
+
+		await screen.findByText('orders.empty.title')
+		const updated = within(getRow('orders.empty.title')).getByText('pred 5 min')
+		expect(updated).toHaveAttribute('datetime', sourceOnly.translations[SLOVAK.id]?.updatedAt)
+	})
+
 	it('asks for the base language → first other language, untranslated first, page 1 of 25 by default', async () => {
 		const requests = mockPage({ languages: [SLOVAK, CZECH, ENGLISH] })
 		renderApp(PAGE_PATH)

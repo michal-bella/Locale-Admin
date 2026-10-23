@@ -324,30 +324,31 @@ th.stickyEnd {
 	overflow-wrap: anywhere;
 }
 
-/* Every language as a column: tighter cells and a smaller value font, so more languages and rows fit on screen. */
-.extended .th {
+/* Both views in columns: tighter cells, so more rows (and in the extended view more languages) fit on screen. */
+.dense .th {
 	padding: 0.5rem 0.75rem;
 }
 
-.extended .td {
+.dense .td {
 	padding: 0.375rem 0.75rem;
 }
 
-.extended .value {
-	font-size: var(--mantine-font-size-sm);
-	line-height: 1.4;
-}
-
-.extended .value button {
+.dense .value button {
 	padding: 0.25rem 0.5rem;
 }
 
-.extended .groupCell {
+.dense .groupCell {
 	padding: 0.375rem 0.75rem;
 }
 
-.extended .groupLabel {
+.dense .groupLabel {
 	left: 0.75rem;
+}
+
+/* Every language as a column: a smaller value font as well. */
+.extended .value {
+	font-size: var(--mantine-font-size-sm);
+	line-height: 1.4;
 }
 
 .state {

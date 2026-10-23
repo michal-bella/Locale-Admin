@@ -327,7 +327,7 @@ const LanguagesTable = ({ projectId, projectSlug, onAdd, onDelete, reorderable =
 							<RowAction
 								icon={Translate}
 								tooltip={t('languagesPage.table.open')}
-								label={t('languagesPage.table.openLabel', { name: languageName(language) })}
+								label={t(language.isBase ? 'languagesPage.table.open' : 'languagesPage.table.openLabel', { name: languageName(language) })}
 								to='/projects/$projectSlug/translations'
 								params={{ projectSlug }}
 								search={translationsSearch(language)}

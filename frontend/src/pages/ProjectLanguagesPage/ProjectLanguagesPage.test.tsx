@@ -479,6 +479,8 @@ describe('Deleting a language', () => {
 			'href',
 			expect.stringMatching(/\/translations\?target=en&languages=.*en/),
 		)
+		// The base language is the source, so its link presets no target and its name promises none.
+		expect(within(getRow('Slovenčina')).getByRole('link', { name: 'Otvoriť preklady' })).toHaveAttribute('href', expect.stringMatching(/\/translations$/))
 	})
 
 	it('disables Odobrať in the row of the base language', async () => {

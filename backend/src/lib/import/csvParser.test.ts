@@ -96,6 +96,59 @@ describe('parseCsv', () => {
 		])
 	})
 
+	it.each(['Key', 'keys', 'KEYS'])('accepts %s as the key column', (column) => {
+		expect(parseOk(`${column}; en\n a; A`).rows).toEqual([{ line: 2, namespace: '', key: 'a', values: ['A'] }])
+	})
+
+	it('parses a spreadsheet export separated by ; without spaces and without sections', () => {
+		expect(parseOk('key;cs;sk\natoms.email;E-mail;E-mail\ncomponents.modal.Close modal;Zavřít okno;\n')).toEqual({
+			headerLine: 1,
+			columns: [
+				{ tag: 'cs', columnIndex: 2 },
+				{ tag: 'sk', columnIndex: 3 },
+			],
+			rows: [
+				{ line: 2, namespace: '', key: 'atoms.email', values: ['E-mail', 'E-mail'] },
+				{ line: 3, namespace: '', key: 'components.modal.Close modal', values: ['Zavřít okno', null] },
+			],
+		})
+	})
+
+	it('keeps &nbsp; of a quoted value in a ;-separated spreadsheet export', () => {
+		expect(parseOk('key;en\na;"A&nbsp;B"').rows[0]?.values).toEqual(['A&nbsp;B'])
+	})
+
+	it('parses RFC 4180 quoting: separators, "" and line breaks inside a quoted value, line numbers of the first line', () => {
+		const file = parseOk('"key","en","sk"\r\na,"Hello, world","Ahoj"\r\nb,"Say ""hi""","Prvý\r\ndruhý"\r\nc,"",C\r\n')
+
+		expect(file.columns.map(({ tag }) => tag)).toEqual(['en', 'sk'])
+		expect(file.rows).toEqual([
+			{ line: 2, namespace: '', key: 'a', values: ['Hello, world', 'Ahoj'] },
+			{ line: 3, namespace: '', key: 'b', values: ['Say "hi"', 'Prvý\ndruhý'] },
+			{ line: 5, namespace: '', key: 'c', values: [null, 'C'] },
+		])
+	})
+
+	it('trims spaces around a quoted value but keeps the spaces inside the quotes', () => {
+		expect(parseOk('key;en\na; " Hello " ').rows[0]?.values).toEqual([' Hello '])
+	})
+
+	it('keeps a " that does not start a field as text', () => {
+		expect(parseOk('key;en\na;Use "{{ value }}"').rows[0]?.values).toEqual(['Use "{{ value }}"'])
+	})
+
+	it('accepts a tab-separated file', () => {
+		expect(parseOk('key\ten\tsk\na\tA\tB').rows[0]?.values).toEqual(['A', 'B'])
+	})
+
+	it('reads sections and skips empty rows of a spreadsheet export', () => {
+		expect(parseOk('key;en\n;\n--loc--;\na;A').rows).toEqual([{ line: 4, namespace: 'loc', key: 'a', values: ['A'] }])
+	})
+
+	it('returns ROW_UNCLOSED_QUOTE with the line where the quote opens', () => {
+		expect(parseIssues('key;en\na;A\nb;"B\nc;C').issues).toEqual([{ code: 'ROW_UNCLOSED_QUOTE', line: 3 }])
+	})
+
 	it('treats an empty field as null', () => {
 		expect(parseOk('Keys; en ; sk\n Ahoj; ; Ahoj').rows[0]?.values).toEqual([null, 'Ahoj'])
 	})
@@ -127,11 +180,10 @@ describe('parseCsv', () => {
 	})
 
 	it.each([
-		{ name: 'a wrong first column', content: 'Key; en\n a; b' },
-		{ name: 'a lower-case first column', content: 'keys; en\n a; b' },
+		{ name: 'a wrong first column', content: 'Name; en\n a; b' },
+		{ name: 'a first column that only starts with key', content: 'keyword;en\na;b' },
 		{ name: 'no language column', content: 'Keys\n a' },
-		{ name: 'a comma-separated header', content: 'Keys, en, sk\n a, b, c' },
-		{ name: 'a header separated by ; without spaces', content: 'Keys;en\n a;b' },
+		{ name: 'an unsupported separator', content: 'key|en\na|b' },
 	])('returns HEADER_INVALID for $name', ({ content }) => {
 		expect(parseIssues(content).issues).toEqual([{ code: 'HEADER_INVALID', line: 1, column: 1 }])
 	})

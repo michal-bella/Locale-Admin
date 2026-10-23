@@ -1,6 +1,6 @@
 ---
 title: 'API: import prekladov'
-updated: 2026-10-22
+updated: 2026-10-23
 notion_page_id:
 ---
 
@@ -17,7 +17,9 @@ Import smie iba globálny `ADMIN` (od 2026-10-20; člen projektu s rolou `EDITOR
 
 ## Formát CSV
 
-Zatiaľ jediný podporovaný formát. Je to výstup nástroja GoodRequest `i18nextJsonToCsv` (`npx convert-json-to-csv`) zo súborov `public/locales/<tag>/<namespace>.json`. Nie je to RFC 4180: nepoužíva úvodzovky ani escapovanie.
+Podporované sú dve podoby CSV. Ktorá sa použije, určí hlavička: rozhoduje znak hneď za prvým stĺpcom (`key` alebo `Keys`). Obe podoby číta knižnica `csv-parse`, pri i18nextJsonToCsv s oddeľovačom `; ` a bez úvodzoviek.
+
+1. **i18nextJsonToCsv**: za kľúčovým stĺpcom nasleduje `; ` (bodkočiarka a medzera). Je to výstup nástroja GoodRequest `i18nextJsonToCsv` (`npx convert-json-to-csv`) zo súborov `public/locales/<tag>/<namespace>.json`. Nie je to RFC 4180: nepoužíva úvodzovky ani escapovanie.
 
 ```text
 Keys; cs ; en ; sk
@@ -30,12 +32,21 @@ Keys; cs ; en ; sk
  Uložiť; ""; ""; /ulozit
 ```
 
+2. **Export z tabuľky** (Excel, Google Sheets, Numbers): za kľúčovým stĺpcom nasleduje `;`, `,` alebo tabulátor bez medzery. Súbor sa číta podľa RFC 4180 knižnicou [`csv-parse`](https://csv.js.org/parse/). Pole, ktoré (po medzerách) začína `"`, je v úvodzovkách: `""` vnútri znamená jednu `"`, oddeľovač aj zalomenie riadku patria k hodnote a medzery vnútri úvodzoviek sa neorežú. Úvodzovka inde v poli je obyčajný text. Sekcie sú nepovinné, riadok sekcie môže mať za názvom prázdne polia (`--loc--;;;`).
+
+```text
+key;cs;sk
+atoms.contactItem.emailLabel;E-mail;E-mail
+components.modal.close;"Zavřít; okno";"Zavrieť
+okno"
+```
+
 - **Kódovanie** UTF-8. Úvodný BOM sa ticho odstráni. Konce riadkov `\n`, `\r\n` aj `\r` (aj zmiešané).
-- **Hlavička** je prvý neprázdny riadok (riadok 1). Delí sa podľa `; ` rovnako ako dátové riadky, každé pole sa oreže (`Keys;en` bez medzier je `HEADER_INVALID`). Prvý stĺpec musí byť presne `Keys` (veľké K), potom aspoň jeden tag jazyka. Stĺpce sa číslujú od 1, prvý jazyk je stĺpec 2.
-- **Dátový riadok** sa delí podľa `; ` (bodkočiarka a medzera), každé pole sa oreže (aj úvodná medzera riadku). Prvé pole je kľúč, ďalšie sú hodnoty v poradí stĺpcov hlavičky. Hodnota s `; ` vnútri riadok rozbije (`ROW_COLUMN_COUNT`). Ak riadku chýba presne jedno pole a končí `;` (editor odstránil koncovú medzeru za prázdnym posledným poľom), posledné pole je prázdne, teda `null`. Inak `;` na konci patrí k hodnote (napr. `&nbsp;`).
+- **Hlavička** je prvý neprázdny riadok (riadok 1). Delí sa rovnako ako dátové riadky, každé pole sa oreže. Prvý stĺpec je `key` alebo `Keys` v ľubovoľnej veľkosti písmen, potom aspoň jeden tag jazyka. Stĺpce sa číslujú od 1, prvý jazyk je stĺpec 2.
+- **Dátový riadok** v podobe i18nextJsonToCsv sa delí podľa `; ` (bodkočiarka a medzera), každé pole sa oreže (aj úvodná medzera riadku). Prvé pole je kľúč, ďalšie sú hodnoty v poradí stĺpcov hlavičky. Hodnota s `; ` vnútri riadok rozbije (`ROW_COLUMN_COUNT`). Ak riadku chýba presne jedno pole a končí `;` (editor odstránil koncovú medzeru za prázdnym posledným poľom), posledné pole je prázdne, teda `null`. Inak `;` na konci patrí k hodnote (napr. `&nbsp;`).
 - **Sekcia** `--názov--` nastaví namespace (názov JSON súboru) pre nasledujúce riadky. Riadky pred prvou sekciou majú prázdny namespace `""`. Povolený názov: `^[A-Za-z0-9._-]+$`, max. 100 znakov (`IMPORT_NAMESPACE_MAX_LENGTH`), nie `.` ani `..` (pri exporte z neho vznikne názov súboru).
 - **Nepreložené**: doslovné `null`, `""` (dve úvodzovky) aj prázdne pole sa načítajú ako `null` (rozhodnutie 1 v pláne).
-- **Prázdne riadky** sa preskočia, čísla riadkov v chybách sa počítajú podľa pôvodného súboru (vrátane prázdnych riadkov).
+- **Prázdne riadky** (aj riadky s iba prázdnymi poľami, napr. `;;;`) sa preskočia. Čísla riadkov v chybách sa počítajú podľa pôvodného súboru, vrátane prázdnych riadkov. Hodnota cez viac riadkov má číslo riadku, na ktorom začína záznam.
 - Ten istý kľúč v dvoch rôznych namespace je v poriadku, v jednom namespace je chyba.
 - Hodnoty sa neinterpretujú: HTML (`<a>`, `<strong>`) aj premenné `{{ x }}` ostávajú ako text.
 
@@ -47,10 +58,11 @@ Odpoveď 422 `IMPORT_FILE_INVALID`, `details` je `{ issues, total }`: prvých 50
 | ---------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------- |
 | `FILE_EMPTY`           | prázdny súbor, iba medzery, iba hlavička (aj so sekciami) bez jediného dátového riadku                   | –                       | –                               |
 | `FILE_NOT_UTF8`        | riadok obsahuje znak `U+FFFD` (stopa po neplatnom UTF-8) alebo osamelú UTF-16 náhradu; každý taký riadok | riadok                  | –                               |
-| `HEADER_INVALID`       | prvý stĺpec hlavičky nie je `Keys` alebo hlavička nemá žiadny jazyk                                      | riadok hlavičky, 1      | –                               |
+| `HEADER_INVALID`       | prvý stĺpec hlavičky nie je `key` / `Keys`, za ním nie je `;`, `,` ani tabulátor, alebo chýba jazyk      | riadok hlavičky, 1      | –                               |
 | `HEADER_EMPTY_TAG`     | prázdny názov stĺpca jazyka                                                                              | riadok hlavičky, stĺpec | –                               |
 | `HEADER_DUPLICATE_TAG` | ten istý tag dvakrát (bez ohľadu na veľkosť písmen)                                                      | riadok hlavičky, stĺpec | `tag`, `firstColumn`            |
 | `ROW_COLUMN_COUNT`     | riadok má iný počet polí ako hlavička (typicky `; ` vnútri textu)                                        | riadok                  | `expected`, `actual`            |
+| `ROW_UNCLOSED_QUOTE`   | úvodzovka na začiatku poľa sa do konca súboru nezatvorí (iba export z tabuľky); ďalej sa nekontroluje    | riadok s úvodzovkou     | –                               |
 | `ROW_EMPTY_KEY`        | prázdny kľúč                                                                                             | riadok, 1               | –                               |
 | `ROW_DUPLICATE_KEY`    | kľúč druhýkrát v tom istom namespace (hlási sa druhý výskyt)                                             | riadok, 1               | `key`, `namespace`, `firstLine` |
 | `KEY_TOO_LONG`         | kľúč nad 2 000 bajtov v UTF-8 (`IMPORT_KEY_MAX_BYTES`; latinka 1 bajt, diakritika a cyrilika 2, emoji 4) | riadok, 1               | `max`, `length` (v bajtoch)     |

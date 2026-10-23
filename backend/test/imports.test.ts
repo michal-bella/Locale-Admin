@@ -252,7 +252,7 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 		{ name: 'FILE_EMPTY', content: 'Keys; sk\n', issues: [{ code: 'FILE_EMPTY' }] },
 		{ name: 'FILE_NOT_UTF8 (replacement character)', content: 'Keys; sk\n a; \uFFFD', issues: [{ code: 'FILE_NOT_UTF8', line: 2 }] },
 		{ name: 'FILE_NOT_UTF8 (lone surrogate)', content: 'Keys; sk\n a; \uD800', issues: [{ code: 'FILE_NOT_UTF8', line: 2 }] },
-		{ name: 'HEADER_INVALID', content: 'Key; sk\n a; b', issues: [{ code: 'HEADER_INVALID', line: 1, column: 1 }] },
+		{ name: 'HEADER_INVALID', content: 'Name; sk\n a; b', issues: [{ code: 'HEADER_INVALID', line: 1, column: 1 }] },
 		{ name: 'HEADER_EMPTY_TAG', content: 'Keys; sk ; \n a; b; c', issues: [{ code: 'HEADER_EMPTY_TAG', line: 1, column: 3 }] },
 		{
 			name: 'HEADER_DUPLICATE_TAG',

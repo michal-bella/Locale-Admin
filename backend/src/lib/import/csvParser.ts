@@ -1,9 +1,13 @@
+import { CsvError, parse } from 'csv-parse/sync'
+
 import { IMPORT_ISSUES_MAX, IMPORT_KEY_MAX_BYTES, IMPORT_NAMESPACE_MAX_LENGTH, type ImportIssue } from '@locale/shared'
 
 import { type ParseResult, type ParsedColumn, type ParsedRow } from './parsedFile'
 
-const HEADER_KEYS = 'Keys'
-const SEPARATOR = '; '
+const KEY_COLUMN_PATTERN = /^keys?$/i
+/** The header picks the separator: the first `;`, `,` or tab after the key column; `; ` (with the space) is the i18nextJsonToCsv format. */
+const HEADER_PATTERN = /^\s*"?keys?"?\s*([;,\t])( ?)/i
+const LEGACY_SEPARATOR = '; '
 const SECTION_PATTERN = /^--([^;]*)--$/
 
 /** A namespace becomes a file name (`<tag>/<namespace>.json`) in the export, so only safe file names are allowed. */
@@ -17,24 +21,58 @@ const isValidNamespace = (namespace: string) =>
 
 const toValue = (field: string): string | null => (field === 'null' || field === '""' || field === '' ? null : field)
 
-const splitFields = (text: string) => text.split(SEPARATOR).map((field) => field.trim())
-
 /** An editor that strips trailing spaces turns a last empty field `; ` into `;`. Only then, so `&nbsp;` at the end of a value survives. */
-const splitRow = (text: string, expected: number) => {
-	const fields = splitFields(text)
+const fixTrailingSeparator = (fields: string[], expected: number) => {
 	const last = fields.at(-1)
 	if (fields.length === expected - 1 && last?.endsWith(';')) {
-		fields[fields.length - 1] = last.slice(0, -1).trim()
-		fields.push('')
+		return [...fields.slice(0, -1), last.slice(0, -1).trim(), '']
 	}
 	return fields
+}
+
+type CsvRecord = { line: number; fields: string[] }
+
+type ReadResult = { ok: true; records: CsvRecord[] } | { ok: false; line: number }
+
+/**
+ * Reads the records with csv-parse. The i18nextJsonToCsv format has no quoting, so `""` stays a literal null marker.
+ * Column counts and stray quotes are relaxed because the rows are checked here with line numbers.
+ * Empty lines stay records, so a record starts on the line after the previous one ends (`context.lines` is the last line of a record).
+ */
+const readRecords = (text: string, separator: string, legacy: boolean, firstLine: number): ReadResult => {
+	const records: CsvRecord[] = []
+	let nextLine = firstLine
+	try {
+		parse(text, {
+			delimiter: legacy ? LEGACY_SEPARATOR : separator,
+			quote: !legacy,
+			record_delimiter: '\n',
+			trim: true,
+			relax_column_count: true,
+			relax_quotes: true,
+			on_record: (fields: string[], context) => {
+				records.push({ line: nextLine, fields })
+				nextLine = firstLine + context.lines
+				return null
+			},
+		})
+	} catch (error) {
+		if (error instanceof CsvError && error.code === 'CSV_QUOTE_NOT_CLOSED') {
+			return { ok: false, line: nextLine }
+		}
+		throw error
+	}
+	return { ok: true, records }
 }
 
 const fail = (issues: ImportIssue[]): ParseResult => ({ ok: false, issues: issues.slice(0, IMPORT_ISSUES_MAX), total: issues.length })
 
 /**
- * Parses the CSV of GoodRequest i18nextJsonToCsv: header `Keys; bg ; cs ; …` and rows ` key; value; value`, both separated by `; `
- * without quoting, lines by `\r\n`, `\r` or `\n`, sections `--namespace--`. Every field is trimmed, `null` and `""` become `null`, blank lines are skipped.
+ * Parses two CSV flavours, told apart by the header:
+ * - GoodRequest i18nextJsonToCsv: header `Keys; bg ; cs ; …` and rows ` key; value; value`, separated by `; ` without quoting;
+ * - a spreadsheet export (Excel, Google Sheets): header `key;cs;sk` separated by `;`, `,` or tab, RFC 4180 quoting.
+ * The key column is `key` or `Keys` in any case. Lines end with `\r\n`, `\r` or `\n`, a row `--namespace--` starts a section.
+ * Fields are trimmed outside quotes, `null` and `""` become `null`, rows with only empty fields are skipped.
  * Header issues stop parsing because the rows cannot be interpreted without the header.
  */
 export const parseCsv = (content: string): ParseResult => {
@@ -56,8 +94,18 @@ export const parseCsv = (content: string): ParseResult => {
 		return fail([{ code: 'FILE_EMPTY' }])
 	}
 	const headerLine = headerIndex + 1
-	const header = splitFields(headerText)
-	if (header[0] !== HEADER_KEYS || header.length < 2) {
+	const separator = HEADER_PATTERN.exec(headerText)
+	if (!separator?.[1]) {
+		return fail([{ code: 'HEADER_INVALID', line: headerLine, column: 1 }])
+	}
+	const legacy = separator[1] === ';' && separator[2] === ' '
+	const read = readRecords(lines.slice(headerIndex).join('\n'), separator[1], legacy, headerLine)
+	if (!read.ok) {
+		return fail([{ code: 'ROW_UNCLOSED_QUOTE', line: read.line }])
+	}
+	const [headerRecord, ...records] = read.records
+	const header = headerRecord?.fields ?? []
+	if (!KEY_COLUMN_PATTERN.test(header[0] ?? '') || header.length < 2) {
 		return fail([{ code: 'HEADER_INVALID', line: headerLine, column: 1 }])
 	}
 
@@ -85,13 +133,12 @@ export const parseCsv = (content: string): ParseResult => {
 	const firstLineByKey = new Map<string, number>()
 	let namespace = ''
 	let dataLines = 0
-	lines.slice(headerIndex + 1).forEach((text, index) => {
-		const line = headerLine + index + 1
-		const trimmed = text.trim()
-		if (trimmed === '') {
+	records.forEach((record) => {
+		const { line } = record
+		if (record.fields.every((field) => field === '')) {
 			return
 		}
-		const section = SECTION_PATTERN.exec(trimmed)
+		const section = record.fields.slice(1).every((field) => field === '') ? SECTION_PATTERN.exec(record.fields[0] ?? '') : null
 		if (section) {
 			namespace = section[1] ?? ''
 			if (!isValidNamespace(namespace)) {
@@ -101,7 +148,7 @@ export const parseCsv = (content: string): ParseResult => {
 		}
 
 		dataLines += 1
-		const fields = splitRow(text, header.length)
+		const fields = legacy ? fixTrailingSeparator(record.fields, header.length) : record.fields
 		if (fields.length !== header.length) {
 			issues.push({ code: 'ROW_COLUMN_COUNT', line, params: { expected: header.length, actual: fields.length } })
 			return

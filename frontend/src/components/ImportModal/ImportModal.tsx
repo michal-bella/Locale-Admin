@@ -261,6 +261,8 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 			const choice = mapping[column.columnIndex]
 			return typeof choice === 'string' && !(column.match === 'PROJECT' && choice === column.languageId)
 		}) ?? false
+	const mappedLanguageIds = new Set(Object.values(mapping))
+	const missingTags = languages.filter((language) => !mappedLanguageIds.has(language.id)).map((language) => language.tag)
 	const baseUntranslated = preview?.warnings.filter((issue) => issue.code === 'BASE_LANGUAGE_UNTRANSLATED') ?? []
 	const placeholderMismatches = preview?.warnings.filter((issue) => issue.code === 'PLACEHOLDER_MISMATCH') ?? []
 	const unlistedWarnings = preview ? preview.warningsTotal - preview.warnings.length : 0
@@ -386,6 +388,13 @@ const ImportModal = ({ projectId, versions, defaultVersionId, opened, onClose }:
 							</Text>
 						)}
 						{hasManualMapping && <Text size='xs'>{t('importModal.review.summary.approximate')}</Text>}
+						{missingTags.length > 0 && (
+							<Text size='xs'>
+								{createMissingKeys && preview.keys.new > 0
+									? t('importModal.review.summary.languagesNotInFile', { languages: missingTags.join(', '), count: preview.keys.new })
+									: t('importModal.review.summary.languagesNotInFileKept', { languages: missingTags.join(', ') })}
+							</Text>
+						)}
 						{placeholderMismatches.length > 0 && (
 							<div className='flex flex-col gap-2'>
 								<Button

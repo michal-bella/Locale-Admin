@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Upozornenia vo všetkých jazykoch (2026-10-23)
+
+- frontend: **Zobraziť upozornenia** v zobrazení Zdroj → cieľ prepne na Všetky jazyky a zruší výber Zobrazené jazyky, lebo varovanie môže byť v hociktorom jazyku
+
 ### Zvýraznenie zmien bez filtra (2026-10-23)
 
 - API: `GET …/translations` vracia v položke `diff: { added, changedLanguageIds }` vždy, keď verzia má predchádzajúcu, nielen s `diff=true`; prvá verzia projektu `diff` neposiela

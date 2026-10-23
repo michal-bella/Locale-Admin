@@ -632,17 +632,22 @@ describe('TranslationsPage', () => {
 		expect(screen.queryByRole('button', { name: 'Importovať' })).not.toBeInTheDocument()
 	})
 
-	it('shows the warnings banner with the count, filters by warnings from it and clears the filter again', async () => {
+	it('shows the warnings banner with the count, filters by warnings from it in the extended view and clears the filter again', async () => {
 		const requests = mockPage({
 			translations: response({ stats: { totalKeys: 248, translated: 221, untranslated: 27, warnings: 3, untranslatedByLanguage: {} } }),
+			routes: { 'PATCH /profile/preferences': { status: 200, data: { ...EXTENDED_ADMIN, passwordChangedAt: '2026-10-01T00:00:00.000Z' } } },
 		})
 		const router = renderApp(PAGE_PATH)
 		await screen.findByText('orders.empty.title')
 
 		const banner = getWarningsBanner()
 		expect(banner).toHaveTextContent('3 kľúče majú premenné, ktoré sa líšia od kľúča alebo základného jazyka, napríklad po importe.')
+		expect(getTable()).toHaveAttribute('data-view', 'COMPACT')
 		fireEvent.click(within(banner).getByRole('button', { name: 'Zobraziť upozornenia' }))
 		await waitFor(() => expect(router.state.location.search).toEqual({ warnings: true }))
+		// A warning can be in any language, not only the target, so the compact view gives way to the extended one.
+		await waitFor(() => expect(getTable()).toHaveAttribute('data-view', 'EXTENDED'))
+		expect(queryClient.getQueryData<AuthUser>(QUERY_KEYS.AUTH.ME())?.preferences.translationsView).toBe('EXTENDED')
 		await waitFor(() => expect(lastParams(requests)).toMatchObject({ warnings: true }))
 		expect(lastParams(requests)).toMatchObject({ page: 1 })
 

@@ -719,6 +719,8 @@
 				"skippedColumns_many": "{{count}} stĺpcov sa preskočí",
 				"skippedColumns_other": "{{count}} stĺpcov sa preskočí",
 				"approximate": "Počty sú približné: ručne priradené stĺpce sa do nich nepočítajú.",
+				"languagesNotInFile": "Tieto jazyky projektu nie sú v súbore: {{languages}}. Nové kľúče ({{count}}) v nich ostanú nepreložené.",
+				"languagesNotInFileKept": "Tieto jazyky projektu nie sú v súbore: {{languages}}. Ich preklady sa nezmenia.",
 				"nothingMapped": "Priraďte aspoň jeden stĺpec jazyku projektu.",
 				"placeholderToggle_one": "Rozdiel v premenných ({{count}})",
 				"placeholderToggle_few": "Rozdiely v premenných ({{count}})",

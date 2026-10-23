@@ -329,6 +329,30 @@ describe('ImportModal step 2 (review)', () => {
 		expect(within(dialog).getByRole('button', { name: 'Späť' })).toBeInTheDocument()
 	})
 
+	it('names the project languages no column is mapped to and drops a language once a column is mapped to it', async () => {
+		mockPage()
+		renderApp(PAGE_PATH)
+		const dialog = await goToReview()
+
+		expect(within(dialog).getByText('Tieto jazyky projektu nie sú v súbore: en. Nové kľúče (2) v nich ostanú nepreložené.')).toBeInTheDocument()
+
+		await pickOption(languageSelect(dialog, 'ru'), 'English (en)')
+
+		expect(within(dialog).queryByText(/Tieto jazyky projektu nie sú v súbore/)).not.toBeInTheDocument()
+	})
+
+	it('says the translations of a language missing from the file stay when no key is created', async () => {
+		mockPage()
+		renderApp(PAGE_PATH)
+		const dialog = await openModal()
+		fireEvent.click(within(dialog).getByRole('checkbox', { name: /Vytvoriť chýbajúce kľúče/ }))
+		chooseFile(dialog, csvFile())
+		await within(dialog).findByText('preklady.csv')
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Pokračovať na kontrolu' }))
+
+		expect(await within(dialog).findByText('Tieto jazyky projektu nie sú v súbore: en. Ich preklady sa nezmenia.')).toBeInTheDocument()
+	})
+
 	it('adds the missing language and runs the preview again', async () => {
 		let languages = [SLOVAK, ENGLISH]
 		const requests = mockPage({

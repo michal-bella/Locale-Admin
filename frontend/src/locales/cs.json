@@ -719,6 +719,8 @@
 				"skippedColumns_many": "{{count}} sloupců se přeskočí",
 				"skippedColumns_other": "{{count}} sloupců se přeskočí",
 				"approximate": "Počty jsou přibližné: ručně přiřazené sloupce se do nich nepočítají.",
+				"languagesNotInFile": "Tyto jazyky projektu nejsou v souboru: {{languages}}. Nové klíče ({{count}}) v nich zůstanou nepřeložené.",
+				"languagesNotInFileKept": "Tyto jazyky projektu nejsou v souboru: {{languages}}. Jejich překlady se nezmění.",
 				"nothingMapped": "Přiřaďte alespoň jeden sloupec jazyku projektu.",
 				"placeholderToggle_one": "Rozdíl v proměnných ({{count}})",
 				"placeholderToggle_few": "Rozdíly v proměnných ({{count}})",

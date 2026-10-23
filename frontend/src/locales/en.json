@@ -695,6 +695,8 @@
 				"skippedColumns_many": "{{count}} columns will be skipped",
 				"skippedColumns_other": "{{count}} columns will be skipped",
 				"approximate": "The counts are approximate: manually mapped columns are not included.",
+				"languagesNotInFile": "These project languages are not in the file: {{languages}}. New keys ({{count}}) stay untranslated in them.",
+				"languagesNotInFileKept": "These project languages are not in the file: {{languages}}. Their translations stay as they are.",
 				"nothingMapped": "Map at least one column to a project language.",
 				"placeholderToggle_one": "Placeholder difference ({{count}})",
 				"placeholderToggle_few": "Placeholder differences ({{count}})",

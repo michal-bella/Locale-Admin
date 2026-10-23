@@ -17,7 +17,7 @@ pnpm db:up && pnpm db:migrate
 pnpm dev
 ```
 
-FE beží na `http://localhost:5173`, BE na `http://localhost:3000`. Produkčný stack v Dockeri (`http://localhost:8080`): `pnpm stack:up`. Podrobnosti v [`docs/local-development.md`](docs/local-development.md).
+FE beží na `http://localhost:5173`, BE na `http://localhost:4000`. Produkčný stack v Dockeri (`http://localhost:8080`): `pnpm stack:up`. Podrobnosti v [`docs/local-development.md`](docs/local-development.md).
 
 ## AI tools
 

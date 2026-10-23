@@ -14,7 +14,7 @@ Spúšťajú sa z rootu cez `pnpm --filter frontend <skript>`.
 
 | Skript           | Čo robí                                                                          |
 | ---------------- | -------------------------------------------------------------------------------- |
-| `dev`            | dev server na `http://localhost:5173`, `/api` proxuje na `localhost:3000`        |
+| `dev`            | dev server na `http://localhost:5173`, `/api` proxuje na `127.0.0.1:4000`        |
 | `build`          | produkčný build do `frontend/dist`                                               |
 | `preview`        | servíruje `dist` na `http://localhost:4173` (s rovnakou `/api` proxy)            |
 | `test`           | unit testy (Vitest cez Vite+, prostredie jsdom), súbory `src/**/*.test.{ts,tsx}` |

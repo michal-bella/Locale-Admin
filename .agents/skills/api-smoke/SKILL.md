@@ -1,6 +1,6 @@
 ---
 name: api-smoke
-description: curl smoke tests of the Locale Admin API through nginx (localhost:8080), directly against the backend container (localhost:3001) or dev mode (localhost:3000). Use to quickly verify endpoints and the error contract after a change.
+description: curl smoke tests of the Locale Admin API through nginx (localhost:8080), directly against the backend container (localhost:3001) or dev mode (localhost:4000). Use to quickly verify endpoints and the error contract after a change.
 ---
 
 # API smoke tests

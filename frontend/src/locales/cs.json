@@ -557,9 +557,9 @@
 		"activity": {
 			"title": "Poslední aktivita",
 			"description": "Změny v projektu od nejnovější",
+			"showHistory": "Zobrazit historii",
 			"today": "Dnes",
 			"yesterday": "Včera",
-			"loadMore": "Načíst další",
 			"empty": "Zatím žádná aktivita. Změny v projektu se zobrazí zde.",
 			"loadError": "Aktivitu se nepodařilo načíst.",
 			"retry": "Zkusit znovu",
@@ -644,6 +644,63 @@
 			"noContributors": "V tomto období nikdo nic nezměnil.",
 			"loadError": "Denní aktivitu se nepodařilo načíst.",
 			"retry": "Zkusit znovu"
+		}
+	},
+	"historyPage": {
+		"eyebrow": "Projekt",
+		"title": "Historie změn",
+		"description": "Všechny změny v projektu od nejnovější: překlady, importy, klíče, verze, jazyky a členové.",
+		"filters": {
+			"label": "Filtry historie",
+			"reset": "Zrušit filtry",
+			"user": {
+				"label": "Kdo",
+				"placeholder": "Všichni lidé"
+			},
+			"category": {
+				"label": "Typ změny",
+				"placeholder": "Všechny typy"
+			},
+			"version": {
+				"label": "Verze",
+				"placeholder": "Všechny verze"
+			},
+			"period": {
+				"label": "Období",
+				"placeholder": "Celé období",
+				"last_one": "Poslední {{count}} den",
+				"last_few": "Poslední {{count}} dny",
+				"last_many": "Posledních {{count}} dní",
+				"last_other": "Posledních {{count}} dní"
+			}
+		},
+		"categories": {
+			"TRANSLATION": "Překlad",
+			"IMPORT": "Import",
+			"KEY": "Klíč",
+			"VERSION": "Verze",
+			"LANGUAGE": "Jazyk",
+			"MEMBER": "Člen",
+			"PROJECT": "Projekt"
+		},
+		"table": {
+			"label": "Historie změn projektu",
+			"time": "Kdy",
+			"user": "Kdo",
+			"category": "Typ",
+			"change": "Změna",
+			"version": "Verze",
+			"actionsColumn": "Akce",
+			"emptyFiltered": "Filtrům neodpovídá žádná změna.",
+			"loadError": "Historii se nepodařilo načíst.",
+			"retry": "Zkusit znovu"
+		},
+		"pagination": {
+			"pageSize": "Změn na stránku",
+			"summary_one": "Zobrazena {{shown}} z {{count}} změny",
+			"summary_few": "Zobrazeny {{shown}} z {{count}} změn",
+			"summary_many": "Zobrazeno {{shown}} z {{count}} změn",
+			"summary_other": "Zobrazeno {{shown}} z {{count}} změn"
 		}
 	},
 	"importModal": {

@@ -2,7 +2,7 @@ import { Button, Select, Text } from '@mantine/core'
 import { useMediaQuery, usePagination } from '@mantine/hooks'
 import { useTranslation } from 'react-i18next'
 
-import { TRANSLATIONS_PAGE_SIZES } from '@/routes/projectTranslationsRoute'
+import { TRANSLATIONS_PAGE_SIZES, type TranslationsPageSize } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsPagination.module.css'
 import { type TranslationsPaginationProps } from './types'
@@ -11,8 +11,19 @@ import { type TranslationsPaginationProps } from './types'
  * „Zobrazených 50 z 248 kľúčov“ with a keys-per-page picker (25, 50, 100), Predošlá, page numbers and Ďalšia (Figma 3:348). The buttons show only with more than one page.
  * Predošlá and Ďalšia on the first or last page look disabled (`data-disabled`) but stay focusable: reaching the last page with Ďalšia would otherwise drop the focus to the body.
  */
-const TranslationsPagination = ({ page, pageSize, total, shown, onChange, onPageSizeChange }: TranslationsPaginationProps) => {
+const TranslationsPagination = <S extends number = TranslationsPageSize>({
+	page,
+	pageSize,
+	total,
+	shown,
+	onChange,
+	onPageSizeChange,
+	pageSizes = TRANSLATIONS_PAGE_SIZES as readonly number[] as readonly S[],
+	summary,
+	pageSizeLabel,
+}: TranslationsPaginationProps<S>) => {
 	const { t } = useTranslation()
+	const sizeLabel = pageSizeLabel ?? t('translationsPage.pagination.pageSize')
 	const pages = Math.max(1, Math.ceil(total / pageSize))
 	// On a phone the neighbours of the current page are left out, so Predošlá, the numbers and Ďalšia stay on one line.
 	const isNarrow = useMediaQuery('(max-width: 40em)')
@@ -22,20 +33,20 @@ const TranslationsPagination = ({ page, pageSize, total, shown, onChange, onPage
 		<div className='flex flex-wrap items-center justify-between gap-3 px-1'>
 			<div className='flex flex-wrap items-center gap-x-4 gap-y-2'>
 				<Text fz='xs' c='var(--app-color-muted)'>
-					{t('translationsPage.pagination.summary', { shown, count: total })}
+					{summary ?? t('translationsPage.pagination.summary', { shown, count: total })}
 				</Text>
 				<div className='flex shrink-0 items-center gap-2'>
 					<Text aria-hidden fz='xs' c='var(--app-color-muted)' className='whitespace-nowrap'>
-						{t('translationsPage.pagination.pageSize')}
+						{sizeLabel}
 					</Text>
 					<Select
-						aria-label={t('translationsPage.pagination.pageSize')}
+						aria-label={sizeLabel}
 						className={classes.pageSize}
 						classNames={{ input: classes.pageSizeInput }}
-						data={TRANSLATIONS_PAGE_SIZES.map(String)}
+						data={pageSizes.map(String)}
 						value={String(pageSize)}
 						onChange={(value) => {
-							const next = TRANSLATIONS_PAGE_SIZES.find((size) => String(size) === value)
+							const next = pageSizes.find((size) => String(size) === value)
 							if (next) {
 								onPageSizeChange(next)
 							}

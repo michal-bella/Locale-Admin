@@ -1,0 +1,23 @@
+.filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.select {
+	flex: 1 1 12.5rem;
+	min-width: 0;
+	max-width: 16rem;
+}
+
+.select [data-position='left'] svg,
+.period [data-position='left'] svg {
+	color: var(--app-color-muted);
+}
+
+.period {
+	flex: 1 1 15rem;
+	min-width: 0;
+	max-width: 18rem;
+}

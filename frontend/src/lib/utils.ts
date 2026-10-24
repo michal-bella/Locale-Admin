@@ -1,8 +1,10 @@
-import { PROJECT_SLUG_MAX_LENGTH } from '@locale/shared'
+import { LANGUAGE_TAGS, type LanguageTag, PROJECT_SLUG_MAX_LENGTH } from '@locale/shared'
 
 import { LANGUAGE } from '@/lib/enum'
 
 export const isLanguage = (value: unknown): value is LANGUAGE => Object.values<unknown>(LANGUAGE).includes(value)
+
+export const isLanguageTag = (tag: string): tag is LanguageTag => (LANGUAGE_TAGS as readonly string[]).includes(tag)
 
 const YIQ_LIGHT_THRESHOLD = 128
 

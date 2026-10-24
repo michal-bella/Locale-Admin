@@ -1,12 +1,18 @@
 ---
 title: 'Changelog'
-updated: 2026-10-22
+updated: 2026-10-24
 notion_page_id:
 ---
 
 # Changelog
 
 ## Po fáze 1
+
+### História zmien (2026-10-24)
+
+- api: `GET /api/projects/:projectId/activity` má číslované stránky (`page`, `pageSize`) namiesto kurzora, filtre `userId`, `category`, `versionId`, `from`, `to` a v odpovedi `total` a `users` (kontrakt `activityListQuerySchema`, `ACTIVITY_TYPE_CATEGORY` v `packages/shared`)
+- frontend: nová stránka **História** (`/projects/$projectSlug/history`) s tabuľkou všetkých zmien projektu, filtrami Kto, Typ zmeny, Verzia a Obdobie v URL a číslovaným stránkovaním
+- frontend: **Posledná aktivita** na Prehľade ukazuje posledných 10 udalostí bez **Načítať ďalšie** (karta sa už nenaťahuje) a v hlavičke má odkaz **Zobraziť históriu**
 
 ### Upozornenia vo všetkých jazykoch (2026-10-23)
 

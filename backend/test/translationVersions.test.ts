@@ -514,6 +514,9 @@ describe('the diff of a version', () => {
 			['B', false, [sk.id]],
 			['D', true, []],
 		])
+		// The previous value of every changed language comes along, for the editor to compare.
+		expect(diff.items.find(({ name }) => name === 'B')?.diff?.previousValues).toEqual({ [sk.id]: 'B' })
+		expect(diff.items.find(({ name }) => name === 'D')?.diff?.previousValues).toEqual({})
 		expect(diff.total).toBe(2)
 		expect(diff.stats.totalKeys).toBe(3)
 		const all = await listOk(app, cookie, project.id, { versionId: version.id })

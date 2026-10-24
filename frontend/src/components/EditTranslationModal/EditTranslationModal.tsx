@@ -1,4 +1,5 @@
-import { Button, Tooltip, VisuallyHidden } from '@mantine/core'
+import { Button, Collapse, Tooltip, VisuallyHidden } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { type KeyboardEvent, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -23,12 +24,13 @@ import getApiErrorDetails from '@/api/getApiErrorDetails'
 import getPlaceholderMismatch from '@/api/getPlaceholderMismatch'
 import AppModal from '@/components/AppModal/AppModal'
 import appModalClasses from '@/components/AppModal/AppModal.module.css'
-import { Copy, Info } from '@/components/Icons'
+import { ChevronDown, Copy, Info, SwitchHorizontal } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import PlaceholderWarning from '@/components/PlaceholderWarning/PlaceholderWarning'
 import PluralFormChip from '@/components/PluralForms/PluralFormChip'
 import RowAction from '@/components/RowAction/RowAction'
 import TokenEditor from '@/components/TokenEditor/TokenEditor'
+import TranslationDiff from '@/components/TranslationDiff/TranslationDiff'
 import TranslationValue from '@/components/TranslationValue/TranslationValue'
 import { formatDateTime } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
@@ -58,9 +60,20 @@ const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
  * `TRANSLATION_VALUE_MAX_LENGTH`. `PLACEHOLDER_MISMATCH` and an unparseable plural (`VALIDATION_ERROR` on `value`) show under the
  * fields and keep the modal open; any other error shows a notification. `key` on the content resets the draft for every key and language.
  * The footer shows who saved the value last and when. With `onNext`, Uložiť a ďalší (and Cmd/Ctrl+Enter) saves and moves to the next
- * untranslated cell instead of closing. Both save buttons and the shortcut wait for a change in the field.
+ * untranslated cell instead of closing. Both save buttons and the shortcut wait for a change in the field. A translation changed against the
+ * previous version has a toggle under the field that shows its previous value, read-only, with the words the current value dropped marked.
  */
-const EditTranslationModal = ({ item, language, baseLanguage, opened, onClose, onSave, onNext, focusOnSwitch = false }: EditTranslationModalProps) => {
+const EditTranslationModal = ({
+	item,
+	language,
+	baseLanguage,
+	opened,
+	onClose,
+	onSave,
+	onNext,
+	focusOnSwitch = false,
+	previousVersionName,
+}: EditTranslationModalProps) => {
 	const { t } = useTranslation()
 	const [saving, setSaving] = useState(false)
 
@@ -84,13 +97,14 @@ const EditTranslationModal = ({ item, language, baseLanguage, opened, onClose, o
 					onSave={onSave}
 					onNext={onNext}
 					focusOnMount={focusOnSwitch}
+					previousVersionName={previousVersionName}
 				/>
 			)}
 		</AppModal>
 	)
 }
 
-type FieldsProps = Pick<EditTranslationModalProps, 'baseLanguage' | 'onClose' | 'onSave' | 'onNext'> & {
+type FieldsProps = Pick<EditTranslationModalProps, 'baseLanguage' | 'onClose' | 'onSave' | 'onNext' | 'previousVersionName'> & {
 	item: TranslationListItem
 	language: Language
 	saving: boolean
@@ -98,7 +112,7 @@ type FieldsProps = Pick<EditTranslationModalProps, 'baseLanguage' | 'onClose' | 
 	focusOnMount: boolean
 }
 
-const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSave, onNext, focusOnMount }: FieldsProps) => {
+const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSave, onNext, focusOnMount, previousVersionName }: FieldsProps) => {
 	const { t, i18n } = useTranslation()
 	const cell = item.translations[language.id]
 	const value = cell?.value ?? null
@@ -112,6 +126,11 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	const pendingFocusRef = useRef(focusOnMount)
 	const label = t('translationsPage.editor.label', { key: item.name, language: t(`languageNames.${language.tag}`) })
 	const lockedHintId = useId()
+	const previousId = useId()
+	const [previousOpened, previousToggle] = useDisclosure(false)
+	// Only a translation changed against the previous version has one; `null` there is untranslated.
+	const previousValue = item.diff?.changedLanguageIds.includes(language.id) ? (item.diff.previousValues[language.id] ?? null) : undefined
+	const previousVersion = previousVersionName ?? t('translationsPage.editModal.previous.fallback')
 	const errorId = useId()
 	const baseValue = baseLanguage && baseLanguage.id !== language.id ? (item.translations[baseLanguage.id]?.value ?? null) : undefined
 	const reference = baseLanguage
@@ -340,6 +359,41 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 					<span id={errorId} role='alert' className={classes.error}>
 						{message}
 					</span>
+				)}
+				{previousValue !== undefined && (
+					<>
+						<Button
+							variant='subtle'
+							size='compact-xs'
+							color='gray'
+							leftSection={<SwitchHorizontal aria-hidden width={14} height={14} />}
+							rightSection={
+								<ChevronDown aria-hidden width={14} height={14} data-opened={previousOpened || undefined} className={classes.chevron} />
+							}
+							aria-expanded={previousOpened}
+							aria-controls={previousId}
+							className={classes.previousToggle}
+							onClick={previousToggle.toggle}
+						>
+							{t(previousOpened ? 'translationsPage.editModal.previous.hide' : 'translationsPage.editModal.previous.show', {
+								version: previousVersion,
+							})}
+						</Button>
+						<Collapse expanded={previousOpened}>
+							<div
+								id={previousId}
+								role='region'
+								aria-label={t('translationsPage.editModal.previous.label', { version: previousVersion })}
+								className={classes.previous}
+							>
+								{previousValue === null ? (
+									<span className={classes.previousEmpty}>{t('translationsPage.editModal.previous.untranslated')}</span>
+								) : (
+									<TranslationDiff oldValue={previousValue} newValue={value ?? ''} languageTag={language.tag} side='before' />
+								)}
+							</div>
+						</Collapse>
+					</>
 				)}
 			</div>
 			<div className={`${appModalClasses.footer} ${appModalClasses.footerInBody} flex flex-wrap items-center gap-2`}>

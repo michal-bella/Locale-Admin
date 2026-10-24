@@ -28,6 +28,8 @@ export type TranslationsTableProps = {
 	readOnly?: boolean
 	/** Opens Upraviť preklad of this key and language as soon as the list contains the key (a link from the activity on Prehľad). */
 	openTranslationOf?: { keyId: string; language: Language }
+	/** Name of the version the diff compares with, for the previous value in `EditTranslationModal`. */
+	previousVersionName?: string
 	/** Saves the value of a key in a language; rejects with the API error (see `EditTranslationModal`). */
 	onSave: (keyId: string, languageId: string, value: string | null) => Promise<unknown>
 }

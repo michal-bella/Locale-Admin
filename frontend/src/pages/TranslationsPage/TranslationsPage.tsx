@@ -376,6 +376,7 @@ const TranslationsPage = () => {
 								translationsOnly={search.translationsOnly}
 								readOnly={isVisitor || writesBlocked}
 								openTranslationOf={openTranslationOf}
+								previousVersionName={diffQuery.data?.previousVersion?.name}
 								onSave={saveTranslation}
 							/>
 						)}

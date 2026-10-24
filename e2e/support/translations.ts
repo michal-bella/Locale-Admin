@@ -89,8 +89,8 @@ export type TranslationListItem = {
 	status: TranslationStatus
 	/** A cell per project language, keyed by `ProjectLanguage.id`. */
 	translations: Record<string, TranslationCell>
-	/** Only with `diff=true`: the key is not in the previous version, or the languages whose value differs from it. */
-	diff?: { added: boolean; changedLanguageIds: string[] }
+	/** Only with `diff=true`: the key is not in the previous version, or the languages whose value differs from it and their previous values. */
+	diff?: { added: boolean; changedLanguageIds: string[]; previousValues: Record<string, string | null> }
 }
 
 export type TranslationsResponse = {

@@ -172,8 +172,11 @@ export const translationListItemSchema = z.object({
 	description: z.string().nullable(),
 	plural: translationKeyPluralSchema.nullable(),
 	status: translationStatusSchema,
-	/** Whenever the version has a previous one (not for the first version): `added` = no key with this namespace and name there; else the languages whose value differs. */
-	diff: z.object({ added: z.boolean(), changedLanguageIds: z.array(z.uuid()) }).optional(),
+	/**
+	 * Whenever the version has a previous one (not for the first version): `added` = no key with this namespace and name there; else the
+	 * languages whose value differs, and their values in the previous version (`null` = untranslated there) in `previousValues`.
+	 */
+	diff: z.object({ added: z.boolean(), changedLanguageIds: z.array(z.uuid()), previousValues: z.record(z.uuid(), z.string().nullable()) }).optional(),
 	translations: z.record(z.uuid(), translationCellSchema),
 })
 

@@ -1,5 +1,5 @@
 import { Avatar, Button, Skeleton, Text } from '@mantine/core'
-import { type ReactNode } from 'react'
+import { type ComponentType, type CSSProperties, type ReactNode, type SVGProps } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -14,7 +14,7 @@ import {
 
 import { useActivityInfiniteQuery } from '@/api/activity/activityQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
-import { ArrowRight } from '@/components/Icons'
+import { ArrowRight, Edit, Globe, Key, Settings, Tag, Upload, Users } from '@/components/Icons'
 import RowAction from '@/components/RowAction/RowAction'
 import SectionCard from '@/components/SectionCard/SectionCard'
 import { formatDate, formatDateTime, toIntlLocale } from '@/lib/formatDate'
@@ -27,6 +27,36 @@ import { type ActivityFeedProps } from './types'
 const SKELETON_ROWS = 4
 
 const DAY_MS = 24 * 60 * 60 * 1000
+
+type Category = { icon: ComponentType<SVGProps<SVGSVGElement>>; color: string }
+
+const CATEGORY = {
+	translation: { icon: Edit, color: 'brand' },
+	import: { icon: Upload, color: 'blue' },
+	key: { icon: Key, color: 'violet' },
+	version: { icon: Tag, color: 'teal' },
+	language: { icon: Globe, color: 'orange' },
+	member: { icon: Users, color: 'gray' },
+	project: { icon: Settings, color: 'gray' },
+} satisfies Record<string, Category>
+
+/** What the event changed, shown as a colored icon on the avatar; the sentence says the same in words. */
+const CATEGORY_OF: Record<ACTIVITY_TYPE, Category> = {
+	[ACTIVITY_TYPE.TRANSLATION_UPDATED]: CATEGORY.translation,
+	[ACTIVITY_TYPE.KEYS_IMPORTED]: CATEGORY.import,
+	[ACTIVITY_TYPE.KEY_CREATED]: CATEGORY.key,
+	[ACTIVITY_TYPE.KEY_UPDATED]: CATEGORY.key,
+	[ACTIVITY_TYPE.VERSION_CREATED]: CATEGORY.version,
+	[ACTIVITY_TYPE.VERSION_UPDATED]: CATEGORY.version,
+	[ACTIVITY_TYPE.VERSION_DELETED]: CATEGORY.version,
+	[ACTIVITY_TYPE.LANGUAGE_ADDED]: CATEGORY.language,
+	[ACTIVITY_TYPE.LANGUAGE_REMOVED]: CATEGORY.language,
+	[ACTIVITY_TYPE.BASE_LANGUAGE_CHANGED]: CATEGORY.language,
+	[ACTIVITY_TYPE.MEMBER_ADDED]: CATEGORY.member,
+	[ACTIVITY_TYPE.MEMBER_REMOVED]: CATEGORY.member,
+	[ACTIVITY_TYPE.PROJECT_CREATED]: CATEGORY.project,
+	[ACTIVITY_TYPE.PROJECT_UPDATED]: CATEGORY.project,
+}
 
 const isLanguageTag = (tag: string): tag is LanguageTag => (LANGUAGE_TAGS as readonly string[]).includes(tag)
 
@@ -78,13 +108,22 @@ const ActivityFeed = ({ projectId, projectSlug }: ActivityFeedProps) => {
 					? t('dashboardPage.activity.events.memberLeft')
 					: t('dashboardPage.activity.events.memberRemoved', { member: memberName(event.payload.member) })
 			case ACTIVITY_TYPE.KEYS_IMPORTED: {
-				const { keysCreated, translationsCreated, translationsUpdated } = event.payload
+				const { keysCreated, keysCopied = 0, keysRemoved = 0, translationsCreated, translationsUpdated } = event.payload
 				const translationCount = translationsCreated + translationsUpdated
 				const parts = translationCount > 0 ? [t('dashboardPage.activity.events.translationCount', { count: translationCount })] : []
 				if (keysCreated > 0) {
 					parts.push(t('dashboardPage.activity.events.newKeyCount', { count: keysCreated }))
 				}
-				return t('dashboardPage.activity.events.keysImported', { changes: list(parts) })
+				// An import into a new version can only copy the keys of the previous one; it still says what it did.
+				if (keysCopied > 0) {
+					parts.push(t('dashboardPage.activity.events.copiedKeyCount', { count: keysCopied }))
+				}
+				if (keysRemoved > 0) {
+					parts.push(t('dashboardPage.activity.events.removedKeyCount', { count: keysRemoved }))
+				}
+				return t('dashboardPage.activity.events.keysImported', {
+					changes: parts.length > 0 ? list(parts) : t('dashboardPage.activity.events.noChanges'),
+				})
 			}
 			case ACTIVITY_TYPE.KEY_CREATED:
 				return t('dashboardPage.activity.events.keyCreated', { key: event.payload.name })
@@ -120,14 +159,20 @@ const ActivityFeed = ({ projectId, projectSlug }: ActivityFeedProps) => {
 
 	const renderEvent = (event: ActivityEvent) => {
 		const name = event.user?.name ?? t('dashboardPage.activity.deletedUser')
+		const category = CATEGORY_OF[event.type]
 		const changedBy = event.type === ACTIVITY_TYPE.TRANSLATION_UPDATED || event.type === ACTIVITY_TYPE.KEYS_IMPORTED ? event.user : null
 		// The key, not the editor filter: that one matches the last editor, so a later edit by someone else would hide the row.
 		const editedKey = event.type === ACTIVITY_TYPE.TRANSLATION_UPDATED && event.payload.name.length <= TRANSLATIONS_SEARCH_MAX_LENGTH ? event.payload : null
 		return (
 			<li key={event.id} className={classes.row}>
-				<Avatar aria-hidden size={32} radius='xl' color='var(--app-color-avatar-muted)' variant='filled' classNames={{ placeholder: classes.initials }}>
-					{event.user ? getNameInitials(event.user.name) : '?'}
-				</Avatar>
+				<span className={classes.avatar} aria-hidden>
+					<Avatar size={32} radius='xl' color='var(--app-color-avatar-muted)' variant='filled' classNames={{ placeholder: classes.initials }}>
+						{event.user ? getNameInitials(event.user.name) : '?'}
+					</Avatar>
+					<span className={classes.category} style={{ '--category-color': `var(--mantine-color-${category.color}-filled)` } as CSSProperties}>
+						<category.icon />
+					</span>
+				</span>
 				<div className='flex min-w-0 flex-1 flex-col'>
 					<span className={classes.sentence}>
 						<span className={classes.name}>{name}</span> · {describe(event)}
@@ -146,7 +191,13 @@ const ActivityFeed = ({ projectId, projectSlug }: ActivityFeedProps) => {
 						label={t('dashboardPage.activity.openKeyLabel', { key: editedKey.name })}
 						to='/projects/$projectSlug/translations'
 						params={{ projectSlug }}
-						search={{ search: editedKey.name, namespace: editedKey.namespace }}
+						search={{
+							search: editedKey.name,
+							namespace: editedKey.namespace,
+							version: event.version?.id,
+							editKey: editedKey.keyId,
+							editLanguage: isLanguageTag(editedKey.languageTag) ? editedKey.languageTag : undefined,
+						}}
 					/>
 				) : (
 					changedBy && (

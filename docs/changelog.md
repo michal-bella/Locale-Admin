@@ -10,6 +10,8 @@ notion_page_id:
 
 ### Upozornenia vo všetkých jazykoch (2026-10-23)
 
+- frontend: udalosti v **Posledná aktivita** majú na avatare farebnú ikonu kategórie (preklad, import, kľúč, verzia, jazyk, člen, projekt); import, ktorý iba prevzal kľúče predchádzajúcej verzie, už neukazuje prázdne „import CSV:“, ale počet prevzatých a odstránených kľúčov alebo „bez zmien“
+- frontend: odkaz úpravy prekladu v **Posledná aktivita** otvorí Preklady vo verzii úpravy a rovno modál **Upraviť preklad** daného kľúča a jazyka (`?editKey=&editLanguage=`, po otvorení zmiznú z URL); veta udalosti má najviac 2 riadky
 - frontend: modál **Exportovať preklady** je širší (720 px)
 - frontend: v modáli **Upraviť preklad** je posledná úprava v tooltipe ikony za labelom prekladu, **Zrušiť** je v pätičke vľavo a vedľa **Uložiť a ďalší** sa ukladacie tlačidlo volá **Uložiť a zavrieť**
 - frontend: disabled primárne tlačidlo nemá ružový tieň a má jemný ružový odtieň namiesto šedej, aby sa líšilo od disabled sekundárneho

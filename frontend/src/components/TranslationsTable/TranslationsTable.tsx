@@ -61,6 +61,7 @@ const TranslationsTable = ({
 	showGroups,
 	translationsOnly = false,
 	readOnly = false,
+	openTranslationOf,
 	onSave,
 }: TranslationsTableProps) => {
 	const { t, i18n } = useTranslation()
@@ -71,6 +72,7 @@ const TranslationsTable = ({
 	const [editing, setEditing] = useState<TranslationListItem | null>(null)
 	const [translationOpened, translationModal] = useDisclosure(false)
 	const [editingTranslation, setEditingTranslation] = useState<Editing | null>(null)
+	const [openedRequest, setOpenedRequest] = useState<string | undefined>(undefined)
 	const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
 	const [resizing, setResizing] = useState<string | null>(null)
 	const defaultWidths = useRef<Record<string, number>>({})
@@ -127,6 +129,18 @@ const TranslationsTable = ({
 	const openTranslation = (item: TranslationListItem, language: Language) => {
 		setEditingTranslation({ item, language })
 		translationModal.open()
+	}
+
+	// Set during render, not in an effect: the request opens the modal once, as soon as the (possibly still placeholder) list has the key.
+	const openRequest = openTranslationOf && `${openTranslationOf.keyId}:${openTranslationOf.language.id}`
+	if (openRequest !== openedRequest) {
+		const requested = openTranslationOf && !readOnly ? data?.items.find((item) => item.keyId === openTranslationOf.keyId) : undefined
+		if (!openTranslationOf || requested) {
+			setOpenedRequest(openRequest)
+		}
+		if (requested && openTranslationOf) {
+			openTranslation(requested, openTranslationOf.language)
+		}
 	}
 
 	// Editable cells of the page in reading order: every language in the extended view, the target in the compact one.

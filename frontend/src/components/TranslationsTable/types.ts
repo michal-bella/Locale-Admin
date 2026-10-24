@@ -26,6 +26,8 @@ export type TranslationsTableProps = {
 	translationsOnly?: boolean
 	/** A VISITOR: cells are plain text and `EditTranslationModal` is not rendered. */
 	readOnly?: boolean
+	/** Opens Upraviť preklad of this key and language as soon as the list contains the key (a link from the activity on Prehľad). */
+	openTranslationOf?: { keyId: string; language: Language }
 	/** Saves the value of a key in a language; rejects with the API error (see `EditTranslationModal`). */
 	onSave: (keyId: string, languageId: string, value: string | null) => Promise<unknown>
 }

@@ -55,8 +55,8 @@ Query (schéma `activityListQuerySchema`), filtre sa kombinujú:
 | `userId`    | UUID                | –          | iba zmeny tohto používateľa                                                                                           |
 | `category`  | `ACTIVITY_CATEGORY` | –          | `TRANSLATION`, `IMPORT`, `KEY`, `VERSION`, `LANGUAGE`, `MEMBER` alebo `PROJECT` (typy podľa `ACTIVITY_TYPE_CATEGORY`) |
 | `versionId` | UUID                | –          | iba udalosti tejto verzie (udalosti projektu verziu nemajú)                                                           |
-| `from`      | string (ISO 8601)   | –          | `createdAt >= from`; frontend posiela začiatok lokálneho dňa                                                          |
-| `to`        | string (ISO 8601)   | –          | `createdAt < to` (výlučne); frontend posiela začiatok dňa po poslednom vybranom dni                                   |
+| `from`      | string (ISO 8601)   | –          | `createdAt >= from`; História posiela začiatok lokálneho dňa pred 6, 29 alebo 89 dňami                                |
+| `to`        | string (ISO 8601)   | –          | `createdAt < to` (výlučne); História ho zatiaľ neposiela                                                              |
 | `page`      | celé ≥ 1            | 1          | číslo stránky                                                                                                         |
 | `pageSize`  | celé 1 – 50         | 20         | počet udalostí na stránku                                                                                             |
 

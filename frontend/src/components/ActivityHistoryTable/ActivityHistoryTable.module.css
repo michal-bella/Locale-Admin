@@ -73,6 +73,22 @@
 	color: var(--app-color-muted);
 }
 
+.versionLink {
+	font-size: var(--mantine-font-size-sm);
+	color: var(--app-color-label);
+	text-decoration: none;
+}
+
+.versionLink:hover {
+	color: var(--mantine-color-brand-6);
+	text-decoration: underline;
+}
+
+.meta.versionLink {
+	font-size: var(--mantine-font-size-3xs);
+	color: var(--app-color-muted);
+}
+
 .sentence {
 	/* Same cut as the feed: a sentence used as a key would make the row tall; the full key is in the link label and the translations list. */
 	display: -webkit-box;

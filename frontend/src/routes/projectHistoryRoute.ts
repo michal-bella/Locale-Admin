@@ -1,7 +1,7 @@
 import { createRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 
-import { activityCategorySchema } from '@locale/shared'
+import { activityCategorySchema, activityRangeSchema } from '@locale/shared'
 
 import { projectRoute } from '@/routes/projectRoute'
 
@@ -9,13 +9,12 @@ export const HISTORY_PAGE_SIZES = [20, 50] as const
 
 export type HistoryPageSize = (typeof HISTORY_PAGE_SIZES)[number]
 
-/** Filters of História in the URL, like Preklady: every field is optional, an invalid value is dropped. `from` and `to` are local days, both included. */
+/** Filters of História in the URL, like Preklady: every field is optional, an invalid value is dropped. `period` is the last 7, 30 or 90 days with today. */
 export const historySearchSchema = z.object({
 	user: z.uuid().optional().catch(undefined),
 	category: activityCategorySchema.optional().catch(undefined),
 	version: z.uuid().optional().catch(undefined),
-	from: z.iso.date().optional().catch(undefined),
-	to: z.iso.date().optional().catch(undefined),
+	period: activityRangeSchema.optional().catch(undefined),
 	page: z.number().int().min(1).optional().catch(undefined),
 	pageSize: z.literal(HISTORY_PAGE_SIZES).optional().catch(undefined),
 })

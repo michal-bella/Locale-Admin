@@ -6,7 +6,7 @@ import { ACTIVITY_TYPE, type ActivityEvent, type ActivityListResponse, type Proj
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
-import { apiError, EDITOR_USER, type MockRoutes, projectListRoute, projectVersion, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, VISITOR_USER, type MockRoutes, projectListRoute, projectVersion, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const PROJECT: ProjectSettings = {
@@ -100,9 +100,62 @@ describe('HistoryPage', () => {
 		expect(screen.getByText('Zobrazené 2 z 2 zmien')).toBeInTheDocument()
 	})
 
-	it('sends the filters of the URL with the period as local day bounds, the last day included', async () => {
+	it.each([
+		['an ADMIN', ADMIN_USER, true],
+		['an EDITOR', EDITOR_USER, false],
+		['a VISITOR', VISITOR_USER, false],
+	])('links a version event to its translations and, for %s, a key event to the key', async (_, user, keyLinks) => {
+		const event = (id: number, data: Pick<ActivityEvent, 'type' | 'payload'>, version: ActivityEvent['version']): ActivityEvent =>
+			({ ...LANGUAGE, id: `00000000-0000-4000-8000-0000000004${id}`, user: MARTIN, version, ...data }) as ActivityEvent
+		const v245 = { id: CURRENT.id, name: CURRENT.name }
+		const keyId = '00000000-0000-4000-8000-000000000601'
+		signedInAs(
+			user,
+			routes({
+				[`GET ${API}/activity`]: {
+					status: 200,
+					data: page([
+						event(11, { type: ACTIVITY_TYPE.KEY_CREATED, payload: { keyId, namespace: 'loc', name: 'orders.empty', languageTags: ['sk'] } }, v245),
+						event(
+							12,
+							{ type: ACTIVITY_TYPE.KEY_UPDATED, payload: { keyId, namespace: 'loc', name: 'orders.title', fields: ['description'] } },
+							v245,
+						),
+						event(13, { type: ACTIVITY_TYPE.VERSION_CREATED, payload: { name: 'v2.45', startsAt: '2026-10-01', endsAt: '2026-10-31' } }, v245),
+						event(14, { type: ACTIVITY_TYPE.VERSION_DELETED, payload: { name: 'v2.44', keyCount: 3 } }, null),
+					]),
+				},
+			}),
+		)
+		renderApp(PAGE_PATH)
+
+		const table = await findTable()
+		await table.findByText('nový kľúč orders.empty')
+		const hrefOf = (link: Element | null | undefined) =>
+			link ? Object.fromEntries(new URL(link.getAttribute('href') ?? '', 'http://localhost').searchParams) : null
+		const rows = table.getAllByRole('row').slice(1)
+		// The → in the last cell of each row.
+		expect(rows.map((row) => hrefOf(row.lastElementChild?.querySelector('a')))).toEqual([
+			keyLinks ? { search: 'orders.empty', namespace: 'loc', version: CURRENT.id } : null,
+			keyLinks ? { search: 'orders.title', namespace: 'loc', version: CURRENT.id } : null,
+			{ version: CURRENT.id },
+			null,
+		])
+		// The Verzia cell links to the translations of that version for everyone; a deleted version is a dash.
+		const versionCells = rows.map((row) => row.children[4])
+		expect(versionCells.map((cell) => hrefOf(cell?.querySelector('a')))).toEqual([
+			{ version: CURRENT.id },
+			{ version: CURRENT.id },
+			{ version: CURRENT.id },
+			null,
+		])
+		expect(within(versionCells[0] as HTMLElement).getByRole('link')).toHaveAccessibleName('Zobraziť preklady verzie v2.45')
+		expect(versionCells[3]).toHaveTextContent('–')
+	})
+
+	it('sends the filters of the URL with the period from the start of the first local day, today included', async () => {
 		const requests = signedInAs(EDITOR_USER, routes())
-		renderApp(`${PAGE_PATH}?user=${MARTIN.id}&category=TRANSLATION&version=${CURRENT.id}&from=2026-10-01&to=2026-10-07&page=2&pageSize=50`)
+		renderApp(`${PAGE_PATH}?user=${MARTIN.id}&category=TRANSLATION&version=${CURRENT.id}&period=7d&page=2&pageSize=50`)
 
 		await findTable()
 		await waitFor(() =>
@@ -111,8 +164,8 @@ describe('HistoryPage', () => {
 					userId: MARTIN.id,
 					category: 'TRANSLATION',
 					versionId: CURRENT.id,
-					from: new Date(2026, 9, 1).toISOString(),
-					to: new Date(2026, 9, 8).toISOString(),
+					// NOW is 20. 10. 2026, so the 7 days start on 14. 10.
+					from: new Date(2026, 9, 14).toISOString(),
 					page: 2,
 					pageSize: 50,
 				},
@@ -120,7 +173,7 @@ describe('HistoryPage', () => {
 		)
 	})
 
-	it('filters by a chosen type from the first page and clears the filters', async () => {
+	it('filters by a chosen type from the first page, without a Zrušiť filtre above the table', async () => {
 		const requests = signedInAs(EDITOR_USER, routes())
 		const router = renderApp(`${PAGE_PATH}?page=2`)
 
@@ -129,8 +182,59 @@ describe('HistoryPage', () => {
 
 		await waitFor(() => expect(router.state.location.search).toEqual({ category: 'IMPORT' }))
 		await waitFor(() => expect(activityParams(requests).at(-1)).toMatchObject({ category: 'IMPORT', page: 1 }))
-		fireEvent.click(screen.getByRole('button', { name: 'Zrušiť filtre' }))
+		expect(screen.queryByRole('button', { name: 'Zrušiť filtre' })).not.toBeInTheDocument()
+	})
+
+	it('shows only my changes with the switch, in sync with the person filter, and offers me even without a change', async () => {
+		const requests = signedInAs(EDITOR_USER, routes())
+		const router = renderApp(PAGE_PATH)
+
+		const mine = await screen.findByRole('switch', { name: 'Len moje zmeny' })
+		expect(mine).not.toBeChecked()
+		fireEvent.click(mine)
+
+		await waitFor(() => expect(router.state.location.search).toEqual({ user: EDITOR_USER.id }))
+		await waitFor(() => expect(activityParams(requests).at(-1)).toMatchObject({ userId: EDITOR_USER.id }))
+		expect(mine).toBeChecked()
+		// EDITOR_USER has no event in `users` and no name, the person filter shows the e-mail.
+		expect(screen.getByLabelText('Kto', { selector: 'input' })).toHaveValue(EDITOR_USER.email)
+
+		fireEvent.click(mine)
 		await waitFor(() => expect(router.state.location.search).toEqual({}))
+	})
+
+	it('unchecks Len moje zmeny when the person filter picks someone else', async () => {
+		signedInAs(EDITOR_USER, routes())
+		renderApp(`${PAGE_PATH}?user=${EDITOR_USER.id}`)
+
+		expect(await screen.findByRole('switch', { name: 'Len moje zmeny' })).toBeChecked()
+		fireEvent.click(screen.getByLabelText('Kto', { selector: 'input' }))
+		fireEvent.click(await screen.findByRole('option', { name: 'Lucia Tichá' }))
+
+		await waitFor(() => expect(screen.getByRole('switch', { name: 'Len moje zmeny' })).not.toBeChecked())
+	})
+
+	it('picks a period from the select and goes back to Celé obdobie without a from', async () => {
+		const requests = signedInAs(EDITOR_USER, routes())
+		const router = renderApp(PAGE_PATH)
+
+		const period = await screen.findByLabelText('Obdobie', { selector: 'input' })
+		expect(period).toHaveValue('Celé obdobie')
+		fireEvent.click(period)
+		expect((await screen.findAllByRole('option')).map((option) => option.textContent)).toEqual([
+			'Celé obdobie',
+			'Posledných 7 dní',
+			'Posledných 30 dní',
+			'Posledných 90 dní',
+		])
+		fireEvent.click(screen.getByRole('option', { name: 'Posledných 30 dní' }))
+
+		await waitFor(() => expect(router.state.location.search).toEqual({ period: '30d' }))
+		await waitFor(() => expect(activityParams(requests).at(-1)).toMatchObject({ from: new Date(2026, 8, 21).toISOString() }))
+		fireEvent.click(screen.getByLabelText('Obdobie', { selector: 'input' }))
+		fireEvent.click(await screen.findByRole('option', { name: 'Celé obdobie' }))
+		await waitFor(() => expect(router.state.location.search).toEqual({}))
+		await waitFor(() => expect(activityParams(requests).at(-1)?.from).toBeUndefined())
 	})
 
 	it('offers the people of the project in the person filter', async () => {

@@ -1,4 +1,5 @@
 import { Badge, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
+import { Link } from '@tanstack/react-router'
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -76,6 +77,18 @@ const ActivityHistoryTable = ({ projectSlug, events, error, isRefetching, onRetr
 		return events.map((event) => {
 			const category = ACTIVITY_TYPE_CATEGORY[event.type]
 			const name = event.user?.name ?? t('dashboardPage.activity.deletedUser')
+			const versionLink = (className?: string) =>
+				event.version && (
+					<Link
+						to='/projects/$projectSlug/translations'
+						params={{ projectSlug }}
+						search={{ version: event.version.id }}
+						aria-label={t('dashboardPage.activity.openVersionLabel', { name: event.version.name })}
+						className={className}
+					>
+						{event.version.name}
+					</Link>
+				)
 			const badge = (
 				<Badge variant='light' color={ACTIVITY_CATEGORY_STYLE[category].color} radius='xl' size='sm' classNames={{ root: classes.badge }}>
 					{t(`historyPage.categories.${category}`)}
@@ -103,16 +116,10 @@ const ActivityHistoryTable = ({ projectSlug, events, error, isRefetching, onRetr
 						<span className={classes.sentence}>{describe(event)}</span>
 						<div className={`${classes.narrowOnly} mt-1 flex flex-wrap items-center gap-2`}>
 							{badge}
-							{event.version && (
-								<Text component='span' className={classes.meta}>
-									{event.version.name}
-								</Text>
-							)}
+							{versionLink(`${classes.meta} ${classes.versionLink}`)}
 						</div>
 					</Table.Td>
-					<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
-						<Text size='sm'>{event.version?.name ?? '–'}</Text>
-					</Table.Td>
+					<Table.Td className={`${classes.td} ${classes.wideOnly}`}>{versionLink(classes.versionLink) ?? <Text size='sm'>–</Text>}</Table.Td>
 					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
 						<ActivityEventLink event={event} projectSlug={projectSlug} now={now} />
 					</Table.Td>

@@ -50,7 +50,7 @@ test('sees only Preklady and Prehľad in the sidebar and the 403 page on the oth
 	await page.goto(projectPath(visitor, 'translations'))
 
 	const project = getMainNavigation(page).getByRole('list', { name: /^E2E visitor/ })
-	await expect(project.getByRole('link')).toHaveText(['Preklady', 'Prehľad'])
+	await expect(project.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'História'])
 	await expect(getMainNavigation(page).getByText('Správa')).toHaveCount(0)
 
 	await page.getByRole('link', { name: 'Prehľad' }).click()

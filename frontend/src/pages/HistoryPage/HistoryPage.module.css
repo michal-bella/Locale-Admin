@@ -11,13 +11,30 @@
 	max-width: 16rem;
 }
 
-.select [data-position='left'] svg,
-.period [data-position='left'] svg {
+.select [data-position='left'] svg {
 	color: var(--app-color-muted);
 }
 
-.period {
-	flex: 1 1 15rem;
-	min-width: 0;
-	max-width: 18rem;
+/* Same as the switches of the Preklady toolbar. */
+.mine {
+	flex-shrink: 0;
+	margin-left: auto;
+	padding-inline: 0.25rem;
+	white-space: nowrap;
+}
+
+.pointer {
+	cursor: pointer;
+}
+
+/* On a phone two selects share a row and the rest wrap unevenly; one full-width filter per row reads as a form. */
+@media (max-width: 39.99em) {
+	.select {
+		flex-basis: 100%;
+		max-width: none;
+	}
+
+	.mine {
+		margin-left: 0;
+	}
 }

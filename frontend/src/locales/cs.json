@@ -567,6 +567,8 @@
 			"open": "Zobrazit v překladech",
 			"openLabel": "Zobrazit změny uživatele {{name}} v překladech",
 			"openKeyLabel": "Zobrazit překlad {{key}} v překladech",
+			"openKeyNameLabel": "Zobrazit klíč {{key}} v překladech",
+			"openVersionLabel": "Zobrazit překlady verze {{name}}",
 			"events": {
 				"projectCreated": "vytvoření projektu {{name}}",
 				"projectUpdated": "změna nastavení projektu: {{fields}}",
@@ -657,6 +659,7 @@
 				"label": "Kdo",
 				"placeholder": "Všichni lidé"
 			},
+			"mine": "Jen moje změny",
 			"category": {
 				"label": "Typ změny",
 				"placeholder": "Všechny typy"
@@ -667,7 +670,7 @@
 			},
 			"period": {
 				"label": "Období",
-				"placeholder": "Celé období",
+				"all": "Celé období",
 				"last_one": "Poslední {{count}} den",
 				"last_few": "Poslední {{count}} dny",
 				"last_many": "Posledních {{count}} dní",
@@ -1336,6 +1339,7 @@
 		"users": "Uživatelé",
 		"translations": "Překlady",
 		"dashboard": "Přehled",
+		"history": "Historie",
 		"projectSettings": "Nastavení",
 		"members": "Členové",
 		"projectSwitcher": {

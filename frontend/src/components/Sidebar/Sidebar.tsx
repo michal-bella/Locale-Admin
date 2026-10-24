@@ -9,7 +9,7 @@ import { ROLE } from '@locale/shared'
 import { useMeQuery } from '@/api/auth/meQuery'
 import { projectSettingsQueryOptions } from '@/api/projectSettings/projectSettingsQuery'
 import Brand from '@/components/Brand/Brand'
-import { ArrowRight, ChevronDown, Globe, LayoutGrid, Settings, Shield, Tag, Translate, Users } from '@/components/Icons'
+import { ArrowRight, ChevronDown, Clock, Globe, LayoutGrid, Settings, Shield, Tag, Translate, Users } from '@/components/Icons'
 import ProjectSwitcher from '@/components/ProjectSwitcher/ProjectSwitcher'
 
 import classes from './Sidebar.module.css'
@@ -44,7 +44,7 @@ const NavItem = ({ to, params, search, icon: Icon, iconClassName = '', label, co
 
 /**
  * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Preklady,
- * Prehľad, Nastavenia projektu, Jazyky and Členovia (Preklady stay first, Prehľad is not the project's landing page; a VISITOR sees only the first two), outside one: Späť na projekt when an admin page was opened from a project (`?from=`), else Všetky projekty. ADMIN also sees Projekty and Používatelia under SPRÁVA.
+ * Prehľad, História, Nastavenia projektu, Jazyky, Verzie and Členovia (Preklady stay first, Prehľad is not the project's landing page; a VISITOR sees only the first three), outside one: Späť na projekt when an admin page was opened from a project (`?from=`), else Všetky projekty. ADMIN also sees Projekty and Používatelia under SPRÁVA.
  * From `md` the button at the bottom switches to the compact sidebar: logo, project avatar and icons with tooltips.
  */
 const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps) => {
@@ -93,6 +93,15 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 							params={{ projectSlug }}
 							icon={LayoutGrid}
 							label={t('sidebar.dashboard')}
+							compact={isCompact}
+							onNavigate={onClose}
+						/>
+						<NavItem
+							to='/projects/$projectSlug/history'
+							params={{ projectSlug }}
+							icon={Clock}
+							iconClassName={classes.iconFrom16}
+							label={t('sidebar.history')}
 							compact={isCompact}
 							onNavigate={onClose}
 						/>

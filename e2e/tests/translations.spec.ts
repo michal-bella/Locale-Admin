@@ -64,7 +64,7 @@ test('the project index redirects to Preklady, the first sidebar item, in the ex
 	await expect(page).toHaveURL(translationsPath(project))
 	await expect(page.getByRole('heading', { level: 1, name: 'Preklady' })).toBeVisible()
 	const section = getMainNavigation(page).getByRole('list', { name: project.name })
-	await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'Nastavenia', 'Jazyky', 'Verzie', 'Členovia'])
+	await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'História', 'Nastavenia', 'Jazyky', 'Verzie', 'Členovia'])
 	await expect(section.getByRole('link', { name: 'Preklady' })).toHaveAttribute('aria-current', 'page')
 
 	await expect(page.getByRole('button', { name: 'Importovať' })).toBeEnabled()

@@ -10,7 +10,7 @@ import getApiErrorCode from '@/api/getApiErrorCode'
 import BaseLanguageHint from '@/components/BaseLanguageHint/BaseLanguageHint'
 import EditKeyModal from '@/components/EditKeyModal/EditKeyModal'
 import EditTranslationModal from '@/components/EditTranslationModal/EditTranslationModal'
-import { Edit, Info, Upload } from '@/components/Icons'
+import { Edit, Info, SwitchHorizontal, Upload } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import RowAction from '@/components/RowAction/RowAction'
 import TranslationCell from '@/components/TranslationCell/TranslationCell'
@@ -202,8 +202,13 @@ const TranslationsTable = ({
 		const changed = language !== undefined && isChanged(item, language)
 		return (
 			<Tooltip label={t('translationsPage.table.diffChangedTooltip')} disabled={!changed} events={TOOLTIP_EVENTS}>
-				<span className={`${className} ${changed ? classes.sourceChanged : ''}`}>
-					{changed && <VisuallyHidden>{t('translationsPage.table.diffChanged')}: </VisuallyHidden>}
+				<span className={className}>
+					{changed && (
+						<>
+							<VisuallyHidden>{t('translationsPage.table.diffChanged')}: </VisuallyHidden>
+							<SwitchHorizontal aria-hidden className={classes.sourceChangedIcon} data-diff-changed />
+						</>
+					)}
 					<TranslationValue
 						value={(language && item.translations[language.id])?.value ?? null}
 						pluralTag={item.plural ? language?.tag : undefined}

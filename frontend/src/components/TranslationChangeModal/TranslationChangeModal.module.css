@@ -104,19 +104,44 @@
 	color: var(--mantine-color-slate-4);
 }
 
-/* Same hues as the Nepreložené and Preložené statuses, so they work in both themes. */
+/* Same hues as the Nepreložené and Preložené statuses, so they work in both themes. The padding is cloned onto every line of a mark
+   that wraps, and the chips inside take the mark's hue, since their own background would cover it. */
+.value del,
+.value ins {
+	padding: 0.0625rem 0.1875rem;
+	border-radius: 0.25rem;
+	box-decoration-break: clone;
+}
+
 .value del {
-	border-radius: 3px;
 	background-color: var(--mantine-color-red-light);
 	color: var(--mantine-color-red-light-color);
 	text-decoration-thickness: 1px;
 }
 
 .value ins {
-	border-radius: 3px;
 	background-color: var(--mantine-color-teal-light);
 	color: var(--mantine-color-teal-light-color);
 	text-decoration: none;
+}
+
+.value del code,
+.value ins code {
+	margin-inline: 0.0625rem;
+}
+
+/* An inline-block chip does not inherit the strike-through of <del>. */
+.value del code {
+	border-color: color-mix(in srgb, var(--mantine-color-red-6) 45%, transparent);
+	background-color: var(--mantine-color-red-light);
+	color: var(--mantine-color-red-light-color);
+	text-decoration: line-through;
+}
+
+.value ins code {
+	border-color: color-mix(in srgb, var(--mantine-color-teal-6) 45%, transparent);
+	background-color: var(--mantine-color-teal-light);
+	color: var(--mantine-color-teal-light-color);
 }
 
 .empty {

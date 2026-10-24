@@ -274,9 +274,11 @@ th.stickyEnd {
 }
 
 /* The source value changed against the previous version: the same brand edge as a changed cell. */
-.sourceChanged {
-	padding-inline-start: 0.5rem;
-	border-inline-start: 3px solid var(--app-color-eyebrow);
+/* Same brand ⇄ icon as a changed cell, in front of the source text so the line clamp never hides it. */
+.sourceChangedIcon {
+	margin-inline-end: 0.375rem;
+	color: var(--app-color-eyebrow);
+	vertical-align: text-bottom;
 }
 
 /* Only two columns, so the stacked layout gets more room around them. */

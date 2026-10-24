@@ -171,6 +171,14 @@ const TranslationsPage = () => {
 		}
 	}, [hasEditRequest, isListLoaded, navigate])
 
+	// `stats.warnings` ignores the filters, so 0 means the last warning was fixed: the filter would only show an empty table and a stuck banner.
+	const noWarningsLeft = search.warnings === true && isListLoaded && data.stats.warnings === 0
+	useEffect(() => {
+		if (noWarningsLeft) {
+			void navigate({ search: (previous) => ({ ...previous, warnings: undefined, page: undefined }), replace: true })
+		}
+	}, [noWarningsLeft, navigate])
+
 	const clearFilters = () =>
 		updateSearch({
 			search: undefined,

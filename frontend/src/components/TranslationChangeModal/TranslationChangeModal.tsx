@@ -58,11 +58,24 @@ const TranslationChangeModal = ({ opened, event, projectSlug, onClose }: Transla
 							if (side === 'before' ? change.added : change.removed) {
 								return null
 							}
-							const text = <TranslationText value={change.value.map((token) => token.value).join('')} chipTooltips={false} />
-							if (change.removed) {
-								return <del key={index}>{text}</del>
+							const value = change.value.map((token) => token.value).join('')
+							if (!change.added && !change.removed) {
+								return <TranslationText key={index} value={value} chipTooltips={false} />
 							}
-							return change.added ? <ins key={index}>{text}</ins> : <span key={index}>{text}</span>
+							// The spaces around a changed word stay outside the mark, so it hugs the word or chip.
+							const [, before = '', marked = '', after = ''] = /^(\s*)([\s\S]*?)(\s*)$/.exec(value) ?? []
+							const Mark = change.added ? 'ins' : 'del'
+							return (
+								<span key={index}>
+									{before}
+									{marked && (
+										<Mark>
+											<TranslationText value={marked} chipTooltips={false} />
+										</Mark>
+									)}
+									{after}
+								</span>
+							)
 						})}
 					</p>
 				)}

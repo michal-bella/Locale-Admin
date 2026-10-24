@@ -1,5 +1,4 @@
 import { Button, Text } from '@mantine/core'
-import { diffArrays } from 'diff'
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -10,7 +9,7 @@ import ActivityAvatar from '@/components/ActivityAvatar/ActivityAvatar'
 import AppModal from '@/components/AppModal/AppModal'
 import { ArrowRight } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
-import { type Token, tokenize } from '@/components/TokenEditor/tokens'
+import TranslationDiff from '@/components/TranslationDiff/TranslationDiff'
 import TranslationText from '@/components/TranslationText/TranslationText'
 import { formatDateTime } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
@@ -35,16 +34,6 @@ const TranslationChangeModal = ({ opened, event, projectSlug, onClose }: Transla
 		const { languageTag, oldValue, newValue } = event.payload
 		const language = SUPPORTED_LANGUAGES.find((supported) => supported.tag === languageTag)
 		const languageName = language ? t(`languageNames.${language.tag}`) : languageTag
-		// Not diffWordsWithSpace: its tokenizer knows only Latin letters (it ignores `intlSegmenter`) and would diff Cyrillic letter by letter.
-		// The segmenter keeps spaces and newlines as their own tokens, as diffWordsWithSpace does. Variables and tags stay whole, so a
-		// change never splits a chip and each part can be rendered by TranslationText again.
-		const segmenter = new Intl.Segmenter(languageTag, { granularity: 'word' })
-		const words = (value: string | null): Token[] =>
-			tokenize(value ?? '').flatMap((token) =>
-				token.type === 'text' ? Array.from(segmenter.segment(token.value), ({ segment }) => ({ type: token.type, value: segment })) : [token],
-			)
-		const changes = diffArrays(words(oldValue), words(newValue), { comparator: (left, right) => left.type === right.type && left.value === right.value })
-
 		const block = (title: string, value: string | null, emptyLabel: string, side: 'before' | 'after') => (
 			<section className={classes.block} data-side={side}>
 				<h3 className={classes.blockTitle}>{title}</h3>
@@ -54,29 +43,7 @@ const TranslationChangeModal = ({ opened, event, projectSlug, onClose }: Transla
 					</Text>
 				) : (
 					<p className={classes.value}>
-						{changes.map((change, index) => {
-							if (side === 'before' ? change.added : change.removed) {
-								return null
-							}
-							const value = change.value.map((token) => token.value).join('')
-							if (!change.added && !change.removed) {
-								return <TranslationText key={index} value={value} chipTooltips={false} />
-							}
-							// The spaces around a changed word stay outside the mark, so it hugs the word or chip.
-							const [, before = '', marked = '', after = ''] = /^(\s*)([\s\S]*?)(\s*)$/.exec(value) ?? []
-							const Mark = change.added ? 'ins' : 'del'
-							return (
-								<span key={index}>
-									{before}
-									{marked && (
-										<Mark>
-											<TranslationText value={marked} chipTooltips={false} />
-										</Mark>
-									)}
-									{after}
-								</span>
-							)
-						})}
+						<TranslationDiff oldValue={oldValue ?? ''} newValue={newValue ?? ''} languageTag={languageTag} side={side} />
 					</p>
 				)}
 			</section>

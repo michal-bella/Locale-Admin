@@ -15,4 +15,6 @@ export type EditTranslationModalProps = {
 	onNext?: () => void
 	/** Focus the first field when the content switches while the modal stays open (Uložiť a ďalší); on open Mantine focuses it. */
 	focusOnSwitch?: boolean
+	/** Name of the previous version, for the toggle of a changed translation's previous value; without it the text says „predchádzajúcej verzie“. */
+	previousVersionName?: string
 }

@@ -1,0 +1,44 @@
+.diff {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+/* Same hues as the Nepreložené and Preložené statuses, so they work in both themes. The padding is cloned onto every line of a mark
+   that wraps, and the chips inside take the mark's hue, since their own background would cover it. */
+.diff del,
+.diff ins {
+	padding: 0.0625rem 0.1875rem;
+	border-radius: 0.25rem;
+	box-decoration-break: clone;
+}
+
+.diff del {
+	background-color: var(--mantine-color-red-light);
+	color: var(--mantine-color-red-light-color);
+	text-decoration-thickness: 1px;
+}
+
+.diff ins {
+	background-color: var(--mantine-color-teal-light);
+	color: var(--mantine-color-teal-light-color);
+	text-decoration: none;
+}
+
+.diff del code,
+.diff ins code {
+	margin-inline: 0.0625rem;
+}
+
+/* An inline-block chip does not inherit the strike-through of <del>. */
+.diff del code {
+	border-color: color-mix(in srgb, var(--mantine-color-red-6) 45%, transparent);
+	background-color: var(--mantine-color-red-light);
+	color: var(--mantine-color-red-light-color);
+	text-decoration: line-through;
+}
+
+.diff ins code {
+	border-color: color-mix(in srgb, var(--mantine-color-teal-6) 45%, transparent);
+	background-color: var(--mantine-color-teal-light);
+	color: var(--mantine-color-teal-light-color);
+}

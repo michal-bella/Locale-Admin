@@ -400,7 +400,14 @@
 			"submitNext": "Uložiť a ďalší",
 			"submitNextHint": "Uloží a otvorí ďalšiu nepreloženú bunku na tejto strane ({{shortcut}})",
 			"copyBase": "Prevziať zo základného jazyka",
-			"copyBaseLabel": "Prevziať text zo základného jazyka ({{language}}) do prekladu"
+			"copyBaseLabel": "Prevziať text zo základného jazyka ({{language}}) do prekladu",
+			"previous": {
+				"show": "Zobraziť preklad z {{version}}",
+				"hide": "Skryť preklad z {{version}}",
+				"label": "Preklad z {{version}}",
+				"fallback": "predchádzajúcej verzie",
+				"untranslated": "Nepreložené"
+			}
 		},
 		"plural": {
 			"hash": "Číslo",

@@ -11,6 +11,8 @@ notion_page_id:
 ### Preklad z predchádzajúcej verzie v Upraviť preklad (2026-10-24)
 
 - API: `diff` položky v `GET …/translations` nesie aj `previousValues`, hodnoty zmenených jazykov v predchádzajúcej verzii (`null` = tam nepreložené)
+- frontend: modál **Upraviť preklad** má pri zmenenej bunke pod poľom tlačidlo **Zobraziť preklad z v2.44**, ktoré rozbalí pôvodný text iba na čítanie, tlmený a so zvýraznenými slovami, ktoré aktuálny preklad vypustil
+- frontend: diff po slovách s čipmi je spoločný komponent `TranslationDiff` (modál Zmena prekladu v Histórii aj Upraviť preklad)
 
 ### Upozornenia a zmenené bunky v Prekladoch (2026-10-24)
 

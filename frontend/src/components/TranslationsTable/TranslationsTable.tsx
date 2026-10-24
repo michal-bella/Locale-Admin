@@ -62,6 +62,7 @@ const TranslationsTable = ({
 	translationsOnly = false,
 	readOnly = false,
 	openTranslationOf,
+	previousVersionName,
 	onSave,
 }: TranslationsTableProps) => {
 	const { t, i18n } = useTranslation()
@@ -479,6 +480,7 @@ const TranslationsTable = ({
 					onSave={onSave}
 					onNext={nextUntranslated && (() => setEditingTranslation({ ...nextUntranslated, viaNext: true }))}
 					focusOnSwitch={editingTranslation?.viaNext}
+					previousVersionName={previousVersionName}
 				/>
 			)}
 		</div>

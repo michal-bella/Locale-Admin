@@ -97,6 +97,39 @@
 	color: var(--mantine-color-error);
 }
 
+.previousToggle {
+	margin-top: 0.5rem;
+	margin-inline-start: calc(var(--button-padding-x) * -1);
+	color: var(--app-color-text-secondary);
+}
+
+.chevron {
+	transition: transform 150ms ease;
+}
+
+.chevron[data-opened] {
+	transform: rotate(180deg);
+}
+
+/* Read-only and quieter than both the base language reference and the field being edited. */
+.previous {
+	margin-top: 0.375rem;
+	padding: 0.5rem 0.75rem;
+	border: 1px dashed var(--app-color-border);
+	border-radius: var(--mantine-radius-sm);
+	font-size: var(--mantine-font-size-sm);
+	line-height: 1.5;
+	color: var(--app-color-text-secondary);
+}
+
+[data-mantine-color-scheme='dark'] .previous {
+	color: var(--mantine-color-slate-4);
+}
+
+.previousEmpty {
+	font-style: italic;
+}
+
 .lastEdit {
 	display: inline-flex;
 	color: var(--app-color-muted);

@@ -569,6 +569,32 @@ describe('TranslationsPage versions', () => {
 		await waitFor(() => expect(router.state.location.search).toEqual({}))
 	})
 
+	it('shows the previous value of a changed translation in Upraviť preklad on demand, with the dropped words marked', async () => {
+		const CHANGED: TranslationListItem = {
+			...WELCOME,
+			diff: { added: false, changedLanguageIds: [ENGLISH.id], previousValues: { [ENGLISH.id]: 'Hello there' } },
+		}
+		mockPage({ routes: { [`GET ${TRANSLATIONS_URL}`]: { status: 200, data: response([CHANGED]) } } })
+		renderApp(PAGE_PATH)
+		const row = await findRow('dashboard.welcome')
+
+		fireEvent.click(within(row).getByRole('button', { name: 'Preklad kľúča dashboard.welcome, slovenčina: Vitajte' }))
+		const unchanged = within(await screen.findByRole('dialog', { name: 'Upraviť preklad' }))
+		expect(unchanged.queryByRole('button', { name: /^Zobraziť preklad z/ })).not.toBeInTheDocument()
+		fireEvent.click(unchanged.getByRole('button', { name: 'Zrušiť' }))
+		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Upraviť preklad' })).not.toBeInTheDocument())
+
+		fireEvent.click(within(row).getByRole('button', { name: 'Preklad kľúča dashboard.welcome, angličtina: Zmenené: Welcome' }))
+		const dialog = within(await screen.findByRole('dialog', { name: 'Upraviť preklad' }))
+		const toggle = dialog.getByRole('button', { name: `Zobraziť preklad z ${LOCKED.name}` })
+		expect(toggle).toHaveAttribute('aria-expanded', 'false')
+		fireEvent.click(toggle)
+		expect(dialog.getByRole('button', { name: `Skryť preklad z ${LOCKED.name}` })).toHaveAttribute('aria-expanded', 'true')
+		const previous = await dialog.findByRole('region', { name: `Preklad z ${LOCKED.name}` })
+		expect(previous).toHaveTextContent('Hello there')
+		expect(Array.from(previous.querySelectorAll('del'), (mark) => mark.textContent)).toEqual(['Hello there'])
+	})
+
 	it('marks the changes in the read-only table of a VISITOR too', async () => {
 		mockPage({
 			user: VISITOR_USER,

@@ -166,6 +166,7 @@ const CreateKeyModal = ({ projectId, languages, namespaces, defaultNamespace, ve
 								required
 								label={t('translationsPage.createKeyModal.namespace.label')}
 								description={t('translationsPage.createKeyModal.namespace.description')}
+								inputWrapperOrder={['label', 'input', 'description', 'error']}
 								placeholder={t('translationsPage.createKeyModal.namespace.placeholder')}
 								data={namespaces.map((namespace) => ({
 									value: namespace === '' ? EMPTY_NAMESPACE : namespace,

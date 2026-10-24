@@ -10,6 +10,8 @@ import ActivityAvatar from '@/components/ActivityAvatar/ActivityAvatar'
 import AppModal from '@/components/AppModal/AppModal'
 import { ArrowRight } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
+import { type Token, tokenize } from '@/components/TokenEditor/tokens'
+import TranslationText from '@/components/TranslationText/TranslationText'
 import { formatDateTime } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import { translationEditSearch } from '@/lib/translationEditSearch'
@@ -19,7 +21,7 @@ import { type TranslationChangeModalProps } from './types'
 
 /**
  * Read-only detail of a translation edit from História: who, when, the key and language, and the old value against the new one
- * highlighted word by word, removed words in Pred and added ones in Po. Otvoriť preklad opens the key in Preklady with Upraviť preklad,
+ * highlighted word by word, removed words in Pred and added ones in Po. Variables and HTML tags are chips as in Upraviť preklad. Otvoriť preklad opens the key in Preklady with Upraviť preklad,
  * like the → of the row.
  */
 const TranslationChangeModal = ({ opened, event, projectSlug, onClose }: TranslationChangeModalProps) => {
@@ -34,10 +36,14 @@ const TranslationChangeModal = ({ opened, event, projectSlug, onClose }: Transla
 		const language = SUPPORTED_LANGUAGES.find((supported) => supported.tag === languageTag)
 		const languageName = language ? t(`languageNames.${language.tag}`) : languageTag
 		// Not diffWordsWithSpace: its tokenizer knows only Latin letters (it ignores `intlSegmenter`) and would diff Cyrillic letter by letter.
-		// The segmenter keeps spaces and newlines as their own tokens, as diffWordsWithSpace does.
+		// The segmenter keeps spaces and newlines as their own tokens, as diffWordsWithSpace does. Variables and tags stay whole, so a
+		// change never splits a chip and each part can be rendered by TranslationText again.
 		const segmenter = new Intl.Segmenter(languageTag, { granularity: 'word' })
-		const words = (value: string | null) => Array.from(segmenter.segment(value ?? ''), ({ segment }) => segment)
-		const changes = diffArrays(words(oldValue), words(newValue))
+		const words = (value: string | null): Token[] =>
+			tokenize(value ?? '').flatMap((token) =>
+				token.type === 'text' ? Array.from(segmenter.segment(token.value), ({ segment }) => ({ type: token.type, value: segment })) : [token],
+			)
+		const changes = diffArrays(words(oldValue), words(newValue), { comparator: (left, right) => left.type === right.type && left.value === right.value })
 
 		const block = (title: string, value: string | null, emptyLabel: string, side: 'before' | 'after') => (
 			<section className={classes.block} data-side={side}>
@@ -52,11 +58,11 @@ const TranslationChangeModal = ({ opened, event, projectSlug, onClose }: Transla
 							if (side === 'before' ? change.added : change.removed) {
 								return null
 							}
-							const text = change.value.join('')
+							const text = <TranslationText value={change.value.map((token) => token.value).join('')} chipTooltips={false} />
 							if (change.removed) {
 								return <del key={index}>{text}</del>
 							}
-							return change.added ? <ins key={index}>{text}</ins> : text
+							return change.added ? <ins key={index}>{text}</ins> : <span key={index}>{text}</span>
 						})}
 					</p>
 				)}
@@ -104,7 +110,10 @@ const TranslationChangeModal = ({ opened, event, projectSlug, onClose }: Transla
 			title={t('historyPage.change.title')}
 			description={
 				event && (
-					<code className={classes.key}>{event.payload.namespace ? `${event.payload.namespace}:${event.payload.name}` : event.payload.name}</code>
+					<code className={classes.key}>
+						{event.payload.namespace && `${event.payload.namespace}:`}
+						<TranslationText value={event.payload.name} chipTooltips={false} />
+					</code>
 				)
 			}
 			closeLabel={t('historyPage.change.close')}

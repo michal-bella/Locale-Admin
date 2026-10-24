@@ -90,9 +90,9 @@ describe('HistoryPage', () => {
 
 		fireEvent.click(within(rows[1] as HTMLElement).getByRole('button', { name: 'Zobraziť zmenu prekladu orders.title (angličtina)' }))
 		const dialog = within(await screen.findByRole('dialog', { name: 'Zmena prekladu' }))
-		expect(dialog.getByText('loc:orders.title')).toBeInTheDocument()
+		expect(screen.getByRole('dialog', { name: 'Zmena prekladu' }).querySelector('header code')).toHaveTextContent('loc:orders.title')
 		expect(dialog.getByText('Nepreložené')).toBeInTheDocument()
-		expect(dialog.getByText('Orders').tagName).toBe('INS')
+		expect(dialog.getByText('Orders').closest('ins')).not.toBeNull()
 
 		fireEvent.click(dialog.getAllByRole('button', { name: 'Zavrieť' })[0] as HTMLElement)
 		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Zmena prekladu' })).not.toBeInTheDocument())

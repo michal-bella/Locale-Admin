@@ -43,7 +43,7 @@ describe('TranslationChangeModal', () => {
 		await renderModal(change('en', 'The order was sent yesterday', 'The order was delivered today'))
 
 		const dialog = screen.getByRole('dialog', { name: 'Zmena prekladu' })
-		expect(within(dialog).getByText('loc:orders.status')).toBeInTheDocument()
+		expect(dialog.querySelector('header code')).toHaveTextContent('loc:orders.status')
 		expect(within(dialog).getByText('Angličtina')).toBeInTheDocument()
 		expect(within(dialog).getByText('v2.45')).toBeInTheDocument()
 		expect(within(dialog).getByText('Jana Nováková')).toBeInTheDocument()
@@ -75,6 +75,17 @@ describe('TranslationChangeModal', () => {
 
 		expect(within(block('Po')).getByText('Hodnota vymazaná')).toBeInTheDocument()
 		expect(marked(block('Pred'), 'del')).toEqual(['Objednávka odoslaná'])
+	})
+
+	it('shows variables and HTML tags as chips in the key and the values, and keeps a changed chip whole', async () => {
+		const event = change('cs', 'Další informace o {title}', 'Další <strong>informace</strong> o {name}')
+		await renderModal({ ...event, payload: { ...event.payload, name: 'Additional information about {title}' } })
+
+		const chips = (element: Element | null) => Array.from(element?.querySelectorAll('code code') ?? [], (chip) => chip.textContent)
+		expect(chips(screen.getByRole('dialog').querySelector('header'))).toEqual(['{title}'])
+		expect(marked(block('Pred'), 'del')).toEqual(['{title}'])
+		expect(marked(block('Po'), 'ins')).toEqual(['<strong>', '</strong>', '{name}'])
+		expect(Array.from(block('Po').querySelectorAll('ins code'), (chip) => chip.textContent)).toEqual(['<strong>', '</strong>', '{name}'])
 	})
 
 	it('splits Cyrillic into words, not single letters', async () => {

@@ -394,6 +394,7 @@
 			"value": "Překlad",
 			"cancel": "Zrušit",
 			"submit": "Uložit",
+			"submitClose": "Uložit a zavřít",
 			"lastEdit": "Poslední úprava: {{name}}, {{time}}",
 			"lastEditTime": "Poslední úprava: {{time}}",
 			"submitNext": "Uložit a další",
@@ -599,7 +600,7 @@
 				"name": "název",
 				"slug": "slug",
 				"primaryColor": "barva",
-				"protectVariables": "ochrana proměnných"
+				"protectVariables": "kontrola proměnných"
 			},
 			"keyFields": {
 				"name": "název",
@@ -1228,11 +1229,11 @@
 			}
 		},
 		"variables": {
-			"title": "Ochrana dynamických segmentů",
-			"description": "Proměnné budou při editaci automaticky rozpoznány a uzamčeny.",
+			"title": "Kontrola proměnných",
+			"description": "Kontrola při ukládání překladu v aplikaci. Import ani zobrazení upozornění toto nastavení nemění.",
 			"protect": {
-				"label": "Chránit výrazy {{example}}",
-				"description": "Uživatel může upravit text, ne název ani závorky proměnné."
+				"label": "Neukládat překlad s neshodnými proměnnými",
+				"description": "Překlad, kterému chybí proměnná ze základního jazyka (například {{example}}) nebo ji má navíc, se neuloží. Vypnuto: uloží se a označí se upozorněním."
 			}
 		},
 		"leave": "Opustit projekt",

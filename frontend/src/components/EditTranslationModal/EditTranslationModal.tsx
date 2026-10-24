@@ -22,7 +22,8 @@ import getApiErrorCode from '@/api/getApiErrorCode'
 import getApiErrorDetails from '@/api/getApiErrorDetails'
 import getPlaceholderMismatch from '@/api/getPlaceholderMismatch'
 import AppModal from '@/components/AppModal/AppModal'
-import { Copy } from '@/components/Icons'
+import appModalClasses from '@/components/AppModal/AppModal.module.css'
+import { Copy, Info } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import PlaceholderWarning from '@/components/PlaceholderWarning/PlaceholderWarning'
 import PluralFormChip from '@/components/PluralForms/PluralFormChip'
@@ -47,6 +48,9 @@ const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(naviga
 
 const SHORTCUT = IS_MAC ? '⌘ Enter' : 'Ctrl + Enter'
 
+// The icon is not focusable; its accessible name carries the same text, and touch opens the tooltip.
+const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
+
 /**
  * "Upraviť preklad": the key, the language, the base language value as a reference and a `TokenEditor` per form (one for a plain key).
  * Saves only with the button. Empty or whitespace-only text saves `null`; for a plural key the forms are saved as one ICU message (empty
@@ -54,7 +58,7 @@ const SHORTCUT = IS_MAC ? '⌘ Enter' : 'Ctrl + Enter'
  * `TRANSLATION_VALUE_MAX_LENGTH`. `PLACEHOLDER_MISMATCH` and an unparseable plural (`VALIDATION_ERROR` on `value`) show under the
  * fields and keep the modal open; any other error shows a notification. `key` on the content resets the draft for every key and language.
  * The footer shows who saved the value last and when. With `onNext`, Uložiť a ďalší (and Cmd/Ctrl+Enter) saves and moves to the next
- * untranslated cell instead of closing.
+ * untranslated cell instead of closing. Both save buttons and the shortcut wait for a change in the field.
  */
 const EditTranslationModal = ({ item, language, baseLanguage, opened, onClose, onSave, onNext, focusOnSwitch = false }: EditTranslationModalProps) => {
 	const { t } = useTranslation()
@@ -221,16 +225,32 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
 		if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
 			event.preventDefault()
-			void save(true)
+			// The shortcut of the save buttons, so it does nothing while they are disabled.
+			if (!isPristine) {
+				void save(true)
+			}
 		}
 	}
 
-	const lastEdit = cell?.updatedAt && (
-		<span className={classes.lastEdit} title={formatDateTime(cell.updatedAt, i18n.language)}>
-			{cell.updatedBy
-				? t('translationsPage.editModal.lastEdit', { name: cell.updatedBy.name, time: formatRelativeTime(cell.updatedAt, i18n.language) })
-				: t('translationsPage.editModal.lastEditTime', { time: formatRelativeTime(cell.updatedAt, i18n.language) })}
-		</span>
+	const lastEditText =
+		cell?.updatedAt &&
+		(cell.updatedBy
+			? t('translationsPage.editModal.lastEdit', { name: cell.updatedBy.name, time: formatRelativeTime(cell.updatedAt, i18n.language) })
+			: t('translationsPage.editModal.lastEditTime', { time: formatRelativeTime(cell.updatedAt, i18n.language) }))
+	const lastEdit = cell?.updatedAt && lastEditText && (
+		<Tooltip
+			label={
+				<>
+					<div>{lastEditText}</div>
+					<div>{formatDateTime(cell.updatedAt, i18n.language)}</div>
+				</>
+			}
+			events={TOOLTIP_EVENTS}
+		>
+			<span className={classes.lastEdit} role='img' aria-label={lastEditText}>
+				<Info aria-hidden />
+			</span>
+		</Tooltip>
 	)
 
 	const field = (form: PluralForm, index: number) => (
@@ -300,6 +320,7 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 			<div>
 				<span className={`${classes.label} ${classes.labelWithLanguage}`}>
 					{labelWithLanguage(t('translationsPage.editModal.value'), language)}
+					{lastEdit}
 					{draftMismatch && <PlaceholderWarning missing={draftMismatch.missing} extra={draftMismatch.extra} />}
 				</span>
 				<div className={classes.forms}>
@@ -321,12 +342,11 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 					</span>
 				)}
 			</div>
-			<div className='flex flex-wrap items-center gap-2'>
-				{lastEdit}
+			<div className={`${appModalClasses.footer} ${appModalClasses.footerInBody} flex flex-wrap items-center gap-2`}>
+				<Button variant='default' onClick={onClose} disabled={saving}>
+					{t('translationsPage.editModal.cancel')}
+				</Button>
 				<div className='ml-auto flex flex-wrap items-center justify-end gap-2'>
-					<Button variant='default' onClick={onClose} disabled={saving}>
-						{t('translationsPage.editModal.cancel')}
-					</Button>
 					<Button
 						variant={onNext ? 'default' : 'filled'}
 						loading={saving}
@@ -334,11 +354,11 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 						onClick={() => void save()}
 						aria-keyshortcuts={onNext ? undefined : 'Meta+Enter Control+Enter'}
 					>
-						{t('translationsPage.editModal.submit')}
+						{t(onNext ? 'translationsPage.editModal.submitClose' : 'translationsPage.editModal.submit')}
 					</Button>
 					{onNext && (
 						<Tooltip label={t('translationsPage.editModal.submitNextHint', { shortcut: SHORTCUT })}>
-							<Button loading={saving} onClick={() => void save(true)} aria-keyshortcuts='Meta+Enter Control+Enter'>
+							<Button loading={saving} disabled={isPristine} onClick={() => void save(true)} aria-keyshortcuts='Meta+Enter Control+Enter'>
 								{t('translationsPage.editModal.submitNext')}
 							</Button>
 						</Tooltip>

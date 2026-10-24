@@ -14,7 +14,7 @@ const TranslationsWarningsBanner = ({ count, active, onShow, onClear }: Translat
 	const { t } = useTranslation()
 
 	return (
-		<Alert color='yellow' icon={<AlertTriangle aria-hidden />} classNames={{ root: classes.root, message: classes.message }}>
+		<Alert color='yellow' icon={<AlertTriangle aria-hidden />} classNames={{ root: classes.root, icon: classes.icon, message: classes.message }}>
 			<span>{t('translationsPage.warnings.message', { count })}</span>
 			{active ? (
 				<Button variant='default' size='xs' onClick={onClear}>

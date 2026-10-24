@@ -6,6 +6,13 @@
 	border-color: var(--mantine-color-yellow-8);
 }
 
+/* Like `TranslationsVersionBanner`: the icon centers on the first row, as tall as the xs button. */
+.icon {
+	align-self: flex-start;
+	height: 1.875rem;
+	margin-top: 0;
+}
+
 .message {
 	display: flex;
 	flex-wrap: wrap;
@@ -13,4 +20,9 @@
 	justify-content: space-between;
 	gap: 0.5rem 1rem;
 	color: var(--app-color-text-strong);
+}
+
+/* The first text line sits in the middle of a button-high row too, so it lines up with the icon also when the button wraps below it. */
+.message > span:first-child {
+	padding-block: calc((1.875rem - 1lh) / 2);
 }

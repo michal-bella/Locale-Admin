@@ -2,6 +2,14 @@
 	box-shadow: var(--mantine-shadow-primary);
 }
 
+/* A disabled primary button loses the glow and Mantine's gray, which looked like a disabled secondary one: a faint brand tint instead. */
+.root[data-variant='filled']:where(:disabled, [data-disabled]):not([data-loading]) {
+	box-shadow: none;
+	border-color: color-mix(in srgb, var(--mantine-color-brand-6) 25%, transparent);
+	background-color: var(--app-color-brand-tint);
+	color: color-mix(in srgb, var(--app-color-eyebrow) 55%, transparent);
+}
+
 /* Mantine centers the loader only through its Transition's inline style, which is dropped under `respectReducedMotion`; same offset as Mantine. */
 .loader {
 	transform: translate(-50%, calc(-50% + 1px));

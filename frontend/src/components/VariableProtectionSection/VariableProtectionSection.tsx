@@ -10,7 +10,7 @@ import { type VariableProtectionSectionProps } from './types'
 // Passed as a parameter: written into the translation, i18next would treat it as its own placeholder.
 const VARIABLE_EXAMPLE = '{{ variable }}'
 
-/** "Ochrana dynamických segmentov" (Figma 3:1631). The setting is only stored until the translation editor exists. */
+/** "Kontrola premenných" (Figma 3:1631 „Ochrana dynamických segmentov“): `protectVariables` makes the API refuse saving a translation whose variables differ from the base language. */
 const VariableProtectionSection = ({ control, disabled = false }: VariableProtectionSectionProps) => {
 	const { t } = useTranslation()
 
@@ -25,8 +25,8 @@ const VariableProtectionSection = ({ control, disabled = false }: VariableProtec
 							ref={field.ref}
 							size='md'
 							labelPosition='left'
-							label={t('projectSettingsPage.variables.protect.label', { example: VARIABLE_EXAMPLE })}
-							description={t('projectSettingsPage.variables.protect.description')}
+							label={t('projectSettingsPage.variables.protect.label')}
+							description={t('projectSettingsPage.variables.protect.description', { example: VARIABLE_EXAMPLE })}
 							checked={field.value}
 							disabled={disabled}
 							onChange={(event) => field.onChange(event.currentTarget.checked)}

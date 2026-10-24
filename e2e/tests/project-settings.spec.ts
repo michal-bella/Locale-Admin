@@ -25,7 +25,7 @@ const getForm = (page: Page) => ({
 	slug: page.getByLabel('Slug projektu', { exact: true }),
 	color: page.getByLabel('Primárna farba', { exact: true }),
 	baseLanguage: page.getByLabel('Základný jazyk', { exact: true }),
-	protectVariables: page.getByRole('switch', { name: /^Chrániť výrazy \{\{ variable \}\}/ }),
+	protectVariables: page.getByRole('switch', { name: /^Neukladať preklad s nezhodnými premennými/ }),
 	preview: page.getByText('Ukážka', { exact: true }),
 	save: page.getByRole('button', { name: 'Uložiť zmeny' }),
 	leave: page.getByRole('button', { name: 'Opustiť projekt' }),

@@ -14,6 +14,14 @@
 	color: var(--app-color-eyebrow);
 }
 
+/* Mantine sizes the icon to one text line at the top; the first row is as tall as the xs button (30 px, its `--button-height-xs` is scoped
+   to the button), so the icon centers on that row and stays there when the text wraps. */
+.icon {
+	align-self: flex-start;
+	height: 1.875rem;
+	margin-top: 0;
+}
+
 .message {
 	display: flex;
 	flex-wrap: wrap;
@@ -21,6 +29,11 @@
 	justify-content: space-between;
 	gap: 0.5rem 1rem;
 	color: var(--app-color-text-strong);
+}
+
+/* The first text line sits in the middle of a button-high row too, so it lines up with the icon also when the button wraps below it. */
+.message > span:first-child {
+	padding-block: calc((1.875rem - 1lh) / 2);
 }
 
 /* Inline with the sentence: the flag sits on the text line, not above it. */

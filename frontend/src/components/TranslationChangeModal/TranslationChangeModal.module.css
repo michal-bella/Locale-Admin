@@ -89,6 +89,21 @@
 	color: var(--app-color-text-strong);
 }
 
+/* Po is what the translation says now; Pred stays readable but steps back. */
+.block[data-side='before'] {
+	border-color: var(--app-color-border-subtle);
+	background-color: transparent;
+}
+
+.block[data-side='before'] .value {
+	color: var(--app-color-text-secondary);
+}
+
+/* text-secondary is slate-3 in dark, almost the strong text; slate-4 steps back and keeps the contrast above 4.5:1. */
+[data-mantine-color-scheme='dark'] .block[data-side='before'] .value {
+	color: var(--mantine-color-slate-4);
+}
+
 /* Same hues as the Nepreložené and Preložené statuses, so they work in both themes. */
 .value del {
 	border-radius: 3px;

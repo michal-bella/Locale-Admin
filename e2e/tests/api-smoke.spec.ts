@@ -491,7 +491,8 @@ test.describe('/api/projects/:projectId/translations', () => {
 			total: 4,
 			page: 1,
 			pageSize: 20,
-			stats: { totalKeys: 4, translated: 2, untranslated: 2, warnings: 0 },
+			// Per language, ignoring the view: sk misses legal.terms, en misses orders.empty.title and the sentence key.
+			stats: { totalKeys: 4, translated: 2, untranslated: 2, warnings: 0, untranslatedByLanguage: { [sk!.id]: 1, [en!.id]: 2 } },
 			namespaces: ['loc', 'paths'],
 			editors: [{ id: me.id, name: expect.any(String) }],
 		})
@@ -1033,7 +1034,8 @@ test.describe('/api/projects/:projectId/versions', () => {
 		const plainList = (await (await request.get(projectTranslationsApi(project.id), { params: { versionId: current.id } })).json()) as {
 			items: { diff?: unknown }[]
 		}
-		expect(plainList.items.every((item) => item.diff === undefined)).toBe(true)
+		// Without the filter every key of a version with a previous one still carries its diff, so the list can mark the changes.
+		expect(plainList.items.every((item) => item.diff !== undefined)).toBe(true)
 
 		const editor = await createEditor(playwright.request, baseURL)
 		await addMember(request, project.id, editor.id)

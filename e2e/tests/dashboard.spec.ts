@@ -48,12 +48,12 @@ const dashboardPath = (project: ProjectListItem) => `/projects/${project.slug}/d
 
 const getStats = (page: Page) => page.getByRole('region', { name: 'Štatistiky projektu' })
 
-/** The number under the label of a stat card on Prehľad. */
+/** The number under the label of a stat card on Prehľad, without the share next to it (the label sits in its own row). */
 const getStatValue = (page: Page, label: string) =>
 	getStats(page)
 		.locator('p')
 		.filter({ hasText: new RegExp(`^${label}$`) })
-		.locator('xpath=following-sibling::*[1]')
+		.locator('xpath=../following-sibling::*[1]/*[1]')
 
 const getLanguageRows = (page: Page) => page.getByRole('list', { name: 'Stav jazykov' }).getByRole('listitem')
 

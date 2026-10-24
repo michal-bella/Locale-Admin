@@ -134,12 +134,12 @@ export const getRowStatuses = (page: Page) => getTranslationRows(page).evaluateA
 
 export const getGroupHeaders = (page: Page) => getTranslationsTable(page).locator('tr[data-group-header]')
 
-/** The number under the label of a stat card (Celkom kľúčov, Preložené, Nepreložené). */
+/** The number under the label of a stat card (Celkom kľúčov, Preložené, Nepreložené), without the share next to it. The label sits in a row with an optional suffix (the target language). */
 export const getStat = (page: Page, label: string) =>
 	page
 		.locator('p')
 		.filter({ hasText: new RegExp(`^${label}$`) })
-		.locator('xpath=following-sibling::*[1]')
+		.locator('xpath=../following-sibling::*[1]/*[1]')
 
 export const expectStats = async (page: Page, translated: number, untranslated: number) => {
 	await expect(getStat(page, 'Preložené')).toHaveText(String(translated))
@@ -257,10 +257,12 @@ export const isTranslationPut = (req: Request) => req.method() === 'PUT' && /\/a
 
 export const waitForTranslationPut = (page: Page) => page.waitForResponse((response) => isTranslationPut(response.request()))
 
-/** Clicks Uložiť in the Edit translation modal and resolves with the PUT response. */
+/** Clicks the save-and-close button of the Edit translation modal and resolves with the PUT response. It is Uložiť a zavrieť next to Uložiť a ďalší, else Uložiť. */
 export const saveTranslation = async (page: Page) => {
 	const saved = waitForTranslationPut(page)
-	await getEditTranslationDialog(page).getByRole('button', { name: 'Uložiť', exact: true }).click()
+	await getEditTranslationDialog(page)
+		.getByRole('button', { name: /^Uložiť( a zavrieť)?$/ })
+		.click()
 	return saved
 }
 

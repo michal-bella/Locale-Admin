@@ -83,9 +83,10 @@ test('a click on a cell opens the modal with the key, the language and the base 
 	await expect(enCell).toHaveAccessibleName(`Preklad kľúča ${key}, angličtina: Bez prekladu`)
 	await expect(enCell).toHaveAttribute('data-status', 'UNTRANSLATED')
 	await expect(skCell).toHaveAttribute('data-status', 'TRANSLATED')
-	const untranslatedBackground = await backgroundOf(enCell)
-	expect(untranslatedBackground).not.toBe(TRANSPARENT)
-	expect(untranslatedBackground).not.toBe(await backgroundOf(skCell))
+	// The empty cell is marked by its red border, not by a background.
+	const borderOf = (cell: Locator) => cell.evaluate((element) => getComputedStyle(element).borderTopColor)
+	const untranslatedBorder = await borderOf(enCell)
+	expect(untranslatedBorder).not.toBe(await borderOf(skCell))
 
 	const dialog = await openEditTranslationModal(page, key)
 	await expect(dialog.getByText('Kľúč', { exact: true })).toBeVisible()
@@ -112,7 +113,7 @@ test('a click on a cell opens the modal with the key, the language and the base 
 	await expect(dialog).toHaveCount(0)
 	await expect(enCell).toHaveAccessibleName(`Preklad kľúča ${key}, angličtina: New orders will appear here.`)
 	await expect(enCell).toHaveAttribute('data-status', 'TRANSLATED')
-	expect(await backgroundOf(enCell)).not.toBe(untranslatedBackground)
+	await expect.poll(() => borderOf(enCell)).not.toBe(untranslatedBorder)
 	if (browserName !== 'webkit') {
 		await expect(enCell).toBeFocused()
 	}

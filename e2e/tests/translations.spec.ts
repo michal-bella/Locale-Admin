@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 
 import { ANONYMOUS } from '../support/auth'
 import { importSample } from '../support/imports'
@@ -136,9 +136,9 @@ test('untranslated rows come first with a badge and a red cell, never a red row;
 	const filledCell = getCellButton(untranslated, 'orders.empty.title', 'slovenčina')
 	await expect(emptyCell).toHaveAttribute('data-status', 'UNTRANSLATED')
 	await expect(filledCell).toHaveAttribute('data-status', 'TRANSLATED')
-	const untranslatedBackground = await backgroundOf(emptyCell)
-	expect(untranslatedBackground).not.toBe(TRANSPARENT)
-	expect(untranslatedBackground).not.toBe(await backgroundOf(filledCell))
+	// The empty cell is marked by its red border, not by a background.
+	const borderOf = (cell: Locator) => cell.evaluate((element) => getComputedStyle(element).borderTopColor)
+	expect(await borderOf(emptyCell)).not.toBe(await borderOf(filledCell))
 
 	await expect(getGroupHeaders(page)).toHaveText(['loc:orders.empty', 'loc:promo', 'paths', 'loc:dashboard'])
 	await expect(getTranslationRow(page, SENTENCE_KEY)).toContainText('paths')

@@ -147,7 +147,8 @@ test.describe('locked tokens', () => {
 		expect(await response.json()).toMatchObject({ value: '<strong>Hi</strong> {{x}}', status: 'TRANSLATED' })
 		await expect(getEditTranslationDialog(page)).toHaveCount(0)
 		await expect(getCellButton(row, key)).toHaveText(`Preklad kľúča ${key}, angličtina: <strong>Hi</strong> {{x}}`)
-		await expect(row.locator('code')).toHaveText(['{{x}}'])
+		// Tags show as chips too, like variables; only the edited cell, the base language column has its own.
+		await expect(getCellButton(row, key).locator('code')).toHaveText(['<strong>', '</strong>', '{{x}}'])
 
 		await openEditTranslationModal(page, key)
 		const reopened = getTranslationField(page, key)

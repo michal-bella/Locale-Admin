@@ -240,12 +240,15 @@ test.describe('ADMIN in a project', () => {
 		await expect(getVersionRow(page, 'v2.45.1')).toContainText(/Import \d{1,2}\. \d{1,2}\. \d{4}/)
 	})
 
-	test('the banner sums up the diff; Zobraziť len zmeny keeps the added and changed keys with their markers', async ({ page }) => {
+	test('the banner sums up the diff, the list marks the changes; Zobraziť len zmeny keeps the added and changed keys with their markers', async ({
+		page,
+	}) => {
 		await openTranslations(page, project)
 		await expect(page.getByText('Verzia v2.45.1: ostáva 20 dní do uzamknutia.')).toBeVisible()
 		await expect(page.getByText('Oproti v2.44: 2 nové, 2 zmenené, 2 odstránené kľúče.')).toBeVisible()
 		await expect(getTranslationRows(page)).toHaveCount(10)
-		await expect(getNewBadge(getTranslationsTable(page))).toHaveCount(0)
+		// The markers show without the filter too; the switch only narrows the list to them.
+		await expect(getNewBadge(getTranslationsTable(page))).toHaveCount(2)
 
 		await toggleDiff(page, true)
 		await expect(page).toHaveURL(translationsPath(project, '?diff=true'))
@@ -442,6 +445,7 @@ test.describe('EDITOR', () => {
 		expect((await saveTranslation(page)).status()).toBe(200)
 		await expect(getEditTranslationDialog(page)).toBeHidden()
 		await expectKeys(getTranslationRows(page), ['nav.home'])
-		await expect(getCellButton(getTranslationRow(page, 'nav.home'), 'nav.home')).toHaveAccessibleName('Preklad kľúča nav.home, angličtina: Home')
+		// The saved value differs from the previous version, so the cell is marked as changed.
+		await expect(getCellButton(getTranslationRow(page, 'nav.home'), 'nav.home')).toHaveAccessibleName('Preklad kľúča nav.home, angličtina: Zmenené: Home')
 	})
 })

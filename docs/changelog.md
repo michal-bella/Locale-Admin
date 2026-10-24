@@ -8,9 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
-### Väčší modál Upraviť preklad (2026-10-24)
+### Modál Upraviť preklad a sticky stĺpce (2026-10-24)
 
 - frontend: modál **Upraviť preklad** je širší (680 px) a pole prekladu jednoduchého kľúča má aj prázdne aspoň 3 riadky
+- frontend: sticky stĺpce **Kľúč** a **Stav** v tabuľke prekladov majú pri vodorovnom posune jemný tieň na strane, pod ktorou je obsah
 
 ### Preklad z predchádzajúcej verzie v Upraviť preklad (2026-10-24)
 

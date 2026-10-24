@@ -1,6 +1,6 @@
 import { Button, Skeleton, Table, Text, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { Fragment, type PointerEvent as ReactPointerEvent, type ReactNode, useRef, useState } from 'react'
+import { Fragment, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type Language, placeholderReference, ROLE, type TranslationCell as TranslationCellData, type TranslationListItem } from '@locale/shared'
@@ -69,6 +69,17 @@ const TranslationsTable = ({
 	const { data: me } = useMeQuery()
 	const isAdmin = me?.role === ROLE.ADMIN
 	const tableRef = useRef<HTMLTableElement>(null)
+	const scrollRef = useRef<HTMLDivElement>(null)
+	// Which sticky column has content scrolled under it: the key column once scrolled right, the status column until the right end.
+	const [hiddenStart, setHiddenStart] = useState(false)
+	const [hiddenEnd, setHiddenEnd] = useState(false)
+	const updateScrollShadows = () => {
+		const scroll = scrollRef.current
+		if (scroll) {
+			setHiddenStart(scroll.scrollLeft > 0)
+			setHiddenEnd(scroll.scrollLeft + scroll.clientWidth < scroll.scrollWidth - 1)
+		}
+	}
 	const [editOpened, editModal] = useDisclosure(false)
 	const [editing, setEditing] = useState<TranslationListItem | null>(null)
 	const [translationOpened, translationModal] = useDisclosure(false)
@@ -417,8 +428,29 @@ const TranslationsTable = ({
 		))
 	}
 
+	// The table width changes with the data, the column widths and the window, none of which fires a scroll event.
+	useEffect(() => {
+		const scroll = scrollRef.current
+		const table = tableRef.current
+		if (!scroll || !table) {
+			return
+		}
+		updateScrollShadows()
+		const observer = new ResizeObserver(updateScrollShadows)
+		observer.observe(scroll)
+		observer.observe(table)
+		return () => observer.disconnect()
+	}, [])
+
 	return (
-		<div className={`${classes.scroll} ${isColumns && !translationsOnly ? classes.scrollExtended : ''}`} data-resizing={resizing ?? undefined}>
+		<div
+			ref={scrollRef}
+			className={`${classes.scroll} ${isColumns && !translationsOnly ? classes.scrollExtended : ''}`}
+			data-resizing={resizing ?? undefined}
+			data-hidden-start={hiddenStart || undefined}
+			data-hidden-end={hiddenEnd || undefined}
+			onScroll={updateScrollShadows}
+		>
 			<Table
 				ref={tableRef}
 				tabIndex={-1}

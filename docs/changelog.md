@@ -12,6 +12,7 @@ notion_page_id:
 
 - frontend: Prehľad má kartu **Vyplnené bunky** (podiel vyplnených buniek kľúče × jazyky z poľa `strings`) a kartu **Verzie** (počet verzií, aktuálna verzia, odkaz **Zobraziť verzie**); karta **Jazyky** má odkaz **Zobraziť jazyky**; karty sú v 3 stĺpcoch
 - frontend: čísla kariet a percentá jazykov sa napočítavajú od 0 a progress bary sa plnia; pri zapnutom obmedzení pohybu v systéme sa animácie vypnú
+- frontend: nové poradie položiek sidebaru v projekte: Prehľad, Preklady, Verzie, História, Jazyky, Členovia, Nastavenia; `/projects/$projectSlug` ďalej otvára Preklady
 
 ### História zmien (2026-10-24)
 

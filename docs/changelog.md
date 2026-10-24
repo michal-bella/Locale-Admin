@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Väčší modál Upraviť preklad (2026-10-24)
+
+- frontend: modál **Upraviť preklad** je širší (680 px) a pole prekladu jednoduchého kľúča má aj prázdne aspoň 3 riadky
+
 ### Preklad z predchádzajúcej verzie v Upraviť preklad (2026-10-24)
 
 - API: `diff` položky v `GET …/translations` nesie aj `previousValues`, hodnoty zmenených jazykov v predchádzajúcej verzii (`null` = tam nepreložené)

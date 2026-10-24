@@ -31,6 +31,7 @@ const TokenEditor = ({
 	onKeyDown,
 	onBlur,
 	className,
+	minRows,
 	ref,
 }: TokenEditorProps) => {
 	const { t } = useTranslation()
@@ -179,6 +180,8 @@ const TokenEditor = ({
 					}
 				}}
 				className={classes.root}
+				// `lh` is the field's own line height; the padding and border come on top, as in the one-line `min-height`.
+				style={minRows === undefined ? undefined : { minHeight: `calc(${minRows}lh + 1rem + 2px)` }}
 				onMouseOver={trackWarningChip}
 				onMouseLeave={() => setWarningRect(null)}
 				onInput={handleInput}

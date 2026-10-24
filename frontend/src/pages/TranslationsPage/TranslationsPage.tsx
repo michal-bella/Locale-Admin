@@ -160,6 +160,17 @@ const TranslationsPage = () => {
 		}
 	}, [isPastEnd, lastPage, navigate])
 
+	const editLanguage = search.editKey ? languages.find((language) => language.tag === search.editLanguage) : undefined
+	const openTranslationOf = search.editKey && editLanguage ? { keyId: search.editKey, language: editLanguage } : undefined
+	// The table opened the modal while rendering this list (or the key is not in it); the request leaves the URL, so a reload or Back does not repeat it.
+	const hasEditRequest = search.editKey !== undefined || search.editLanguage !== undefined
+	const isListLoaded = data !== undefined && !translationsQuery.isPlaceholderData
+	useEffect(() => {
+		if (hasEditRequest && isListLoaded) {
+			void navigate({ search: (previous) => ({ ...previous, editKey: undefined, editLanguage: undefined }), replace: true })
+		}
+	}, [hasEditRequest, isListLoaded, navigate])
+
 	const clearFilters = () =>
 		updateSearch({
 			search: undefined,
@@ -356,6 +367,7 @@ const TranslationsPage = () => {
 								showGroups={sort !== 'UPDATED'}
 								translationsOnly={search.translationsOnly}
 								readOnly={isVisitor || writesBlocked}
+								openTranslationOf={openTranslationOf}
 								onSave={saveTranslation}
 							/>
 						)}

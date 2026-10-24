@@ -31,6 +31,9 @@ export const translationsSearchSchema = z.object({
 	version: z.uuid().optional().catch(undefined),
 	/** Only keys added or changed against the previous version (`?diff=true`), the Zobraziť len zmeny switch. */
 	diff: z.literal(true).optional().catch(undefined),
+	/** Opens Upraviť preklad of this key in `editLanguage` once the list shows it, then both leave the URL (the link of an edit on Prehľad). */
+	editKey: z.uuid().optional().catch(undefined),
+	editLanguage: z.enum(LANGUAGE_TAGS).optional().catch(undefined),
 	/** Hides the key and status columns. */
 	translationsOnly: z.literal(true).optional().catch(undefined),
 	page: z.number().int().min(1).optional().catch(undefined),

@@ -257,6 +257,25 @@ describe('DashboardPage', () => {
 			{ type: ACTIVITY_TYPE.KEYS_IMPORTED, payload: { keysCreated: 2, translationsCreated: 0, translationsUpdated: 0, languageTags: [] } },
 		],
 		[
+			// An import into a new version that only copied the previous version's keys.
+			'import CSV: 2457 prevzatých kľúčov',
+			{
+				type: ACTIVITY_TYPE.KEYS_IMPORTED,
+				payload: { keysCreated: 0, keysCopied: 2457, translationsCreated: 0, translationsUpdated: 0, languageTags: [] },
+			},
+		],
+		[
+			'import CSV: 2 nové kľúče a 1 odstránený kľúč',
+			{
+				type: ACTIVITY_TYPE.KEYS_IMPORTED,
+				payload: { keysCreated: 2, keysRemoved: 1, translationsCreated: 0, translationsUpdated: 0, languageTags: [] },
+			},
+		],
+		[
+			'import CSV: bez zmien',
+			{ type: ACTIVITY_TYPE.KEYS_IMPORTED, payload: { keysCreated: 0, translationsCreated: 0, translationsUpdated: 0, languageTags: [] } },
+		],
+		[
 			'úprava kľúča orders.title: popis a plurál',
 			{
 				type: ACTIVITY_TYPE.KEY_UPDATED,
@@ -311,7 +330,13 @@ describe('DashboardPage', () => {
 		expect(today.getByText(/^pred 1\sh$/)).toBeInTheDocument()
 		const editLink = searchOf(today.getByRole('link', { name: 'Zobraziť preklad a.b v prekladoch' }))
 		expect(editLink.pathname).toBe(`/projects/${PROJECT.slug}/translations`)
-		expect(Object.fromEntries(editLink.searchParams)).toEqual({ search: 'a.b', namespace: 'loc' })
+		// The link also opens Upraviť preklad of that key and language (an event without a version keeps the page's default version).
+		expect(Object.fromEntries(editLink.searchParams)).toEqual({
+			search: 'a.b',
+			namespace: 'loc',
+			editKey: '00000000-0000-4000-8000-000000000501',
+			editLanguage: 'en',
+		})
 
 		const yesterday = within(activity.getByRole('list', { name: 'Včera' }))
 		const importLink = searchOf(yesterday.getByRole('link', { name: 'Zobraziť zmeny používateľa Lucia Tichá v prekladoch' }))
@@ -343,6 +368,8 @@ describe('DashboardPage', () => {
 		expect(Object.fromEntries(searchOf(await activity.findByRole('link', { name: 'Zobraziť preklad a.b v prekladoch' })).searchParams)).toEqual({
 			search: 'a.b',
 			namespace: 'paths',
+			editKey: '00000000-0000-4000-8000-000000000501',
+			editLanguage: 'en',
 		})
 		expect(Object.fromEntries(searchOf(activity.getByRole('link', { name: 'Zobraziť zmeny používateľa Martin Kováč v prekladoch' })).searchParams)).toEqual(
 			{

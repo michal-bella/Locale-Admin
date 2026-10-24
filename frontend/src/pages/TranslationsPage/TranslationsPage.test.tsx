@@ -1309,6 +1309,25 @@ describe('TranslationsPage edit modal', () => {
 		expect(within(title).queryByRole('img', { name: /Posledná úprava/ })).not.toBeInTheDocument()
 	})
 
+	it('opens Upraviť preklad of the key and language in the URL (a link from Prehľad) and drops them from the URL', async () => {
+		mockEditing()
+		const router = renderApp(`${PAGE_PATH}?search=dashboard.welcome&editKey=${WELCOME.keyId}&editLanguage=en`)
+
+		const dialog = await screen.findByRole('dialog', { name: DIALOG })
+		expect(within(dialog).getByRole('textbox', { name: 'Preklad kľúča dashboard.welcome, angličtina' })).toBeInTheDocument()
+		await waitFor(() => expect(router.state.location.search).toEqual({ search: 'dashboard.welcome' }))
+		expect(screen.getByRole('dialog', { name: DIALOG })).toBe(dialog)
+	})
+
+	it('only filters for a visitor, who cannot edit', async () => {
+		mockEditing(undefined, VISITOR_USER)
+		const router = renderApp(`${PAGE_PATH}?editKey=${WELCOME.keyId}&editLanguage=en`)
+
+		await screen.findByText('dashboard.welcome')
+		await waitFor(() => expect(router.state.location.search).toEqual({}))
+		expect(screen.queryByRole('dialog', { name: DIALOG })).not.toBeInTheDocument()
+	})
+
 	it('saves and opens the next untranslated cell of the page with Uložiť a ďalší, then hides it on the last one', async () => {
 		const puts = mockEditing()
 		renderApp(PAGE_PATH)

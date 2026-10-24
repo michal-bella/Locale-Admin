@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Filter upozornení po oprave (2026-10-24)
+
+- frontend: keď sa pri zapnutom filtri upozornení opraví posledné upozornenie, stránka Preklady filter sama zruší, banner zmizne a tabuľka ukáže všetky kľúče (predtým ostal banner s nulou a prázdna tabuľka)
+
 ### Zmena prekladu v Histórii (2026-10-24)
 
 - frontend: riadok úpravy prekladu v **Histórii** má ikonu **Zobraziť zmenu**, ktorá otvorí modál **Zmena prekladu** (kto, kedy, kľúč, jazyk, verzia) so starým a novým textom zvýrazneným po slovách: odstránené slová prečiarknuté červenou, pridané zelenou; iba na čítanie, bez obnovenia; tlačidlo **Otvoriť preklad** otvorí kľúč v Prekladoch rovno v modáli Upraviť preklad; premenné a HTML tagy sú v kľúči aj v hodnotách čipy ako v modáli Upraviť preklad

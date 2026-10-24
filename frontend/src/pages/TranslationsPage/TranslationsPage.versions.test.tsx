@@ -200,6 +200,22 @@ describe('TranslationsPage versions', () => {
 		expect(paramsOf(last).diff).toBeUndefined()
 	})
 
+	it('clears the warnings filter and hides the banner once no key has a warning', async () => {
+		mockPage({
+			routes: {
+				[`GET ${TRANSLATIONS_URL}`]: (config: InternalAxiosRequestConfig) => ({
+					status: 200,
+					data: paramsOf(config).warnings ? response([]) : response([WELCOME]),
+				}),
+			},
+		})
+		const router = renderApp(`${PAGE_PATH}?warnings=true`)
+
+		await findRow('dashboard.welcome')
+		expect(router.state.location.search).toEqual({})
+		expect(screen.queryByRole('button', { name: 'Zrušiť filter upozornení' })).not.toBeInTheDocument()
+	})
+
 	it('shows the current version by default with its countdown, and another one from the Verzia select', async () => {
 		const requests = mockPage()
 		const router = renderApp(PAGE_PATH)

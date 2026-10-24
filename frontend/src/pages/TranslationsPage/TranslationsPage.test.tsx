@@ -665,9 +665,15 @@ describe('TranslationsPage', () => {
 		expect(screen.queryByRole('button', { name: /upozornen/ })).not.toBeInTheDocument()
 	})
 
-	it('keeps the banner with Zrušiť filter when the URL filter is on and nothing matches, and Zrušiť filtre drops it too', async () => {
-		mockPage({ translations: response({ items: [], total: 0 }) })
-		const router = renderApp(`${PAGE_PATH}?warnings=true`)
+	it('keeps the banner with Zrušiť filter when the URL filter is on and another filter hides its keys, and Zrušiť filtre drops it too', async () => {
+		mockPage({
+			translations: response({
+				items: [],
+				total: 0,
+				stats: { totalKeys: 248, translated: 221, untranslated: 27, warnings: 2, untranslatedByLanguage: {} },
+			}),
+		})
+		const router = renderApp(`${PAGE_PATH}?warnings=true&search=missing`)
 
 		expect(await findVisibleText('Filtrom nezodpovedá žiadny kľúč.')).toBeInTheDocument()
 		expect(within(getWarningsBanner()).getByRole('button', { name: 'Zrušiť filter upozornení' })).toBeInTheDocument()

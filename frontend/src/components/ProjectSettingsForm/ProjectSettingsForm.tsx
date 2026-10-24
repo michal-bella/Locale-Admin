@@ -37,6 +37,7 @@ const ProjectSettingsForm = ({
 	onLeft,
 	onSaved,
 	onCancel,
+	actionsClassName,
 	onNotFound,
 	readOnly = false,
 	focusFirstField = false,
@@ -114,7 +115,7 @@ const ProjectSettingsForm = ({
 				disabled={readOnly}
 			/>
 			<VariableProtectionSection control={control} disabled={readOnly} />
-			<div className='flex flex-wrap justify-between gap-3'>
+			<div className={`flex flex-wrap justify-between gap-3 ${actionsClassName ?? ''}`}>
 				{isMember && (
 					<Button variant='outline' onClick={leaveModal.open}>
 						{t('projectSettingsPage.leave')}

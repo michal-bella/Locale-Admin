@@ -118,7 +118,7 @@ test.describe('ADMIN', () => {
 		await expect(dialog.getByLabel('Slug projektu', { exact: true })).toHaveValue(project.slug)
 		await expect(dialog.getByLabel('Primárna farba', { exact: true })).toHaveValue(project.primaryColor)
 		await expect(dialog.getByLabel('Základný jazyk', { exact: true })).toHaveValue('Slovak (sk)')
-		await expect(dialog.getByRole('switch', { name: /^Chrániť výrazy/ })).toBeVisible()
+		await expect(dialog.getByRole('switch', { name: /^Neukladať preklad/ })).toBeVisible()
 
 		await dialog.getByLabel('Názov projektu', { exact: true }).fill(edited.name)
 		await dialog.getByLabel('Slug projektu', { exact: true }).fill(edited.slug)

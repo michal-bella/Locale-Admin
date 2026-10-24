@@ -11,6 +11,8 @@ export type ProjectSettingsFormProps = {
 	onSaved: (settings: ProjectSettings) => void
 	/** Shows "Zrušiť" on the left when "Opustiť projekt" is not shown (the edit modal on Projekty). */
 	onCancel?: () => void
+	/** Extra classes of the button row, e.g. the modal footer look in the edit modal on Projekty. */
+	actionsClassName?: string
 	/** Replaces the error notification when the project was deleted meanwhile (the edit modal on Projekty closes itself). */
 	onNotFound?: () => void
 	/** Every field and "Uložiť zmeny" disabled, "Opustiť projekt" stays: only an ADMIN changes the settings. */

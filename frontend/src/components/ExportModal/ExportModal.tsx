@@ -188,6 +188,7 @@ const ExportModal = ({ projectId, version, opened, onClose }: ExportModalProps) 
 			description={t('exportModal.description')}
 			closeLabel={t('exportModal.close')}
 			isPending={isPending}
+			size={720}
 			fullScreen={isMobile}
 			footer={footer}
 		>

@@ -987,7 +987,10 @@ const openModal = async (key: string, buttonName: string | RegExp) => {
 
 const fieldOf = (dialog: HTMLElement, name: string | RegExp) => within(dialog).getByRole('textbox', { name })
 
-const save = (dialog: HTMLElement) => fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť' }))
+// Uložiť, or Uložiť a zavrieť while Uložiť a ďalší is shown next to it.
+const SAVE_BUTTON = /^Uložiť( a zavrieť)?$/
+
+const save = (dialog: HTMLElement) => fireEvent.click(within(dialog).getByRole('button', { name: SAVE_BUTTON }))
 
 const waitForClosed = () => waitFor(() => expect(screen.queryByRole('dialog', { name: DIALOG })).not.toBeInTheDocument())
 
@@ -1148,7 +1151,7 @@ describe('TranslationsPage edit modal', () => {
 		expect(
 			within(dialog).getByRole('img', { name: 'Navyše: {{user}}. Premenná nie je v kľúči ani v základnom jazyku – skontrolujte preklep.' }),
 		).toBeInTheDocument()
-		const submit = within(dialog).getByRole('button', { name: 'Uložiť' })
+		const submit = within(dialog).getByRole('button', { name: SAVE_BUTTON })
 		act(() => submit.focus())
 		fireEvent.click(submit)
 
@@ -1288,20 +1291,22 @@ describe('TranslationsPage edit modal', () => {
 		renderApp(PAGE_PATH)
 
 		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
-		const lastEdit = within(dialog).getByText('Posledná úprava: Martin Kováč, pred 5 minútami')
-		expect(lastEdit).toHaveAttribute('title', expect.stringMatching(/^\d{1,2}\. \d{1,2}\. \d{4},? \d{2}:\d{2}$/))
+		// An info icon next to the field label; its tooltip adds the exact date and time.
+		const lastEdit = within(dialog).getByRole('img', { name: 'Posledná úprava: Martin Kováč, pred 5 minútami' })
+		fireEvent.mouseEnter(lastEdit)
+		expect(await screen.findByRole('tooltip')).toHaveTextContent(/^Posledná úprava: Martin Kováč, pred 5 minútami\d{1,2}\. \d{1,2}\. \d{4},? \d{2}:\d{2}$/)
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Zrušiť' }))
 		await waitForClosed()
 
 		// The key equals its Slovak text, so the row cannot be found by its text.
 		fireEvent.click(screen.getByRole('button', { name: /Preklad kľúča Uložiť zmeny, angličtina/ }))
 		const saveChanges = await screen.findByRole('dialog', { name: DIALOG })
-		expect(within(saveChanges).getByText('Posledná úprava: pred 3 hodinami')).toBeInTheDocument()
+		expect(within(saveChanges).getByRole('img', { name: 'Posledná úprava: pred 3 hodinami' })).toBeInTheDocument()
 		fireEvent.click(within(saveChanges).getByRole('button', { name: 'Zrušiť' }))
 		await waitForClosed()
 
 		const title = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, angličtina: Bez prekladu')
-		expect(within(title).queryByText(/Posledná úprava/)).not.toBeInTheDocument()
+		expect(within(title).queryByRole('img', { name: /Posledná úprava/ })).not.toBeInTheDocument()
 	})
 
 	it('saves and opens the next untranslated cell of the page with Uložiť a ďalší, then hides it on the last one', async () => {
@@ -1309,7 +1314,13 @@ describe('TranslationsPage edit modal', () => {
 		renderApp(PAGE_PATH)
 
 		const dialog = await openModal('orders.empty.title', 'Preklad kľúča orders.empty.title, angličtina: Bez prekladu')
+		// Like Uložiť a zavrieť next to it, it waits for a change; the shortcut does nothing either.
+		expect(within(dialog).getByRole('button', { name: 'Uložiť a zavrieť' })).toBeDisabled()
+		expect(within(dialog).getByRole('button', { name: 'Uložiť a ďalší' })).toBeDisabled()
+		fireEvent.keyDown(fieldOf(dialog, 'Preklad kľúča orders.empty.title, angličtina'), { key: 'Enter', ctrlKey: true })
+		expect(within(dialog).getByRole('textbox', { name: 'Preklad kľúča orders.empty.title, angličtina' })).toBeInTheDocument()
 		typeText(fieldOf(dialog, 'Preklad kľúča orders.empty.title, angličtina'), 'No orders yet')
+		expect(within(dialog).getByRole('button', { name: 'Uložiť a ďalší' })).toBeEnabled()
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Uložiť a ďalší' }))
 
 		await waitFor(() => expect(puts()).toHaveLength(1))

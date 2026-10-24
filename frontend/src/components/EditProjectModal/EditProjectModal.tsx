@@ -12,6 +12,7 @@ import { projectSettingsQueryOptions } from '@/api/projectSettings/projectSettin
 import { retryUnlessNotFound } from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
 import AppModal from '@/components/AppModal/AppModal'
+import appModalClasses from '@/components/AppModal/AppModal.module.css'
 import ProjectSettingsForm from '@/components/ProjectSettingsForm/ProjectSettingsForm'
 
 import classes from './EditProjectModal.module.css'
@@ -76,6 +77,7 @@ const EditProjectContent = ({ projectId, onClose, onNotFound }: ContentProps) =>
 			// Only closes: the URL replace after a slug change belongs to the settings page, the admin list is refetched by the mutation.
 			onSaved={onClose}
 			onCancel={onClose}
+			actionsClassName={`${appModalClasses.footer} ${appModalClasses.footerInBody}`}
 			onNotFound={onNotFound}
 			// The focus trap already ran on the skeleton or the retry button, which are gone now.
 			focusFirstField

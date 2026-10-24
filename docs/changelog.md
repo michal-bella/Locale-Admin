@@ -10,6 +10,14 @@ notion_page_id:
 
 ### Upozornenia vo všetkých jazykoch (2026-10-23)
 
+- frontend: modál **Exportovať preklady** je širší (720 px)
+- frontend: v modáli **Upraviť preklad** je posledná úprava v tooltipe ikony za labelom prekladu, **Zrušiť** je v pätičke vľavo a vedľa **Uložiť a ďalší** sa ukladacie tlačidlo volá **Uložiť a zavrieť**
+- frontend: disabled primárne tlačidlo nemá ružový tieň a má jemný ružový odtieň namiesto šedej, aby sa líšilo od disabled sekundárneho
+- frontend: modály **Upraviť preklad** a **Upraviť projekt** majú tlačidlá v pätičke oddelenej čiarou ako ostatné modály (`footerInBody` v `AppModal`)
+- frontend: **Uložiť a ďalší** v modáli Upraviť preklad je disabled, kým sa pole nezmení (ako **Uložiť**), a `Cmd/Ctrl+Enter` bez zmeny už nepreskočí na ďalší preklad
+- frontend: hodnota základného jazyka v modáli **Upraviť preklad** je stlmená, upravovaný preklad ostal výrazný
+- frontend: ikona v banneroch verzie a upozornení je zvislo na strede prvého riadku (s textom aj tlačidlom), aj keď sa text na mobile zalomí
+- frontend: nastavenie projektu **Ochrana dynamických segmentov / Chrániť výrazy** sa volá **Kontrola premenných / Neukladať preklad s nezhodnými premennými** a jeho popis hovorí, čo naozaj robí (odmietne uloženie prekladu s nezhodnými premennými); v aktivite „kontrola premenných“
 - frontend: stĺpec Stav je užší (7,75 rem), takže odznak má po stranách rovnaké odsadenie ako bunky prekladov a kľúča
 - frontend: plurálová bunka v tabuľke skráti každú formu na 2 riadky, takže riadok s plurálom už nie je príliš vysoký
 - frontend: v modáli **Pridať kľúč** je popis namespace pod selectom, takže polia Kľúč a Namespace sú zarovnané

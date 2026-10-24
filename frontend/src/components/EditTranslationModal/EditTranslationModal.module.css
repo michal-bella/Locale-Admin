@@ -59,7 +59,8 @@
 	background-color: var(--app-color-surface-muted);
 	font-size: var(--mantine-font-size-sm);
 	line-height: 1.5;
-	color: var(--app-color-text-strong);
+	/* Muted like the source text in the table, so the translation being edited stands out. */
+	color: var(--mantine-color-text);
 	overflow-wrap: anywhere;
 }
 
@@ -97,7 +98,6 @@
 }
 
 .lastEdit {
-	font-size: var(--mantine-font-size-2xs);
-	line-height: 1.5;
-	color: var(--app-color-text-secondary);
+	display: inline-flex;
+	color: var(--app-color-muted);
 }

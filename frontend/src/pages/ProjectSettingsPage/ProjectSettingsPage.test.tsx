@@ -89,8 +89,9 @@ describe('ProjectSettingsPage', () => {
 		expect(screen.getByLabelText('Primárna farba')).toHaveValue('#E83E8C')
 		expect(screen.getByLabelText('Základný jazyk')).toHaveValue('Slovak (sk)')
 		// Mantine renders the description inside the <label>; the braces come through a parameter, not i18next interpolation.
-		const protect = screen.getByRole('switch', { name: /^Chrániť výrazy \{\{ variable \}\}/ })
+		const protect = screen.getByRole('switch', { name: /^Neukladať preklad s nezhodnými premennými/ })
 		expect(protect).toBeChecked()
+		expect(protect).toHaveAccessibleDescription(/napríklad \{\{ variable \}\}/)
 		expect(document.title).toBe('Nastavenia projektu – Locale')
 	})
 
@@ -154,7 +155,7 @@ describe('ProjectSettingsPage', () => {
 		change('Názov projektu', 'B2B Admin')
 		await waitFor(() => expect(getSaveButton()).toBeDisabled())
 
-		fireEvent.click(screen.getByRole('switch', { name: /^Chrániť výrazy/ }))
+		fireEvent.click(screen.getByRole('switch', { name: /^Neukladať preklad/ }))
 		await waitFor(() => expect(getSaveButton()).toBeEnabled())
 	})
 
@@ -222,7 +223,7 @@ describe('ProjectSettingsPage', () => {
 		change('Názov projektu', '  B2C iOS ')
 		change('Slug projektu', 'b2c-ios')
 		change('Primárna farba', '#1d4ed8')
-		fireEvent.click(screen.getByRole('switch', { name: /^Chrániť výrazy/ }))
+		fireEvent.click(screen.getByRole('switch', { name: /^Neukladať preklad/ }))
 		fireEvent.click(getSaveButton())
 
 		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Nastavenia projektu boli uložené.' })))
@@ -412,7 +413,7 @@ describe('ProjectSettingsPage', () => {
 		renderApp(PAGE_PATH)
 
 		expect(await screen.findByLabelText('Project name')).toHaveValue('B2B Admin')
-		expect(screen.getByRole('switch', { name: /^Protect \{\{ variable \}\} expressions/ })).toBeChecked()
+		expect(screen.getByRole('switch', { name: /^Refuse translations with mismatched variables/ })).toBeChecked()
 		expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
 	})
 
@@ -423,7 +424,7 @@ describe('ProjectSettingsPage', () => {
 		for (const label of ['Názov projektu', 'Slug projektu', 'Primárna farba', 'Základný jazyk']) {
 			expect(screen.getByLabelText(label)).toBeDisabled()
 		}
-		expect(screen.getByRole('switch', { name: /Chrániť výrazy/ })).toBeDisabled()
+		expect(screen.getByRole('switch', { name: /Neukladať preklad/ })).toBeDisabled()
 		expect(getSaveButton()).toBeDisabled()
 		expect(screen.getByRole('button', { name: 'Opustiť projekt' })).toBeEnabled()
 		expect(patchesOf(requests)).toHaveLength(0)

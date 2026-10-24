@@ -388,6 +388,7 @@
 			"value": "Translation",
 			"cancel": "Cancel",
 			"submit": "Save",
+			"submitClose": "Save and close",
 			"lastEdit": "Last edited by {{name}}, {{time}}",
 			"lastEditTime": "Last edited {{time}}",
 			"submitNext": "Save and next",
@@ -577,7 +578,7 @@
 				"name": "name",
 				"slug": "slug",
 				"primaryColor": "color",
-				"protectVariables": "variable protection"
+				"protectVariables": "variable check"
 			},
 			"keyFields": {
 				"name": "name",
@@ -1192,11 +1193,11 @@
 			}
 		},
 		"variables": {
-			"title": "Dynamic segment protection",
-			"description": "Variables are detected and locked automatically while editing.",
+			"title": "Variable check",
+			"description": "Checked when a translation is saved in the app. Imports and warnings are not affected by this setting.",
 			"protect": {
-				"label": "Protect {{example}} expressions",
-				"description": "Users can edit the text, not the variable name or its braces."
+				"label": "Refuse translations with mismatched variables",
+				"description": "A translation that lacks a variable of the base language (such as {{example}}) or has an extra one is not saved. Off: it is saved and marked with a warning."
 			}
 		},
 		"leave": "Leave project",

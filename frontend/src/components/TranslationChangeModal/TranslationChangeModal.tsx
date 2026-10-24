@@ -5,22 +5,26 @@ import { useTranslation } from 'react-i18next'
 
 import { SUPPORTED_LANGUAGES } from '@locale/shared'
 
+import ButtonLink from '@/atoms/ButtonLink/ButtonLink'
 import ActivityAvatar from '@/components/ActivityAvatar/ActivityAvatar'
 import AppModal from '@/components/AppModal/AppModal'
 import { ArrowRight } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import { formatDateTime } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
+import { translationEditSearch } from '@/lib/translationEditSearch'
 
 import classes from './TranslationChangeModal.module.css'
 import { type TranslationChangeModalProps } from './types'
 
 /**
  * Read-only detail of a translation edit from História: who, when, the key and language, and the old value against the new one
- * highlighted word by word, removed words in Pred and added ones in Po.
+ * highlighted word by word, removed words in Pred and added ones in Po. Otvoriť preklad opens the key in Preklady with Upraviť preklad,
+ * like the → of the row.
  */
-const TranslationChangeModal = ({ opened, event, onClose }: TranslationChangeModalProps) => {
+const TranslationChangeModal = ({ opened, event, projectSlug, onClose }: TranslationChangeModalProps) => {
 	const { t, i18n } = useTranslation()
+	const search = event ? translationEditSearch(event) : undefined
 
 	const renderBody = (): ReactNode => {
 		if (!event) {
@@ -106,9 +110,16 @@ const TranslationChangeModal = ({ opened, event, onClose }: TranslationChangeMod
 			closeLabel={t('historyPage.change.close')}
 			size={880}
 			footer={
-				<Button variant='default' onClick={onClose}>
-					{t('historyPage.change.close')}
-				</Button>
+				<>
+					<Button variant='default' onClick={onClose}>
+						{t('historyPage.change.close')}
+					</Button>
+					{search && (
+						<ButtonLink to='/projects/$projectSlug/translations' params={{ projectSlug }} search={search} rightSection={<ArrowRight aria-hidden />}>
+							{t('historyPage.change.open')}
+						</ButtonLink>
+					)}
+				</>
 			}
 		>
 			{renderBody()}

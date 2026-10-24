@@ -692,7 +692,8 @@
 			"before": "Before",
 			"after": "After",
 			"untranslated": "Untranslated",
-			"cleared": "Value cleared"
+			"cleared": "Value cleared",
+			"open": "Open translation"
 		}
 	},
 	"importModal": {

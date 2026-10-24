@@ -10,7 +10,7 @@ notion_page_id:
 
 ### Zmena prekladu v Histórii (2026-10-24)
 
-- frontend: riadok úpravy prekladu v **Histórii** má ikonu **Zobraziť zmenu**, ktorá otvorí modál **Zmena prekladu** (kto, kedy, kľúč, jazyk, verzia) so starým a novým textom zvýrazneným po slovách: odstránené slová prečiarknuté červenou, pridané zelenou; iba na čítanie, bez obnovenia
+- frontend: riadok úpravy prekladu v **Histórii** má ikonu **Zobraziť zmenu**, ktorá otvorí modál **Zmena prekladu** (kto, kedy, kľúč, jazyk, verzia) so starým a novým textom zvýrazneným po slovách: odstránené slová prečiarknuté červenou, pridané zelenou; iba na čítanie, bez obnovenia; tlačidlo **Otvoriť preklad** otvorí kľúč v Prekladoch rovno v modáli Upraviť preklad
 - závislosti: `diff` (jsdiff) 9.0.0, iba v lazy chunku stránky História ([Frontend](./frontend.md#stránka-história))
 
 ### Prehľad, sidebar a Jazyky (2026-10-24)

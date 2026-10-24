@@ -1,4 +1,5 @@
 import { MantineProvider } from '@mantine/core'
+import { createMemoryHistory, createRootRoute, createRouter, RouterProvider } from '@tanstack/react-router'
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vite-plus/test'
 
@@ -19,10 +20,13 @@ const change = (languageTag: string, oldValue: string | null, newValue: string |
 	payload: { keyId: '00000000-0000-4000-8000-000000000601', namespace: 'loc', name: 'orders.status', languageTag, oldValue, newValue },
 })
 
-const renderModal = (event: TranslationChangeEvent) =>
-	render(<TranslationChangeModal opened event={event} onClose={vi.fn()} />, {
-		wrapper: ({ children }) => <MantineProvider theme={mantineTheme}>{children}</MantineProvider>,
-	})
+// Otvoriť preklad is a router link, so the modal renders as the page of a one-route router.
+const renderModal = async (event: TranslationChangeEvent) => {
+	const rootRoute = createRootRoute({ component: () => <TranslationChangeModal opened event={event} projectSlug='booking-web' onClose={vi.fn()} /> })
+	const router = createRouter({ routeTree: rootRoute, history: createMemoryHistory() })
+	render(<RouterProvider router={router} />, { wrapper: ({ children }) => <MantineProvider theme={mantineTheme}>{children}</MantineProvider> })
+	await screen.findByRole('dialog', { name: 'Zmena prekladu' })
+}
 
 const block = (title: string) => {
 	const section = screen.getByRole('heading', { level: 3, name: title }).closest('section')
@@ -35,14 +39,19 @@ const block = (title: string) => {
 const marked = (section: HTMLElement, tag: 'del' | 'ins') => Array.from(section.querySelectorAll(tag)).map((element) => element.textContent)
 
 describe('TranslationChangeModal', () => {
-	it('shows who, when, the key and language, and marks the changed words', () => {
-		renderModal(change('en', 'The order was sent yesterday', 'The order was delivered today'))
+	it('shows who, when, the key and language, and marks the changed words', async () => {
+		await renderModal(change('en', 'The order was sent yesterday', 'The order was delivered today'))
 
 		const dialog = screen.getByRole('dialog', { name: 'Zmena prekladu' })
 		expect(within(dialog).getByText('loc:orders.status')).toBeInTheDocument()
 		expect(within(dialog).getByText('Angličtina')).toBeInTheDocument()
 		expect(within(dialog).getByText('v2.45')).toBeInTheDocument()
 		expect(within(dialog).getByText('Jana Nováková')).toBeInTheDocument()
+		const open = new URL(within(dialog).getByRole('link', { name: 'Otvoriť preklad' }).getAttribute('href') ?? '', 'http://localhost')
+		expect(open.pathname).toBe('/projects/booking-web/translations')
+		expect(open.searchParams.get('editKey')).toBe('00000000-0000-4000-8000-000000000601')
+		expect(open.searchParams.get('editLanguage')).toBe('en')
+		expect(open.searchParams.get('version')).toBe('00000000-0000-4000-8000-000000000502')
 
 		const before = block('Pred')
 		const after = block('Po')
@@ -54,22 +63,22 @@ describe('TranslationChangeModal', () => {
 		expect(marked(after, 'del')).toEqual([])
 	})
 
-	it('shows Nepreložené before the first translation and the whole value as added', () => {
-		renderModal(change('sk', null, 'Objednávka odoslaná'))
+	it('shows Nepreložené before the first translation and the whole value as added', async () => {
+		await renderModal(change('sk', null, 'Objednávka odoslaná'))
 
 		expect(within(block('Pred')).getByText('Nepreložené')).toBeInTheDocument()
 		expect(marked(block('Po'), 'ins')).toEqual(['Objednávka odoslaná'])
 	})
 
-	it('shows Hodnota vymazaná after a cleared value and the whole old value as removed', () => {
-		renderModal(change('sk', 'Objednávka odoslaná', null))
+	it('shows Hodnota vymazaná after a cleared value and the whole old value as removed', async () => {
+		await renderModal(change('sk', 'Objednávka odoslaná', null))
 
 		expect(within(block('Po')).getByText('Hodnota vymazaná')).toBeInTheDocument()
 		expect(marked(block('Pred'), 'del')).toEqual(['Objednávka odoslaná'])
 	})
 
-	it('splits Cyrillic into words, not single letters', () => {
-		renderModal(change('ru', 'Заказ отправлен', 'Заказ доставлен'))
+	it('splits Cyrillic into words, not single letters', async () => {
+		await renderModal(change('ru', 'Заказ отправлен', 'Заказ доставлен'))
 
 		expect(marked(block('Pred'), 'del')).toEqual(['отправлен'])
 		expect(marked(block('Po'), 'ins')).toEqual(['доставлен'])

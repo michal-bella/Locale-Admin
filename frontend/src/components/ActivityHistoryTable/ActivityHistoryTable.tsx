@@ -174,7 +174,7 @@ const ActivityHistoryTable = ({ projectSlug, events, error, isRefetching, onRetr
 				</Table.Thead>
 				<Table.Tbody>{renderBody()}</Table.Tbody>
 			</Table>
-			<TranslationChangeModal opened={changeOpened} event={changeEvent} onClose={changeModal.close} />
+			<TranslationChangeModal opened={changeOpened} event={changeEvent} projectSlug={projectSlug} onClose={changeModal.close} />
 		</div>
 	)
 }

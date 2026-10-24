@@ -726,7 +726,8 @@
 			"before": "Před",
 			"after": "Po",
 			"untranslated": "Nepřeloženo",
-			"cleared": "Hodnota smazána"
+			"cleared": "Hodnota smazána",
+			"open": "Otevřít překlad"
 		}
 	},
 	"importModal": {

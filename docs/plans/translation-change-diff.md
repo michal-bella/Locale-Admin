@@ -39,7 +39,7 @@ Vetva `feat/translation-change-diff` (z `main` = `aca350c`).
 
 ### Modál `TranslationChangeModal`
 
-`AppModal` (šírka 880 px, pôvodne `lg`; širšia kvôli dlhším textom), titulok **Zmena prekladu**, popis = kľúč (`namespace:name`, ako v tabuľke prekladov), pätička iba **Zavrieť**.
+`AppModal` (šírka 880 px, pôvodne `lg`; širšia kvôli dlhším textom), titulok **Zmena prekladu**, popis = kľúč (`namespace:name`, ako v tabuľke prekladov), pätička **Zavrieť** a **Otvoriť preklad** (doplnené na žiadosť používateľa: rovnaký cieľ ako šípka → riadku, Preklady s otvoreným modálom Upraviť preklad).
 
 - Hlavička: jazyk s vlajkou (`LanguageFlag`) a názvom, verzia (ak existuje), kto (`ActivityAvatar` + meno, „Zmazaný používateľ“ po zmazaní) a kedy (`formatDateTime` + relatívny čas).
 - Dva bloky so šípkou → medzi nimi (stav pred a po), na širokom modáli vedľa seba (od `sm`), na telefóne pod sebou so šípkou nadol:

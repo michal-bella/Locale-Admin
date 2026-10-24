@@ -86,7 +86,7 @@ const event = (data: ActivityEventData, createdAt = hoursAgo(1), user: ActivityE
 	return { id: `00000000-0000-4000-8000-0000000004${String(eventIndex).padStart(2, '0')}`, createdAt, count: 1, user, version: null, ...data }
 }
 
-const activityPage = (items: ActivityEvent[], nextCursor: string | null = null): ActivityListResponse => ({ items, nextCursor })
+const activityPage = (items: ActivityEvent[], total = items.length): ActivityListResponse => ({ items, total, page: 1, pageSize: 10, users: [] })
 
 const DAILY: ActivityDailyResponse = {
 	days: [
@@ -379,31 +379,21 @@ describe('DashboardPage', () => {
 		)
 	})
 
-	it('loads the next page of the activity with the cursor', async () => {
-		const first = event({ type: ACTIVITY_TYPE.LANGUAGE_ADDED, payload: { tag: 'en' } })
-		const second = event({ type: ACTIVITY_TYPE.LANGUAGE_ADDED, payload: { tag: 'cs' } }, hoursAgo(2))
+	it('asks for the last 10 events without a Načítať ďalšie and links to História', async () => {
 		const requests = signedInAs(
 			EDITOR_USER,
 			routes({
-				[`GET ${API}/activity`]: (config: InternalAxiosRequestConfig) => {
-					const params = config.params as { cursor?: string; limit: number }
-					return { status: 200, data: params.cursor === first.id ? activityPage([second]) : activityPage([first], first.id) }
-				},
+				[`GET ${API}/activity`]: { status: 200, data: activityPage([event({ type: ACTIVITY_TYPE.LANGUAGE_ADDED, payload: { tag: 'en' } })], 42) },
 			}),
 		)
 		renderApp(PAGE_PATH)
 
 		const activity = await findActivity()
 		expect(await activity.findByText('· pridanie jazyka angličtina', { exact: false })).toBeInTheDocument()
-		fireEvent.click(activity.getByRole('button', { name: 'Načítať ďalšie' }))
-
-		expect(await activity.findByText('· pridanie jazyka čeština', { exact: false })).toBeInTheDocument()
 		expect(activity.queryByRole('button', { name: 'Načítať ďalšie' })).not.toBeInTheDocument()
+		expect(activity.getByRole('link', { name: 'Zobraziť históriu' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/history`)
 		const feedRequests = requests.filter((request) => request.url === `${API}/activity`).map((request) => request.params as unknown)
-		expect(feedRequests).toEqual([
-			{ cursor: undefined, limit: 10 },
-			{ cursor: first.id, limit: 10 },
-		])
+		expect(feedRequests).toEqual([{ pageSize: 10 }])
 	})
 
 	it('shows the empty states of a project without keys, versions and activity, and no version select', async () => {

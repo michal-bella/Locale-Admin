@@ -1,23 +1,19 @@
-import { infiniteQueryOptions, keepPreviousData, queryOptions, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query'
 
-import { type ActivityDailyQueryInput, type ActivityDailyResponse, type ActivityListResponse } from '@locale/shared'
+import { type ActivityDailyQueryInput, type ActivityDailyResponse, type ActivityListQueryInput, type ActivityListResponse } from '@locale/shared'
 
 import http from '@/api/http'
 import { QUERY_KEYS } from '@/api/queryKeys'
 
-export const ACTIVITY_FEED_PAGE_SIZE = 10
-
-export const activityFeedQueryOptions = (projectId: string) =>
-	infiniteQueryOptions({
-		queryKey: QUERY_KEYS.PROJECTS.ACTIVITY_FEED(projectId),
-		queryFn: async ({ pageParam }) =>
-			(await http.get<ActivityListResponse>(`/projects/${projectId}/activity`, { params: { cursor: pageParam, limit: ACTIVITY_FEED_PAGE_SIZE } })).data,
-		initialPageParam: undefined as string | undefined,
-		getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+export const activityListQueryOptions = (projectId: string, query: ActivityListQueryInput) =>
+	queryOptions({
+		queryKey: QUERY_KEYS.PROJECTS.ACTIVITY_LIST(projectId, query),
+		queryFn: async () => (await http.get<ActivityListResponse>(`/projects/${projectId}/activity`, { params: query })).data,
 	})
 
-/** The activity feed of the project, newest first, `ACTIVITY_FEED_PAGE_SIZE` events per page. */
-export const useActivityInfiniteQuery = (projectId: string) => useInfiniteQuery(activityFeedQueryOptions(projectId))
+/** One page of the project's events, newest first; the previous page stays on screen while another page or filter loads. */
+export const useActivityListQuery = (projectId: string, query: ActivityListQueryInput) =>
+	useQuery({ ...activityListQueryOptions(projectId, query), placeholderData: keepPreviousData })
 
 export const activityDailyQueryOptions = (projectId: string, query: ActivityDailyQueryInput) =>
 	queryOptions({

@@ -1,6 +1,6 @@
 ---
 title: 'API: prehľad projektu a aktivita'
-updated: 2026-10-20
+updated: 2026-10-24
 notion_page_id:
 ---
 
@@ -11,7 +11,7 @@ notion_page_id:
 | Metóda | Cesta                                     | Prístup            | Popis                                                 |
 | ------ | ----------------------------------------- | ------------------ | ----------------------------------------------------- |
 | `GET`  | `/api/projects/:projectId/dashboard`      | člen alebo `ADMIN` | štatistiky kľúčov a prekladov                         |
-| `GET`  | `/api/projects/:projectId/activity`       | člen alebo `ADMIN` | feed udalostí, najnovšie prvé, stránkovanie kurzorom  |
+| `GET`  | `/api/projects/:projectId/activity`       | člen alebo `ADMIN` | udalosti, najnovšie prvé, filtre a číslované stránky  |
 | `GET`  | `/api/projects/:projectId/activity/daily` | člen alebo `ADMIN` | denné súčty zmien za obdobie a najaktívnejší členovia |
 
 Prístup rieši `requireProjectAccess` ako pri ostatných cestách projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). Všetky tri sú iba na čítanie a rátajú sa agregačnými SQL dotazmi, riadky prekladov sa do pamäte nenačítavajú.
@@ -46,31 +46,36 @@ Projekt bez verzií aj prázdna verzia vrátia samé nuly. Nový jazyk bez prekl
 
 ## GET /api/projects/:projectId/activity
 
-Každá udalosť nesie `version` (`{ id, name }` verzie, ku ktorej patrí: kľúče, bunky, import, samotná verzia), `null` pri udalostiach projektu (jazyky, členovia, nastavenia) a po zmazaní verzie. Zoznam je za celý projekt, nefiltruje sa podľa verzie.
+Každá udalosť nesie `version` (`{ id, name }` verzie, ku ktorej patrí: kľúče, bunky, import, samotná verzia), `null` pri udalostiach projektu (jazyky, členovia, nastavenia) a po zmazaní verzie. Bez filtrov je zoznam za celý projekt. Používa ho Posledná aktivita na Prehľade (prvých 10) aj stránka História.
 
-Query (schéma `activityListQuerySchema`):
+Query (schéma `activityListQuerySchema`), filtre sa kombinujú:
 
-| Parameter | Typ         | Predvolene | Popis                                                          |
-| --------- | ----------- | ---------- | -------------------------------------------------------------- |
-| `cursor`  | UUID        | –          | `id` poslednej udalosti predchádzajúcej stránky (`nextCursor`) |
-| `limit`   | celé 1 – 50 | 20         | počet udalostí na stránku                                      |
+| Parameter   | Typ                 | Predvolene | Popis                                                                                                                 |
+| ----------- | ------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| `userId`    | UUID                | –          | iba zmeny tohto používateľa                                                                                           |
+| `category`  | `ACTIVITY_CATEGORY` | –          | `TRANSLATION`, `IMPORT`, `KEY`, `VERSION`, `LANGUAGE`, `MEMBER` alebo `PROJECT` (typy podľa `ACTIVITY_TYPE_CATEGORY`) |
+| `versionId` | UUID                | –          | iba udalosti tejto verzie (udalosti projektu verziu nemajú)                                                           |
+| `from`      | string (ISO 8601)   | –          | `createdAt >= from`; História posiela začiatok lokálneho dňa pred 6, 29 alebo 89 dňami                                |
+| `to`        | string (ISO 8601)   | –          | `createdAt < to` (výlučne); História ho zatiaľ neposiela                                                              |
+| `page`      | celé ≥ 1            | 1          | číslo stránky                                                                                                         |
+| `pageSize`  | celé 1 – 50         | 20         | počet udalostí na stránku                                                                                             |
 
-Vráti `200` (schéma `activityListResponseSchema`) `{ items, nextCursor }`. Udalosti sú zoradené od najnovšej (`createdAt DESC, id DESC`). Ďalšia stránka sa číta kurzorom (keyset `(createdAt, id) < (kurzor)`), takže udalosti zapísané medzi dvoma stránkami nič nezdvoja ani nepreskočia. `nextCursor` je `null` na poslednej stránke.
+Vráti `200` (schéma `activityListResponseSchema`) `{ items, total, page, pageSize, users }`. Udalosti sú zoradené od najnovšej (`createdAt DESC, id DESC`), stránky cez `OFFSET`. `total` je počet udalostí podľa filtrov; stránka za poslednou má prázdne `items`. Udalosť zapísaná, kým používateľ prechádza stránky, posunie riadky o jeden (cena za čísla stránok a súčet, ktoré kurzor nedá). `users` sú všetci používatelia s udalosťou v projekte bez ohľadu na filtre (bez odstránených), zoradení podľa mena: možnosti filtra osoby.
 
 Položka `ActivityEvent` (schéma `activityEventSchema`):
 
 | Pole        | Typ                         | Popis                                                                                                                  |
 | ----------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `id`        | UUID                        | ID udalosti, slúži ako kurzor                                                                                          |
+| `id`        | UUID                        | ID udalosti                                                                                                            |
 | `createdAt` | string (ISO 8601)           | čas zmeny                                                                                                              |
 | `count`     | number                      | počet zmenených prekladov (import = zapísané bunky, úprava = 1)                                                        |
 | `user`      | `{ id, name }` alebo `null` | kto zmenu urobil; `name` je celé meno, inak e-mail; `null` po odstránení používateľa (snímka člena v `payload` ostáva) |
 | `type`      | `ACTIVITY_TYPE`             | typ udalosti (viď [Databáza](../database.md#activityevent))                                                            |
 | `payload`   | objekt podľa `type`         | snímka údajov v čase zmeny (schéma `activityEventDataSchema`), napr. `{ "tag": "en" }` pri `LANGUAGE_ADDED`            |
 
-| HTTP | `code`             | Kedy                                                                                                   |
-| ---- | ------------------ | ------------------------------------------------------------------------------------------------------ |
-| 400  | `VALIDATION_ERROR` | `limit` mimo 1 – 50; `cursor` nie je UUID alebo nie je udalosťou tohto projektu (`cursor` / `INVALID`) |
+| HTTP | `code`             | Kedy                                                                                                                                                    |
+| ---- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400  | `VALIDATION_ERROR` | `pageSize` mimo 1 – 50, `page` < 1; `userId` alebo `versionId` nie je UUID, neznáma `category`, `from` / `to` nie je ISO 8601 dátum s časom (`INVALID`) |
 
 ## GET /api/projects/:projectId/activity/daily
 
@@ -108,5 +113,6 @@ Vráti `200` (schéma `activityDailyResponseSchema`):
 ## Príklad
 
 ```bash
+curl -s -b cookies.txt 'http://localhost:8080/api/projects/<projectId>/activity?category=IMPORT&page=2&pageSize=20'
 curl -s -b cookies.txt 'http://localhost:8080/api/projects/<projectId>/activity/daily?range=7d&timeZone=Europe/Bratislava'
 ```

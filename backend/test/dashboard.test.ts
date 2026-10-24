@@ -43,9 +43,28 @@ const createKey = async (projectId: string, name: string, values: Record<string,
 		},
 	})
 
-const createEvent = (projectId: string, createdAt: Date, { userId = null, count = 1 }: { userId?: string | null; count?: number } = {}) =>
+const createEvent = (
+	projectId: string,
+	createdAt: Date,
+	{
+		userId = null,
+		count = 1,
+		versionId = null,
+		imported = false,
+	}: { userId?: string | null; count?: number; versionId?: string | null; imported?: boolean } = {},
+) =>
 	getTestPrisma().activityEvent.create({
-		data: { projectId, userId, createdAt, count, type: ACTIVITY_TYPE.LANGUAGE_ADDED, payload: { tag: 'en' } },
+		data: imported
+			? {
+					projectId,
+					userId,
+					versionId,
+					createdAt,
+					count,
+					type: ACTIVITY_TYPE.KEYS_IMPORTED,
+					payload: { keysCreated: 1, translationsCreated: count, translationsUpdated: 0, languageTags: ['sk'] },
+				}
+			: { projectId, userId, versionId, createdAt, count, type: ACTIVITY_TYPE.LANGUAGE_ADDED, payload: { tag: 'en' } },
 	})
 
 const get = (app: App, cookie: string, path: string) => request(app).get(`/api/projects${path}`).set('Cookie', cookie)
@@ -135,39 +154,42 @@ describe('GET /api/projects/:projectId/dashboard', () => {
 })
 
 describe('GET /api/projects/:projectId/activity', () => {
-	it('pages newest first by createdAt and id without duplicates or gaps', async () => {
+	it('pages newest first by createdAt and id with the total and the users of the project', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await login(app, ROLE.EDITOR, { firstName: 'Jana', lastName: 'Nováková' })
+		const { user: other } = await createUser({ firstName: 'Adam', lastName: 'Biely' })
 		const project = await createProject([user.id])
 		const at = (minutes: number) => new Date(Date.UTC(2026, 9, 20, 10, minutes))
 		const created = [
 			await createEvent(project.id, at(0), { userId: user.id }),
-			await createEvent(project.id, at(5)),
+			await createEvent(project.id, at(5), { userId: other.id }),
 			await createEvent(project.id, at(5)),
 			await createEvent(project.id, at(5)),
 			await createEvent(project.id, at(9), { count: 90 }),
 		]
-		await createEvent((await createProject()).id, at(7))
+		await createEvent((await createProject()).id, at(7), { userId: (await createUser()).user.id })
 		const expected = [...created].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || (a.id < b.id ? 1 : -1)).map((event) => event.id)
 
-		const ids: string[] = []
-		let cursor: string | null = null
-		let pages = 0
-		do {
-			const res = await get(app, cookie, `/${project.id}/activity?limit=2${cursor ? `&cursor=${cursor}` : ''}`)
-			expect(res.status).toBe(200)
-			const body = res.body as { items: { id: string }[]; nextCursor: string | null }
-			ids.push(...body.items.map((item) => item.id))
-			cursor = body.nextCursor
-			pages += 1
-		} while (cursor)
+		const pages = await Promise.all([1, 2, 3, 4].map((page) => get(app, cookie, `/${project.id}/activity?pageSize=2&page=${page}`)))
 
-		expect(ids).toEqual(expected)
-		expect(pages).toBe(3)
+		const bodies = pages.map((res) => res.body as { items: { id: string }[]; total: number; page: number; pageSize: number })
+		expect(bodies.flatMap((body) => body.items.map((item) => item.id))).toEqual(expected)
+		expect(bodies.map((body) => [body.items.length, body.total, body.page, body.pageSize])).toEqual([
+			[2, 5, 1, 2],
+			[2, 5, 2, 2],
+			[1, 5, 3, 2],
+			[0, 5, 4, 2],
+		])
 		const first = await get(app, cookie, `/${project.id}/activity`)
 		expect(first.body).toEqual({
 			items: expect.any(Array) as unknown,
-			nextCursor: null,
+			total: 5,
+			page: 1,
+			pageSize: 20,
+			users: [
+				{ id: other.id, name: 'Adam Biely' },
+				{ id: user.id, name: 'Jana Nováková' },
+			],
 		})
 		expect((first.body as { items: unknown[] }).items.at(-1)).toEqual({
 			id: created[0]?.id,
@@ -181,34 +203,51 @@ describe('GET /api/projects/:projectId/activity', () => {
 		expect((first.body as { items: { count: number }[] }).items[0]?.count).toBe(90)
 	})
 
-	it('ends with a null cursor when the last page is full', async () => {
+	it('filters by user, category, version and period, combined, with the total of the matches', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await login(app)
 		const project = await createProject([user.id])
-		await createEvent(project.id, new Date('2026-10-20T10:00:00Z'))
-		await createEvent(project.id, new Date('2026-10-20T11:00:00Z'))
+		const versionId = await versionIdOf(project.id)
+		const day = (date: number, hour = 10) => new Date(Date.UTC(2026, 9, date, hour))
+		const own = await createEvent(project.id, day(1), { userId: user.id })
+		const ownImport = await createEvent(project.id, day(2), { userId: user.id, imported: true, versionId })
+		const otherImport = await createEvent(project.id, day(3), { imported: true, versionId })
+		const lastDay = await createEvent(project.id, day(4, 23))
+		const url = `/${project.id}/activity`
+		const ids = async (query: string) => {
+			const body = (await get(app, cookie, `${url}?${query}`)).body as { items: { id: string }[]; total: number }
+			expect(body.total).toBe(body.items.length)
+			return body.items.map((item) => item.id)
+		}
 
-		const res = await get(app, cookie, `/${project.id}/activity?limit=2`)
-
-		expect((res.body as { items: unknown[] }).items).toHaveLength(2)
-		expect((res.body as { nextCursor: unknown }).nextCursor).toBeNull()
+		expect(await ids(`userId=${user.id}`)).toEqual([ownImport.id, own.id])
+		expect(await ids('category=IMPORT')).toEqual([otherImport.id, ownImport.id])
+		expect(await ids('category=LANGUAGE')).toEqual([lastDay.id, own.id])
+		expect(await ids(`versionId=${versionId}`)).toEqual([otherImport.id, ownImport.id])
+		expect(await ids(`userId=${user.id}&category=IMPORT&versionId=${versionId}`)).toEqual([ownImport.id])
+		// `from` inclusive, `to` exclusive.
+		expect(await ids(`from=${day(2).toISOString()}&to=${day(4, 23).toISOString()}`)).toEqual([otherImport.id, ownImport.id])
+		expect(await ids(`from=${day(4, 23).toISOString()}`)).toEqual([lastDay.id])
+		expect(await ids(`userId=${randomUUID()}`)).toEqual([])
 	})
 
-	it('validates the limit and rejects a foreign or unknown cursor', async () => {
+	it('validates the page, the page size and the filters', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await login(app)
 		const project = await createProject([user.id])
-		const foreign = await createEvent((await createProject()).id, new Date())
 		const url = `/${project.id}/activity`
 
-		expect((await get(app, cookie, `${url}?limit=0`)).status).toBe(400)
-		expect(errorResponseSchema.parse((await get(app, cookie, `${url}?limit=51`)).body).error.details).toEqual([
-			{ path: 'limit', code: VALIDATION_CODE.TOO_LONG, params: { max: 50 } },
+		expect((await get(app, cookie, `${url}?pageSize=0`)).status).toBe(400)
+		expect(errorResponseSchema.parse((await get(app, cookie, `${url}?pageSize=51`)).body).error.details).toEqual([
+			{ path: 'pageSize', code: VALIDATION_CODE.TOO_LONG, params: { max: 50 } },
 		])
-		expect((await get(app, cookie, `${url}?limit=50`)).status).toBe(200)
-		expectValidationError(await get(app, cookie, `${url}?cursor=${foreign.id}`), 'cursor')
-		expectValidationError(await get(app, cookie, `${url}?cursor=${randomUUID()}`), 'cursor')
-		expectValidationError(await get(app, cookie, `${url}?cursor=abc`), 'cursor')
+		expect((await get(app, cookie, `${url}?pageSize=50`)).status).toBe(200)
+		expect((await get(app, cookie, `${url}?page=0`)).status).toBe(400)
+		expectValidationError(await get(app, cookie, `${url}?userId=abc`), 'userId')
+		expectValidationError(await get(app, cookie, `${url}?versionId=abc`), 'versionId')
+		expectValidationError(await get(app, cookie, `${url}?category=TRANSLATION_UPDATED`), 'category')
+		expectValidationError(await get(app, cookie, `${url}?from=2026-10-01`), 'from')
+		expectValidationError(await get(app, cookie, `${url}?to=abc`), 'to')
 	})
 
 	it('returns user null after the user was deleted', async () => {

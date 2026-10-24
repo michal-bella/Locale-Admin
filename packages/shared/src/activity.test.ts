@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+	ACTIVITY_CATEGORIES,
 	ACTIVITY_TYPE,
+	ACTIVITY_TYPE_CATEGORY,
 	activityDailyQuerySchema,
 	activityDailyResponseSchema,
 	activityEventDataSchema,
@@ -57,21 +59,34 @@ describe('activityEventDataSchema', () => {
 })
 
 describe('activityListQuerySchema', () => {
-	it('defaults the limit, coerces it from the query string and treats an empty cursor as none', () => {
-		expect(activityListQuerySchema.parse({})).toEqual({ limit: 20 })
-		expect(activityListQuerySchema.parse({ cursor: '', limit: '50' })).toEqual({ limit: 50 })
-		expect(activityListQuerySchema.parse({ cursor: KEY_ID, limit: '1' })).toEqual({ cursor: KEY_ID, limit: 1 })
+	it('defaults the page, coerces numbers from the query string and treats empty filters as none', () => {
+		expect(activityListQuerySchema.parse({})).toEqual({ page: 1, pageSize: 20 })
+		expect(activityListQuerySchema.parse({ userId: '', category: '', versionId: '', from: '', to: '', page: '3', pageSize: '50' })).toEqual({
+			page: 3,
+			pageSize: 50,
+		})
+		const filters = { userId: KEY_ID, category: 'IMPORT', versionId: KEY_ID, from: '2026-10-01T22:00:00.000Z', to: '2026-10-08T22:00:00.000Z' }
+		expect(activityListQuerySchema.parse(filters)).toEqual({ ...filters, page: 1, pageSize: 20 })
 	})
 
-	it('rejects a limit out of 1–50 and a non-uuid cursor', () => {
+	it('rejects a page size out of 1–50, page 0 and invalid filters', () => {
 		const issues = (query: object) => {
 			const result = activityListQuerySchema.safeParse(query)
 			return result.success ? [] : toValidationIssues(result.error)
 		}
 		// The shared mapper reports a minimum of 1 as REQUIRED.
-		expect(issues({ limit: '0' })).toEqual([{ path: 'limit', code: 'REQUIRED' }])
-		expect(issues({ limit: '51' })).toEqual([{ path: 'limit', code: 'TOO_LONG', params: { max: 50 } }])
-		expect(issues({ cursor: 'abc' })).toEqual([{ path: 'cursor', code: 'INVALID' }])
+		expect(issues({ pageSize: '0' })).toEqual([{ path: 'pageSize', code: 'REQUIRED' }])
+		expect(issues({ pageSize: '51' })).toEqual([{ path: 'pageSize', code: 'TOO_LONG', params: { max: 50 } }])
+		expect(issues({ page: '0' })).toEqual([{ path: 'page', code: 'REQUIRED' }])
+		expect(issues({ userId: 'abc' })).toEqual([{ path: 'userId', code: 'INVALID' }])
+		expect(issues({ category: 'TRANSLATION_UPDATED' })).toEqual([{ path: 'category', code: 'INVALID' }])
+		expect(issues({ from: '2026-10-01' })).toEqual([{ path: 'from', code: 'INVALID' }])
+	})
+})
+
+describe('ACTIVITY_TYPE_CATEGORY', () => {
+	it('puts every type into a category and leaves no category empty', () => {
+		expect(new Set(Object.values(ACTIVITY_TYPE_CATEGORY))).toEqual(new Set(ACTIVITY_CATEGORIES))
 	})
 })
 
@@ -86,8 +101,9 @@ describe('activityListResponseSchema', () => {
 			type: ACTIVITY_TYPE.LANGUAGE_ADDED,
 			payload: { tag: 'en' },
 		}
-		expect(activityListResponseSchema.parse({ items: [item, { ...item, user: null }], nextCursor: KEY_ID }).items).toEqual([item, { ...item, user: null }])
-		expect(activityListResponseSchema.safeParse({ items: [{ ...item, payload: { name: 'A' } }], nextCursor: null }).success).toBe(false)
+		const page = { total: 2, page: 1, pageSize: 20, users: [{ id: KEY_ID, name: 'Jana' }] }
+		expect(activityListResponseSchema.parse({ items: [item, { ...item, user: null }], ...page }).items).toEqual([item, { ...item, user: null }])
+		expect(activityListResponseSchema.safeParse({ items: [{ ...item, payload: { name: 'A' } }], ...page }).success).toBe(false)
 	})
 })
 

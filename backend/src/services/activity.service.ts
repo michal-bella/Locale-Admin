@@ -1,8 +1,8 @@
 import {
 	ACTIVITY_CONTRIBUTORS_MAX,
 	ACTIVITY_RANGE_DAYS,
-	ERROR_CODE,
-	VALIDATION_CODE,
+	ACTIVITY_TYPE,
+	ACTIVITY_TYPE_CATEGORY,
 	activityEventDataSchema,
 	type ActivityDailyQuery,
 	type ActivityDailyResponse,
@@ -11,31 +11,42 @@ import {
 } from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
-import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 import { assertProjectVersion, findDefaultVersionId, todayVersionDate } from '../lib/projectVersions'
 
 import { EDITOR_SELECT, toEditor, type EditorRow } from './translations.service'
 
-/** Keyset pagination on `(createdAt, id)`, newest first; offsets would skip or repeat events written between two pages. */
-export const listActivity = async (prisma: PrismaClient, projectId: string, { cursor, limit }: ActivityListQuery): Promise<ActivityListResponse> => {
-	let after: Prisma.ActivityEventWhereInput = {}
-	if (cursor !== undefined) {
-		const last = await prisma.activityEvent.findFirst({ where: { id: cursor, projectId }, select: { id: true, createdAt: true } })
-		if (!last) {
-			throw new AppError(400, ERROR_CODE.VALIDATION_ERROR, 'Cursor is not an event of the project', [{ path: 'cursor', code: VALIDATION_CODE.INVALID }])
-		}
-		after = { OR: [{ createdAt: { lt: last.createdAt } }, { createdAt: last.createdAt, id: { lt: last.id } }] }
+const ACTIVITY_TYPES = Object.values(ACTIVITY_TYPE)
+
+/**
+ * Numbered pages, newest first. An event written while the user moves between pages shifts the rows by one; the history accepts that
+ * for page numbers and a total, which keyset pagination cannot give.
+ */
+export const listActivity = async (
+	prisma: PrismaClient,
+	projectId: string,
+	{ userId, category, versionId, from, to, page, pageSize }: ActivityListQuery,
+): Promise<ActivityListResponse> => {
+	const where: Prisma.ActivityEventWhereInput = {
+		projectId,
+		userId,
+		versionId,
+		type: category && { in: ACTIVITY_TYPES.filter((type) => ACTIVITY_TYPE_CATEGORY[type] === category) },
+		createdAt: from || to ? { gte: from, lt: to } : undefined,
 	}
-	const rows = await prisma.activityEvent.findMany({
-		where: { projectId, ...after },
-		orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-		take: limit + 1,
-		select: { id: true, createdAt: true, count: true, type: true, payload: true, user: EDITOR_SELECT, version: { select: { id: true, name: true } } },
-	})
-	const page = rows.slice(0, limit)
+	const [rows, total, users] = await Promise.all([
+		prisma.activityEvent.findMany({
+			where,
+			orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+			skip: (page - 1) * pageSize,
+			take: pageSize,
+			select: { id: true, createdAt: true, count: true, type: true, payload: true, user: EDITOR_SELECT, version: { select: { id: true, name: true } } },
+		}),
+		prisma.activityEvent.count({ where }),
+		prisma.user.findMany({ where: { activityEvents: { some: { projectId } } }, ...EDITOR_SELECT }),
+	])
 	return {
-		items: page.map(({ id, createdAt, count, user, version, type, payload }) => ({
+		items: rows.map(({ id, createdAt, count, user, version, type, payload }) => ({
 			id,
 			createdAt: createdAt.toISOString(),
 			count,
@@ -43,7 +54,10 @@ export const listActivity = async (prisma: PrismaClient, projectId: string, { cu
 			version,
 			...activityEventDataSchema.parse({ type, payload }),
 		})),
-		nextCursor: rows.length > limit ? (page.at(-1)?.id ?? null) : null,
+		total,
+		page,
+		pageSize,
+		users: users.map(toEditor).sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)),
 	}
 }
 

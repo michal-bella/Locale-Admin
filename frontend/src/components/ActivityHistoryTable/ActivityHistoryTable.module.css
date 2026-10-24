@@ -1,0 +1,153 @@
+.card {
+	overflow-x: auto;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-xl);
+	background-color: var(--app-color-surface);
+}
+
+.th {
+	padding: 0.875rem 1.25rem;
+	border-bottom: 1px solid var(--app-color-border);
+	background-color: var(--app-color-surface-muted);
+	font-size: var(--mantine-font-size-3xs);
+	font-weight: 700;
+	line-height: 1.5;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--app-color-muted);
+}
+
+.timeColumn {
+	width: 11rem;
+}
+
+.userColumn {
+	width: 14rem;
+}
+
+.categoryColumn {
+	width: 8rem;
+}
+
+.versionColumn {
+	width: 6rem;
+}
+
+.actionsColumn {
+	width: 3.5rem;
+}
+
+.td {
+	padding: 0.875rem 1.25rem;
+	border-bottom: 1px solid var(--app-color-border-subtle);
+	vertical-align: middle;
+}
+
+.tr:last-child .td {
+	border-bottom: 0;
+}
+
+.timeCell {
+	white-space: nowrap;
+}
+
+.actionsCell {
+	padding-inline: 0 1.25rem;
+}
+
+.time,
+.name {
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	color: var(--app-color-text-strong);
+}
+
+.name {
+	overflow-wrap: anywhere;
+}
+
+.meta {
+	padding-top: 2px;
+	font-size: var(--mantine-font-size-3xs);
+	line-height: 1.5;
+	color: var(--app-color-muted);
+}
+
+.versionLink {
+	font-size: var(--mantine-font-size-sm);
+	color: var(--app-color-label);
+	text-decoration: none;
+}
+
+.versionLink:hover {
+	color: var(--mantine-color-brand-6);
+	text-decoration: underline;
+}
+
+.meta.versionLink {
+	font-size: var(--mantine-font-size-3xs);
+	color: var(--app-color-muted);
+}
+
+.sentence {
+	/* Same cut as the feed: a sentence used as a key would make the row tall; the full key is in the link label and the translations list. */
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
+	font-size: var(--mantine-font-size-xs);
+	line-height: 1.3333;
+	overflow-wrap: anywhere;
+	color: var(--app-color-label);
+}
+
+/* Sized by its label, as the state badge of the versions table: Mantine would otherwise cut „Preklad“ with an ellipsis. */
+.badge {
+	width: max-content;
+	max-width: none;
+}
+
+.state {
+	padding-block: 2.5rem;
+	text-align: center;
+}
+
+.narrowOnly,
+.phoneOnly {
+	display: none;
+}
+
+@media (max-width: 74.99em) {
+	.wideOnly {
+		display: none;
+	}
+
+	.narrowOnly {
+		display: flex;
+	}
+}
+
+@media (max-width: 39.99em) {
+	.th,
+	.td {
+		padding-inline: 0.75rem;
+	}
+
+	.userColumn,
+	.timeColumn {
+		width: auto;
+	}
+
+	/* Next to the time and the change, the name would wrap letter by letter. */
+	.notOnPhone {
+		display: none;
+	}
+
+	.phoneOnly {
+		display: block;
+	}
+
+	.timeCell {
+		white-space: normal;
+	}
+}

@@ -557,9 +557,9 @@
 		"activity": {
 			"title": "Posledná aktivita",
 			"description": "Zmeny v projekte od najnovšej",
+			"showHistory": "Zobraziť históriu",
 			"today": "Dnes",
 			"yesterday": "Včera",
-			"loadMore": "Načítať ďalšie",
 			"empty": "Zatiaľ žiadna aktivita. Zmeny v projekte sa zobrazia tu.",
 			"loadError": "Aktivitu sa nepodarilo načítať.",
 			"retry": "Skúsiť znova",
@@ -567,6 +567,8 @@
 			"open": "Zobraziť v prekladoch",
 			"openLabel": "Zobraziť zmeny používateľa {{name}} v prekladoch",
 			"openKeyLabel": "Zobraziť preklad {{key}} v prekladoch",
+			"openKeyNameLabel": "Zobraziť kľúč {{key}} v prekladoch",
+			"openVersionLabel": "Zobraziť preklady verzie {{name}}",
 			"events": {
 				"projectCreated": "vytvorenie projektu {{name}}",
 				"projectUpdated": "zmena nastavení projektu: {{fields}}",
@@ -644,6 +646,64 @@
 			"noContributors": "V tomto období nikto nič nezmenil.",
 			"loadError": "Dennú aktivitu sa nepodarilo načítať.",
 			"retry": "Skúsiť znova"
+		}
+	},
+	"historyPage": {
+		"eyebrow": "Projekt",
+		"title": "História zmien",
+		"description": "Všetky zmeny v projekte od najnovšej: preklady, importy, kľúče, verzie, jazyky a členovia.",
+		"filters": {
+			"label": "Filtre histórie",
+			"reset": "Zrušiť filtre",
+			"user": {
+				"label": "Kto",
+				"placeholder": "Všetci ľudia"
+			},
+			"mine": "Len moje zmeny",
+			"category": {
+				"label": "Typ zmeny",
+				"placeholder": "Všetky typy"
+			},
+			"version": {
+				"label": "Verzia",
+				"placeholder": "Všetky verzie"
+			},
+			"period": {
+				"label": "Obdobie",
+				"all": "Celé obdobie",
+				"last_one": "Posledný {{count}} deň",
+				"last_few": "Posledné {{count}} dni",
+				"last_many": "Posledných {{count}} dní",
+				"last_other": "Posledných {{count}} dní"
+			}
+		},
+		"categories": {
+			"TRANSLATION": "Preklad",
+			"IMPORT": "Import",
+			"KEY": "Kľúč",
+			"VERSION": "Verzia",
+			"LANGUAGE": "Jazyk",
+			"MEMBER": "Člen",
+			"PROJECT": "Projekt"
+		},
+		"table": {
+			"label": "História zmien projektu",
+			"time": "Kedy",
+			"user": "Kto",
+			"category": "Typ",
+			"change": "Zmena",
+			"version": "Verzia",
+			"actionsColumn": "Akcie",
+			"emptyFiltered": "Filtrom nezodpovedá žiadna zmena.",
+			"loadError": "Históriu sa nepodarilo načítať.",
+			"retry": "Skúsiť znova"
+		},
+		"pagination": {
+			"pageSize": "Zmien na stranu",
+			"summary_one": "Zobrazená {{shown}} z {{count}} zmeny",
+			"summary_few": "Zobrazené {{shown}} z {{count}} zmien",
+			"summary_many": "Zobrazených {{shown}} z {{count}} zmien",
+			"summary_other": "Zobrazených {{shown}} z {{count}} zmien"
 		}
 	},
 	"importModal": {
@@ -1279,6 +1339,7 @@
 		"users": "Používatelia",
 		"translations": "Preklady",
 		"dashboard": "Prehľad",
+		"history": "História",
 		"projectSettings": "Nastavenia",
 		"members": "Členovia",
 		"projectSwitcher": {

@@ -541,9 +541,9 @@
 		"activity": {
 			"title": "Recent activity",
 			"description": "Changes in the project, newest first",
+			"showHistory": "Show history",
 			"today": "Today",
 			"yesterday": "Yesterday",
-			"loadMore": "Load more",
 			"empty": "No activity yet. Changes in the project will show up here.",
 			"loadError": "Activity could not be loaded.",
 			"retry": "Try again",
@@ -551,6 +551,8 @@
 			"open": "Show in translations",
 			"openLabel": "Show changes by {{name}} in translations",
 			"openKeyLabel": "Show the translation {{key}} in translations",
+			"openKeyNameLabel": "Show the key {{key}} in translations",
+			"openVersionLabel": "Show the translations of version {{name}}",
 			"events": {
 				"projectCreated": "created the project {{name}}",
 				"projectUpdated": "changed project settings: {{fields}}",
@@ -616,6 +618,60 @@
 			"noContributors": "Nobody changed anything in this period.",
 			"loadError": "Daily activity could not be loaded.",
 			"retry": "Try again"
+		}
+	},
+	"historyPage": {
+		"eyebrow": "Project",
+		"title": "Change history",
+		"description": "Every change in the project, newest first: translations, imports, keys, versions, languages and members.",
+		"filters": {
+			"label": "History filters",
+			"reset": "Clear filters",
+			"user": {
+				"label": "Who",
+				"placeholder": "Everyone"
+			},
+			"mine": "Only my changes",
+			"category": {
+				"label": "Change type",
+				"placeholder": "All types"
+			},
+			"version": {
+				"label": "Version",
+				"placeholder": "All versions"
+			},
+			"period": {
+				"label": "Period",
+				"all": "Any time",
+				"last_one": "Last {{count}} day",
+				"last_other": "Last {{count}} days"
+			}
+		},
+		"categories": {
+			"TRANSLATION": "Translation",
+			"IMPORT": "Import",
+			"KEY": "Key",
+			"VERSION": "Version",
+			"LANGUAGE": "Language",
+			"MEMBER": "Member",
+			"PROJECT": "Project"
+		},
+		"table": {
+			"label": "Project change history",
+			"time": "When",
+			"user": "Who",
+			"category": "Type",
+			"change": "Change",
+			"version": "Version",
+			"actionsColumn": "Actions",
+			"emptyFiltered": "No change matches the filters.",
+			"loadError": "The history could not be loaded.",
+			"retry": "Try again"
+		},
+		"pagination": {
+			"pageSize": "Changes per page",
+			"summary_one": "Showing {{shown}} of {{count}} change",
+			"summary_other": "Showing {{shown}} of {{count}} changes"
 		}
 	},
 	"importModal": {
@@ -1239,6 +1295,7 @@
 		"users": "Users",
 		"translations": "Translations",
 		"dashboard": "Overview",
+		"history": "History",
 		"projectSettings": "Settings",
 		"members": "Members",
 		"projectSwitcher": {

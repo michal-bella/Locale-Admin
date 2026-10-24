@@ -1,4 +1,10 @@
-import { type ActivityDailyQueryInput, type DashboardQuery, type ExportCheckQuery, type TranslationsQueryInput } from '@locale/shared'
+import {
+	type ActivityDailyQueryInput,
+	type ActivityListQueryInput,
+	type DashboardQuery,
+	type ExportCheckQuery,
+	type TranslationsQueryInput,
+} from '@locale/shared'
 
 export const QUERY_KEYS = {
 	HEALTH: () => ['health'] as const,
@@ -33,9 +39,9 @@ export const QUERY_KEYS = {
 		/** Prefix of the dashboard of one project for every version. */
 		DASHBOARD_ALL: (projectId: string) => ['projects', projectId, 'dashboard'] as const,
 		DASHBOARD: (projectId: string, query: DashboardQuery) => ['projects', projectId, 'dashboard', query] as const,
-		/** Prefix of the activity feed and the daily activity of one project. */
+		/** Prefix of the activity feed, the history and the daily activity of one project. */
 		ACTIVITY_ALL: (projectId: string) => ['projects', projectId, 'activity'] as const,
-		ACTIVITY_FEED: (projectId: string) => ['projects', projectId, 'activity', 'feed'] as const,
+		ACTIVITY_LIST: (projectId: string, query: ActivityListQueryInput) => ['projects', projectId, 'activity', 'list', query] as const,
 		ACTIVITY_DAILY: (projectId: string, query: ActivityDailyQueryInput) => ['projects', projectId, 'activity', 'daily', query] as const,
 	},
 } as const

@@ -74,7 +74,7 @@ test.describe('ADMIN', () => {
 		const section = getMainNavigation(page).getByRole('list', { name: project.name })
 		const settings = section.getByRole('link', { name: 'Nastavenia', exact: true })
 		const members = section.getByRole('link', { name: 'Členovia' })
-		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'Nastavenia', 'Jazyky', 'Verzie', 'Členovia'])
+		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'História', 'Nastavenia', 'Jazyky', 'Verzie', 'Členovia'])
 		await expect(settings).toHaveAttribute('aria-current', 'page')
 
 		await members.click()

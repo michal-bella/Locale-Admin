@@ -12,6 +12,7 @@ import { indexRoute } from '@/routes/indexRoute'
 import { loginRoute } from '@/routes/loginRoute'
 import { profileRoute } from '@/routes/profileRoute'
 import { projectDashboardRoute } from '@/routes/projectDashboardRoute'
+import { projectHistoryRoute } from '@/routes/projectHistoryRoute'
 import { projectIndexRoute } from '@/routes/projectIndexRoute'
 import { projectLanguagesRoute } from '@/routes/projectLanguagesRoute'
 import { projectMembersRoute } from '@/routes/projectMembersRoute'
@@ -34,6 +35,7 @@ const routeTree = rootRoute.addChildren([
 				projectIndexRoute,
 				projectTranslationsRoute,
 				projectDashboardRoute,
+				projectHistoryRoute,
 				projectSettingsRoute,
 				projectLanguagesRoute,
 				projectVersionsRoute,

@@ -123,23 +123,59 @@ export const ACTIVITY_PAGE_SIZE_MAX = 50
 
 const emptyToUndefined = (value: unknown) => (typeof value === 'string' && value.trim() === '' ? undefined : value)
 
+/** What an event changed; the history filters by it and the feed shows it as an icon. */
+export const ACTIVITY_CATEGORIES = ['TRANSLATION', 'IMPORT', 'KEY', 'VERSION', 'LANGUAGE', 'MEMBER', 'PROJECT'] as const
+
+export const activityCategorySchema = z.enum(ACTIVITY_CATEGORIES)
+
+export type ActivityCategory = z.infer<typeof activityCategorySchema>
+
+export const ACTIVITY_TYPE_CATEGORY: Record<ACTIVITY_TYPE, ActivityCategory> = {
+	[ACTIVITY_TYPE.TRANSLATION_UPDATED]: 'TRANSLATION',
+	[ACTIVITY_TYPE.KEYS_IMPORTED]: 'IMPORT',
+	[ACTIVITY_TYPE.KEY_CREATED]: 'KEY',
+	[ACTIVITY_TYPE.KEY_UPDATED]: 'KEY',
+	[ACTIVITY_TYPE.VERSION_CREATED]: 'VERSION',
+	[ACTIVITY_TYPE.VERSION_UPDATED]: 'VERSION',
+	[ACTIVITY_TYPE.VERSION_DELETED]: 'VERSION',
+	[ACTIVITY_TYPE.LANGUAGE_ADDED]: 'LANGUAGE',
+	[ACTIVITY_TYPE.LANGUAGE_REMOVED]: 'LANGUAGE',
+	[ACTIVITY_TYPE.BASE_LANGUAGE_CHANGED]: 'LANGUAGE',
+	[ACTIVITY_TYPE.MEMBER_ADDED]: 'MEMBER',
+	[ACTIVITY_TYPE.MEMBER_REMOVED]: 'MEMBER',
+	[ACTIVITY_TYPE.PROJECT_CREATED]: 'PROJECT',
+	[ACTIVITY_TYPE.PROJECT_UPDATED]: 'PROJECT',
+}
+
 /**
- * Query of `GET /api/projects/:projectId/activity`, newest first. `cursor` is the `id` of the last event of the previous page;
- * an id that is not an event of the project gives 400 `VALIDATION_ERROR` on `cursor`.
+ * Query of `GET /api/projects/:projectId/activity`, newest first, numbered pages. Every filter is optional and they combine:
+ * `userId` who made the change, `category` what it changed, `versionId` only events of that version (project-level events have none),
+ * `from` inclusive and `to` exclusive bounds of `createdAt` (the client sends the start of its local days).
  */
 export const activityListQuerySchema = z.object({
-	cursor: z.preprocess(emptyToUndefined, z.uuid().optional()),
-	limit: z.coerce.number().int().min(1).max(ACTIVITY_PAGE_SIZE_MAX).default(ACTIVITY_PAGE_SIZE_DEFAULT),
+	userId: z.preprocess(emptyToUndefined, z.uuid().optional()),
+	category: z.preprocess(emptyToUndefined, activityCategorySchema.optional()),
+	versionId: z.preprocess(emptyToUndefined, z.uuid().optional()),
+	from: z.preprocess(emptyToUndefined, z.iso.datetime().optional()),
+	to: z.preprocess(emptyToUndefined, z.iso.datetime().optional()),
+	page: z.coerce.number().int().min(1).default(1),
+	pageSize: z.coerce.number().int().min(1).max(ACTIVITY_PAGE_SIZE_MAX).default(ACTIVITY_PAGE_SIZE_DEFAULT),
 })
 
 export type ActivityListQuery = z.infer<typeof activityListQuerySchema>
 
 export type ActivityListQueryInput = z.input<typeof activityListQuerySchema>
 
-/** Body of `GET /api/projects/:projectId/activity`; `nextCursor` is `null` on the last page. */
+/**
+ * Body of `GET /api/projects/:projectId/activity`. `total` counts the events matching the filters; a page past the last one has no items.
+ * `users` are everyone with an event in the project, ignoring the filters and without deleted users, sorted by name (the options of the person filter).
+ */
 export const activityListResponseSchema = z.object({
 	items: z.array(activityEventSchema),
-	nextCursor: z.uuid().nullable(),
+	total: z.number().int().nonnegative(),
+	page: z.number().int().min(1),
+	pageSize: z.number().int().min(1),
+	users: z.array(translationEditorSchema),
 })
 
 export type ActivityListResponse = z.infer<typeof activityListResponseSchema>

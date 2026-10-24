@@ -27,38 +27,6 @@
 	border-radius: var(--mantine-radius-lg);
 }
 
-.avatar {
-	position: relative;
-	flex-shrink: 0;
-}
-
-/* The category of the event (translation, import, key, …) on the avatar's corner, ringed by the card so it reads apart from the avatar. */
-.category {
-	position: absolute;
-	right: -0.25rem;
-	bottom: -0.25rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 1.125rem;
-	height: 1.125rem;
-	border: 2px solid var(--app-color-surface);
-	border-radius: 50%;
-	background-color: var(--category-color);
-	color: var(--mantine-color-white);
-}
-
-.category svg {
-	width: 0.625rem;
-	height: 0.625rem;
-}
-
-.initials {
-	font-size: var(--mantine-font-size-4xs);
-	font-weight: 700;
-	color: var(--app-color-text-secondary);
-}
-
 .sentence {
 	/* A long key (a sentence used as a key) would make the row tall; the full key is in the link label and the translations list. */
 	display: -webkit-box;
@@ -86,4 +54,15 @@
 .state {
 	padding: 1.5rem 0;
 	text-align: center;
+}
+
+.link {
+	font-size: var(--mantine-font-size-md);
+	line-height: 1.5;
+	color: var(--app-color-eyebrow);
+	text-decoration: none;
+}
+
+.link:hover {
+	text-decoration: underline;
 }

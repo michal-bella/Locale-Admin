@@ -552,7 +552,15 @@ describe('TranslationsPage versions', () => {
 			'data-changed',
 			'true',
 		)
+		expect(
+			within(changedRow)
+				.getByRole('button', { name: 'Preklad kľúča dashboard.welcome, angličtina: Zmenené: Welcome' })
+				.querySelector('[data-diff-changed]'),
+		).not.toBeNull()
 		expect(within(changedRow).getByRole('button', { name: 'Preklad kľúča dashboard.welcome, slovenčina: Vitajte' })).not.toHaveAttribute('data-changed')
+		expect(
+			within(changedRow).getByRole('button', { name: 'Preklad kľúča dashboard.welcome, slovenčina: Vitajte' }).querySelector('[data-diff-changed]'),
+		).toBeNull()
 		expect(screen.getByRole('switch', { name: 'Zobraziť len zmeny' })).toBeChecked()
 		const diffRequest = requests.find((request) => request.url === TRANSLATIONS_URL && paramsOf(request).diff === true)
 		expect(paramsOf(diffRequest)).toMatchObject({ diff: true, versionId: CURRENT.id, page: 1 })

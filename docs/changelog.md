@@ -8,9 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
-### Filter upozornení po oprave (2026-10-24)
+### Upozornenia a zmenené bunky v Prekladoch (2026-10-24)
 
 - frontend: keď sa pri zapnutom filtri upozornení opraví posledné upozornenie, stránka Preklady filter sama zruší, banner zmizne a tabuľka ukáže všetky kľúče (predtým ostal banner s nulou a prázdna tabuľka)
+- frontend: bunka zmenená oproti predchádzajúcej verzii nemá ružový ľavý okraj, ale ikonu ⇄ na mieste ikony upozornenia (aj zdrojový text v zobrazení Zdroj → cieľ)
 
 ### Zmena prekladu v Histórii (2026-10-24)
 

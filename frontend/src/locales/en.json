@@ -679,6 +679,21 @@
 			"pageSize": "Changes per page",
 			"summary_one": "Showing {{shown}} of {{count}} change",
 			"summary_other": "Showing {{shown}} of {{count}} changes"
+		},
+		"change": {
+			"show": "Show change",
+			"showLabel": "Show the change of translation {{key}} ({{language}})",
+			"title": "Translation change",
+			"close": "Close",
+			"language": "Language",
+			"version": "Version",
+			"user": "Who",
+			"time": "When",
+			"before": "Before",
+			"after": "After",
+			"untranslated": "Untranslated",
+			"cleared": "Value cleared",
+			"open": "Open translation"
 		}
 	},
 	"importModal": {

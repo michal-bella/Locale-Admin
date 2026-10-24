@@ -1,17 +1,23 @@
 import { Badge, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { Link } from '@tanstack/react-router'
-import { type ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ACTIVITY_TYPE_CATEGORY } from '@locale/shared'
+import { ACTIVITY_TYPE, ACTIVITY_TYPE_CATEGORY } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import ActivityAvatar from '@/components/ActivityAvatar/ActivityAvatar'
 import ActivityEventLink from '@/components/ActivityEventLink/ActivityEventLink'
+import { Eye } from '@/components/Icons'
+import RowAction from '@/components/RowAction/RowAction'
+import TranslationChangeModal from '@/components/TranslationChangeModal/TranslationChangeModal'
+import { type TranslationChangeEvent } from '@/components/TranslationChangeModal/types'
 import { useDescribeActivity } from '@/hooks/useDescribeActivity'
 import { ACTIVITY_CATEGORY_STYLE } from '@/lib/activityCategoryStyle'
 import { formatDateTime } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
+import { isLanguageTag } from '@/lib/utils'
 
 import classes from './ActivityHistoryTable.module.css'
 import { type ActivityHistoryTableProps } from './types'
@@ -23,11 +29,19 @@ const COLUMN_COUNT = 6
 /**
  * Events of História as a table: when, who, the type as a badge, the sentence of the change, the version and the → of the feed. Below 1200 px
  * the type and the version move under the sentence, as in the versions table; on a phone the name moves above it and only the avatar stays in Kto.
+ * A translation edit also has Zobraziť zmenu, which opens its old and new value in `TranslationChangeModal`.
  */
 const ActivityHistoryTable = ({ projectSlug, events, error, isRefetching, onRetry, filtered, onResetFilters }: ActivityHistoryTableProps) => {
 	const { t, i18n } = useTranslation()
 	const describe = useDescribeActivity()
 	const now = new Date()
+	const [changeOpened, changeModal] = useDisclosure(false)
+	const [changeEvent, setChangeEvent] = useState<TranslationChangeEvent | null>(null)
+
+	const openChange = (event: TranslationChangeEvent) => {
+		setChangeEvent(event)
+		changeModal.open()
+	}
 
 	const stateRow = (content: ReactNode) => (
 		<Table.Tr className={classes.tr}>
@@ -121,7 +135,22 @@ const ActivityHistoryTable = ({ projectSlug, events, error, isRefetching, onRetr
 					</Table.Td>
 					<Table.Td className={`${classes.td} ${classes.wideOnly}`}>{versionLink(classes.versionLink) ?? <Text size='sm'>–</Text>}</Table.Td>
 					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-						<ActivityEventLink event={event} projectSlug={projectSlug} now={now} />
+						<div className={classes.actions}>
+							{event.type === ACTIVITY_TYPE.TRANSLATION_UPDATED && (
+								<RowAction
+									icon={Eye}
+									tooltip={t('historyPage.change.show')}
+									label={t('historyPage.change.showLabel', {
+										key: event.payload.name,
+										language: isLanguageTag(event.payload.languageTag)
+											? t(`languageNames.${event.payload.languageTag}`)
+											: event.payload.languageTag,
+									})}
+									onClick={() => openChange(event)}
+								/>
+							)}
+							<ActivityEventLink event={event} projectSlug={projectSlug} now={now} />
+						</div>
 					</Table.Td>
 				</Table.Tr>
 			)
@@ -145,6 +174,7 @@ const ActivityHistoryTable = ({ projectSlug, events, error, isRefetching, onRetr
 				</Table.Thead>
 				<Table.Tbody>{renderBody()}</Table.Tbody>
 			</Table>
+			<TranslationChangeModal opened={changeOpened} event={changeEvent} projectSlug={projectSlug} onClose={changeModal.close} />
 		</div>
 	)
 }

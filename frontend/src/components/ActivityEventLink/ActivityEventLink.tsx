@@ -5,7 +5,7 @@ import { ACTIVITY_TYPE, ROLE, TRANSLATIONS_SEARCH_MAX_LENGTH, type TranslationsU
 import { useMeQuery } from '@/api/auth/meQuery'
 import { ArrowRight } from '@/components/Icons'
 import RowAction from '@/components/RowAction/RowAction'
-import { isLanguageTag } from '@/lib/utils'
+import { translationEditSearch } from '@/lib/translationEditSearch'
 import { type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
 import { type ActivityEventLinkProps } from './types'
@@ -38,20 +38,18 @@ const ActivityEventLink = ({ event, projectSlug, now }: ActivityEventLinkProps) 
 	)
 
 	switch (event.type) {
-		case ACTIVITY_TYPE.TRANSLATION_UPDATED:
+		case ACTIVITY_TYPE.TRANSLATION_UPDATED: {
+			const search = translationEditSearch(event)
+			if (search) {
+				return link(t('dashboardPage.activity.openKeyLabel', { key: event.payload.name }), search)
+			}
+			break
+		}
 		case ACTIVITY_TYPE.KEY_CREATED:
 		case ACTIVITY_TYPE.KEY_UPDATED: {
 			const { name, namespace } = event.payload
-			// The key, not the editor filter: that one matches the last editor, so a later edit by someone else would hide the row.
-			if (name.length <= TRANSLATIONS_SEARCH_MAX_LENGTH && (event.type === ACTIVITY_TYPE.TRANSLATION_UPDATED || me?.role === ROLE.ADMIN)) {
-				const keySearch = { search: name, namespace, version: event.version?.id }
-				return event.type === ACTIVITY_TYPE.TRANSLATION_UPDATED
-					? link(t('dashboardPage.activity.openKeyLabel', { key: name }), {
-							...keySearch,
-							editKey: event.payload.keyId,
-							editLanguage: isLanguageTag(event.payload.languageTag) ? event.payload.languageTag : undefined,
-						})
-					: link(t('dashboardPage.activity.openKeyNameLabel', { key: name }), keySearch)
+			if (name.length <= TRANSLATIONS_SEARCH_MAX_LENGTH && me?.role === ROLE.ADMIN) {
+				return link(t('dashboardPage.activity.openKeyNameLabel', { key: name }), { search: name, namespace, version: event.version?.id })
 			}
 			break
 		}

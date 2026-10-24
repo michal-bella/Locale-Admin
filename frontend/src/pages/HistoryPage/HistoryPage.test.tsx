@@ -79,6 +79,25 @@ describe('HistoryPage', () => {
 		vi.useRealTimers()
 	})
 
+	it('opens the old and new value of a translation edit from Zobraziť zmenu, only on translation rows', async () => {
+		signedInAs(VISITOR_USER, routes())
+		renderApp(PAGE_PATH)
+
+		const table = await findTable()
+		await table.findByText('pridanie jazyka čeština')
+		const rows = table.getAllByRole('row')
+		expect(within(rows[2] as HTMLElement).queryByRole('button', { name: /^Zobraziť zmenu/ })).not.toBeInTheDocument()
+
+		fireEvent.click(within(rows[1] as HTMLElement).getByRole('button', { name: 'Zobraziť zmenu prekladu orders.title (angličtina)' }))
+		const dialog = within(await screen.findByRole('dialog', { name: 'Zmena prekladu' }))
+		expect(screen.getByRole('dialog', { name: 'Zmena prekladu' }).querySelector('header code')).toHaveTextContent('loc:orders.title')
+		expect(dialog.getByText('Nepreložené')).toBeInTheDocument()
+		expect(dialog.getByText('Orders').closest('ins')).not.toBeNull()
+
+		fireEvent.click(dialog.getAllByRole('button', { name: 'Zavrieť' })[0] as HTMLElement)
+		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Zmena prekladu' })).not.toBeInTheDocument())
+	})
+
 	it('lists the events with who, type, change and version, and links an edit to its translation', async () => {
 		signedInAs(EDITOR_USER, routes())
 		renderApp(PAGE_PATH)

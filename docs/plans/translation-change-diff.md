@@ -39,10 +39,10 @@ Vetva `feat/translation-change-diff` (z `main` = `aca350c`).
 
 ### Modál `TranslationChangeModal`
 
-`AppModal` (veľkosť `lg`), titulok **Zmena prekladu**, popis = kľúč (`namespace:name`, ako v tabuľke prekladov), pätička iba **Zavrieť**.
+`AppModal` (šírka 880 px, pôvodne `lg`; širšia kvôli dlhším textom), titulok **Zmena prekladu**, popis = kľúč (`namespace:name`, ako v tabuľke prekladov), pätička iba **Zavrieť**.
 
 - Hlavička: jazyk s vlajkou (`LanguageFlag`) a názvom, verzia (ak existuje), kto (`ActivityAvatar` + meno, „Zmazaný používateľ“ po zmazaní) a kedy (`formatDateTime` + relatívny čas).
-- Dva bloky pod sebou, na širokom modáli vedľa seba (od `sm`):
+- Dva bloky so šípkou → medzi nimi (stav pred a po), na širokom modáli vedľa seba (od `sm`), na telefóne pod sebou so šípkou nadol:
     - **Pred**: spoločný text a **odstránené** úseky (`<del>`, pozadie `--mantine-color-red-light`, prečiarknutie, farba `--mantine-color-red-light-color`).
     - **Po**: spoločný text a **pridané** úseky (`<ins>`, pozadie `--mantine-color-teal-light`, bez podčiarknutia, farba `--mantine-color-teal-light-color`). Rovnaké odtiene ako stavy Nepreložené a Preložené, takže fungujú aj v tmavom režime.
 - Text má `white-space: pre-wrap` a `overflow-wrap: anywhere` (zachová riadky a nerozbije modál dlhým kľúčom alebo URL).

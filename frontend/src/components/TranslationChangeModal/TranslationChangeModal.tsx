@@ -7,6 +7,7 @@ import { SUPPORTED_LANGUAGES } from '@locale/shared'
 
 import ActivityAvatar from '@/components/ActivityAvatar/ActivityAvatar'
 import AppModal from '@/components/AppModal/AppModal'
+import { ArrowRight } from '@/components/Icons'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import { formatDateTime } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
@@ -83,8 +84,9 @@ const TranslationChangeModal = ({ opened, event, onClose }: TranslationChangeMod
 						<span className={classes.relative}> · {formatRelativeTime(event.createdAt, i18n.language)}</span>
 					</dd>
 				</dl>
-				<div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+				<div className={classes.blocks}>
 					{block(t('historyPage.change.before'), oldValue, t('historyPage.change.untranslated'), 'before')}
+					<ArrowRight aria-hidden className={classes.arrow} />
 					{block(t('historyPage.change.after'), newValue, t('historyPage.change.cleared'), 'after')}
 				</div>
 			</div>
@@ -102,7 +104,7 @@ const TranslationChangeModal = ({ opened, event, onClose }: TranslationChangeMod
 				)
 			}
 			closeLabel={t('historyPage.change.close')}
-			size='lg'
+			size={880}
 			footer={
 				<Button variant='default' onClick={onClose}>
 					{t('historyPage.change.close')}

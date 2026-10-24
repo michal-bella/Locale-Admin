@@ -211,6 +211,8 @@ describe('TranslationsPage', () => {
 		expect(welcome.getByText('Preložené')).toBeInTheDocument()
 		expect(within(getRow('orders.empty.title')).getByText('Nepreložené')).toBeInTheDocument()
 		expect(within(getRow('orders.empty.title')).getByText('Bez prekladu')).toBeInTheDocument()
+		fireEvent.mouseEnter(within(getRow('orders.empty.title')).getByRole('button', { name: 'Preklad kľúča orders.empty.title, angličtina: Bez prekladu' }))
+		expect(await screen.findByRole('tooltip')).toHaveTextContent('Nepreložené')
 	})
 
 	it('falls back to the latest change in any language when the target was never written', async () => {

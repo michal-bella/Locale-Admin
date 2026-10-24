@@ -265,6 +265,14 @@ th.stickyEnd {
 	overflow: hidden;
 }
 
+/* Like a cell (`TranslationCell`): each plural form stops at two lines. */
+.sourceValue [data-plural-form-text] {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
+}
+
 /* The source value changed against the previous version: the same brand edge as a changed cell. */
 .sourceChanged {
 	padding-inline-start: 0.5rem;

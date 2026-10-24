@@ -20,7 +20,9 @@ const PluralForms = ({ value, tag, basePlaceholders, chipTooltips }: PluralForms
 					<span key={form} className={classes.form}>
 						<PluralFormChip form={form} />
 						{text ? (
-							<TranslationText value={text} pluralHash basePlaceholders={basePlaceholders} chipTooltips={chipTooltips} />
+							<span data-plural-form-text>
+								<TranslationText value={text} pluralHash basePlaceholders={basePlaceholders} chipTooltips={chipTooltips} />
+							</span>
 						) : (
 							<Text component='span' className={classes.empty}>
 								{t('translationsPage.table.emptyValue')}

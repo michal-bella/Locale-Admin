@@ -10,6 +10,7 @@ notion_page_id:
 
 ### Upozornenia vo všetkých jazykoch (2026-10-23)
 
+- frontend: plurálová bunka v tabuľke skráti každú formu na 2 riadky, takže riadok s plurálom už nie je príliš vysoký
 - frontend: v modáli **Pridať kľúč** je popis namespace pod selectom, takže polia Kľúč a Namespace sú zarovnané
 - frontend: nepreložená bunka ukáže pri hoveri tooltip „Nepreložené“; viac dôvodov v tooltipe bunky je pod sebou
 - frontend: **Zobraziť upozornenia** v zobrazení Zdroj → cieľ prepne na Všetky jazyky a zruší výber Zobrazené jazyky, lebo varovanie môže byť v hociktorom jazyku

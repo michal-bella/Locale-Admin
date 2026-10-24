@@ -50,6 +50,14 @@
 	min-height: 1lh;
 }
 
+/* A plural key stacks its forms; each form stops at two lines, so the cell does not grow with every form's full text. */
+.content [data-plural-form-text] {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
+}
+
 /* The line clamp would hide a warning icon after a long value; it sits at the end of the first line in space kept free for it. The space is
    on the content, not the button, whose padding the table overrides per view. */
 .content:has([data-placeholder-warning]) {

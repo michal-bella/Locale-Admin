@@ -10,7 +10,7 @@
 
 /* Focus scrolling treats the sticky columns as covered, so a cell focused with Tab never lands under them (WCAG 2.4.11). */
 .scrollExtended {
-	scroll-padding-inline: 14rem 8.5rem;
+	scroll-padding-inline: 14rem 7.75rem;
 }
 
 .table {
@@ -158,7 +158,7 @@ th.stickyEnd {
 }
 
 .statusColumn {
-	width: 8.5rem;
+	width: 7.75rem;
 }
 
 .td {
@@ -167,7 +167,7 @@ th.stickyEnd {
 	vertical-align: middle;
 }
 
-/* 8.5rem minus 2 × 1rem leaves 104 px; the longest badge (Untranslated) is 99 px. */
+/* 7.75rem minus the dense 2 × 0.75rem leaves 100 px; the longest badge (Untranslated) is 99 px. */
 .statusCell {
 	padding-inline: 1rem;
 	text-align: center;

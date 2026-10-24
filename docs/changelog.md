@@ -10,6 +10,7 @@ notion_page_id:
 
 ### Upozornenia vo všetkých jazykoch (2026-10-23)
 
+- frontend: stĺpec Stav je užší (7,75 rem), takže odznak má po stranách rovnaké odsadenie ako bunky prekladov a kľúča
 - frontend: plurálová bunka v tabuľke skráti každú formu na 2 riadky, takže riadok s plurálom už nie je príliš vysoký
 - frontend: v modáli **Pridať kľúč** je popis namespace pod selectom, takže polia Kľúč a Namespace sú zarovnané
 - frontend: nepreložená bunka ukáže pri hoveri tooltip „Nepreložené“; viac dôvodov v tooltipe bunky je pod sebou

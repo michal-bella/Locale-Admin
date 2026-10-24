@@ -525,9 +525,9 @@ describe('TranslationsPage versions', () => {
 		const ADDED: TranslationListItem = {
 			...item('dashboard.new', 'New'),
 			keyId: '00000000-0000-4000-8000-000000000902',
-			diff: { added: true, changedLanguageIds: [] },
+			diff: { added: true, changedLanguageIds: [], previousValues: {} },
 		}
-		const CHANGED: TranslationListItem = { ...WELCOME, diff: { added: false, changedLanguageIds: [ENGLISH.id] } }
+		const CHANGED: TranslationListItem = { ...WELCOME, diff: { added: false, changedLanguageIds: [ENGLISH.id], previousValues: { [ENGLISH.id]: 'Hello' } } }
 		const requests = mockPage({
 			routes: {
 				[`GET ${TRANSLATIONS_URL}`]: (config) => ({
@@ -573,7 +573,10 @@ describe('TranslationsPage versions', () => {
 		mockPage({
 			user: VISITOR_USER,
 			routes: {
-				[`GET ${TRANSLATIONS_URL}`]: { status: 200, data: response([{ ...WELCOME, diff: { added: true, changedLanguageIds: [ENGLISH.id] } }]) },
+				[`GET ${TRANSLATIONS_URL}`]: {
+					status: 200,
+					data: response([{ ...WELCOME, diff: { added: true, changedLanguageIds: [ENGLISH.id], previousValues: { [ENGLISH.id]: 'Hello' } } }]),
+				},
 			},
 		})
 		renderApp(`${PAGE_PATH}?diff=true`)

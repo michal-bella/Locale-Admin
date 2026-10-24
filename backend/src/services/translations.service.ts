@@ -47,6 +47,7 @@ type ItemRow = {
 	/** Only when the version has a previous one: see `diffColumnsSql`. */
 	added?: boolean
 	changedLanguageIds?: string[]
+	previousValues?: Record<string, string | null>
 }
 
 export type EditorRow = { id: string; email: string; firstName: string | null; lastName: string | null }
@@ -132,15 +133,19 @@ export const versionDiffSql = (previousVersionId: string | null): Prisma.Sql => 
 				WHERE l."projectId" = k."projectId" AND a.value IS DISTINCT FROM b.value))))`
 }
 
-/** `added` and `changedLanguageIds` of a key `k` against the previous version. The first version has none, so its keys carry no diff. */
+/**
+ * `added`, `changedLanguageIds` and `previousValues` (the values of those languages in the previous version) of a key `k` against the
+ * previous version. The first version has none, so its keys carry no diff.
+ */
 const diffColumnsSql = (previousVersionId: string): Prisma.Sql => {
 	const previousKey = Prisma.sql`SELECT p.id FROM "TranslationKey" p WHERE p."versionId" = ${previousVersionId}::uuid AND p.namespace = k.namespace AND p.name = k.name`
-	return Prisma.sql`NOT EXISTS (${previousKey}) AS added, ARRAY(
-		SELECT l.id FROM "ProjectLanguage" l
+	const changedCells = Prisma.sql`FROM "ProjectLanguage" l
 		LEFT JOIN "Translation" a ON a."keyId" = k.id AND a."languageId" = l.id
 		LEFT JOIN "Translation" b ON b."keyId" = (${previousKey}) AND b."languageId" = l.id
-		WHERE l."projectId" = k."projectId" AND EXISTS (${previousKey}) AND a.value IS DISTINCT FROM b.value
-		ORDER BY l.position, l.tag) AS "changedLanguageIds"`
+		WHERE l."projectId" = k."projectId" AND EXISTS (${previousKey}) AND a.value IS DISTINCT FROM b.value`
+	return Prisma.sql`NOT EXISTS (${previousKey}) AS added,
+		ARRAY(SELECT l.id ${changedCells} ORDER BY l.position, l.tag) AS "changedLanguageIds",
+		(SELECT COALESCE(jsonb_object_agg(l.id, b.value), '{}'::jsonb) ${changedCells}) AS "previousValues"`
 }
 
 const UPDATED_WITHIN_INTERVAL: Record<TranslationsUpdatedWithin, string> = { DAY: '1 day', WEEK: '7 days', MONTH: '30 days' }
@@ -170,7 +175,9 @@ const toItem = (row: ItemRow, languageIds: string[], cells: Map<string, CellRow>
 	description: row.description,
 	plural: toPlural(row.pluralVariable),
 	status: row.untranslated ? 'UNTRANSLATED' : 'TRANSLATED',
-	...(row.added === undefined ? {} : { diff: { added: row.added, changedLanguageIds: row.changedLanguageIds ?? [] } }),
+	...(row.added === undefined
+		? {}
+		: { diff: { added: row.added, changedLanguageIds: row.changedLanguageIds ?? [], previousValues: row.previousValues ?? {} } }),
 	translations: Object.fromEntries(
 		languageIds.map((languageId) => {
 			const cell = cells.get(`${row.keyId}:${languageId}`)

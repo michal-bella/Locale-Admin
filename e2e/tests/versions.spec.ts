@@ -280,8 +280,10 @@ test.describe('ADMIN in a project', () => {
 		const diff = await listTranslations(api, project.id, current.id, undefined, true)
 		expect(diff.items.map(({ name }) => name).sort()).toEqual([...NEXT_DIFF_KEYS].sort())
 		const en = languages.find(({ tag }) => tag === 'en')!
-		expect(diff.items.find(({ name }) => name === 'nav.about')!.diff).toEqual({ added: true, changedLanguageIds: [] })
-		expect(diff.items.find(({ name }) => name === 'dashboard.welcome')!.diff).toEqual({ added: false, changedLanguageIds: [en.id] })
+		expect(diff.items.find(({ name }) => name === 'nav.about')!.diff).toEqual({ added: true, changedLanguageIds: [], previousValues: {} })
+		const welcome = diff.items.find(({ name }) => name === 'dashboard.welcome')!.diff
+		expect(welcome).toMatchObject({ added: false, changedLanguageIds: [en.id] })
+		expect(Object.keys(welcome!.previousValues)).toEqual([en.id])
 	})
 
 	test('the export is the whole file of the version, or only its changes against the previous version', async ({ page }) => {

@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Preklad z predchádzajúcej verzie v Upraviť preklad (2026-10-24)
+
+- API: `diff` položky v `GET …/translations` nesie aj `previousValues`, hodnoty zmenených jazykov v predchádzajúcej verzii (`null` = tam nepreložené)
+
 ### Upozornenia a zmenené bunky v Prekladoch (2026-10-24)
 
 - frontend: keď sa pri zapnutom filtri upozornení opraví posledné upozornenie, stránka Preklady filter sama zruší, banner zmizne a tabuľka ukáže všetky kľúče (predtým ostal banner s nulou a prázdna tabuľka)

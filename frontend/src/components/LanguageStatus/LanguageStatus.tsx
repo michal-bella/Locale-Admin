@@ -7,6 +7,7 @@ import { type LanguageListItem } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
+import CountUp from '@/atoms/CountUp/CountUp'
 import LanguageFlag from '@/components/LanguageFlag/LanguageFlag'
 import SectionCard from '@/components/SectionCard/SectionCard'
 import { formatShare } from '@/lib/formatShare'
@@ -44,7 +45,9 @@ const LanguageStatus = ({ projectId, projectSlug, manageable }: LanguageStatusPr
 					<div className='flex min-w-0 flex-1 flex-col'>
 						<div className='flex items-start justify-between gap-3'>
 							<span className={classes.name}>{name}</span>
-							<span className={classes.percent}>{percent}</span>
+							<span className={classes.percent}>
+								<CountUp value={language.translatedCount} format={(translated) => share(translated, language.keyCount)} />
+							</span>
 						</div>
 						<span className={classes.meta}>
 							{language.isBase
@@ -59,7 +62,7 @@ const LanguageStatus = ({ projectId, projectSlug, manageable }: LanguageStatusPr
 						value={language.keyCount === 0 ? 0 : (language.translatedCount / language.keyCount) * 100}
 						size={6}
 						radius='xl'
-						classNames={{ root: classes.track }}
+						classNames={{ root: classes.track, section: classes.fill }}
 					/>
 				</div>
 			</>

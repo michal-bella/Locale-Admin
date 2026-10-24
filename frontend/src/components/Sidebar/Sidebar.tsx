@@ -43,8 +43,8 @@ const NavItem = ({ to, params, search, icon: Icon, iconClassName = '', label, co
 )
 
 /**
- * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Preklady,
- * Prehľad, História, Nastavenia projektu, Jazyky, Verzie and Členovia (Preklady stay first, Prehľad is not the project's landing page; a VISITOR sees only the first three), outside one: Späť na projekt when an admin page was opened from a project (`?from=`), else Všetky projekty. ADMIN also sees Projekty and Používatelia under SPRÁVA.
+ * Sidebar of Figma 3:1656 with only the pages that exist. Inside a project: the project switcher (Figma 3:470) with Prehľad,
+ * Preklady, Verzie, História, Jazyky, Členovia and Nastavenia projektu (Preklady stay the project's landing page although Prehľad is first; a VISITOR sees only Prehľad, Preklady and História), outside one: Späť na projekt when an admin page was opened from a project (`?from=`), else Všetky projekty. ADMIN also sees Projekty and Používatelia under SPRÁVA.
  * From `md` the button at the bottom switches to the compact sidebar: logo, project avatar and icons with tooltips.
  */
 const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps) => {
@@ -81,14 +81,6 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 				{projectSlug && project ? (
 					<ul aria-label={project.name} className={classes.list}>
 						<NavItem
-							to='/projects/$projectSlug/translations'
-							params={{ projectSlug }}
-							icon={Translate}
-							label={t('sidebar.translations')}
-							compact={isCompact}
-							onNavigate={onClose}
-						/>
-						<NavItem
 							to='/projects/$projectSlug/dashboard'
 							params={{ projectSlug }}
 							icon={LayoutGrid}
@@ -96,6 +88,24 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 							compact={isCompact}
 							onNavigate={onClose}
 						/>
+						<NavItem
+							to='/projects/$projectSlug/translations'
+							params={{ projectSlug }}
+							icon={Translate}
+							label={t('sidebar.translations')}
+							compact={isCompact}
+							onNavigate={onClose}
+						/>
+						{canManageProject && (
+							<NavItem
+								to='/projects/$projectSlug/versions'
+								params={{ projectSlug }}
+								icon={Tag}
+								label={t('sidebar.versions')}
+								compact={isCompact}
+								onNavigate={onClose}
+							/>
+						)}
 						<NavItem
 							to='/projects/$projectSlug/history'
 							params={{ projectSlug }}
@@ -108,14 +118,6 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 						{canManageProject && (
 							<>
 								<NavItem
-									to='/projects/$projectSlug/settings'
-									params={{ projectSlug }}
-									icon={Settings}
-									label={t('sidebar.projectSettings')}
-									compact={isCompact}
-									onNavigate={onClose}
-								/>
-								<NavItem
 									to='/projects/$projectSlug/languages'
 									params={{ projectSlug }}
 									icon={Globe}
@@ -124,18 +126,18 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 									onNavigate={onClose}
 								/>
 								<NavItem
-									to='/projects/$projectSlug/versions'
-									params={{ projectSlug }}
-									icon={Tag}
-									label={t('sidebar.versions')}
-									compact={isCompact}
-									onNavigate={onClose}
-								/>
-								<NavItem
 									to='/projects/$projectSlug/members'
 									params={{ projectSlug }}
 									icon={Users}
 									label={t('sidebar.members')}
+									compact={isCompact}
+									onNavigate={onClose}
+								/>
+								<NavItem
+									to='/projects/$projectSlug/settings'
+									params={{ projectSlug }}
+									icon={Settings}
+									label={t('sidebar.projectSettings')}
 									compact={isCompact}
 									onNavigate={onClose}
 								/>

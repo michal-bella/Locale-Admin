@@ -86,14 +86,14 @@ const searchOf = (page: Page) => new URL(page.url()).searchParams
 test.describe('ADMIN', () => {
 	test.use({ storageState: STORAGE_STATE.ADMIN })
 
-	test('Prehľad is the second sidebar item, the project still opens on Preklady', async ({ page, playwright }) => {
+	test('Prehľad is the first sidebar item, the project still opens on Preklady', async ({ page, playwright }) => {
 		const { project, api } = await withSeededProject(playwright.request)
 		await api.dispose()
 
 		await page.goto(`/projects/${project.slug}`)
 		await expect(page).toHaveURL(`/projects/${project.slug}/translations`)
 		const section = getMainNavigation(page).getByRole('list', { name: project.name })
-		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'História', 'Nastavenia', 'Jazyky', 'Verzie', 'Členovia'])
+		await expect(section.getByRole('link')).toHaveText(['Prehľad', 'Preklady', 'Verzie', 'História', 'Jazyky', 'Členovia', 'Nastavenia'])
 
 		const dashboard = section.getByRole('link', { name: 'Prehľad' })
 		await dashboard.click()

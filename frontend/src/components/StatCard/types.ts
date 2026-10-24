@@ -7,6 +7,8 @@ export type StatCardProps = {
 	labelSuffix?: ReactNode
 	/** `undefined` while loading shows a skeleton. */
 	value?: number | string
+	/** Formats a numeric `value` while it counts up, e.g. as a share of all keys. */
+	format?: (value: number) => string
 	/** Small line under the value, e.g. "+12 za 30 dní". */
 	hint?: string
 	/** Short note next to the value, e.g. "93 % kľúčov"; it keeps the card as tall as one without it. */

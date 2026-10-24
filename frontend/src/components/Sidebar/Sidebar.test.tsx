@@ -40,7 +40,7 @@ describe('Sidebar', () => {
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
 
-	it('shows the project name with Preklady first, Prehľad second, then História, Nastavenia, Jazyky, Verzie and Členovia inside a project', async () => {
+	it('shows the project name with Prehľad, Preklady, Verzie, História, Jazyky, Členovia and Nastavenia inside a project', async () => {
 		signedInAs(EDITOR_USER, {
 			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 			[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [] },
@@ -51,13 +51,13 @@ describe('Sidebar', () => {
 
 		const project = within(await navigation.findByRole('list', { name: 'Booking Web' }))
 		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual([
-			'Preklady',
 			'Prehľad',
-			'História',
-			'Nastavenia',
-			'Jazyky',
+			'Preklady',
 			'Verzie',
+			'História',
+			'Jazyky',
 			'Členovia',
+			'Nastavenia',
 		])
 		expect(project.getByRole('link', { name: 'Preklady' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/translations`)
 		expect(project.getByRole('link', { name: 'Prehľad' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/dashboard`)
@@ -69,7 +69,7 @@ describe('Sidebar', () => {
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
 
-	it('shows only Preklady, Prehľad and História to a VISITOR inside a project', async () => {
+	it('shows only Prehľad, Preklady and História to a VISITOR inside a project', async () => {
 		signedInAs(VISITOR_USER, {
 			[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 			[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [] },
@@ -79,7 +79,7 @@ describe('Sidebar', () => {
 
 		const navigation = await findNavigation()
 		const project = within(await navigation.findByRole('list', { name: 'Booking Web' }))
-		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Preklady', 'Prehľad', 'História'])
+		expect(project.getAllByRole('link').map((link) => link.textContent)).toEqual(['Prehľad', 'Preklady', 'História'])
 		expect(navigation.queryByText('Správa')).not.toBeInTheDocument()
 	})
 

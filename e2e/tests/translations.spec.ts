@@ -57,14 +57,14 @@ const expectNoLanguageSelects = async (page: Page) => {
 	await expect(page.getByRole('combobox', { name: 'Cieľový jazyk' })).toHaveCount(0)
 }
 
-test('the project index redirects to Preklady, the first sidebar item, in the extended view with the stats over every language', async ({ page, request }) => {
+test('the project index redirects to Preklady, the second sidebar item, in the extended view with the stats over every language', async ({ page, request }) => {
 	const project = await createProjectWithKeys(request, 'tr-overview', KEYS)
 
 	await page.goto(`/projects/${project.slug}`)
 	await expect(page).toHaveURL(translationsPath(project))
 	await expect(page.getByRole('heading', { level: 1, name: 'Preklady' })).toBeVisible()
 	const section = getMainNavigation(page).getByRole('list', { name: project.name })
-	await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'História', 'Nastavenia', 'Jazyky', 'Verzie', 'Členovia'])
+	await expect(section.getByRole('link')).toHaveText(['Prehľad', 'Preklady', 'Verzie', 'História', 'Jazyky', 'Členovia', 'Nastavenia'])
 	await expect(section.getByRole('link', { name: 'Preklady' })).toHaveAttribute('aria-current', 'page')
 
 	await expect(page.getByRole('button', { name: 'Importovať' })).toBeEnabled()

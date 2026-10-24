@@ -138,28 +138,25 @@ describe('ProjectLanguagesPage table', () => {
 		expect(englishRow.querySelector('[data-flag="gb"]')).not.toBeNull()
 	})
 
-	it('shows the translated keys and the coverage of every language', async () => {
+	it('shows only the languages, without translation columns or links to the translations', async () => {
 		signedInAs(ADMIN_USER, {
 			...PROJECT_ROUTES,
 			[`GET ${LIST_URL}`]: languagesResponse([
 				{ ...SLOVAK, translatedCount: 248, keyCount: 248 },
 				{ ...ENGLISH, translatedCount: 221, keyCount: 248 },
-				{ ...RUSSIAN, translatedCount: 247, keyCount: 248 },
 			]),
 		})
 		renderApp(PAGE_PATH)
 
 		await findInTable('Slovenčina')
-		expect(within(getTable()).getByRole('columnheader', { name: 'Preložené' })).toBeInTheDocument()
-		expect(within(getTable()).getByRole('columnheader', { name: 'Pokrytie' })).toBeInTheDocument()
-		expect(within(getRow('Slovenčina')).getByText('248 / 248')).toBeInTheDocument()
-		expect(within(getRow('Angličtina')).getByText('221 / 248')).toBeInTheDocument()
-		// The column and the narrow-screen copies under the bar and under the name; CSS shows one of them per breakpoint.
-		expect(within(getRow('Angličtina')).getAllByText('221 z 248 preložených')).toHaveLength(2)
-		expect(within(getRow('Slovenčina')).getAllByText('100 %')).toHaveLength(2)
-		expect(within(getRow('Angličtina')).getAllByRole('progressbar', { name: 'Pokrytie jazyka Angličtina: 89\u00a0%' })).toHaveLength(2)
-		// 99.6 % is not shown as 100 % while a key is missing.
-		expect(within(getRow('Ruština')).getAllByText('> 99 %')).toHaveLength(2)
+		expect(
+			within(getTable())
+				.getAllByRole('columnheader')
+				.map((header) => header.textContent),
+		).toEqual(['Jazyk', 'Akcie'])
+		expect(within(getTable()).queryByRole('progressbar')).not.toBeInTheDocument()
+		expect(within(getTable()).queryByRole('link')).not.toBeInTheDocument()
+		expect(within(getRow('Angličtina')).queryByText('221 / 248')).not.toBeInTheDocument()
 	})
 
 	it('shows skeleton rows while loading and keeps Pridať jazyk disabled', async () => {
@@ -465,7 +462,7 @@ describe('AddLanguageModal', () => {
 })
 
 describe('Deleting a language', () => {
-	it('shows no Odobrať to an EDITOR, only the link to the translations', async () => {
+	it('shows no Odobrať and no actions column to an EDITOR', async () => {
 		signedInAs(EDITOR_USER, {
 			...PROJECT_ROUTES,
 			[`GET ${LIST_URL}`]: languagesResponse([SLOVAK, ENGLISH]),
@@ -475,12 +472,12 @@ describe('Deleting a language', () => {
 		const table = await screen.findByRole('table', { name: 'Zoznam jazykov' })
 		expect(await within(table).findByText('Angličtina')).toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: /^Odobrať jazyk/ })).not.toBeInTheDocument()
-		expect(within(table).getByRole('link', { name: 'Otvoriť preklady do jazyka Angličtina' })).toHaveAttribute(
-			'href',
-			expect.stringMatching(/\/translations\?target=en&languages=.*en/),
-		)
-		// The base language is the source, so its link presets no target and its name promises none.
-		expect(within(getRow('Slovenčina')).getByRole('link', { name: 'Otvoriť preklady' })).toHaveAttribute('href', expect.stringMatching(/\/translations$/))
+		expect(
+			within(table)
+				.getAllByRole('columnheader')
+				.map((header) => header.textContent),
+		).toEqual(['Jazyk'])
+		expect(within(table).queryByRole('link')).not.toBeInTheDocument()
 	})
 
 	it('disables Odobrať in the row of the base language', async () => {

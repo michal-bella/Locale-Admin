@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Prehľad, sidebar a Jazyky (2026-10-24)
+
+- frontend: Prehľad má kartu **Vyplnené bunky** (podiel vyplnených buniek kľúče × jazyky z poľa `strings`) a kartu **Verzie** (počet verzií, aktuálna verzia, odkaz **Zobraziť verzie**); karta **Jazyky** má odkaz **Zobraziť jazyky**; karty sú v 3 stĺpcoch
+- frontend: čísla kariet a percentá jazykov sa napočítavajú od 0 a progress bary sa plnia; pri zapnutom obmedzení pohybu v systéme sa animácie vypnú
+- frontend: nové poradie položiek sidebaru v projekte: Prehľad, Preklady, Verzie, História, Jazyky, Členovia, Nastavenia; `/projects/$projectSlug` ďalej otvára Preklady
+- frontend: tabuľka na stránke **Jazyky** nemá stĺpce **Preložené** a **Pokrytie** (patria verzii) ani odkazy na Preklady (ikona **Otvoriť preklady** a odkaz v názve jazyka); editor nemá stĺpec akcií
+
 ### História zmien (2026-10-24)
 
 - api: `GET /api/projects/:projectId/activity` má číslované stránky (`page`, `pageSize`) namiesto kurzora, filtre `userId`, `category`, `versionId`, `from`, `to` a v odpovedi `total` a `users` (kontrakt `activityListQuerySchema`, `ACTIVITY_TYPE_CATEGORY` v `packages/shared`)

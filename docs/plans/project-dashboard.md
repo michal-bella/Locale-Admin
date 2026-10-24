@@ -24,7 +24,7 @@ Postup podľa `.agents/workflows/feature.md` na vetve `feature/project-dashboard
 | Prvok                                                                 | Teraz                                    |
 | --------------------------------------------------------------------- | ---------------------------------------- |
 | Hlavička (eyebrow PREHĽAD PROJEKTU, názov, podnadpis, Otvoriť preklady) | áno                                      |
-| 4 štatistické karty: Kľúče, Preložené, Jazyky, Členovia               | áno                                      |
+| 4 štatistické karty: Kľúče, Preložené, Jazyky, Členovia               | áno (2026-10-24 aj Vyplnené bunky a Verzie) |
 | Stav jazykov (progres po jazykoch, Spravovať jazyky)                  | áno                                      |
 | Posledná aktivita (feed zmien)                                        | áno, **nová tabuľka udalostí**           |
 | Graf dennej aktivity (7 / 30 / 90 dní)                                 | áno                                      |

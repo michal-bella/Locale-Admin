@@ -84,6 +84,7 @@ const EditTranslationModal = ({
 			title={t('translationsPage.editModal.title')}
 			closeLabel={t('translationsPage.editModal.close')}
 			isPending={saving}
+			size={680}
 		>
 			{item && language && (
 				<Fields
@@ -296,6 +297,7 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 			maxLength={TRANSLATION_VALUE_MAX_LENGTH}
 			modalAutofocus={index === 0}
 			onKeyDown={handleKeyDown}
+			minRows={plural ? undefined : 3}
 			className={classes.field}
 		/>
 	)

@@ -129,6 +129,42 @@
 	box-shadow: inset -1px 0 0 var(--app-color-border);
 }
 
+/* A soft shadow on the inner edge of a sticky column while content is scrolled under it; drawn by a pseudo-element, so the cells keep
+   their inset divider shadows. */
+.stickyStart::after,
+.stickyEnd::after {
+	content: '';
+	position: absolute;
+	inset-block: 0;
+	width: 0.75rem;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 150ms ease;
+}
+
+.stickyStart::after {
+	left: 100%;
+	background: linear-gradient(to right, var(--table-scroll-shadow), transparent);
+}
+
+.stickyEnd::after {
+	right: 100%;
+	background: linear-gradient(to left, var(--table-scroll-shadow), transparent);
+}
+
+.scroll {
+	--table-scroll-shadow: rgb(15 23 42 / 0.1);
+}
+
+[data-mantine-color-scheme='dark'] .scroll {
+	--table-scroll-shadow: rgb(0 0 0 / 0.45);
+}
+
+.scroll[data-hidden-start] .stickyStart::after,
+.scroll[data-hidden-end] .stickyEnd::after {
+	opacity: 1;
+}
+
 th.stickyStart,
 th.stickyEnd {
 	z-index: 2;

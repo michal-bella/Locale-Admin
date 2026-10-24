@@ -23,5 +23,7 @@ export type TokenEditorProps = {
 	onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void
 	onBlur?: (event: FocusEvent<HTMLDivElement>) => void
 	className?: string
+	/** Lines the empty field is tall at least, e.g. 3 for the translation of a plain key; it still grows with the text. */
+	minRows?: number
 	ref?: Ref<HTMLDivElement>
 }

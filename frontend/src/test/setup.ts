@@ -29,7 +29,8 @@ Object.defineProperty(Element.prototype, 'scrollIntoView', { writable: true, val
 Object.defineProperty(window, 'matchMedia', {
 	writable: true,
 	value: (query: string) => ({
-		matches: false,
+		// Reduced motion makes CountUp show the final number at once.
+		matches: query === '(prefers-reduced-motion: reduce)',
 		media: query,
 		onchange: null,
 		addEventListener: () => undefined,

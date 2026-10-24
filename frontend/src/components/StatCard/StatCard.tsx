@@ -2,6 +2,7 @@ import { Button, Progress, Skeleton, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 
 import ButtonLink from '@/atoms/ButtonLink/ButtonLink'
+import CountUp from '@/atoms/CountUp/CountUp'
 import { ArrowRight } from '@/components/Icons'
 
 import classes from './StatCard.module.css'
@@ -11,7 +12,7 @@ import { type StatCardProps } from './types'
 const TONE_COLOR = { brand: 'brand', success: 'teal', danger: 'red' } as const
 
 /** Label, value and icon tile of Figma 3:62 (Preklady) and 3:532 (Prehľad), optionally with a hint, a progress bar and a filter button or link. */
-const StatCard = ({ label, labelSuffix, value, hint, share, icon: Icon, tone, percent, filter, link }: StatCardProps) => {
+const StatCard = ({ label, labelSuffix, value, format, hint, share, icon: Icon, tone, percent, filter, link }: StatCardProps) => {
 	const { t } = useTranslation()
 
 	return (
@@ -28,7 +29,7 @@ const StatCard = ({ label, labelSuffix, value, hint, share, icon: Icon, tone, pe
 						<Skeleton height={32} width={64} radius='sm' />
 					) : (
 						<div className='flex flex-wrap items-baseline gap-x-2'>
-							<span className={classes.value}>{value}</span>
+							<span className={classes.value}>{typeof value === 'number' ? <CountUp value={value} format={format} /> : value}</span>
 							{share !== undefined && <span className={classes.share}>{share}</span>}
 						</div>
 					)}
@@ -67,7 +68,12 @@ const StatCard = ({ label, labelSuffix, value, hint, share, icon: Icon, tone, pe
 			</div>
 			{percent !== undefined && (
 				<Progress.Root size={4} radius='xl' mt='md' classNames={{ root: classes.track }}>
-					<Progress.Section value={percent} color={TONE_COLOR[tone]} aria-label={t('translationsPage.stats.progressLabel', { label, percent })} />
+					<Progress.Section
+						className={classes.fill}
+						value={percent}
+						color={TONE_COLOR[tone]}
+						aria-label={t('translationsPage.stats.progressLabel', { label, percent })}
+					/>
 				</Progress.Root>
 			)}
 		</div>

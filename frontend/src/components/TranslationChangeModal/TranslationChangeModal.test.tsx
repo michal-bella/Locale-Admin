@@ -1,0 +1,77 @@
+import { MantineProvider } from '@mantine/core'
+import { render, screen, within } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vite-plus/test'
+
+import { ACTIVITY_TYPE } from '@locale/shared'
+
+import { mantineTheme } from '@/styles/mantineTheme'
+
+import TranslationChangeModal from './TranslationChangeModal'
+import { type TranslationChangeEvent } from './types'
+
+const change = (languageTag: string, oldValue: string | null, newValue: string | null): TranslationChangeEvent => ({
+	id: '00000000-0000-4000-8000-000000000901',
+	createdAt: '2026-10-24T08:30:00.000Z',
+	count: 1,
+	user: { id: '00000000-0000-4000-8000-000000000201', name: 'Jana Nováková' },
+	version: { id: '00000000-0000-4000-8000-000000000502', name: 'v2.45' },
+	type: ACTIVITY_TYPE.TRANSLATION_UPDATED,
+	payload: { keyId: '00000000-0000-4000-8000-000000000601', namespace: 'loc', name: 'orders.status', languageTag, oldValue, newValue },
+})
+
+const renderModal = (event: TranslationChangeEvent) =>
+	render(<TranslationChangeModal opened event={event} onClose={vi.fn()} />, {
+		wrapper: ({ children }) => <MantineProvider theme={mantineTheme}>{children}</MantineProvider>,
+	})
+
+const block = (title: string) => {
+	const section = screen.getByRole('heading', { level: 3, name: title }).closest('section')
+	if (!section) {
+		throw new Error(`Block ${title} not found`)
+	}
+	return section
+}
+
+const marked = (section: HTMLElement, tag: 'del' | 'ins') => Array.from(section.querySelectorAll(tag)).map((element) => element.textContent)
+
+describe('TranslationChangeModal', () => {
+	it('shows who, when, the key and language, and marks the changed words', () => {
+		renderModal(change('en', 'The order was sent yesterday', 'The order was delivered today'))
+
+		const dialog = screen.getByRole('dialog', { name: 'Zmena prekladu' })
+		expect(within(dialog).getByText('loc:orders.status')).toBeInTheDocument()
+		expect(within(dialog).getByText('Angličtina')).toBeInTheDocument()
+		expect(within(dialog).getByText('v2.45')).toBeInTheDocument()
+		expect(within(dialog).getByText('Jana Nováková')).toBeInTheDocument()
+
+		const before = block('Pred')
+		const after = block('Po')
+		expect(before.querySelector('p')).toHaveTextContent('The order was sent yesterday')
+		expect(after.querySelector('p')).toHaveTextContent('The order was delivered today')
+		expect(marked(before, 'del')).toEqual(['sent', 'yesterday'])
+		expect(marked(after, 'ins')).toEqual(['delivered', 'today'])
+		expect(marked(before, 'ins')).toEqual([])
+		expect(marked(after, 'del')).toEqual([])
+	})
+
+	it('shows Nepreložené before the first translation and the whole value as added', () => {
+		renderModal(change('sk', null, 'Objednávka odoslaná'))
+
+		expect(within(block('Pred')).getByText('Nepreložené')).toBeInTheDocument()
+		expect(marked(block('Po'), 'ins')).toEqual(['Objednávka odoslaná'])
+	})
+
+	it('shows Hodnota vymazaná after a cleared value and the whole old value as removed', () => {
+		renderModal(change('sk', 'Objednávka odoslaná', null))
+
+		expect(within(block('Po')).getByText('Hodnota vymazaná')).toBeInTheDocument()
+		expect(marked(block('Pred'), 'del')).toEqual(['Objednávka odoslaná'])
+	})
+
+	it('splits Cyrillic into words, not single letters', () => {
+		renderModal(change('ru', 'Заказ отправлен', 'Заказ доставлен'))
+
+		expect(marked(block('Pred'), 'del')).toEqual(['отправлен'])
+		expect(marked(block('Po'), 'ins')).toEqual(['доставлен'])
+	})
+})

@@ -713,6 +713,20 @@
 			"summary_few": "Zobrazené {{shown}} z {{count}} zmien",
 			"summary_many": "Zobrazených {{shown}} z {{count}} zmien",
 			"summary_other": "Zobrazených {{shown}} z {{count}} zmien"
+		},
+		"change": {
+			"show": "Zobraziť zmenu",
+			"showLabel": "Zobraziť zmenu prekladu {{key}} ({{language}})",
+			"title": "Zmena prekladu",
+			"close": "Zavrieť",
+			"language": "Jazyk",
+			"version": "Verzia",
+			"user": "Kto",
+			"time": "Kedy",
+			"before": "Pred",
+			"after": "Po",
+			"untranslated": "Nepreložené",
+			"cleared": "Hodnota vymazaná"
 		}
 	},
 	"importModal": {

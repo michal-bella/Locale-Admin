@@ -713,6 +713,20 @@
 			"summary_few": "Zobrazeny {{shown}} z {{count}} změn",
 			"summary_many": "Zobrazeno {{shown}} z {{count}} změn",
 			"summary_other": "Zobrazeno {{shown}} z {{count}} změn"
+		},
+		"change": {
+			"show": "Zobrazit změnu",
+			"showLabel": "Zobrazit změnu překladu {{key}} ({{language}})",
+			"title": "Změna překladu",
+			"close": "Zavřít",
+			"language": "Jazyk",
+			"version": "Verze",
+			"user": "Kdo",
+			"time": "Kdy",
+			"before": "Před",
+			"after": "Po",
+			"untranslated": "Nepřeloženo",
+			"cleared": "Hodnota smazána"
 		}
 	},
 	"importModal": {

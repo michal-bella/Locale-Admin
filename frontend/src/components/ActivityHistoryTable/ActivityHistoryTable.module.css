@@ -34,7 +34,7 @@
 }
 
 .actionsColumn {
-	width: 3.5rem;
+	width: 1%;
 }
 
 .td {
@@ -53,6 +53,12 @@
 
 .actionsCell {
 	padding-inline: 0 1.25rem;
+}
+
+.actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.25rem;
 }
 
 .time,

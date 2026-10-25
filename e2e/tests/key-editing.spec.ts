@@ -251,7 +251,11 @@ test.describe('Edit key modal', () => {
 		test.use({ storageState: ANONYMOUS })
 
 		// Its own member: adding the shared EDITOR to another project would change which project other specs see as theirs.
-		test('a member sees no Upraviť kľúč button and PATCH returns 403 FORBIDDEN', async ({ page, playwright, baseURL }) => {
+		test('a member sees the key read-only, saves only the description and PATCH of the name returns 403 FORBIDDEN', async ({
+			page,
+			playwright,
+			baseURL,
+		}) => {
 			const member = await createMember(playwright.request, baseURL)
 			const admin = await newAdminApi(playwright.request)
 			const project = await seedProject(admin, 'edit-key-member')
@@ -265,7 +269,16 @@ test.describe('Edit key modal', () => {
 			const request = page.request
 			await openTranslations(page, project)
 			await expect(getTranslationRows(page)).toHaveCount(10)
-			await expect(page.getByRole('button', { name: /^Upraviť kľúč / })).toHaveCount(0)
+
+			const dialog = await openEditKeyModal(page, 'nav.home')
+			await expect(dialog.getByRole('textbox', { name: 'Kľúč', exact: true })).toHaveValue('nav.home')
+			await expect(dialog.getByRole('textbox', { name: 'Kľúč', exact: true })).toHaveAttribute('readonly')
+			await expect(dialog.getByRole('checkbox', { name: 'Použiť plurálové formy' })).toBeDisabled()
+			await dialog.getByLabel('Popis', { exact: true }).fill('Odkaz v hlavnom menu')
+			const described = await submitEditKey(page)
+			expect(described.status()).toBe(200)
+			expect(described.request().postDataJSON()).toEqual({ description: 'Odkaz v hlavnom menu' })
+			await expect(dialog).toHaveCount(0)
 
 			const item = await itemOf(request, project, 'nav.home')
 			const response = await request.patch(translationKeyApi(project.id, item.keyId), { data: { name: 'nav.start' }, headers: MUTATION_HEADERS })

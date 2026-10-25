@@ -1250,23 +1250,27 @@ describe('TranslationsPage edit modal', () => {
 		expect(puts()).toHaveLength(0)
 	})
 
-	it('exposes every target cell as the only focusable element of its row for a member, so Tab goes to the next row', async () => {
+	it('exposes the edit key button and the target cell as the only focusable elements of a row for a member, so Tab goes to the next row', async () => {
 		mockEditing(undefined, EDITOR_USER)
 		renderApp(PAGE_PATH)
 		await screen.findByText('orders.empty.title')
 
 		const body = getTable().querySelector('tbody')
 		const focusable = Array.from(body?.querySelectorAll('button, a, input, textarea, select, [tabindex]') ?? [])
-		expect(focusable.map((element) => element.tagName)).toEqual(['BUTTON', 'BUTTON', 'BUTTON', 'BUTTON'])
-		expect(focusable.map((element) => element.textContent)).toEqual([
+		expect(focusable.map((element) => element.getAttribute('aria-label') ?? element.textContent)).toEqual([
+			'Upraviť kľúč orders.empty.title',
 			'Preklad kľúča orders.empty.title, angličtina: Bez prekladu',
+			'Upraviť kľúč orders.empty.description',
 			'Preklad kľúča orders.empty.description, angličtina: Bez prekladu',
+			'Upraviť kľúč dashboard.welcome',
 			'Preklad kľúča dashboard.welcome, angličtina: Welcome back, {{name}}',
+			'Upraviť kľúč Uložiť zmeny',
 			'Preklad kľúča Uložiť zmeny, angličtina: Save changes',
 		])
 		expect(getRow('dashboard.welcome').querySelector('td:nth-child(2) button')).toBeNull()
 		// Only the untranslated cells are red, never the row.
-		expect(focusable.map((element) => element.getAttribute('data-status'))).toEqual(['UNTRANSLATED', 'UNTRANSLATED', 'TRANSLATED', 'TRANSLATED'])
+		const cells = focusable.filter((element) => element.hasAttribute('data-status'))
+		expect(cells.map((element) => element.getAttribute('data-status'))).toEqual(['UNTRANSLATED', 'UNTRANSLATED', 'TRANSLATED', 'TRANSLATED'])
 	})
 
 	it('adds the edit key button before the target cell of every row for an admin', async () => {

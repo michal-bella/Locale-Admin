@@ -14,3 +14,9 @@
 .input {
 	font-weight: 600;
 }
+
+/* A read-only field styled as disabled (`data-disabled`) can still take focus to select its text; it must not look editable then. */
+.input[data-disabled]:focus,
+.input[data-disabled]:focus-within {
+	--input-bd: var(--app-color-border);
+}

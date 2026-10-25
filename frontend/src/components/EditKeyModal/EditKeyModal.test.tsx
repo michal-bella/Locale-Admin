@@ -7,6 +7,7 @@ import {
 	type AuthUser,
 	type Language,
 	type ProjectSettings,
+	type ProjectVersion,
 	SUPPORTED_LANGUAGES,
 	type TranslationListItem,
 	translationGroup,
@@ -16,7 +17,7 @@ import {
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
-import { ADMIN_USER, apiError, CURRENT_VERSION, EDITOR_USER, projectListRoute, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, CURRENT_VERSION, EDITOR_USER, projectListRoute, signedInAs, VISITOR_USER } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -76,7 +77,12 @@ const patchUrl = (keyId: string) => `/projects/${PROJECT.id}/keys/${keyId}`
 
 type MockResponse = { status: number; data?: unknown }
 
-const mockPage = ({ user = ADMIN_USER, items = [WELCOME, COUNT], patch }: { user?: AuthUser; items?: TranslationListItem[]; patch?: MockResponse } = {}) => {
+const mockPage = ({
+	user = ADMIN_USER,
+	items = [WELCOME, COUNT],
+	patch,
+	version = CURRENT_VERSION,
+}: { user?: AuthUser; items?: TranslationListItem[]; patch?: MockResponse; version?: ProjectVersion } = {}) => {
 	const translations: TranslationsResponse = {
 		items,
 		total: items.length,
@@ -90,7 +96,7 @@ const mockPage = ({ user = ADMIN_USER, items = [WELCOME, COUNT], patch }: { user
 		...projectListRoute(PROJECT),
 		[`GET /projects/${PROJECT.id}/settings`]: { status: 200, data: PROJECT },
 		[`GET /projects/${PROJECT.id}/languages`]: { status: 200, data: [SLOVAK, ENGLISH] },
-		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [CURRENT_VERSION] } },
+		[`GET /projects/${PROJECT.id}/versions`]: { status: 200, data: { items: [version] } },
 		[`GET ${TRANSLATIONS_URL}`]: { status: 200, data: translations },
 		...Object.fromEntries(
 			items.map((entry) => [
@@ -146,12 +152,72 @@ describe('EditKeyModal', () => {
 		expect(await screen.findByRole('tooltip')).toHaveTextContent('Upraviť kľúč')
 	})
 
-	it('hides the edit button from a member', async () => {
-		mockPage({ user: EDITOR_USER })
+	it('hides the edit button from a visitor', async () => {
+		mockPage({ user: VISITOR_USER })
 		renderApp(PAGE_PATH)
 		await screen.findByText('dashboard.welcome')
 		expect(screen.queryByRole('button', { name: /Upraviť kľúč/ })).not.toBeInTheDocument()
 		expect(screen.getByRole('img', { name: 'Popis kľúča: Greeting on the dashboard' })).toBeInTheDocument()
+	})
+
+	it('lets a member read the key and the plural setting and change only the description', async () => {
+		const { patches } = mockPage({ user: EDITOR_USER })
+		renderApp(PAGE_PATH)
+		const dialog = await openModal('items.count')
+
+		expect(within(dialog).getByLabelText('Kľúč')).toHaveValue('items.count')
+		expect(within(dialog).getByLabelText('Kľúč')).toHaveAttribute('readonly')
+		expect(within(dialog).getByLabelText('Kľúč')).toHaveAttribute('data-disabled')
+		expect(within(dialog).getByRole('checkbox', { name: 'Použiť plurálové formy' })).toBeDisabled()
+		expect(within(dialog).getByLabelText('Názov premennej')).toHaveAttribute('readonly')
+		expect(within(dialog).getByLabelText('Popis')).toHaveFocus()
+
+		fireEvent.change(within(dialog).getByLabelText('Popis'), { target: { value: 'Number of items in the cart' } })
+		submit(dialog)
+		await waitFor(() => expect(patches()).toHaveLength(1))
+		expect(body(patches()[0])).toEqual({ description: 'Number of items in the cart' })
+	})
+
+	it('does not prefill a detected plural for a member, so only the description is sent', async () => {
+		const { patches } = mockPage({
+			user: EDITOR_USER,
+			items: [
+				item('cart.count', {
+					translations: { [SLOVAK.id]: { value: '{n, plural, other {# kusov}}', status: 'TRANSLATED', updatedAt: null, updatedBy: null } },
+				}),
+			],
+		})
+		renderApp(PAGE_PATH)
+		const dialog = await openModal('cart.count')
+
+		expect(within(dialog).getByRole('checkbox', { name: 'Použiť plurálové formy' })).not.toBeChecked()
+		expect(within(dialog).getByRole('button', { name: 'Uložiť' })).toBeDisabled()
+		fireEvent.change(within(dialog).getByLabelText('Popis'), { target: { value: 'Cart size' } })
+		submit(dialog)
+		await waitFor(() => expect(patches()).toHaveLength(1))
+		expect(body(patches()[0])).toEqual({ description: 'Cart size' })
+	})
+
+	it('shows the key to a member in a locked version without letting them change the description', async () => {
+		mockPage({ user: EDITOR_USER, version: { ...CURRENT_VERSION, isLocked: true } })
+		renderApp(PAGE_PATH)
+		const dialog = await openModal('dashboard.welcome')
+
+		expect(within(dialog).getByLabelText('Kľúč')).toHaveValue('dashboard.welcome')
+		expect(within(dialog).getByLabelText('Popis')).toHaveAttribute('readonly')
+		expect(within(dialog).getByRole('button', { name: 'Uložiť' })).toBeDisabled()
+	})
+
+	it('saves the key on Enter instead of adding a line break', async () => {
+		const { patches } = mockPage()
+		renderApp(PAGE_PATH)
+		const dialog = await openModal('dashboard.welcome')
+
+		const name = within(dialog).getByLabelText(/Kľúč/)
+		fireEvent.change(name, { target: { value: 'dashboard.greeting' } })
+		fireEvent.keyDown(name, { key: 'Enter' })
+		await waitFor(() => expect(patches()).toHaveLength(1))
+		expect(body(patches()[0])).toEqual({ name: 'dashboard.greeting' })
 	})
 
 	it('opens with the key, the description and the plural setting of the key', async () => {

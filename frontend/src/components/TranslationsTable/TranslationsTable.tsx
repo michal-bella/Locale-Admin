@@ -40,7 +40,7 @@ type Editing = { item: TranslationListItem; language: Language; viaNext?: boolea
  * `STACKED` either view puts its languages under each other in one column and the status badge into the key cell. With `showGroups`
  * a group header row starts every run of keys with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first
  * and are grouped inside. `translationsOnly` hides the key and status columns (more room for the languages on a phone); the key stays in the
- * accessible name of every cell. An untranslated cell has a soft red background. A global ADMIN gets an edit button next to every key that opens `EditKeyModal`.
+ * accessible name of every cell. An untranslated cell has a soft red background. An ADMIN or EDITOR gets an edit button next to every key that opens `EditKeyModal`.
  * With `item.diff` (every version but the first) an added key wears a „Nové“ badge and a changed cell a brand left border.
  */
 const TranslationsTable = ({
@@ -68,6 +68,7 @@ const TranslationsTable = ({
 	const { t, i18n } = useTranslation()
 	const { data: me } = useMeQuery()
 	const isAdmin = me?.role === ROLE.ADMIN
+	const canOpenKey = isAdmin || me?.role === ROLE.EDITOR
 	const tableRef = useRef<HTMLTableElement>(null)
 	const scrollRef = useRef<HTMLDivElement>(null)
 	// Which sticky column has content scrolled under it: the key column once scrolled right, the status column until the right end.
@@ -286,7 +287,7 @@ const TranslationsTable = ({
 									</span>
 								</Tooltip>
 							)}
-							{isAdmin && (
+							{canOpenKey && (
 								<span className={classes.editAction}>
 									<RowAction
 										icon={Edit}
@@ -501,7 +502,16 @@ const TranslationsTable = ({
 				</Table.Thead>
 				<Table.Tbody>{renderBody()}</Table.Tbody>
 			</Table>
-			{isAdmin && <EditKeyModal projectId={projectId} item={editing} opened={editOpened} onClose={editModal.close} />}
+			{canOpenKey && (
+				<EditKeyModal
+					projectId={projectId}
+					item={editing}
+					opened={editOpened}
+					onClose={editModal.close}
+					canEditKey={isAdmin}
+					canEditDescription={isAdmin || !readOnly}
+				/>
+			)}
 			{!readOnly && (
 				<EditTranslationModal
 					item={editingTranslation?.item ?? null}

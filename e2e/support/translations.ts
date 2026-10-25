@@ -200,7 +200,7 @@ export const expectView = async (page: Page, view: TranslationsView) => {
 	await expect(getTranslationsTable(page)).toHaveAttribute('data-view', view)
 }
 
-/** `Upraviť kľúč <key>` pencil of a row (ADMIN only). */
+/** `Upraviť kľúč <key>` pencil of a row (ADMIN and EDITOR). */
 export const getEditKeyButton = (row: Locator, key: string) => row.getByRole('button', { name: `Upraviť kľúč ${key}`, exact: true })
 
 export const getEditKeyDialog = (page: Page) => page.getByRole('dialog', { name: 'Upraviť kľúč' })

@@ -281,6 +281,17 @@ describe('DashboardPage', () => {
 			},
 		],
 		[
+			'zmena roly člena Lucia Tichá: Editor → Správca',
+			{
+				type: ACTIVITY_TYPE.MEMBER_ROLE_CHANGED,
+				payload: {
+					member: { id: LUCIA.id, firstName: 'Lucia', lastName: 'Tichá', email: 'lucia@firma.sk' },
+					fromRole: PROJECT_ROLE.EDITOR,
+					toRole: PROJECT_ROLE.MANAGER,
+				},
+			},
+		],
+		[
 			'odchod z projektu',
 			{
 				type: ACTIVITY_TYPE.MEMBER_REMOVED,

@@ -8,6 +8,12 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Roly v projekte, míľnik 2 (2026-10-25)
+
+- modál Pridať člena a Pridať do projektu (detail používateľa) majú výber **Rola v projekte** (Správca / Editor / Návštevník, predvolene Editor) s popisom roly
+- stránka Členovia: `ADMIN` mení rolu člena priamo v stĺpci Rola, detail používateľa má stĺpec Rola so zmenou v každom projekte; zmena sa zapíše do aktivity projektu
+- globálnu rolu v modáli Nový používateľ, na detaile používateľa a v profile admina nahradil prepínač **Administrátor**; bežný používateľ v profile rolu nevidí, má sekciu **Moje projekty** s rolou v každom projekte
+
 ### Roly v projekte, míľnik 1 (2026-10-25)
 
 - rola Správca / Editor / Návštevník patrí členstvu v projekte (`ProjectMember.role`, enum `PROJECT_ROLE`), globálne ostáva iba `ADMIN` / `USER`; ten istý používateľ môže byť v jednom projekte Správca a v inom Návštevník ([plán](./plans/project-roles.md), [ADR 0008](./decisions/0008-project-roles.md))

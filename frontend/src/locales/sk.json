@@ -18,6 +18,21 @@
 		"EDITOR": "Editor",
 		"VISITOR": "Návštevník"
 	},
+	"projectRole": {
+		"label": "Rola v projekte",
+		"memberLabel": "Rola používateľa {{email}} v projekte",
+		"projectLabel": "Rola v projekte {{name}}",
+		"saved": "Rola v projekte bola uložená.",
+		"description": {
+			"MANAGER": "Spravuje projekt: nastavenia, jazyky, verzie, import a kľúče. Členov nespravuje.",
+			"EDITOR": "Prekladá v projekte.",
+			"VISITOR": "Preklady v projekte iba číta a exportuje."
+		}
+	},
+	"adminAccess": {
+		"label": "Administrátor",
+		"description": "Spravuje systém, používateľov a všetky projekty bez pridávania do nich."
+	},
 	"notFoundPage": {
 		"eyebrow": "Chyba 404",
 		"title": "Stránka sa nenašla",
@@ -158,7 +173,7 @@
 		},
 		"createModal": {
 			"title": "Nový používateľ",
-			"description": "Zadajte e-mail, heslo a rolu nového používateľa. Do projektov ho pridáte na stránke Členovia projektu.",
+			"description": "Zadajte e-mail a heslo nového používateľa. Do projektov ho pridáte s rolou na stránke Členovia projektu.",
 			"close": "Zavrieť",
 			"email": {
 				"label": "E-mail",
@@ -167,13 +182,6 @@
 			"password": {
 				"label": "Heslo",
 				"placeholder": "Min. {{min}} znakov"
-			},
-			"role": {
-				"label": "Rola",
-				"description": {
-					"ADMIN": "Spravuje systém, používateľov a všetky projekty bez pridávania do nich.",
-					"USER": "Pracuje iba v projektoch, do ktorých ho pridá administrátor, s rolou nastavenou v každom projekte."
-				}
 			},
 			"cancel": "Zrušiť",
 			"submit": "Vytvoriť používateľa",
@@ -216,8 +224,7 @@
 		"card": {
 			"label": "Účet používateľa",
 			"createdAt": "Vytvorený {{date}}",
-			"role": "Rola",
-			"roleSaved": "Rola bola uložená.",
+			"roleSaved": "Prístup administrátora bol uložený.",
 			"editEmail": "Upraviť e-mail",
 			"editEmailLabel": "Upraviť e-mail používateľa {{email}}"
 		},
@@ -228,6 +235,7 @@
 				"label": "Projekty používateľa",
 				"project": "Projekt",
 				"slug": "Slug",
+				"role": "Rola",
 				"joinedAt": "Pridaný",
 				"joinedOn": "Pridaný {{date}}",
 				"empty": "Používateľ zatiaľ nie je v žiadnom projekte.",
@@ -241,7 +249,7 @@
 		},
 		"addModal": {
 			"title": "Pridať do projektu",
-			"description": "Vyberte projekt, ku ktorému používateľ {{email}} získa prístup.",
+			"description": "Vyberte projekt a rolu, s ktorou v ňom bude {{email}} pracovať.",
 			"close": "Zavrieť",
 			"project": {
 				"label": "Projekt",
@@ -1057,7 +1065,7 @@
 		},
 		"addModal": {
 			"title": "Pridať člena",
-			"description": "Vyberte existujúceho používateľa, ktorý získa prístup k tomuto projektu.",
+			"description": "Vyberte existujúceho používateľa a jeho rolu v tomto projekte.",
 			"close": "Zavrieť",
 			"user": {
 				"label": "Používateľ",
@@ -1094,8 +1102,13 @@
 			"description": "Tieto informácie uvidia ostatní členovia vašich projektov.",
 			"firstName": "Meno",
 			"lastName": "Priezvisko",
-			"email": "E-mailová adresa",
-			"role": "Rola"
+			"email": "E-mailová adresa"
+		},
+		"projects": {
+			"title": "Moje projekty",
+			"description": "Rola, s ktorou pracujete v jednotlivých projektoch. Mení ju administrátor.",
+			"label": "Moje projekty a roly",
+			"empty": "Zatiaľ nie ste členom žiadneho projektu."
 		},
 		"preferences": {
 			"title": "Preferencie",

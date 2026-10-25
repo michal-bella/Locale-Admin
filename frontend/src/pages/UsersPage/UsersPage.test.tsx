@@ -257,7 +257,7 @@ describe('CreateUserModal', () => {
 		expect(within(reopened).getByLabelText('E-mail')).toHaveValue('')
 	})
 
-	it('defaults to Používateľ, explains the picked role and sends ADMIN when Administrátor is picked', async () => {
+	it('creates a USER by default and an ADMIN with the Administrátor switch on', async () => {
 		const requests = signedInAs(ADMIN_USER, {
 			'GET /admin/users': usersResponse([JANA]),
 			'POST /admin/users': { status: 201, data: { ...NEW_USER, role: ROLE.ADMIN } },
@@ -265,15 +265,12 @@ describe('CreateUserModal', () => {
 		renderApp('/admin/users')
 		const dialog = await openModal()
 
-		const select = within(dialog).getByRole('combobox', { name: 'Rola' })
-		expect(select).toHaveValue('Používateľ')
-		expect(select).toHaveAccessibleDescription('Pracuje iba v projektoch, do ktorých ho pridá administrátor, s rolou nastavenou v každom projekte.')
+		const adminSwitch = within(dialog).getByRole('switch', { name: /^Administrátor/ })
+		expect(adminSwitch).not.toBeChecked()
+		expect(within(dialog).getByText('Spravuje systém, používateľov a všetky projekty bez pridávania do nich.')).toBeInTheDocument()
 
-		fireEvent.click(select)
-		const options = await screen.findAllByRole('option')
-		expect(options.map((option) => option.textContent)).toEqual(['Administrátor', 'Používateľ'])
-		fireEvent.click(screen.getByRole('option', { name: 'Administrátor' }))
-		expect(select).toHaveAccessibleDescription('Spravuje systém, používateľov a všetky projekty bez pridávania do nich.')
+		fireEvent.click(adminSwitch)
+		expect(adminSwitch).toBeChecked()
 		fillAndSubmit(dialog, 'nova@firma.sk', 'long-enough-password')
 
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())

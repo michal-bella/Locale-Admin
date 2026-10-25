@@ -93,17 +93,19 @@ describe('UserPage', () => {
 		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
 		expect(within(card).getByRole('heading', { level: 2, name: JANA.email })).toBeInTheDocument()
 		expect(within(card).getByText('JA')).toBeInTheDocument()
-		expect(within(card).getByRole('combobox', { name: 'Rola' })).toHaveValue('Používateľ')
+		expect(within(card).getByRole('switch', { name: /^Administrátor/ })).not.toBeChecked()
 		expect(within(card).getByText('Vytvorený 3. 10. 2026')).toBeInTheDocument()
 
 		const table = within(getProjectsTable())
 		expect(table.getByRole('columnheader', { name: 'Projekt' })).toBeInTheDocument()
 		expect(table.getByRole('columnheader', { name: 'Slug' })).toBeInTheDocument()
+		expect(table.getByRole('columnheader', { name: 'Rola' })).toBeInTheDocument()
 		expect(table.getByRole('columnheader', { name: 'Pridaný' })).toBeInTheDocument()
 		const rows = table.getAllByRole('row').slice(1)
 		expect(rows).toHaveLength(2)
 		const [bookingRow, iosRow] = rows as [HTMLElement, HTMLElement]
 		expect(within(bookingRow).getByText('Booking Web')).toBeInTheDocument()
+		expect(within(bookingRow).getByRole('combobox', { name: 'Rola v projekte Booking Web' })).toHaveValue('Editor')
 		// In the Slug and Pridaný columns and, for narrow screens (hidden by CSS otherwise), under the name.
 		expect(within(bookingRow).getAllByText('booking-web')).toHaveLength(2)
 		expect(within(bookingRow).getByText('13. 10. 2026')).toBeInTheDocument()
@@ -196,14 +198,13 @@ describe('UserCard role', () => {
 		renderApp(USER_URL)
 		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
 
-		fireEvent.click(within(card).getByRole('combobox', { name: 'Rola' }))
-		fireEvent.click(await screen.findByRole('option', { name: 'Administrátor' }))
+		fireEvent.click(within(card).getByRole('switch', { name: /^Administrátor/ }))
 
-		await waitFor(() => expect(within(card).getByRole('combobox', { name: 'Rola' })).toHaveValue('Administrátor'))
+		await waitFor(() => expect(within(card).getByRole('switch', { name: /^Administrátor/ })).toBeChecked())
 		const patches = requests.filter((request) => request.method === 'patch')
 		expect(patches).toHaveLength(1)
 		expect(JSON.parse(patches[0]?.data as string)).toEqual({ role: 'ADMIN' })
-		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Rola bola uložená.' }))
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Prístup administrátora bol uložený.' }))
 	})
 
 	it('shows LAST_ADMIN as a notification and keeps the role', async () => {
@@ -212,13 +213,12 @@ describe('UserCard role', () => {
 		renderApp(USER_URL)
 		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
 
-		fireEvent.click(within(card).getByRole('combobox', { name: 'Rola' }))
-		fireEvent.click(await screen.findByRole('option', { name: 'Používateľ' }))
+		fireEvent.click(within(card).getByRole('switch', { name: /^Administrátor/ }))
 
 		await waitFor(() =>
 			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Posledný administrátor sa nemôže vzdať svojej roly.' })),
 		)
-		expect(within(card).getByRole('combobox', { name: 'Rola' })).toHaveValue('Administrátor')
+		expect(within(card).getByRole('switch', { name: /^Administrátor/ })).toBeChecked()
 		expect(requests.filter((request) => request.method === 'patch')).toHaveLength(1)
 	})
 
@@ -234,8 +234,7 @@ describe('UserCard role', () => {
 		renderApp(meUrl)
 		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
 
-		fireEvent.click(within(card).getByRole('combobox', { name: 'Rola' }))
-		fireEvent.click(await screen.findByRole('option', { name: 'Používateľ' }))
+		fireEvent.click(within(card).getByRole('switch', { name: /^Administrátor/ }))
 
 		await waitFor(() => expect(within(screen.getByRole('banner')).getByText('Používateľ')).toBeInTheDocument())
 	})
@@ -274,12 +273,17 @@ describe('AddUserProjectModal', () => {
 		const dialog = await openAddModal()
 
 		await pickProject(dialog, 'B2C iOS')
+		const role = within(dialog).getByRole('combobox', { name: 'Rola v projekte' })
+		expect(role).toHaveValue('Editor')
+		expect(role).toHaveAccessibleDescription('Prekladá v projekte.')
+		fireEvent.click(role)
+		fireEvent.click(await screen.findByRole('option', { name: 'Návštevník' }))
 		submitAdd(dialog)
 
 		expect(await within(getProjectsTable()).findByText('B2C iOS')).toBeInTheDocument()
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		const post = requests.find((request) => request.method === 'post')
-		expect(JSON.parse(post?.data as string)).toEqual({ userId: JANA.id })
+		expect(JSON.parse(post?.data as string)).toEqual({ userId: JANA.id, role: 'VISITOR' })
 		expect(requests.filter((request) => request.method === 'get' && request.url === USER_URL)).toHaveLength(2)
 		expect(invalidate).toHaveBeenCalledWith({ queryKey: QUERY_KEYS.ADMIN.USERS() })
 		expect(invalidate).toHaveBeenCalledWith({ queryKey: QUERY_KEYS.ADMIN.PROJECTS() })
@@ -319,6 +323,37 @@ describe('AddUserProjectModal', () => {
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Skúsiť znova' }))
 
 		expect(await within(dialog).findByLabelText('Projekt', { selector: 'input' })).toBeInTheDocument()
+	})
+})
+
+describe('Role in a project', () => {
+	it('saves the role picked in the projects table, refetches the detail and the members and notifies', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+		let user: AdminUserDetail = { ...JANA, projects: [BOOKING] }
+		const requests = signedInAs(ADMIN_USER, {
+			...routes(() => user),
+			[`PATCH /projects/${BOOKING.id}/members/${JANA.id}`]: () => {
+				user = { ...JANA, projects: [{ ...BOOKING, role: PROJECT_ROLE.MANAGER }] }
+				return {
+					status: 200,
+					data: { id: JANA.id, email: JANA.email, firstName: null, lastName: null, role: 'MANAGER', projectCount: 1, createdAt: BOOKING.joinedAt },
+				}
+			},
+		})
+		renderApp(USER_URL)
+
+		fireEvent.click(
+			await within(await screen.findByRole('table', { name: 'Projekty používateľa' })).findByRole('combobox', { name: 'Rola v projekte Booking Web' }),
+		)
+		fireEvent.click(await screen.findByRole('option', { name: 'Správca' }))
+
+		await waitFor(() => expect(within(getProjectsTable()).getByRole('combobox', { name: 'Rola v projekte Booking Web' })).toHaveValue('Správca'))
+		const patches = requests.filter((request) => request.method === 'patch')
+		expect(patches).toHaveLength(1)
+		expect(JSON.parse(patches[0]?.data as string)).toEqual({ role: 'MANAGER' })
+		expect(invalidate).toHaveBeenCalledWith({ queryKey: QUERY_KEYS.PROJECTS.MEMBERS(BOOKING.id) })
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Rola v projekte bola uložená.' }))
 	})
 })
 

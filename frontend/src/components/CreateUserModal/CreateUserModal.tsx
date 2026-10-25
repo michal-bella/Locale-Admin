@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, Modal, Select, Text, TextInput } from '@mantine/core'
+import { Button, Modal, Switch, Text, TextInput } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { Controller, useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { type CreateUserRequest, createUserRequestSchema, ERROR_CODE, PASSWORD_MIN_LENGTH, ROLE, toValidationCode } from '@locale/shared'
@@ -9,13 +9,13 @@ import { type CreateUserRequest, createUserRequestSchema, ERROR_CODE, PASSWORD_M
 import { useCreateUserMutation } from '@/api/adminUsers/useCreateUserMutation'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import getApiErrorDetails from '@/api/getApiErrorDetails'
-import { ChevronDown, Close } from '@/components/Icons'
+import { Close } from '@/components/Icons'
 
 import classes from './CreateUserModal.module.css'
 import { type CreateUserModalProps } from './types'
 
-/** "Nový používateľ" modal (Figma 28:191) with the global role (Administrátor, Správca, Editor, Návštevník). Members of projects are added from these users. */
-const CreateUserModal = ({ opened, onClose, defaultRole = ROLE.USER, onCreated }: CreateUserModalProps) => {
+/** "Nový používateľ" modal (Figma 28:191); the Administrátor switch sets the global role. The role in a project is set when the user is added to it. */
+const CreateUserModal = ({ opened, onClose, onCreated }: CreateUserModalProps) => {
 	const { t } = useTranslation()
 	const createUser = useCreateUserMutation()
 	const { isPending } = createUser
@@ -34,9 +34,8 @@ const CreateUserModal = ({ opened, onClose, defaultRole = ROLE.USER, onCreated }
 				return t(`validation.${code}`, params)
 			},
 		}),
-		defaultValues: { email: '', password: '', role: defaultRole },
+		defaultValues: { email: '', password: '', role: ROLE.USER },
 	})
-	const role = useWatch({ control, name: 'role' })
 
 	const resetAndClose = () => {
 		reset()
@@ -127,17 +126,15 @@ const CreateUserModal = ({ opened, onClose, defaultRole = ROLE.USER, onCreated }
 								name='role'
 								control={control}
 								render={({ field }) => (
-									<Select
-										label={t('usersPage.createModal.role.label')}
-										description={t(`usersPage.createModal.role.description.${role}`)}
-										inputWrapperOrder={['label', 'input', 'description']}
+									<Switch
+										ref={field.ref}
+										label={t('adminAccess.label')}
+										description={t('adminAccess.description')}
+										checked={field.value === ROLE.ADMIN}
 										disabled={isPending}
-										value={field.value}
-										onChange={(value) => value && field.onChange(value)}
-										allowDeselect={false}
-										rightSection={<ChevronDown aria-hidden />}
-										rightSectionPointerEvents='none'
-										data={Object.values(ROLE).map((value) => ({ value, label: t(`roles.${value}`) }))}
+										onChange={(event) => field.onChange(event.currentTarget.checked ? ROLE.ADMIN : ROLE.USER)}
+										onBlur={field.onBlur}
+										withThumbIndicator={false}
 									/>
 								)}
 							/>

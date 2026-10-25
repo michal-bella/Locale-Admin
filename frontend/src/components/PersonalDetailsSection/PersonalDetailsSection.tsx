@@ -1,15 +1,14 @@
-import { Select, TextInput } from '@mantine/core'
+import { Switch, TextInput } from '@mantine/core'
 import { Controller } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { ROLE } from '@locale/shared'
 
-import { ChevronDown } from '@/components/Icons'
 import ProfileSection from '@/components/ProfileSection/ProfileSection'
 
 import { type PersonalDetailsSectionProps } from './types'
 
-/** "Osobné údaje" (Figma 3:1825). The names are editable, the email is shown disabled and the global role is a select an ADMIN may change. */
+/** "Osobné údaje" (Figma 3:1825). The names are editable, the email is shown disabled; an ADMIN also gets the Administrátor switch to give up the role. */
 const PersonalDetailsSection = ({ register, errors, control, email, canChangeRole }: PersonalDetailsSectionProps) => {
 	const { t } = useTranslation()
 
@@ -19,24 +18,24 @@ const PersonalDetailsSection = ({ register, errors, control, email, canChangeRol
 				<TextInput autoComplete='given-name' label={t('profilePage.personal.firstName')} error={errors.firstName?.message} {...register('firstName')} />
 				<TextInput autoComplete='family-name' label={t('profilePage.personal.lastName')} error={errors.lastName?.message} {...register('lastName')} />
 				<TextInput type='email' label={t('profilePage.personal.email')} defaultValue={email} disabled />
-				<Controller
-					control={control}
-					name='role'
-					render={({ field: { value, onChange, onBlur, ref } }) => (
-						<Select
-							ref={ref}
-							label={t('profilePage.personal.role')}
-							value={value ?? null}
-							onChange={(role) => role && onChange(role)}
-							onBlur={onBlur}
-							disabled={!canChangeRole}
-							allowDeselect={false}
-							rightSection={<ChevronDown aria-hidden />}
-							rightSectionPointerEvents='none'
-							data={Object.values(ROLE).map((role) => ({ value: role, label: t(`roles.${role}`) }))}
-						/>
-					)}
-				/>
+				{canChangeRole && (
+					<Controller
+						control={control}
+						name='role'
+						render={({ field: { value, onChange, onBlur, ref } }) => (
+							<Switch
+								ref={ref}
+								className='sm:col-span-2'
+								label={t('adminAccess.label')}
+								description={t('adminAccess.description')}
+								checked={value === ROLE.ADMIN}
+								onChange={(event) => onChange(event.currentTarget.checked ? ROLE.ADMIN : ROLE.USER)}
+								onBlur={onBlur}
+								withThumbIndicator={false}
+							/>
+						)}
+					/>
+				)}
 			</div>
 		</ProfileSection>
 	)

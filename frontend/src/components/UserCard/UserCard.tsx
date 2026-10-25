@@ -1,7 +1,6 @@
-import { Avatar, Select, Text } from '@mantine/core'
+import { Avatar, Switch, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
-import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { getInitials, ROLE } from '@locale/shared'
@@ -9,7 +8,7 @@ import { getInitials, ROLE } from '@locale/shared'
 import { useUpdateUserMutation } from '@/api/adminUsers/useUpdateUserMutation'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import EditUserEmailModal from '@/components/EditUserEmailModal/EditUserEmailModal'
-import { ChevronDown, Edit } from '@/components/Icons'
+import { Edit } from '@/components/Icons'
 import RowAction from '@/components/RowAction/RowAction'
 import { formatDate } from '@/lib/formatDate'
 
@@ -17,18 +16,17 @@ import classes from './UserCard.module.css'
 import { type UserCardProps } from './types'
 
 /**
- * Header card of the user detail: avatar with initials from the email, the email with Upraviť e-mail, the created date and the global role
- * as a select that saves on change.
+ * Header card of the user detail: avatar with initials from the email, the email with Upraviť e-mail, the created date and the Administrátor
+ * switch (the global role) that saves on change.
  */
 const UserCard = ({ user }: UserCardProps) => {
 	const { t, i18n } = useTranslation()
-	const roleId = useId()
 	const updateRole = useUpdateUserMutation(user.id)
 	const [emailModalOpened, emailModal] = useDisclosure(false)
 
-	const changeRole = (value: string | null) => {
-		const role = Object.values(ROLE).find((candidate) => candidate === value)
-		if (!role || role === user.role || updateRole.isPending) {
+	const changeRole = (isAdmin: boolean) => {
+		const role = isAdmin ? ROLE.ADMIN : ROLE.USER
+		if (role === user.role || updateRole.isPending) {
 			return
 		}
 		updateRole.mutate(
@@ -62,17 +60,14 @@ const UserCard = ({ user }: UserCardProps) => {
 					{t('userPage.card.createdAt', { date: formatDate(user.createdAt, i18n.language) })}
 				</Text>
 			</div>
-			<Select
-				id={roleId}
-				label={t('userPage.card.role')}
+			<Switch
+				label={t('adminAccess.label')}
+				description={t('adminAccess.description')}
 				className={classes.role}
-				value={user.role}
-				onChange={changeRole}
+				checked={user.role === ROLE.ADMIN}
+				onChange={(event) => changeRole(event.currentTarget.checked)}
 				disabled={updateRole.isPending}
-				allowDeselect={false}
-				rightSection={<ChevronDown aria-hidden />}
-				rightSectionPointerEvents='none'
-				data={Object.values(ROLE).map((role) => ({ value: role, label: t(`roles.${role}`) }))}
+				withThumbIndicator={false}
 			/>
 			<EditUserEmailModal user={user} opened={emailModalOpened} onClose={emailModal.close} />
 		</section>

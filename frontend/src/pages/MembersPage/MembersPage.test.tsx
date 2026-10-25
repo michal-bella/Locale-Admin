@@ -134,7 +134,33 @@ describe('MembersPage', () => {
 		expect(screen.queryByRole('button', { name: /Odobrať .* z projektu/ })).not.toBeInTheDocument()
 		expect(screen.queryByRole('link', { name: /Otvoriť používateľa/ })).not.toBeInTheDocument()
 		expect(screen.getByRole('columnheader', { name: 'Akcie' })).toBeInTheDocument()
+		expect(screen.queryByRole('combobox', { name: /^Rola používateľa/ })).not.toBeInTheDocument()
 		expect(requests.some((request) => request.url === '/admin/users')).toBe(false)
+	})
+
+	it('lets an admin change the role of a member, refetches the members and notifies', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		let members = [ADMIN_MEMBER, JANA]
+		const requests = signedInAs(ADMIN_USER, {
+			...routes(() => members),
+			[`PATCH ${MEMBERS_URL}/${JANA.id}`]: () => {
+				members = [ADMIN_MEMBER, { ...JANA, role: PROJECT_ROLE.VISITOR }]
+				return { status: 200, data: { ...JANA, role: PROJECT_ROLE.VISITOR } }
+			},
+		})
+		renderApp(PAGE_PATH)
+
+		// The table renders the role twice: in the Rola column and, for narrow screens (hidden by CSS otherwise), under the email.
+		const [select] = await screen.findAllByRole('combobox', { name: `Rola používateľa ${JANA.email} v projekte` })
+		expect(select).toHaveValue('Editor')
+		fireEvent.click(select as HTMLElement)
+		fireEvent.click(await screen.findByRole('option', { name: 'Návštevník' }))
+
+		await waitFor(() => expect(screen.getAllByRole('combobox', { name: `Rola používateľa ${JANA.email} v projekte` })[0]).toHaveValue('Návštevník'))
+		const patches = requests.filter((request) => request.method === 'patch')
+		expect(patches).toHaveLength(1)
+		expect(JSON.parse(patches[0]?.data as string)).toEqual({ role: 'VISITOR' })
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Rola v projekte bola uložená.' }))
 	})
 
 	it('links an admin from every row to the user detail, which links back to this project', async () => {
@@ -188,12 +214,17 @@ describe('MembersPage', () => {
 		const dialog = await openAddModal()
 
 		await pickUser(dialog, PETER.email)
+		fireEvent.click(within(dialog).getByRole('combobox', { name: 'Rola v projekte' }))
+		fireEvent.click(await screen.findByRole('option', { name: 'Správca' }))
+		expect(within(dialog).getByRole('combobox', { name: 'Rola v projekte' })).toHaveAccessibleDescription(
+			'Spravuje projekt: nastavenia, jazyky, verzie, import a kľúče. Členov nespravuje.',
+		)
 		submitAdd(dialog)
 
 		expect(await screen.findByText('Peter Malý')).toBeInTheDocument()
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		const post = requests.find((request) => request.method === 'post')
-		expect(JSON.parse(post?.data as string)).toEqual({ userId: PETER.id, role: 'EDITOR' })
+		expect(JSON.parse(post?.data as string)).toEqual({ userId: PETER.id, role: 'MANAGER' })
 		expect(requests.filter((request) => request.method === 'get' && request.url === '/admin/users')).toHaveLength(2)
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: `Člen ${PETER.email} bol pridaný do projektu.` }))
 	})
@@ -266,7 +297,7 @@ describe('MembersPage', () => {
 
 		fireEvent.click(within(addDialog).getByRole('button', { name: 'Vytvoriť nového používateľa' }))
 		const createDialog = await screen.findByRole('dialog', { name: 'Nový používateľ' })
-		expect(within(createDialog).getByRole('combobox', { name: 'Rola' })).toHaveValue('Používateľ')
+		expect(within(createDialog).getByRole('switch', { name: /^Administrátor/ })).not.toBeChecked()
 		fireEvent.change(within(createDialog).getByLabelText('E-mail'), { target: { value: NEW_USER.email } })
 		fireEvent.change(within(createDialog).getByLabelText('Heslo'), { target: { value: 'NewMemberPassword1' } })
 		fireEvent.click(within(createDialog).getByRole('button', { name: 'Vytvoriť používateľa' }))

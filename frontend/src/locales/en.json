@@ -18,6 +18,21 @@
 		"EDITOR": "Editor",
 		"VISITOR": "Visitor"
 	},
+	"projectRole": {
+		"label": "Role in the project",
+		"memberLabel": "Role of {{email}} in the project",
+		"projectLabel": "Role in the project {{name}}",
+		"saved": "The role in the project was saved.",
+		"description": {
+			"MANAGER": "Manages the project: settings, languages, versions, imports and keys. Does not manage members.",
+			"EDITOR": "Translates in the project.",
+			"VISITOR": "Only reads and exports the translations of the project."
+		}
+	},
+	"adminAccess": {
+		"label": "Administrator",
+		"description": "Manages the system, users and every project without being added to them."
+	},
 	"notFoundPage": {
 		"eyebrow": "Error 404",
 		"title": "Page not found",
@@ -158,7 +173,7 @@
 		},
 		"createModal": {
 			"title": "New user",
-			"description": "Enter the email, password and role of the new user. Add them to projects on the Members page of a project.",
+			"description": "Enter the email and password of the new user. Add them to projects with a role on the Members page of a project.",
 			"close": "Close",
 			"email": {
 				"label": "Email",
@@ -167,13 +182,6 @@
 			"password": {
 				"label": "Password",
 				"placeholder": "Min. {{min}} characters"
-			},
-			"role": {
-				"label": "Role",
-				"description": {
-					"ADMIN": "Manages the system, users and every project without being added to them.",
-					"USER": "Works only in the projects an administrator adds them to, with a role set in each project."
-				}
 			},
 			"cancel": "Cancel",
 			"submit": "Create user",
@@ -214,8 +222,7 @@
 		"card": {
 			"label": "User account",
 			"createdAt": "Created {{date}}",
-			"role": "Role",
-			"roleSaved": "The role was saved.",
+			"roleSaved": "The administrator access was saved.",
 			"editEmail": "Edit email",
 			"editEmailLabel": "Edit email of user {{email}}"
 		},
@@ -226,6 +233,7 @@
 				"label": "User projects",
 				"project": "Project",
 				"slug": "Slug",
+				"role": "Role",
 				"joinedAt": "Added",
 				"joinedOn": "Added {{date}}",
 				"empty": "The user is not in any project yet.",
@@ -239,7 +247,7 @@
 		},
 		"addModal": {
 			"title": "Add to project",
-			"description": "Pick the project the user {{email}} gets access to.",
+			"description": "Pick a project and the role {{email}} will have in it.",
 			"close": "Close",
 			"project": {
 				"label": "Project",
@@ -1017,7 +1025,7 @@
 		},
 		"addModal": {
 			"title": "Add member",
-			"description": "Pick an existing user who gets access to this project.",
+			"description": "Pick an existing user and their role in this project.",
 			"close": "Close",
 			"user": {
 				"label": "User",
@@ -1054,8 +1062,13 @@
 			"description": "Other members of your projects will see this information.",
 			"firstName": "First name",
 			"lastName": "Last name",
-			"email": "Email address",
-			"role": "Role"
+			"email": "Email address"
+		},
+		"projects": {
+			"title": "My projects",
+			"description": "The role you have in each project. An administrator changes it.",
+			"label": "My projects and roles",
+			"empty": "You are not a member of any project yet."
 		},
 		"preferences": {
 			"title": "Preferences",

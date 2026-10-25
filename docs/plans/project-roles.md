@@ -76,7 +76,7 @@ Modelová situácia: projekt A má člena 1 s rolou `MANAGER` (je to „vlastní
 ## Míľniky
 
 1. **Kontrakt + DB + backend** (hotové 2026-10-25): shared, migrácia, guardy, endpointy, integračné testy. Aby prešiel `pnpm verify`, patrí sem aj prepnutie kontrol rolí na frontende na `myRole` (`useProjectRole`, guardy) a Administrátor / Používateľ v modáli Nový používateľ a v profile.
-2. **Frontend**: výber roly v Pridať člena (aj pri Vytvoriť nového používateľa) a na detaile používateľa, stĺpec Rola na stránke Členovia so zmenou roly, prepínač Administrátor namiesto výberu roly, profil s projektmi a rolami, i18n, unit testy. Checkpoint `pnpm verify` + prehliadač.
+2. **Frontend** (hotové 2026-10-25): výber roly v Pridať člena (aj pri Vytvoriť nového používateľa) a Pridať do projektu, stĺpec Rola so zmenou na stránke Členovia a na detaile používateľa, prepínač Administrátor namiesto výberu roly (nový používateľ, detail, profil admina), sekcia Moje projekty v profile, i18n, unit testy. Overené v prehliadači.
 3. **E2E + docs**: E2E pre používateľa s dvomi rolami, smoke `api-smoke`, dokumentácia a ADR.
 
 ## Overenie

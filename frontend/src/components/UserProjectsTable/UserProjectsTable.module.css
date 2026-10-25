@@ -18,6 +18,10 @@
 	color: var(--app-color-muted);
 }
 
+.roleColumn {
+	width: 10rem;
+}
+
 .joinedColumn {
 	width: 11.25rem;
 }

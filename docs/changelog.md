@@ -8,6 +8,10 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Popis kľúča v Upraviť preklad (2026-10-25)
+
+- frontend: popis kľúča v modáli **Upraviť preklad** nie je text pod kľúčom, ale ikona (i) za labelom **Kľúč** s tooltipom, rovnako ako v tabuľke prekladov
+
 ### Upraviť kľúč pre editora (2026-10-25)
 
 - API: `PATCH …/keys/:keyId` povolí členovi `EDITOR` meniť `description` (názov a plurál ostávajú iba pre `ADMIN`, inak 403 `FORBIDDEN`); v uzamknutej verzii dostane editor 409 `PROJECT_VERSION_LOCKED`

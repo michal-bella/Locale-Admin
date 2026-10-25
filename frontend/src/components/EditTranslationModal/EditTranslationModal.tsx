@@ -313,9 +313,21 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 	return (
 		<>
 			<div>
-				<span className={classes.label}>{t('translationsPage.editModal.key')}</span>
+				<span className={`${classes.label} ${classes.keyLabel}`}>
+					{t('translationsPage.editModal.key')}
+					{item.description && (
+						<Tooltip label={item.description} events={TOOLTIP_EVENTS} multiline w={340}>
+							<span
+								role='img'
+								aria-label={t('translationsPage.table.description', { description: item.description })}
+								className={classes.descriptionIcon}
+							>
+								<Info aria-hidden />
+							</span>
+						</Tooltip>
+					)}
+				</span>
 				<span className={classes.key}>{item.name}</span>
-				{item.description && <span className={`${classes.description} block`}>{item.description}</span>}
 			</div>
 			{baseValue !== undefined && baseLanguage && (
 				<div>

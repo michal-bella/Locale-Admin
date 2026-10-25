@@ -222,6 +222,27 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 		expect(await getTestPrisma().project.findUniqueOrThrow({ where: { id: project.id } })).toEqual(project)
 	})
 
+	it('lets a MANAGER member save the settings', async () => {
+		const app = createTestApp()
+		const project = await createProjectRow()
+		const cookie = await loginWithRole(app, ROLE.MANAGER, project.id)
+
+		const res = await patchProject(app, cookie, project.id, updateBody())
+
+		expect(res.status).toBe(200)
+		expect(await getTestPrisma().project.findUniqueOrThrow({ where: { id: project.id } })).toMatchObject({ name: 'B2C iOS', slug: 'b2c-ios' })
+	})
+
+	it('returns 404 NOT_FOUND for a MANAGER who is not a member', async () => {
+		const app = createTestApp()
+		const project = await createProjectRow()
+		const cookie = await loginWithRole(app, ROLE.MANAGER)
+
+		const res = await patchProject(app, cookie, project.id, updateBody())
+
+		expectErrorCode(res, 404, ERROR_CODE.NOT_FOUND)
+	})
+
 	it('returns 403 FORBIDDEN for an EDITOR member and saves nothing', async () => {
 		const app = createTestApp()
 		const project = await createProjectRow()

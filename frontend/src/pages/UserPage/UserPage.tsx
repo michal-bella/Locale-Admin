@@ -4,7 +4,7 @@ import { useNavigate, useParams } from '@tanstack/react-router'
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ERROR_CODE } from '@locale/shared'
+import { ERROR_CODE, ROLE } from '@locale/shared'
 
 import { useAdminUserQuery } from '@/api/adminUsers/adminUserQuery'
 import { useMeQuery } from '@/api/auth/meQuery'
@@ -20,8 +20,8 @@ import UserProjectsTable from '@/components/UserProjectsTable/UserProjectsTable'
 import classes from './UserPage.module.css'
 
 /**
- * Detail of one user (ADMIN only): account card (role, email) and the projects they are a member of, with adding and removing; the user can be
- * deleted here too, except the own account. No Figma, same look as Používatelia.
+ * Detail of one user (ADMIN only): account card (role, email) and the projects they are a member of, with adding and removing (an admin
+ * works in every project, so only a note is shown); the user can be deleted here too, except the own account. No Figma, same look as Používatelia.
  */
 const UserPage = () => {
 	const { t } = useTranslation()
@@ -82,12 +82,22 @@ const UserPage = () => {
 					<Title order={2} size='h4' c='var(--app-color-heading)'>
 						{t('userPage.projects.title')}
 					</Title>
-					<Button ref={triggerRef} leftSection={<Plus aria-hidden />} onClick={modal.open}>
-						{t('userPage.projects.addButton')}
-					</Button>
+					{data.role !== ROLE.ADMIN && (
+						<Button ref={triggerRef} leftSection={<Plus aria-hidden />} onClick={modal.open}>
+							{t('userPage.projects.addButton')}
+						</Button>
+					)}
 				</div>
-				<UserProjectsTable user={data} />
-				<AddUserProjectModal user={data} opened={modalOpened} onClose={closeModal} />
+				{data.role === ROLE.ADMIN ? (
+					<Text size='sm' className={classes.state}>
+						{t('userPage.projects.allProjects')}
+					</Text>
+				) : (
+					<>
+						<UserProjectsTable user={data} />
+						<AddUserProjectModal user={data} opened={modalOpened} onClose={closeModal} />
+					</>
+				)}
 			</>
 		)
 	}

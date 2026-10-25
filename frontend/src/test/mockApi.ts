@@ -29,6 +29,15 @@ export const EDITOR_USER: AuthUser = {
 	preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
 }
 
+export const MANAGER_USER: AuthUser = {
+	id: '00000000-0000-4000-8000-000000000004',
+	email: 'eva.spravca@firma.sk',
+	role: ROLE.MANAGER,
+	firstName: 'Eva',
+	lastName: 'Správcová',
+	preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
+}
+
 export const VISITOR_USER: AuthUser = {
 	id: '00000000-0000-4000-8000-000000000003',
 	email: 'peter.hostak@firma.sk',

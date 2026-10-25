@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
@@ -75,7 +75,7 @@ const member = (index: number, role: ROLE, firstName: string | null, lastName: s
 	createdAt: '2026-10-01T10:00:00.000Z',
 })
 
-const MEMBERS = [member(1, ROLE.ADMIN, 'Martin', 'Kováč'), member(2, ROLE.ADMIN, 'Lucia', 'Tichá'), member(3, ROLE.EDITOR, null, null)]
+const MEMBERS = [member(1, ROLE.MANAGER, 'Martin', 'Kováč'), member(2, ROLE.MANAGER, 'Lucia', 'Tichá'), member(3, ROLE.EDITOR, null, null)]
 
 const MARTIN = { id: MEMBERS[0]?.id ?? '', name: 'Martin Kováč' }
 const LUCIA = { id: MEMBERS[1]?.id ?? '', name: 'Lucia Tichá' }
@@ -153,6 +153,34 @@ describe('DashboardPage', () => {
 		expect(screen.queryByRole('link', { name: /Importovať|Exportovať/ })).not.toBeInTheDocument()
 	})
 
+	it('shows the managers of the project under the title, by name or email', async () => {
+		signedInAs(EDITOR_USER, routes({ [`GET ${API}/members`]: { status: 200, data: { members: [...MEMBERS, member(4, ROLE.MANAGER, null, null)] } } }))
+		renderApp(PAGE_PATH)
+
+		const managers = within(await screen.findByRole('list', { name: 'Správcovia projektu' }))
+		expect(managers.getAllByRole('listitem').map(text)).toEqual(['MKMartin Kováč', 'LTLucia Tichá', 'MEmember4@firma.sk'])
+	})
+
+	it('shows one manager with the singular label and no label without a manager', async () => {
+		signedInAs(EDITOR_USER, routes({ [`GET ${API}/members`]: { status: 200, data: { members: [MEMBERS[0], MEMBERS[2]] } } }))
+		renderApp(PAGE_PATH)
+
+		expect(
+			within(await screen.findByRole('list', { name: 'Správca projektu' }))
+				.getAllByRole('listitem')
+				.map(text),
+		).toEqual(['MKMartin Kováč'])
+
+		cleanup()
+		queryClient.clear()
+		signedInAs(EDITOR_USER, routes({ [`GET ${API}/members`]: { status: 200, data: { members: [MEMBERS[2]] } } }))
+		renderApp(PAGE_PATH)
+
+		const members = await findCard('Členovia')
+		await waitFor(() => expect(text(members)).toContain('0 správcov'))
+		expect(screen.queryByText(/Správc/)).not.toBeInTheDocument()
+	})
+
 	it('shows the key, translated, cell, version, language and member cards', async () => {
 		signedInAs(EDITOR_USER, routes())
 		renderApp(PAGE_PATH)
@@ -169,7 +197,7 @@ describe('DashboardPage', () => {
 		expect(text(languages)).toContain('31 zdrojový')
 		expect(within(languages).getByRole('link', { name: 'Zobraziť jazyky' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/languages`)
 		const members = await findCard('Členovia')
-		await waitFor(() => expect(text(members)).toContain('32 administrátori'))
+		await waitFor(() => expect(text(members)).toContain('32 správcovia'))
 
 		const untranslated = within(translated).getByRole('link', { name: 'Zobraziť nepreložené' })
 		expect(searchOf(untranslated).pathname).toBe(`/projects/${PROJECT.slug}/translations`)
@@ -220,7 +248,7 @@ describe('DashboardPage', () => {
 		expect(list.getByRole('link', { name: /^Angličtina: zobraziť nepreložené kľúče/ })).toBeInTheDocument()
 		expect(screen.queryByRole('link', { name: 'Spravovať jazyky' })).not.toBeInTheDocument()
 		const members = await findCard('Členovia')
-		await waitFor(() => expect(text(members)).toContain('administrátor'))
+		await waitFor(() => expect(text(members)).toContain('správcovia'))
 		expect(within(members).queryByRole('link', { name: 'Zobraziť členov' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('link', { name: 'Zobraziť verzie' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('link', { name: 'Zobraziť jazyky' })).not.toBeInTheDocument()
@@ -399,7 +427,7 @@ describe('DashboardPage', () => {
 		const activity = await findActivity()
 		expect(await activity.findByText('· pridanie jazyka angličtina', { exact: false })).toBeInTheDocument()
 		expect(activity.queryByRole('button', { name: 'Načítať ďalšie' })).not.toBeInTheDocument()
-		expect(activity.getByRole('link', { name: 'Zobraziť históriu' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/history`)
+		expect(activity.getByRole('link', { name: 'Zobraziť celú históriu' })).toHaveAttribute('href', `/projects/${PROJECT.slug}/history`)
 		const feedRequests = requests.filter((request) => request.url === `${API}/activity`).map((request) => request.params as unknown)
 		expect(feedRequests).toEqual([{ pageSize: 10 }])
 	})

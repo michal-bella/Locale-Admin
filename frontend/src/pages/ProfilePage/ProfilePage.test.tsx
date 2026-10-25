@@ -195,7 +195,7 @@ describe('ProfilePage', () => {
 
 		fireEvent.click(screen.getByRole('combobox', { name: 'Rola' }))
 		const options = await screen.findAllByRole('option')
-		expect(options.map((option) => option.textContent)).toEqual(['Administrátor', 'Editor', 'Návštevník'])
+		expect(options.map((option) => option.textContent)).toEqual(['Administrátor', 'Správca', 'Editor', 'Návštevník'])
 		fireEvent.click(screen.getByRole('option', { name: 'Editor' }))
 		expect(getSaveButton()).toBeEnabled()
 		fireEvent.click(getSaveButton())

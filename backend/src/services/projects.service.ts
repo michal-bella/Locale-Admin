@@ -108,7 +108,7 @@ export const reorderProjects = async (prisma: PrismaClient, user: AuthUser, { pr
 		await tx.projectOrder.createMany({ data: projectIds.map((projectId, position) => ({ userId: user.id, projectId, position })) })
 	})
 
-/** The creator becomes the first member, the first language the base. No pre-check for the slug: the unique constraint (P2002) also covers concurrent requests. */
+/** The creator is an ADMIN and does not become a member; the first language is the base. No pre-check for the slug: the unique constraint (P2002) also covers concurrent requests. */
 export const createProject = async (prisma: PrismaClient, userId: string, { name, slug, languageTags }: CreateProjectRequest): Promise<ProjectListItem> => {
 	try {
 		const project = await prisma.$transaction(async (tx) => {
@@ -116,7 +116,6 @@ export const createProject = async (prisma: PrismaClient, userId: string, { name
 				data: {
 					name,
 					slug,
-					members: { create: { userId } },
 					languages: { create: languageTags.map((tag, index) => ({ tag, isBase: index === 0, position: index })) },
 				},
 				select: PROJECT_LIST_SELECT,
@@ -124,7 +123,7 @@ export const createProject = async (prisma: PrismaClient, userId: string, { name
 			await recordActivity(tx, { projectId: created.id, userId, type: ACTIVITY_TYPE.PROJECT_CREATED, payload: { name } })
 			return created
 		})
-		return toListItem(project, true, { keyCount: 0, translatedCount: 0 })
+		return toListItem(project, false, { keyCount: 0, translatedCount: 0 })
 	} catch (err) {
 		if (isPrismaError(err, 'P2002')) {
 			throw slugTaken()
@@ -135,17 +134,15 @@ export const createProject = async (prisma: PrismaClient, userId: string, { name
 
 /**
  * Removes a member: leaving the project (the user themselves, `actorId === userId`) or removing another member.
- * The project row lock serializes concurrent removals, so the last two members cannot both go.
+ * The last member may go too: every ADMIN keeps working in the project without a membership.
  */
 export const removeProjectMember = async (prisma: PrismaClient, projectId: string, userId: string, actorId: string): Promise<void> =>
 	prisma.$transaction(async (tx) => {
+		// Serializes concurrent removals of the same member, so the second one gets 404 instead of a failed delete.
 		await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId}::uuid FOR UPDATE`
-		const members = await tx.projectMember.findMany({ where: { projectId }, select: { userId: true } })
-		if (!members.some((member) => member.userId === userId)) {
+		const member = await tx.projectMember.findUnique({ where: { projectId_userId: { projectId, userId } }, select: { userId: true } })
+		if (!member) {
 			throw new AppError(404, ERROR_CODE.NOT_FOUND, 'Not a member of the project')
-		}
-		if (members.length === 1) {
-			throw new AppError(409, ERROR_CODE.LAST_MEMBER, 'The last member cannot be removed from the project')
 		}
 		const { user } = await tx.projectMember.delete({
 			where: { projectId_userId: { projectId, userId } },

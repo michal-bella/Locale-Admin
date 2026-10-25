@@ -13,6 +13,7 @@
 	},
 	"roles": {
 		"ADMIN": "Administrator",
+		"MANAGER": "Manager",
 		"EDITOR": "Editor",
 		"VISITOR": "Visitor"
 	},
@@ -142,6 +143,8 @@
 			"projectCount_few": "{{count}} projects",
 			"projectCount_many": "{{count}} projects",
 			"projectCount_other": "{{count}} projects",
+			"allProjects": "All projects",
+			"allProjectsShort": "All",
 			"createdOn": "Created {{date}}",
 			"empty": "There are no users yet.",
 			"loadError": "The user list could not be loaded.",
@@ -167,7 +170,8 @@
 			"role": {
 				"label": "Role",
 				"description": {
-					"ADMIN": "Manages the system, users and every project.",
+					"ADMIN": "Manages the system, users and every project without being added to them.",
+					"MANAGER": "Manages the projects an administrator adds them to: languages, versions, imports and keys. Does not manage users or members.",
 					"EDITOR": "Translates only in the projects an administrator adds them to.",
 					"VISITOR": "Only reads and exports translations in the projects an administrator adds them to."
 				}
@@ -231,7 +235,8 @@
 				"openLabel": "Open members of project {{name}}",
 				"remove": "Remove from project",
 				"removeLabel": "Remove from project {{name}}"
-			}
+			},
+			"allProjects": "An administrator has access to every project and is not added to projects."
 		},
 		"addModal": {
 			"title": "Add to project",
@@ -529,8 +534,10 @@
 			"baseLanguage": "1 source",
 			"showLanguages": "Show languages",
 			"members": "Members",
-			"admins_one": "{{count}} administrator",
-			"admins_other": "{{count}} administrators",
+			"managers_one": "{{count}} manager",
+			"managers_few": "{{count}} managers",
+			"managers_many": "{{count}} managers",
+			"managers_other": "{{count}} managers",
 			"showMembers": "Show members",
 			"loadError": "Project statistics could not be loaded.",
 			"retry": "Try again"
@@ -555,7 +562,7 @@
 		"activity": {
 			"title": "Recent activity",
 			"description": "Changes in the project, newest first",
-			"showHistory": "Show history",
+			"showHistory": "Show full history",
 			"today": "Today",
 			"yesterday": "Yesterday",
 			"empty": "No activity yet. Changes in the project will show up here.",
@@ -632,6 +639,12 @@
 			"noContributors": "Nobody changed anything in this period.",
 			"loadError": "Daily activity could not be loaded.",
 			"retry": "Try again"
+		},
+		"managers": {
+			"label_one": "Project manager",
+			"label_few": "Project managers",
+			"label_many": "Project managers",
+			"label_other": "Project managers"
 		}
 	},
 	"historyPage": {
@@ -1346,8 +1359,8 @@
 		"LANGUAGE_TAKEN": "This language has already been added.",
 		"LANGUAGE_IS_BASE": "The base language cannot be deleted. Set another base language first.",
 		"SLUG_TAKEN": "A project with this slug already exists.",
-		"LAST_MEMBER": "A project must have at least one member.",
 		"ALREADY_MEMBER": "The user is already a member of the project.",
+		"MEMBER_IS_ADMIN": "An administrator has access to every project and is not added as a member.",
 		"SELF_DELETE": "You cannot delete your own account.",
 		"LAST_ADMIN": "The last administrator cannot give up the role.",
 		"PASSWORD_INCORRECT": "The current password is incorrect.",

@@ -9,7 +9,7 @@ import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
 import i18n from '@/lib/i18n'
-import { ADMIN_USER, apiError, EDITOR_USER, projectListResponse, projectListRoute, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, MANAGER_USER, projectListResponse, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const toLanguage = (tag: Language['tag'], index: number, isBase = false): Language => {
@@ -371,16 +371,18 @@ describe('ProjectSettingsPage', () => {
 		expect(requests.filter((request) => request.method === 'delete')).toHaveLength(1)
 	})
 
-	it('shows LAST_MEMBER as a notification and stays on the page', async () => {
+	it('shows a server error as a notification and stays on the page', async () => {
 		const show = vi.spyOn(notifications, 'show')
-		signedInAs(EDITOR_USER, { ...loaded(), [`DELETE /projects/${SETTINGS.id}/membership`]: apiError(409, 'LAST_MEMBER') })
+		signedInAs(EDITOR_USER, { ...loaded(), [`DELETE /projects/${SETTINGS.id}/membership`]: apiError(500, 'INTERNAL_ERROR') })
 		const router = renderApp(PAGE_PATH)
 		await screen.findByLabelText('Názov projektu')
 
 		fireEvent.click(screen.getByRole('button', { name: 'Opustiť projekt' }))
 		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Opustiť projekt' })).getByRole('button', { name: 'Opustiť projekt' }))
 
-		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Projekt musí mať aspoň jedného člena.' })))
+		await waitFor(() =>
+			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Nastala neočakávaná chyba. Skúste to znova.' })),
+		)
 		expect(router.state.location.pathname).toBe(PAGE_PATH)
 	})
 
@@ -415,6 +417,17 @@ describe('ProjectSettingsPage', () => {
 		expect(await screen.findByLabelText('Project name')).toHaveValue('B2B Admin')
 		expect(screen.getByRole('switch', { name: /^Refuse translations with mismatched variables/ })).toBeChecked()
 		expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+	})
+
+	it('lets a MANAGER member edit the settings and keeps Opustiť projekt', async () => {
+		signedInAs(MANAGER_USER, loaded())
+		await renderSettings()
+
+		for (const label of ['Názov projektu', 'Slug projektu', 'Primárna farba', 'Základný jazyk']) {
+			expect(screen.getByLabelText(label)).toBeEnabled()
+		}
+		expect(screen.getByRole('switch', { name: /Neukladať preklad/ })).toBeEnabled()
+		expect(screen.getByRole('button', { name: 'Opustiť projekt' })).toBeEnabled()
 	})
 
 	it('shows a member every setting disabled, keeps Opustiť projekt and sends nothing', async () => {

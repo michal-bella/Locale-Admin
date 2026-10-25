@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, Input, Modal, SegmentedControl, Text, TextInput } from '@mantine/core'
+import { Button, Modal, Select, Text, TextInput } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useId } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -10,15 +9,14 @@ import { type CreateUserRequest, createUserRequestSchema, ERROR_CODE, PASSWORD_M
 import { useCreateUserMutation } from '@/api/adminUsers/useCreateUserMutation'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import getApiErrorDetails from '@/api/getApiErrorDetails'
-import { Close } from '@/components/Icons'
+import { ChevronDown, Close } from '@/components/Icons'
 
 import classes from './CreateUserModal.module.css'
 import { type CreateUserModalProps } from './types'
 
-/** "Nový používateľ" modal (Figma 28:191) with the global role (Admin / Editor). Members of projects are added from these users. */
+/** "Nový používateľ" modal (Figma 28:191) with the global role (Administrátor, Správca, Editor, Návštevník). Members of projects are added from these users. */
 const CreateUserModal = ({ opened, onClose, defaultRole = ROLE.EDITOR, onCreated }: CreateUserModalProps) => {
 	const { t } = useTranslation()
-	const roleId = useId()
 	const createUser = useCreateUserMutation()
 	const { isPending } = createUser
 	const {
@@ -125,29 +123,24 @@ const CreateUserModal = ({ opened, onClose, defaultRole = ROLE.EDITOR, onCreated
 								error={errors.password?.message}
 								{...register('password')}
 							/>
-							<Input.Wrapper
-								id={roleId}
-								labelElement='div'
-								label={t('usersPage.createModal.role.label')}
-								description={t(`usersPage.createModal.role.description.${role}`)}
-								inputWrapperOrder={['label', 'input', 'description']}
-							>
-								<Controller
-									name='role'
-									control={control}
-									render={({ field }) => (
-										<SegmentedControl
-											aria-labelledby={`${roleId}-label`}
-											aria-describedby={`${roleId}-description`}
-											fullWidth
-											disabled={isPending}
-											value={field.value}
-											onChange={field.onChange}
-											data={Object.values(ROLE).map((value) => ({ value, label: t(`roles.${value}`) }))}
-										/>
-									)}
-								/>
-							</Input.Wrapper>
+							<Controller
+								name='role'
+								control={control}
+								render={({ field }) => (
+									<Select
+										label={t('usersPage.createModal.role.label')}
+										description={t(`usersPage.createModal.role.description.${role}`)}
+										inputWrapperOrder={['label', 'input', 'description']}
+										disabled={isPending}
+										value={field.value}
+										onChange={(value) => value && field.onChange(value)}
+										allowDeselect={false}
+										rightSection={<ChevronDown aria-hidden />}
+										rightSectionPointerEvents='none'
+										data={Object.values(ROLE).map((value) => ({ value, label: t(`roles.${value}`) }))}
+									/>
+								)}
+							/>
 						</div>
 						<div className={`${classes.footer} flex justify-end gap-2`}>
 							<Button variant='default' onClick={handleClose} disabled={isPending}>

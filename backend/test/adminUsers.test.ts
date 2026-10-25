@@ -71,9 +71,9 @@ describe('GET /api/admin/users', () => {
 		expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
 	})
 
-	it('returns 403 FORBIDDEN for an EDITOR', async () => {
+	it.each([ROLE.MANAGER, ROLE.EDITOR])('returns 403 FORBIDDEN for a %s', async (role) => {
 		const app = createTestApp()
-		const cookie = await loginWithRole(app, ROLE.EDITOR)
+		const cookie = await loginWithRole(app, role)
 
 		const res = await request(app).get('/api/admin/users').set('Cookie', cookie)
 
@@ -295,13 +295,26 @@ describe('PATCH /api/admin/users/:id', () => {
 		const { user: editor } = await createUser()
 		await getTestPrisma().project.create({ data: { name: 'A', slug: 'a', members: { create: { userId: editor.id } } } })
 
-		const res = await patchUser(app, cookie, editor.id, { role: ROLE.ADMIN })
+		const res = await patchUser(app, cookie, editor.id, { role: ROLE.MANAGER })
 
 		expect(res.status).toBe(200)
 		const detail = adminUserDetailSchema.parse(res.body)
-		expect(detail).toMatchObject({ id: editor.id, role: ROLE.ADMIN, projectCount: 1 })
+		expect(detail).toMatchObject({ id: editor.id, role: ROLE.MANAGER, projectCount: 1 })
 		expect(detail.projects.map((project) => project.slug)).toEqual(['a'])
-		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: editor.id } })).role).toBe(ROLE.ADMIN)
+		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: editor.id } })).role).toBe(ROLE.MANAGER)
+	})
+
+	it('drops the project memberships of a user who becomes an ADMIN', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user: editor } = await createUser()
+		await getTestPrisma().project.create({ data: { name: 'A', slug: 'a', members: { create: { userId: editor.id } } } })
+
+		const res = await patchUser(app, cookie, editor.id, { role: ROLE.ADMIN })
+
+		expect(res.status).toBe(200)
+		expect(adminUserDetailSchema.parse(res.body)).toMatchObject({ id: editor.id, role: ROLE.ADMIN, projectCount: 0, projects: [] })
+		expect(await getTestPrisma().project.count()).toBe(1)
 	})
 
 	it('demotes an admin when another admin stays, the own account included', async () => {

@@ -124,7 +124,8 @@ const seedActivityEvents = (keys: SeedKey[]): SeedActivityEvent[] => {
 }
 
 /**
- * Seeds only an empty table, so changes stay after a restart. Run after `seedAdmin`: the admin becomes the only member. Languages `sk` (base) and `en`.
+ * Seeds only an empty table, so changes stay after a restart. Run after `seedAdmin`: the admin is the author of the sample data but no member
+ * (an ADMIN works in every project without a membership). Languages `sk` (base) and `en`.
  * The sample translations (in both versions of `SEED_VERSIONS`) and activity are created only together with the project, so a real project
  * with the same slug never gets invented data.
  */
@@ -139,7 +140,6 @@ export const seedProject = async (prisma: PrismaClient): Promise<SeedProjectResu
 			data: {
 				...SEED_PROJECT,
 				createdAt: new Date(now - 30 * DAY_MS - 60 * 1000),
-				members: { create: { user: { connect: { email: SEED_ADMIN_EMAIL } } } },
 				languages: { create: SEED_LANGUAGE_TAGS.map((tag, position) => ({ tag, isBase: tag === SEED_BASE_LANGUAGE_TAG, position })) },
 			},
 			select: { id: true, languages: { select: { id: true, tag: true } } },

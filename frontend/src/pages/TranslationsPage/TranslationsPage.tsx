@@ -5,7 +5,7 @@ import { useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ROLE, type TranslationsLayout, type TranslationsView } from '@locale/shared'
+import { canManageProject, ROLE, type TranslationsLayout, type TranslationsView } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -41,11 +41,11 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
  * user's preference (`me.preferences.translationsView`): `EXTENDED` lists every language of the project and the API decides the row status
  * by all of them (no language ids in the query); `?languages=` narrows its columns to the base language plus the chosen ones without changing
  * the row status. `COMPACT` is the Figma source → target pair. Either view lays its languages side by side or stacked, also a preference
- * (`me.preferences.translationsLayout`). Without Posledný sync and the Na kontrolu card. Importovať (ADMIN only) opens `ImportModal`, Exportovať (every member) `ExportModal`.
+ * (`me.preferences.translationsLayout`). Without Posledný sync and the Na kontrolu card. Importovať (ADMIN and MANAGER only) opens `ImportModal`, Exportovať (every member) `ExportModal`.
  * A VISITOR gets the table read-only: cells are text and there is no edit modal. The list always shows one version of the project
  * (`?version=`, else the current one, else the newest); a project without versions, or a version without import, gets an empty state
  * instead of the table. Zobraziť len zmeny (`?diff=true`) lists only the keys added or changed against the previous version, with the
- * added keys and changed cells marked, and the banner sums the diff up. An ADMIN also creates a version here (the page then shows it)
+ * added keys and changed cells marked, and the banner sums the diff up. An ADMIN or MANAGER also creates a version here (the page then shows it)
  * and locks or unlocks the version of the banner.
  */
 const TranslationsPage = () => {
@@ -55,7 +55,7 @@ const TranslationsPage = () => {
 	const navigate = useNavigate({ from: '/projects/$projectSlug/translations' })
 	const { data: project } = useProjectSettingsQuery(projectId)
 	const { data: me } = useMeQuery()
-	const isAdmin = me?.role === ROLE.ADMIN
+	const canManage = me !== undefined && canManageProject(me.role)
 	const isVisitor = me?.role === ROLE.VISITOR
 	const view: TranslationsView = me?.preferences.translationsView ?? 'EXTENDED'
 	const layout: TranslationsLayout = me?.preferences.translationsLayout ?? 'COLUMNS'
@@ -70,7 +70,7 @@ const TranslationsPage = () => {
 	// A version is filled only by an import; until then there is nothing to list, and the API refuses Pridať kľúč (409 PROJECT_VERSION_EMPTY).
 	const versionHasImport = version !== undefined && version.importedAt !== null
 	// An editor cannot write into a locked version; the API would refuse it (409), so the cells do not open at all.
-	const writesBlocked = !isAdmin && version?.isLocked === true
+	const writesBlocked = !canManage && version?.isLocked === true
 	const [importOpened, importModal] = useDisclosure(false)
 	const [exportOpened, exportModal] = useDisclosure(false)
 	const [createKeyOpened, createKeyModal] = useDisclosure(false)
@@ -237,18 +237,18 @@ const TranslationsPage = () => {
 					titleSize='h2'
 				/>
 				<div className='flex flex-wrap gap-2 max-sm:w-full max-sm:flex-col'>
-					{isAdmin && (
+					{canManage && (
 						<Button variant='default' leftSection={<Tag aria-hidden />} onClick={createVersionModal.open}>
 							{t('translationsPage.createVersionButton')}
 						</Button>
 					)}
 					{/* A key goes into an existing namespace, so a project without keys starts with an import. */}
-					{isAdmin && versionHasImport && namespaces.length > 0 && (
+					{canManage && versionHasImport && namespaces.length > 0 && (
 						<Button variant='default' leftSection={<Plus aria-hidden />} onClick={createKeyModal.open}>
 							{t('translationsPage.createKeyButton')}
 						</Button>
 					)}
-					{isAdmin && version && (
+					{canManage && version && (
 						<Button ref={importButtonRef} variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
 							{t('translationsPage.importButton')}
 						</Button>
@@ -282,11 +282,11 @@ const TranslationsPage = () => {
 			{!isError && !isPending && version && (
 				<TranslationsVersionBanner
 					version={version}
-					writesBlocked={!isAdmin && version.isLocked}
+					writesBlocked={!canManage && version.isLocked}
 					untranslated={untranslatedQuery.data?.total}
 					language={view === 'COMPACT' ? targetLanguage : undefined}
 					diff={diffQuery.data}
-					onToggleLock={isAdmin ? lockVersionModal.open : undefined}
+					onToggleLock={canManage ? lockVersionModal.open : undefined}
 				/>
 			)}
 			{!isError && !isPending && data && (data.stats.warnings > 0 || search.warnings) && (
@@ -350,7 +350,7 @@ const TranslationsPage = () => {
 								<Text component='p' size='sm'>
 									{t('translationsPage.versionEmpty', { name: version.name })}
 								</Text>
-								{isAdmin && (
+								{canManage && (
 									<Button variant='default' leftSection={<Upload aria-hidden />} onClick={importModal.open}>
 										{t('translationsPage.importButton')}
 									</Button>
@@ -395,10 +395,10 @@ const TranslationsPage = () => {
 					onPageSizeChange={(next) => updateSearch({ pageSize: next === TRANSLATIONS_PAGE_SIZES[0] ? undefined : next })}
 				/>
 			)}
-			{isAdmin && version && (
+			{canManage && version && (
 				<ImportModal projectId={projectId} versions={versions} defaultVersionId={version.id} opened={importOpened} onClose={closeImport} />
 			)}
-			{isAdmin && (
+			{canManage && (
 				<VersionFormModal
 					projectId={projectId}
 					opened={createVersionOpened}
@@ -408,8 +408,8 @@ const TranslationsPage = () => {
 					onCreated={(created) => updateSearch({ version: created.id })}
 				/>
 			)}
-			{isAdmin && <VersionLockModal projectId={projectId} opened={lockVersionOpened} version={version ?? null} onClose={lockVersionModal.close} />}
-			{isAdmin && version && (
+			{canManage && <VersionLockModal projectId={projectId} opened={lockVersionOpened} version={version ?? null} onClose={lockVersionModal.close} />}
+			{canManage && version && (
 				<CreateKeyModal
 					projectId={projectId}
 					languages={languages}

@@ -155,9 +155,9 @@ describe('GET /api/projects', () => {
 })
 
 describe('POST /api/projects', () => {
-	it('creates a project as an ADMIN with trimmed values and its languages and makes the creator a member', async () => {
+	it('creates a project as an ADMIN with trimmed values and its languages and without members', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app, ROLE.ADMIN)
+		const { cookie } = await login(app, ROLE.ADMIN)
 
 		const res = await postProject(app, cookie, { name: ' Booking Web ', slug: ' booking-web ', languageTags: ['en', 'sk'] })
 
@@ -167,13 +167,13 @@ describe('POST /api/projects', () => {
 			name: 'Booking Web',
 			slug: 'booking-web',
 			primaryColor: '#E83E8C',
-			isMember: true,
+			isMember: false,
 			languageTags: ['en', 'sk'],
 			keyCount: 0,
 			translatedCount: 0,
-			memberCount: 1,
+			memberCount: 0,
 		})
-		expect(await getTestPrisma().projectMember.findMany({ where: { projectId: body.id }, select: { userId: true } })).toEqual([{ userId: user.id }])
+		expect(await getTestPrisma().projectMember.count()).toBe(0)
 		// The first chosen language is the base.
 		expect(
 			await getTestPrisma().projectLanguage.findMany({ where: { projectId: body.id }, select: { tag: true, isBase: true }, orderBy: { tag: 'asc' } }),
@@ -210,9 +210,9 @@ describe('POST /api/projects', () => {
 		expect(await getTestPrisma().projectLanguage.count()).toBe(0)
 	})
 
-	it('returns 403 FORBIDDEN for an EDITOR and creates nothing', async () => {
+	it.each([ROLE.MANAGER, ROLE.EDITOR])('returns 403 FORBIDDEN for a %s and creates nothing', async (role) => {
 		const app = createTestApp()
-		const { cookie } = await login(app)
+		const { cookie } = await login(app, role)
 
 		const res = await postProject(app, cookie, { name: 'Booking Web', slug: 'booking-web', languageTags: ['sk'] })
 
@@ -256,27 +256,26 @@ describe('DELETE /api/projects/:projectId/membership', () => {
 		expect(await getTestPrisma().projectMember.findMany({ where: { projectId: project.id }, select: { userId: true } })).toEqual([{ userId: other.id }])
 	})
 
-	it('returns 409 LAST_MEMBER for the last member', async () => {
+	it.each([ROLE.EDITOR, ROLE.MANAGER])('lets the last member leave as %s', async (role) => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app)
+		const { user, cookie } = await login(app, role)
 		const project = await createProjectRow('A', 'a', [user.id])
 
 		const res = await leave(app, cookie, project.id)
 
-		expectErrorCode(res, 409, ERROR_CODE.LAST_MEMBER)
-		expect(await getTestPrisma().projectMember.count()).toBe(1)
+		expect(res.status).toBe(204)
+		expect(await getTestPrisma().projectMember.count()).toBe(0)
 	})
 
-	it('lets only one of the last two members leave when they leave at the same time', async () => {
+	it('lets the member leave only once when the same request runs twice at the same time', async () => {
 		const app = createTestApp()
-		const first = await login(app)
-		const second = await login(app)
-		const project = await createProjectRow('A', 'a', [first.user.id, second.user.id])
+		const { user, cookie } = await login(app)
+		const project = await createProjectRow('A', 'a', [user.id])
 
-		const statuses = (await Promise.all([leave(app, first.cookie, project.id), leave(app, second.cookie, project.id)])).map(({ status }) => status)
+		const statuses = (await Promise.all([leave(app, cookie, project.id), leave(app, cookie, project.id)])).map(({ status }) => status)
 
-		expect(statuses.sort()).toEqual([204, 409])
-		expect(await getTestPrisma().projectMember.count()).toBe(1)
+		expect(statuses.sort()).toEqual([204, 404])
+		expect(await getTestPrisma().projectMember.count()).toBe(0)
 	})
 
 	it('returns 404 NOT_FOUND to an ADMIN who is not a member', async () => {

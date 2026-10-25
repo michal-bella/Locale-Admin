@@ -8,7 +8,7 @@ notion_page_id:
 
 Cesta: `/projects/{projectSlug}/settings`
 
-Stránka **Nastavenia projektu** ukazuje základné údaje projektu a pravidlá prekladov. Editor ich vidí iba na čítanie, mení ich vývojár.
+Stránka **Nastavenia projektu** ukazuje základné údaje projektu a pravidlá prekladov. Editor ich vidí iba na čítanie, mení ich správca projektu.
 
 ![Nastavenia projektu](./images/settings-page.png)
 

@@ -16,7 +16,7 @@ Zhora nadol na nej nájdete:
 
 1. **Štatistiky** – koľko kľúčov je preložených a koľko chýba.
 2. **Banner verzie** – do kedy treba preklady dokončiť a čo je nové oproti minulej verzii.
-3. **Banner upozornení** (žltý) – iba keď niektoré preklady majú problém s premennými. Tomu má zabrániť vývojár už pri importe textov, takže opravovať to väčšinou nebude práca editora.
+3. **Banner upozornení** (žltý) – iba keď niektoré preklady majú problém s premennými. Tomu má zabrániť správca projektu už pri importe textov, takže opravovať to väčšinou nebude práca editora.
 4. **Ovládanie zobrazenia** – ako tabuľka vyzerá.
 5. **Filtre** – ktoré kľúče tabuľka ukáže.
 6. **Tabuľka** a pod ňou stránkovanie.
@@ -43,7 +43,7 @@ Banner verzie je pre editora najdôležitejšia informácia na stránke. Hovorí
 - **koľko kľúčov je ešte nepreložených**,
 - **čo sa zmenilo oproti predchádzajúcej verzii** – koľko kľúčov pribudlo, zmenilo sa a bolo odstránených.
 
-Po termíne sa verzia **uzamkne** a preklady v nej už neupravíte: bunky sa neotvoria a banner zmodrie s textom „je uzamknutá“. Ak potrebujete v uzamknutej verzii ešte niečo preložiť alebo opraviť, požiadajte vývojára o odomknutie. Viac v kapitole [Verzie](./05-verzie.md).
+Po termíne sa verzia **uzamkne** a preklady v nej už neupravíte: bunky sa neotvoria a banner zmodrie s textom „je uzamknutá“. Ak potrebujete v uzamknutej verzii ešte niečo preložiť alebo opraviť, požiadajte [správcu projektu](./02-prehlad.md) o odomknutie. Viac v kapitole [Verzie](./05-verzie.md).
 
 ## Zobrazenie tabuľky
 
@@ -101,11 +101,11 @@ Kľúče sú zoskupené podľa prefixu (napr. všetky `day_pluralized.*` pod seb
 
 ### Popis kľúča
 
-Popis je pomocná informácia pre editorov: kde sa text zobrazuje, čo znamenajú premenné, aký dlhý môže byť a podobne. Môže ho napísať vývojár aj editor, takže keď pri preklade zistíte niečo, čo sa oplatí vedieť ďalšiemu prekladateľovi, doplňte to do popisu.
+Popis je pomocná informácia pre editorov: kde sa text zobrazuje, čo znamenajú premenné, aký dlhý môže byť a podobne. Môže ho napísať správca projektu aj editor, takže keď pri preklade zistíte niečo, čo sa oplatí vedieť ďalšiemu prekladateľovi, doplňte to do popisu.
 
 ![Popis kľúča v tabuľke](./images/key-description.png)
 
-Kliknite na ikonu ceruzky vedľa názvu kľúča. V okne **Upraviť kľúč** meníte iba pole **Popis** (najviac 500 znakov). Samotný kľúč a plurálové nastavenie vidíte iba na čítanie: kľúč zakladá a mení iba vývojár. V uzamknutej verzii je aj popis iba na čítanie.
+Kliknite na ikonu ceruzky vedľa názvu kľúča. V okne **Upraviť kľúč** meníte iba pole **Popis** (najviac 500 znakov). Samotný kľúč a plurálové nastavenie vidíte iba na čítanie: kľúč zakladá a mení iba správca projektu. V uzamknutej verzii je aj popis iba na čítanie.
 
 ![Úprava popisu kľúča](./images/edit-key-modal.png)
 
@@ -119,7 +119,7 @@ Prázdna bunka má **červený rámček**. Pri zoradení **Nepreložené najprv*
 
 Keď sa premenné v preklade nezhodujú s kľúčom alebo základným jazykom (chýba premenná, alebo je v nej preklep), bunka má **oranžový rámček** a výstražný trojuholník. Žltý banner nad tabuľkou povie, koľko takých kľúčov je, a tlačidlom **Zobraziť upozornenia** vyfiltruje iba ich.
 
-Táto situácia by v praxi nemala nastať. Pri importe textov ju má podchytiť vývojár a pri úprave prekladu editorom systém nesprávne premenné nedovolí uložiť (pozri [Validácia pri uložení](./04-uprava-prekladu.md#validácia-pri-uložení)). Ak upozornenie predsa uvidíte, dajte vedieť vývojárovi.
+Táto situácia by v praxi nemala nastať. Pri importe textov ju má podchytiť správca projektu a pri úprave prekladu editorom systém nesprávne premenné nedovolí uložiť (pozri [Validácia pri uložení](./04-uprava-prekladu.md#validácia-pri-uložení)). Ak upozornenie predsa uvidíte, dajte vedieť správcovi projektu.
 
 ![Filter upozornení](./images/warnings.png)
 
@@ -137,7 +137,7 @@ Pod tabuľkou je počet zobrazených kľúčov, prechod medzi stranami (**Predo�
 
 ## Import a export
 
-**Import** aj **export** prekladov robí väčšinou vývojár: importom dodá do verzie nové kľúče a exportom si hotové preklady synchronizuje späť do kódu. Editor tlačidlo **Importovať** nevidí.
+**Import** aj **export** prekladov robí väčšinou správca projektu: importom dodá do verzie nové kľúče a exportom si hotové preklady synchronizuje späť do kódu. Editor tlačidlo **Importovať** nevidí.
 
 **Exportovať** síce vidíte aj vy, ale použite ho len výnimočne, napríklad keď preklady potrebuje človek, ktorý nemá prístup do Locale Admin. Hlavný zmysel aplikácie je, aby každý, kto preklady upravuje, pracoval priamo v nej. Ak niekto, s kým spolupracujete, prístup nemá, požiadajte administrátora, aby mu vytvoril účet a pridal ho do projektu.
 

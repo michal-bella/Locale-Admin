@@ -29,10 +29,10 @@ notion_page_id:
 Do projektu vás pridáva administrátor. Napíšte mu.
 
 **Bunka sa po kliknutí neotvorí.**
-Verzia je uzamknutá (po termíne). Pozrite banner nad tabuľkou a prípadne požiadajte administrátora o odomknutie.
+Verzia je uzamknutá (po termíne). Pozrite banner nad tabuľkou a prípadne požiadajte správcu projektu (je uvedený na Prehľade) o odomknutie.
 
 **Nevidím tlačidlo Importovať ani Pridať kľúč.**
-Import a pridávanie kľúčov robí iba administrátor. Editor preklady upravuje a exportuje.
+Import a pridávanie kľúčov robí správca projektu. Editor preklady upravuje.
 
 **Opravil som preklad, ale v staršej verzii je stále pôvodný text.**
 Tak je to správne: každá verzia má vlastnú kópiu textov. Upravujte aktuálnu verziu.
@@ -41,7 +41,7 @@ Tak je to správne: každá verzia má vlastnú kópiu textov. Upravujte aktuál
 V **Histórii** otvorte detail zmeny (ikona oka), skopírujte text z **Pred** a uložte ho v Prekladoch.
 
 **Kľúč je anglická veta, ale základný jazyk je slovenčina. Z čoho prekladám?**
-Zo **základného jazyka** (stĺpec s odznakom ZÁKLADNÝ). Kľúč je iba identifikátor pre vývojárov, aj keď vyzerá ako veta.
+Zo **základného jazyka** (stĺpec s odznakom ZÁKLADNÝ). Kľúč je iba identifikátor v kóde aplikácie, aj keď vyzerá ako veta.
 
 **Mám otázku ku kontextu textu (kde sa zobrazuje, ako dlhý môže byť).**
-Pozrite popis kľúča (ikona ⓘ pri názve kľúča). Ak chýba, opýtajte sa vývojárov projektu a odpoveď doplňte do [popisu kľúča](./03-preklady.md#popis-kľúča), nech ju má aj ďalší prekladateľ.
+Pozrite popis kľúča (ikona ⓘ pri názve kľúča). Ak chýba, opýtajte sa správcu projektu a odpoveď doplňte do [popisu kľúča](./03-preklady.md#popis-kľúča), nech ju má aj ďalší prekladateľ.

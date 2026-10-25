@@ -123,12 +123,12 @@ Vľavo je premenná prepísaná na inú, vpravo premenná v preklade chýba:
 
 ![Premenná prepísaná na inú](./images/edit-modal-validation-renamed.png) ![Premenná chýba](./images/edit-modal-validation-missing.png)
 
-Kontrolu pri uložení zapína vývojár pre každý projekt zvlášť v nastaveniach projektu (ochrana premenných).
+Kontrolu pri uložení zapína správca projektu pre každý projekt zvlášť v nastaveniach projektu (ochrana premenných).
 
 Ako sa chybe vyhnúť:
 
 - Začnite ikonou **Prevziať zo základného jazyka**, premenné a značky tak budú v preklade správne a upravíte iba slová.
 - S premennými neodporúčame manipulovať. Premennú síce v poli môžete zmazať alebo napísať novú, ale validácia takú zmenu aj tak zachytí a preklad neuloží.
-- Ak sa preklad nedarí uložiť ani po úprave textu, ozvite sa vývojárom projektu.
+- Ak sa preklad nedarí uložiť ani po úprave textu, ozvite sa [správcovi projektu](./02-prehlad.md).
 
 V **uzamknutej verzii** sa bunky vôbec neotvoria (pozri [Verzie](./05-verzie.md)).

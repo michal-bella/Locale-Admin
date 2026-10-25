@@ -8,18 +8,19 @@ notion_page_id:
 
 ## Čo je Locale Admin
 
-Locale Admin je miesto, kde žijú všetky texty našich aplikácií vo všetkých jazykoch. Vývojári do neho dodajú nové kľúče (texty) a editori ich preložia. Hotové preklady si vývojári stiahnu späť do aplikácie.
+Locale Admin je miesto, kde žijú všetky texty našich aplikácií vo všetkých jazykoch. Správca projektu do neho dodá nové kľúče (texty), editori ich preložia a hotové preklady si správca stiahne späť do aplikácie.
 
 Pár pojmov, ktoré budete stretávať:
 
-| Pojem              | Význam                                                                                                                                        |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Projekt**        | jedna aplikácia alebo jej časť (napr. B2B admin, Web Salon Catalog). Vidíte iba projekty, do ktorých vás pridal admin.                        |
-| **Kľúč**           | jeden text v aplikácii, napr. `orders.empty.title` alebo celá veta `Book an appointment at {salonName}`.                                      |
-| **Preklad**        | hodnota kľúča v jednom jazyku. Prázdna hodnota = **Nepreložené**.                                                                             |
-| **Základný jazyk** | jazyk, z ktorého sa prekladá (referenčný text). Určuje ho vývojár. Väčšinou je to slovenčina, ktorú vývojári píšu priamo pri vývoji softvéru. |
-| **Namespace**      | skupina kľúčov podľa súboru v kóde (`loc`, `messages`, …). Slúži ako filter, meniť ho netreba.                                                |
-| **Verzia**         | release aplikácie (napr. `v2.45`) s termínom, dokedy treba texty preložiť. Viac v kapitole [Verzie](./05-verzie.md).                          |
+| Pojem                | Význam                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Projekt**          | jedna aplikácia alebo jej časť (napr. B2B admin, Web Salon Catalog). Vidíte iba projekty, do ktorých vás pridal admin.                                             |
+| **Kľúč**             | jeden text v aplikácii, napr. `orders.empty.title` alebo celá veta `Book an appointment at {salonName}`.                                                           |
+| **Preklad**          | hodnota kľúča v jednom jazyku. Prázdna hodnota = **Nepreložené**.                                                                                                  |
+| **Základný jazyk**   | jazyk, z ktorého sa prekladá (referenčný text). Určuje ho správca projektu. Väčšinou je to slovenčina, ktorá vzniká priamo pri vývoji softvéru.                    |
+| **Namespace**        | skupina kľúčov podľa súboru v kóde (`loc`, `messages`, …). Slúži ako filter, meniť ho netreba.                                                                     |
+| **Správca projektu** | manažér projektu (v aplikácii rola **Správca**): spravuje verzie, jazyky, kľúče, import a nastavenia projektu. Kto ním je, uvidíte na [Prehľade](./02-prehlad.md). |
+| **Verzia**           | release aplikácie (napr. `v2.45`) s termínom, dokedy treba texty preložiť. Viac v kapitole [Verzie](./05-verzie.md).                                               |
 
 ## Prihlásenie
 

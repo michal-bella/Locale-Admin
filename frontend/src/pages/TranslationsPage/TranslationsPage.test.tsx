@@ -1012,6 +1012,18 @@ const typeText = (field: HTMLElement, text: string) => {
 }
 
 describe('TranslationsPage edit modal', () => {
+	it('shows the key description in the modal as an info icon next to Kľúč, not as text', async () => {
+		const [first, second, welcome, ...rest] = ITEMS
+		mockEditing(undefined, ADMIN_USER, [first!, second!, { ...welcome!, description: 'Greeting on the dashboard' }, ...rest])
+		renderApp(PAGE_PATH)
+		const dialog = await openModal('dashboard.welcome', WELCOME_BUTTON)
+
+		const icon = within(dialog).getByRole('img', { name: 'Popis kľúča: Greeting on the dashboard' })
+		expect(within(dialog).queryByText('Greeting on the dashboard')).not.toBeInTheDocument()
+		fireEvent.mouseEnter(icon)
+		expect(await screen.findByRole('tooltip')).toHaveTextContent('Greeting on the dashboard')
+	})
+
 	it('opens the modal from the cell with the key, the language, the base value and the field', async () => {
 		mockEditing()
 		renderApp(PAGE_PATH)

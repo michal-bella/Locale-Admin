@@ -423,14 +423,16 @@ test.describe('EDITOR', () => {
 		await expect(page.getByRole('button', { name: 'Zamknúť' })).toHaveCount(0)
 		const lockedRow = getTranslationRow(page, 'nav.home')
 		await expect(lockedRow).toHaveCount(1)
-		await expect(lockedRow.getByRole('button')).toHaveCount(0)
+		// Only Upraviť kľúč, which an editor opens with the description read-only in a locked version.
+		await expect(lockedRow.getByRole('button')).toHaveCount(1)
+		await expect(lockedRow.getByRole('button', { name: /^Upraviť kľúč / })).toHaveCount(1)
 		await expect(lockedRow.locator('[data-readonly]')).toHaveCount(2)
 		await lockedRow.getByText('Domov', { exact: true }).click()
 		await expect(getEditTranslationDialog(page)).toHaveCount(0)
 
 		await openTranslations(page, project, `?version=${upcoming.id}`)
 		await expect(page.getByText('Verzia v1.2 začína o 5 dní.')).toBeVisible()
-		await expect(getTranslationRow(page, 'nav.home').getByRole('button')).toHaveCount(0)
+		await expect(getTranslationRow(page, 'nav.home').getByRole('button')).toHaveCount(1)
 		const refused = await page.request.put(translationApi(editor.projectId, upcomingKey, sk!.id), {
 			data: { value: 'Home' },
 			headers: MUTATION_HEADERS,

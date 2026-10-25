@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Roly v projekte, míľnik 3 (2026-10-25)
+
+- E2E: nový `project-roles.spec.ts` (ten istý používateľ je Správca jedného projektu a Návštevník iného: sidebar, Nastavenia vs. 403, Moje projekty v profile) a v `api-smoke.spec.ts` rola pri pridaní člena, `myRole` a `PATCH …/members/:userId` (403 pre Správcu, 400 pre neplatnú rolu)
+- E2E prispôsobené novým rolám (`USER`, `addMember` s rolou, prepínač Administrátor, výber roly v Pridať člena a na detaile používateľa) aj zmenám z roly Správca, ktoré E2E ešte nemali (admin nie je člen, zrušené `LAST_MEMBER`, poradie položiek sidebaru, ceruzka Upraviť kľúč pre editora v uzamknutej verzii)
+
 ### Roly v projekte, míľnik 2 (2026-10-25)
 
 - modál Pridať člena a Pridať do projektu (detail používateľa) majú výber **Rola v projekte** (Správca / Editor / Návštevník, predvolene Editor) s popisom roly

@@ -101,7 +101,8 @@ test.describe('ADMIN', () => {
 
 		await expectFormValues(page, original)
 		await expect(getForm(page).save).toBeDisabled()
-		await expect(getForm(page).leave).toBeEnabled()
+		// An ADMIN is never a member, so there is nothing to leave.
+		await expect(getForm(page).leave).toHaveCount(0)
 	})
 
 	test('saves name, slug, color and the switch; the values stay after a reload', async ({ page }) => {

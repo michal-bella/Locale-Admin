@@ -123,8 +123,8 @@ test.describe('ADMIN', () => {
 		await expect(getStatValue(page, 'Kľúče')).toHaveText('4')
 		await expect(getStatValue(page, 'Preložené')).toHaveText(/^25\s%$/)
 		await expect(getStatValue(page, 'Jazyky')).toHaveText('3')
-		await expect(getStatValue(page, 'Členovia')).toHaveText('1')
-		for (const hint of ['+4 za 30 dní', '1 z 4 kľúčov', '1 zdrojový', '1 administrátor']) {
+		await expect(getStatValue(page, 'Členovia')).toHaveText('0')
+		for (const hint of ['+4 za 30 dní', '1 z 4 kľúčov', '1 zdrojový', '0 správcov']) {
 			await expect(getStats(page).getByText(hint, { exact: true })).toBeVisible()
 		}
 
@@ -240,8 +240,8 @@ test.describe('EDITOR', () => {
 		await openDashboard(page, project)
 		await expect(page.getByRole('heading', { level: 1, name: project.name })).toBeVisible()
 		await expect(getStatValue(page, 'Kľúče')).toHaveText('4')
-		await expect(getStatValue(page, 'Členovia')).toHaveText('2')
-		await expect(getStats(page).getByText('1 administrátor', { exact: true })).toBeVisible()
+		await expect(getStatValue(page, 'Členovia')).toHaveText('1')
+		await expect(getStats(page).getByText('0 správcov', { exact: true })).toBeVisible()
 		await expect(getLanguageRows(page)).toHaveCount(3)
 		await expect(page.getByRole('list', { name: 'Dnes' }).getByRole('listitem').first()).toContainText('pridanie člena')
 		await expect(getDailySection(page).getByText(/^Za posledných 30 dní: /)).toBeVisible()

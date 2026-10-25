@@ -54,7 +54,7 @@ test.describe('anonymous', () => {
 		expect(list.status()).toBe(401)
 		expect((await readApiError(list)).code).toBe('AUTH_UNAUTHENTICATED')
 
-		const create = await request.post('/api/admin/users', { data: { ...newTestUserCredentials(), role: 'EDITOR' }, headers: MUTATION_HEADERS })
+		const create = await request.post('/api/admin/users', { data: { ...newTestUserCredentials(), role: 'USER' }, headers: MUTATION_HEADERS })
 		expect(create.status()).toBe(401)
 		expect((await readApiError(create)).code).toBe('AUTH_UNAUTHENTICATED')
 	})
@@ -66,12 +66,12 @@ test.describe('ADMIN /api/admin/users', () => {
 	test('POST creates a user with the given role and a normalized email, GET lists everyone newest first', async ({ request }) => {
 		const credentials = newTestUserCredentials()
 		const response = await request.post('/api/admin/users', {
-			data: { ...credentials, email: `  ${credentials.email.toUpperCase()} `, role: 'EDITOR' },
+			data: { ...credentials, email: `  ${credentials.email.toUpperCase()} `, role: 'USER' },
 			headers: MUTATION_HEADERS,
 		})
 		expect(response.status()).toBe(201)
 		const body = (await response.json()) as Record<string, unknown>
-		expect(body).toEqual({ id: expect.any(String), email: credentials.email, role: 'EDITOR', projectCount: 0, createdAt: expect.any(String) })
+		expect(body).toEqual({ id: expect.any(String), email: credentials.email, role: 'USER', projectCount: 0, createdAt: expect.any(String) })
 		expect(new Date(body.createdAt as string).toISOString()).toBe(body.createdAt)
 
 		const users = ((await (await request.get('/api/admin/users')).json()) as { users: AdminUser[] }).users
@@ -110,7 +110,7 @@ test.describe('ADMIN /api/admin/users', () => {
 	test('POST with an existing email in a different letter case returns 409 EMAIL_TAKEN', async ({ request, playwright, baseURL }) => {
 		const existing = await createEditor(playwright.request, baseURL)
 		const response = await request.post('/api/admin/users', {
-			data: { email: existing.email.toUpperCase(), password: newTestUserCredentials().password, role: 'EDITOR' },
+			data: { email: existing.email.toUpperCase(), password: newTestUserCredentials().password, role: 'USER' },
 			headers: MUTATION_HEADERS,
 		})
 		expect(response.status()).toBe(409)
@@ -119,7 +119,7 @@ test.describe('ADMIN /api/admin/users', () => {
 
 	test('POST without X-Requested-With returns 403 CSRF_REJECTED and creates nothing', async ({ request }) => {
 		const credentials = newTestUserCredentials()
-		const response = await request.post('/api/admin/users', { data: { ...credentials, role: 'EDITOR' } })
+		const response = await request.post('/api/admin/users', { data: { ...credentials, role: 'USER' } })
 		expect(response.status()).toBe(403)
 		expect((await readApiError(response)).code).toBe('CSRF_REJECTED')
 		expect(await listUserEmails(request)).not.toContain(credentials.email)
@@ -135,7 +135,7 @@ test.describe('EDITOR /api/admin/users', () => {
 		expect((await readApiError(list)).code).toBe('FORBIDDEN')
 
 		const credentials = newTestUserCredentials()
-		const create = await request.post('/api/admin/users', { data: { ...credentials, role: 'EDITOR' }, headers: MUTATION_HEADERS })
+		const create = await request.post('/api/admin/users', { data: { ...credentials, role: 'USER' }, headers: MUTATION_HEADERS })
 		expect(create.status()).toBe(403)
 		expect((await readApiError(create)).code).toBe('FORBIDDEN')
 
@@ -158,14 +158,14 @@ test.describe('/api/profile', () => {
 		expect((await readApiError(promote)).code).toBe('FORBIDDEN')
 
 		const update = await request.patch('/api/profile', {
-			data: { firstName: '  Jana ', lastName: 'Kováčová', email: 'changed@example.com', role: 'EDITOR' },
+			data: { firstName: '  Jana ', lastName: 'Kováčová', email: 'changed@example.com', role: 'USER' },
 			headers: MUTATION_HEADERS,
 		})
 		expect(update.status()).toBe(200)
 		const expected = {
 			id: editor.id,
 			email: editor.email,
-			role: 'EDITOR',
+			role: 'USER',
 			firstName: 'Jana',
 			lastName: 'Kováčová',
 			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
@@ -207,7 +207,7 @@ test.describe('/api/profile', () => {
 		const expected = {
 			id: editor.id,
 			email: editor.email,
-			role: 'EDITOR',
+			role: 'USER',
 			firstName: null,
 			lastName: null,
 			preferences: { translationsView: 'COMPACT', translationsLayout: 'COLUMNS' },
@@ -385,10 +385,6 @@ test.describe('/api/projects as a member', () => {
 		const created = await createProjectOf(adminApi, 'smoke', editor.id)
 		await adminApi.dispose()
 
-		const lastMember = await request.delete(projectMembershipApi(created.id), { data: {}, headers: MUTATION_HEADERS })
-		expect(lastMember.status()).toBe(409)
-		expect((await readApiError(lastMember)).code).toBe('LAST_MEMBER')
-
 		const forbiddenAdd = await request.post(projectMembersApi(created.id), { data: { userId: member.id }, headers: MUTATION_HEADERS })
 		expect(forbiddenAdd.status()).toBe(403)
 		expect((await readApiError(forbiddenAdd)).code).toBe('FORBIDDEN')
@@ -410,6 +406,67 @@ test.describe('/api/projects as a member', () => {
 		expect(afterLeave.status()).toBe(404)
 		expect((await readApiError(afterLeave)).code).toBe('NOT_FOUND')
 		expect((await listProjects(request)).map(({ id }) => id)).toEqual([editor.projectId])
+	})
+})
+
+test.describe('/api/projects roles per project', () => {
+	test.use({ storageState: ANONYMOUS })
+
+	test('the same user is a MANAGER of one project and a VISITOR of another; only an ADMIN changes the role', async ({ request, playwright, baseURL }) => {
+		const user = await createMember(playwright.request, baseURL)
+		const admin = await playwright.request.newContext({ baseURL, storageState: STORAGE_STATE.ADMIN })
+		const managed = await createProject(admin, 'roles-managed')
+		const visited = await createProject(admin, 'roles-visited')
+		await addMember(admin, managed.id, user.id, 'MANAGER')
+		await addMember(admin, visited.id, user.id, 'VISITOR')
+
+		const login = await request.post('/api/auth/login', { data: { email: user.email, password: user.password }, headers: MUTATION_HEADERS })
+		expect(login.status()).toBe(200)
+		expect((await request.get('/api/auth/me').then((response) => response.json())) as { role: string }).toMatchObject({ role: 'USER' })
+		const roles = Object.fromEntries((await listProjects(request)).map(({ id, myRole }) => [id, myRole]))
+		expect(roles).toEqual({ [managed.id]: 'MANAGER', [visited.id]: 'VISITOR' })
+
+		const settingsOf = async (projectId: string) =>
+			(await request.get(projectSettingsApi(projectId)).then((response) => response.json())) as Record<string, unknown>
+		const managedSettings = await settingsOf(managed.id)
+		const save = await request.patch(projectSettingsApi(managed.id), {
+			data: {
+				name: managedSettings.name,
+				slug: managedSettings.slug,
+				primaryColor: '#123ABC',
+				protectVariables: true,
+				baseLanguageId: managedSettings.baseLanguageId,
+			},
+			headers: MUTATION_HEADERS,
+		})
+		expect(save.status()).toBe(200)
+		const visitedSettings = await settingsOf(visited.id)
+		const forbidden = await request.patch(projectSettingsApi(visited.id), {
+			data: {
+				name: visitedSettings.name,
+				slug: visitedSettings.slug,
+				primaryColor: '#123ABC',
+				protectVariables: true,
+				baseLanguageId: visitedSettings.baseLanguageId,
+			},
+			headers: MUTATION_HEADERS,
+		})
+		expect(forbidden.status()).toBe(403)
+		expect((await readApiError(forbidden)).code).toBe('FORBIDDEN')
+
+		const managerPatch = await request.patch(`${projectMembersApi(managed.id)}/${user.id}`, { data: { role: 'EDITOR' }, headers: MUTATION_HEADERS })
+		expect(managerPatch.status()).toBe(403)
+		expect((await readApiError(managerPatch)).code).toBe('FORBIDDEN')
+
+		const invalid = await admin.patch(`${projectMembersApi(visited.id)}/${user.id}`, { data: { role: 'ADMIN' }, headers: MUTATION_HEADERS })
+		expect(invalid.status()).toBe(400)
+		expect((await readApiError(invalid)).details).toEqual([{ path: 'role', code: 'INVALID' }])
+		const promote = await admin.patch(`${projectMembersApi(visited.id)}/${user.id}`, { data: { role: 'MANAGER' }, headers: MUTATION_HEADERS })
+		expect(promote.status()).toBe(200)
+		expect(await promote.json()).toMatchObject({ id: user.id, role: 'MANAGER', projectCount: 2 })
+		await admin.dispose()
+
+		expect((await listProjects(request)).find(({ id }) => id === visited.id)?.myRole).toBe('MANAGER')
 	})
 })
 
@@ -437,8 +494,7 @@ test.describe('/api/projects/:projectId/translations', () => {
 		const project = await createProjectWithVersion(request, 'smoke-tr', ['sk', 'en'])
 		const languages = await listLanguages(request, project.id)
 		const [sk, en] = languages
-		// The creator is the only member and no translation has an editor yet, so `editors` lists just them.
-		const me = (await (await request.get('/api/auth/me')).json()) as { id: string }
+		// The creator (an ADMIN) is no member and no translation has an editor yet, so `editors` is empty.
 		await insertTranslationKeys(project.id, project.version.id, languages, [
 			{ namespace: 'loc', name: 'orders.empty.title', values: { sk: 'Zatiaľ nemáte žiadne objednávky', en: null } },
 			{ namespace: 'loc', name: 'dashboard.welcome', values: { sk: 'Vitajte, {{name}}', en: 'Welcome, {{name}}' } },
@@ -494,7 +550,7 @@ test.describe('/api/projects/:projectId/translations', () => {
 			// Per language, ignoring the view: sk misses legal.terms, en misses orders.empty.title and the sentence key.
 			stats: { totalKeys: 4, translated: 2, untranslated: 2, warnings: 0, untranslatedByLanguage: { [sk!.id]: 1, [en!.id]: 2 } },
 			namespaces: ['loc', 'paths'],
-			editors: [{ id: me.id, name: expect.any(String) }],
+			editors: [],
 		})
 		const updatedAt = body.items[0]!.translations[en!.id]!.updatedAt!
 		expect(new Date(updatedAt).toISOString()).toBe(updatedAt)

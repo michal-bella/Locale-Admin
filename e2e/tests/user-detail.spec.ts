@@ -9,7 +9,11 @@ const UNKNOWN_USER_ID = '00000000-0000-4000-8000-000000000999'
 const formatCreatedAt = (createdAt: string) =>
 	new Intl.DateTimeFormat('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' }).format(new Date(createdAt))
 
-test('ADMIN opens a user from the table, adds them to a project, removes them from another and opens the members', async ({ page, playwright, baseURL }) => {
+test('ADMIN opens a user from the table, adds them to a project as a Správca, changes a role, removes them from another and opens the members', async ({
+	page,
+	playwright,
+	baseURL,
+}) => {
 	const editor = await createEditor(playwright.request, baseURL)
 	const api = await playwright.request.newContext({ baseURL, storageState: STORAGE_STATE.ADMIN })
 	const second = await createProject(api, 'detail')
@@ -23,7 +27,7 @@ test('ADMIN opens a user from the table, adds them to a project, removes them fr
 
 	const card = page.getByRole('region', { name: 'Účet používateľa' })
 	await expect(card.getByRole('heading', { level: 2, name: editor.email })).toBeVisible()
-	await expect(card.getByLabel('Rola', { exact: true })).toHaveValue('Editor')
+	await expect(card.getByRole('switch', { name: /^Administrátor/ })).not.toBeChecked()
 	await expect(card).toContainText(`Vytvorený ${formatCreatedAt(editor.createdAt)}`)
 	const projects = page.getByRole('table', { name: 'Projekty používateľa' })
 	const firstRow = projects.getByRole('row').filter({ hasText: editor.projectSlug })
@@ -33,15 +37,31 @@ test('ADMIN opens a user from the table, adds them to a project, removes them fr
 	await page.getByRole('button', { name: 'Pridať do projektu' }).click()
 	const addDialog = page.getByRole('dialog', { name: 'Pridať do projektu' })
 	await expect(addDialog).toBeVisible()
-	await addDialog.getByLabel('Projekt').fill(second.name)
+	await addDialog.getByLabel('Projekt', { exact: true }).fill(second.name)
 	await page.getByRole('option', { name: second.name }).click()
+	await addDialog.getByRole('combobox', { name: 'Rola v projekte' }).click()
+	await page.getByRole('option', { name: 'Správca' }).click()
 	const added = page.waitForResponse((response) => response.url().endsWith(projectMembersApi(second.id)) && response.request().method() === 'POST')
 	await addDialog.getByRole('button', { name: 'Pridať do projektu' }).click()
-	expect((await added).status()).toBe(201)
+	const addResponse = await added
+	expect(addResponse.status()).toBe(201)
+	expect(addResponse.request().postDataJSON()).toMatchObject({ userId: editor.id, role: 'MANAGER' })
 	await expect(page.getByText(`${editor.email} bol pridaný do projektu ${second.name}.`)).toBeVisible()
 	await expect(addDialog).toBeHidden()
 	const secondRow = projects.getByRole('row').filter({ hasText: second.slug })
 	await expect(secondRow).toBeVisible()
+	await expect(secondRow.getByRole('combobox', { name: `Rola v projekte ${second.name}` })).toHaveValue('Správca')
+
+	const firstRole = firstRow.getByRole('combobox', { name: /^Rola v projekte / })
+	await expect(firstRole).toHaveValue('Editor')
+	await firstRole.click()
+	const changed = page.waitForResponse(
+		(response) => response.url().endsWith(`${projectMembersApi(editor.projectId)}/${editor.id}`) && response.request().method() === 'PATCH',
+	)
+	await page.getByRole('option', { name: 'Návštevník' }).click()
+	expect((await changed).status()).toBe(200)
+	await expect(page.getByText('Rola v projekte bola uložená.')).toBeVisible()
+	await expect(firstRole).toHaveValue('Návštevník')
 
 	await firstRow.getByRole('button', { name: /^Odobrať z projektu / }).click()
 	const removeDialog = page.getByRole('dialog', { name: 'Odobrať z projektu' })

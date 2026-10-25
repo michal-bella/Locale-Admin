@@ -57,16 +57,16 @@ test.describe('ADMIN', () => {
 		await context.close()
 	})
 
-	test('creates a new user from the modal, who is preselected and then added', async ({ page, playwright, baseURL }) => {
+	test('creates a new user from the modal, who is preselected and then added as a Návštevník', async ({ page, playwright, baseURL }) => {
 		const editor = await createEditor(playwright.request, baseURL)
 		const credentials = newTestUserCredentials()
-		const table = await openMembersPage(page, editor.projectSlug)
+		await openMembersPage(page, editor.projectSlug)
 
 		const dialog = await openAddModal(page)
 		await dialog.getByRole('button', { name: 'Vytvoriť nového používateľa' }).click()
 		const createDialog = page.getByRole('dialog', { name: 'Nový používateľ' })
 		await expect(createDialog).toBeVisible()
-		await expect(createDialog.getByRole('radio', { name: 'Editor' })).toBeChecked()
+		await expect(createDialog.getByRole('switch', { name: /^Administrátor/ })).not.toBeChecked()
 		await createDialog.getByLabel('E-mail', { exact: true }).fill(credentials.email)
 		await createDialog.getByLabel('Heslo', { exact: true }).fill(credentials.password)
 		const created = page.waitForResponse((response) => response.url().endsWith('/api/admin/users') && response.request().method() === 'POST')
@@ -75,10 +75,17 @@ test.describe('ADMIN', () => {
 		await expect(createDialog).toBeHidden()
 
 		await expect(dialog.getByLabel('Používateľ')).toHaveValue(credentials.email)
+		const role = dialog.getByRole('combobox', { name: 'Rola v projekte' })
+		await expect(role).toHaveValue('Editor')
+		await role.click()
+		await page.getByRole('option', { name: 'Návštevník' }).click()
 		const added = waitForAddResponse(page, editor.projectId)
 		await dialog.getByRole('button', { name: 'Pridať člena' }).click()
-		expect((await added).status()).toBe(201)
-		await expect(table.getByRole('row').filter({ hasText: credentials.email })).toBeVisible()
+		const response = await added
+		expect(response.status()).toBe(201)
+		expect(response.request().postDataJSON()).toMatchObject({ role: 'VISITOR' })
+		// The role is in the Rola column and, for narrow screens (hidden by CSS), under the email; the first one is the visible column.
+		await expect(page.getByRole('combobox', { name: `Rola používateľa ${credentials.email} v projekte` }).first()).toHaveValue('Návštevník')
 	})
 
 	test('removes a member, who then no longer sees the project; the own row has no remove', async ({ page, browser, playwright, baseURL }) => {
@@ -113,8 +120,12 @@ test.describe('EDITOR', () => {
 		await expectLoggedInHome(page)
 		const table = await openMembersPage(page, editor.projectSlug)
 
-		await expect(table.getByRole('row').filter({ hasText: editor.email })).toBeVisible()
-		await expect(table.getByRole('row').filter({ hasText: ADMIN_EMAIL })).toBeVisible()
+		const own = table.getByRole('row').filter({ hasText: editor.email })
+		await expect(own).toBeVisible()
+		// The badge is in the Rola column and, for narrow screens (hidden by CSS), under the email.
+		await expect(own.getByText('Editor', { exact: true }).last()).toBeVisible()
+		await expect(table.getByRole('combobox')).toHaveCount(0)
+		await expect(table.getByRole('row').filter({ hasText: ADMIN_EMAIL })).toHaveCount(0)
 		await expect(page.getByRole('button', { name: 'Pridať člena' })).toHaveCount(0)
 		await expect(page.getByRole('button', { name: /^Odobrať .* z projektu$/ })).toHaveCount(0)
 	})

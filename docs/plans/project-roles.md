@@ -77,7 +77,7 @@ Modelová situácia: projekt A má člena 1 s rolou `MANAGER` (je to „vlastní
 
 1. **Kontrakt + DB + backend** (hotové 2026-10-25): shared, migrácia, guardy, endpointy, integračné testy. Aby prešiel `pnpm verify`, patrí sem aj prepnutie kontrol rolí na frontende na `myRole` (`useProjectRole`, guardy) a Administrátor / Používateľ v modáli Nový používateľ a v profile.
 2. **Frontend** (hotové 2026-10-25): výber roly v Pridať člena (aj pri Vytvoriť nového používateľa) a Pridať do projektu, stĺpec Rola so zmenou na stránke Členovia a na detaile používateľa, prepínač Administrátor namiesto výberu roly (nový používateľ, detail, profil admina), sekcia Moje projekty v profile, i18n, unit testy. Overené v prehliadači.
-3. **E2E + docs**: E2E pre používateľa s dvomi rolami, smoke `api-smoke`, dokumentácia a ADR.
+3. **E2E + docs** (hotové 2026-10-25): `e2e/tests/project-roles.spec.ts`, role per projekt v `api-smoke.spec.ts`, E2E prispôsobené novému modelu, dokumentácia a ADR 0008. E2E prešli proti izolovanému backendu a frontendu tohto worktree (samostatná DB); beh proti Docker stacku (`pnpm test:e2e`) migruje zdieľanú dev DB, preto čaká na merge.
 
 ## Overenie
 

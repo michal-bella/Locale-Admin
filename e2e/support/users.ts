@@ -2,9 +2,9 @@ import { randomBytes } from 'node:crypto'
 
 import { type APIRequest, type APIRequestContext, expect, type Page } from '@playwright/test'
 
-import { type AdminUser, MUTATION_HEADERS, type Role } from './api'
+import { type AdminUser, MUTATION_HEADERS, type ProjectRole, type Role } from './api'
 import { type Credentials, STORAGE_STATE } from './auth'
-import { createProject, projectMembersApi, projectMembershipApi } from './projects'
+import { createProject, projectMembersApi } from './projects'
 
 /** Every user the suite creates (members and admins) uses this prefix, so the teardown can delete them. */
 export const TEST_USER_EMAIL_PREFIX = 'e2e-editor-'
@@ -35,40 +35,38 @@ const postUser = async (api: Awaited<ReturnType<APIRequest['newContext']>>, role
 	return { ...credentials, id, createdAt }
 }
 
-/** Adds an existing user to a project as the ADMIN (`POST /api/projects/:id/members`). */
-export const addMember = async (api: APIRequestContext, projectId: string, userId: string) => {
-	const response = await api.post(projectMembersApi(projectId), { data: { userId }, headers: MUTATION_HEADERS })
+/** Adds an existing user to a project as the ADMIN (`POST /api/projects/:id/members`) with the role in the project (`EDITOR` by default). */
+export const addMember = async (api: APIRequestContext, projectId: string, userId: string, role: ProjectRole = 'EDITOR') => {
+	const response = await api.post(projectMembersApi(projectId), { data: { userId, role }, headers: MUTATION_HEADERS })
 	expect(response.status(), `POST ${projectMembersApi(projectId)}`).toBe(201)
 }
 
-/** Creates a project as the ADMIN (only an ADMIN creates projects), adds the user and leaves it, so the user is its only member. */
+/** Creates a project as the ADMIN (only an ADMIN creates projects, without becoming a member) with the user as its only member. */
 export const createProjectOf = async (api: APIRequestContext, label: string, userId: string) => {
 	const project = await createProject(api, label)
 	await addMember(api, project.id, userId)
-	const response = await api.delete(projectMembershipApi(project.id), { data: {}, headers: MUTATION_HEADERS })
-	expect(response.status(), `DELETE ${projectMembershipApi(project.id)}`).toBe(204)
 	return { ...project, isMember: false, memberCount: 1 }
 }
 
-/** Creates an EDITOR with no project through `POST /api/admin/users` as the ADMIN. Needs the ADMIN storage state from the setup project. */
+/** Creates a USER with no project through `POST /api/admin/users` as the ADMIN. Needs the ADMIN storage state from the setup project. */
 export const createMember = (request: APIRequest, baseURL: string | undefined): Promise<TestUser> =>
-	withAdminApi(request, baseURL, (api) => postUser(api, 'EDITOR'))
+	withAdminApi(request, baseURL, (api) => postUser(api, 'USER'))
 
-/** Creates an EDITOR who is a member of a new test project (the ADMIN who creates the project is its other member). */
+/** Creates a USER who is an EDITOR of a new test project. */
 export const createEditor = (request: APIRequest, baseURL: string | undefined): Promise<TestEditor> =>
 	withAdminApi(request, baseURL, async (api) => {
 		const project = await createProject(api, 'editor')
-		const user = await postUser(api, 'EDITOR')
+		const user = await postUser(api, 'USER')
 		await addMember(api, project.id, user.id)
 		return { ...user, projectId: project.id, projectSlug: project.slug }
 	})
 
-/** Creates a VISITOR who is a member of a new test project (sk base, en, no keys), as `createEditor`. */
+/** Creates a USER who is a VISITOR of a new test project (sk base, en, no keys), as `createEditor`. */
 export const createVisitor = (request: APIRequest, baseURL: string | undefined): Promise<TestEditor> =>
 	withAdminApi(request, baseURL, async (api) => {
 		const project = await createProject(api, 'visitor')
-		const user = await postUser(api, 'VISITOR')
-		await addMember(api, project.id, user.id)
+		const user = await postUser(api, 'USER')
+		await addMember(api, project.id, user.id, 'VISITOR')
 		return { ...user, projectId: project.id, projectSlug: project.slug }
 	})
 

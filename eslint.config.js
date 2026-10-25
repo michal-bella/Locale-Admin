@@ -73,6 +73,12 @@ export default defineConfig([
 		languageOptions: { globals: globals.node },
 	},
 
+	// Onboarding guide tools run in Node and drive a browser page (Playwright), so they use both sets of globals.
+	{
+		files: ['docs/onboarding/**/_tools/*.{js,mjs}'],
+		languageOptions: { globals: { ...globals.node, ...globals.browser } },
+	},
+
 	// k6 load tests run inside k6, which provides the `k6/*` modules and `__ENV`.
 	{
 		files: ['scripts/**/*.k6.js'],

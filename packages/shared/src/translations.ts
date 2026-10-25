@@ -113,7 +113,7 @@ export const translationKeyNameSchema = z
 	.refine((name) => utf8ByteLength(name) <= IMPORT_KEY_MAX_BYTES, { params: { max: IMPORT_KEY_MAX_BYTES } })
 
 /**
- * Body of `PATCH /api/projects/:projectId/keys/:keyId` (global ADMIN only). Every field is optional, at least one is required.
+ * Body of `PATCH /api/projects/:projectId/keys/:keyId` (global ADMIN; an EDITOR sends only `description`). Every field is optional, at least one is required.
  * `plural: null` turns plural forms off (the `other` form stays as the value), an object turns them on (the current value becomes
  * the `other` form) or renames the variable. Renaming to a name used in the same namespace gives 409 `TRANSLATION_KEY_TAKEN`.
  */

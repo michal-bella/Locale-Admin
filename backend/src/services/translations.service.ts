@@ -4,7 +4,7 @@ import {
 	type CreateTranslationKeyRequest,
 	type CreateTranslationKeyResponse,
 	ERROR_CODE,
-	type ROLE,
+	ROLE,
 	TRANSLATION_KEY_PATH_PATTERN,
 	VALIDATION_CODE,
 	normalizePluralValue,
@@ -400,13 +400,17 @@ export const convertPluralValue = (value: string, from: string | null, to: strin
 /**
  * Renames the key, sets its description or plural setting; a plural change converts every non-null value in the same
  * transaction and marks the converted rows as updated by the acting user. Writes `KEY_UPDATED` with the attributes that really changed.
+ * An EDITOR may change only the description (403 `FORBIDDEN` for a name or plural field) and not in a locked version (409 `PROJECT_VERSION_LOCKED`).
  */
 export const updateTranslationKey = async (
 	prisma: PrismaClient,
-	{ projectId, keyId, userId }: { projectId: string; keyId: string; userId: string },
+	{ projectId, keyId, userId, role }: { projectId: string; keyId: string; userId: string; role: ROLE },
 	{ name, description, plural }: UpdateTranslationKeyRequest,
 ): Promise<UpdateTranslationKeyResponse> =>
 	prisma.$transaction(async (tx) => {
+		if (role !== ROLE.ADMIN && (name !== undefined || plural !== undefined)) {
+			throw new AppError(403, ERROR_CODE.FORBIDDEN, 'Only an admin can rename a key or change its plural forms')
+		}
 		const key = await tx.translationKey.findFirst({
 			where: { id: keyId, projectId },
 			select: { name: true, description: true, pluralVariable: true, versionId: true },
@@ -414,6 +418,7 @@ export const updateTranslationKey = async (
 		if (!key) {
 			throw keyNotFound()
 		}
+		await resolveVersion(tx, { projectId, versionId: key.versionId, role })
 		const pluralVariable = plural === undefined ? key.pluralVariable : (plural?.variable ?? null)
 		if (pluralVariable !== key.pluralVariable) {
 			const rows = await tx.translation.findMany({ where: { keyId, value: { not: null } }, select: { languageId: true, value: true } })

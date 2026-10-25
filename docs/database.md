@@ -1,6 +1,6 @@
 ---
 title: 'Databáza'
-updated: 2026-10-22
+updated: 2026-10-25
 notion_page_id:
 ---
 
@@ -145,7 +145,7 @@ Unikátna trojica (`versionId`, `namespace`, `name`): ten istý kľúč môže b
 
 Plurálový kľúč (`pluralVariable` nie je `null`) ukladá v každom jazyku jednu ICU správu `{count, plural, one {# položka} few {# položky} other {# položiek}}` (`serializePluralValue` v `packages/shared/src/plurals.ts`). Zapnutie, vypnutie alebo premenovanie premennej cez `PATCH …/keys/:keyId` prepíše hodnoty vo všetkých jazykoch (viď [API: preklady](./api/translations.md#plurálové-formy)).
 
-Kľúče vytvára import alebo `ADMIN` ručne cez `POST /api/projects/:projectId/keys`, vždy do zvolenej verzie a do namespace, ktorý tá verzia už má (nový namespace vzniká iba importom); názov, popis a plurál upraví `ADMIN` cez `PATCH /api/projects/:projectId/keys/:keyId`. Dĺžka `name` je obmedzená na 2 000 **bajtov** v UTF-8 (`IMPORT_KEY_MAX_BYTES`, chyba `KEY_TOO_LONG`) a `namespace` na 100 znakov (`IMPORT_NAMESPACE_MAX_LENGTH`), lebo riadok btree indexu unesie najviac ~2,7 kB: 2 000 znakov v cyrilike (≈ 4 kB) by pri zápise skončilo chybou 500. Kľúč s 2 000 bajtmi a 100-znakovým namespace sa do indexu zmestí (overené integračným testom). Zmazanie projektu zmaže kľúče aj preklady kaskádou; kľúče, ktoré v importovanom súbore chýbajú, sa nemažú.
+Kľúče vytvára import alebo `ADMIN` ručne cez `POST /api/projects/:projectId/keys`, vždy do zvolenej verzie a do namespace, ktorý tá verzia už má (nový namespace vzniká iba importom); názov, popis a plurál upraví `ADMIN` cez `PATCH /api/projects/:projectId/keys/:keyId`, člen `EDITOR` iba popis. Dĺžka `name` je obmedzená na 2 000 **bajtov** v UTF-8 (`IMPORT_KEY_MAX_BYTES`, chyba `KEY_TOO_LONG`) a `namespace` na 100 znakov (`IMPORT_NAMESPACE_MAX_LENGTH`), lebo riadok btree indexu unesie najviac ~2,7 kB: 2 000 znakov v cyrilike (≈ 4 kB) by pri zápise skončilo chybou 500. Kľúč s 2 000 bajtmi a 100-znakovým namespace sa do indexu zmestí (overené integračným testom). Zmazanie projektu zmaže kľúče aj preklady kaskádou; kľúče, ktoré v importovanom súbore chýbajú, sa nemažú.
 
 ### Translation
 

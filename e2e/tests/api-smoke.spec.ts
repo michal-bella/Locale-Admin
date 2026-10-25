@@ -767,6 +767,12 @@ test.describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		expect(asMember.status()).toBe(403)
 		expect((await readApiError(asMember)).code).toBe('FORBIDDEN')
 		expect((await listTranslations(editor, ownProject!.id, ownVersion.id)).items.map(({ name }) => name)).toEqual(['nav.home'])
+		const describedAsMember = await editor.patch(translationKeyApi(ownProject!.id, ownKey.keyId), {
+			data: { description: 'Odkaz v menu' },
+			headers: MUTATION_HEADERS,
+		})
+		expect(describedAsMember.status()).toBe(200)
+		expect(await describedAsMember.json()).toMatchObject({ name: 'nav.home', description: 'Odkaz v menu' })
 		const asNonMember = await editor.patch(url, { data: { name: 'x' }, headers: MUTATION_HEADERS })
 		expect(asNonMember.status()).toBe(404)
 		expect((await readApiError(asNonMember)).code).toBe('NOT_FOUND')

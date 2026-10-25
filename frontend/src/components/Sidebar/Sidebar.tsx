@@ -197,7 +197,7 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 					<ActionIcon
 						visibleFrom='md'
 						variant='subtle'
-						color='gray'
+						color='slate'
 						size='lg'
 						radius='lg'
 						aria-label={toggleLabel}

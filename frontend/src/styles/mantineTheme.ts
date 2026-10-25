@@ -90,10 +90,15 @@ export const colorSchemeManager = localStorageColorSchemeManager({ key: COLOR_SC
 
 /** Scheme-aware `--app-color-*` tokens for components and CSS modules. Light values are the Figma colors, dark values are derived from slate. */
 export const cssVariablesResolver: CSSVariablesResolver = () => ({
-	variables: {},
+	variables: {
+		// Mantine falls back to neutral gray (gray-1, dark-4) here; menu items hover like the other subtle slate controls.
+		'--menu-item-hover': 'var(--mantine-color-slate-light-hover)',
+	},
 	light: {
 		'--mantine-color-body': '#f7f8fb',
 		'--mantine-color-text': 'var(--mantine-color-slate-5)',
+		// Mantine's default (gray-0) is barely visible on white; match the subtle slate hover of the icon buttons.
+		'--mantine-color-default-hover': 'var(--mantine-color-slate-light-hover)',
 		'--app-color-surface': 'var(--mantine-color-white)',
 		'--app-color-surface-muted': 'var(--mantine-color-slate-0)',
 		'--app-color-border': 'var(--mantine-color-slate-2)',

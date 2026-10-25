@@ -117,7 +117,7 @@ describe('activity events', () => {
 	it('records added, removed and leaving members with a snapshot of the user', async () => {
 		const app = createTestApp()
 		const { user: admin, cookie, project } = await setup(app)
-		const { user: jana, cookie: janaCookie } = await login(app, ROLE.EDITOR, { firstName: 'Jana' })
+		const { user: jana, cookie: janaCookie } = await login(app, ROLE.USER, { firstName: 'Jana' })
 		const { user: peter } = await createUser({ email: 'peter@example.com' })
 		const path = `/projects/${project.id}/members`
 
@@ -139,7 +139,7 @@ describe('activity events', () => {
 
 	it('records a translation only when its stored value changes', async () => {
 		const app = createTestApp()
-		const { user, cookie, project, sk, en } = await setup(app, ROLE.EDITOR)
+		const { user, cookie, project, sk, en } = await setup(app, ROLE.USER)
 		const key = await createKey(project.id, 'Počet: {{count}}', { [sk.id]: 'Počet: {{count}}' })
 		const path = `/projects/${project.id}/keys/${key.id}/translations/${en.id}`
 
@@ -165,7 +165,7 @@ describe('activity events', () => {
 
 	it('records the value a running import wrote as the old value of an edit that waited for it', async () => {
 		const app = createTestApp()
-		const { user, cookie, project, sk, en } = await setup(app, ROLE.EDITOR)
+		const { user, cookie, project, sk, en } = await setup(app, ROLE.USER)
 		const key = await createKey(project.id, 'title', { [sk.id]: 'Nadpis', [en.id]: 'Title' })
 		let edit: Promise<request.Response> | undefined
 
@@ -248,7 +248,7 @@ describe('activity events', () => {
 
 	it('keeps the events of a deleted user without the user', async () => {
 		const app = createTestApp()
-		const { user, cookie, project, en } = await setup(app, ROLE.EDITOR)
+		const { user, cookie, project, en } = await setup(app, ROLE.USER)
 		const key = await createKey(project.id, 'Uložiť')
 
 		await send(app, cookie, 'put', `/projects/${project.id}/keys/${key.id}/translations/${en.id}`, { value: 'Save' }, 200)

@@ -39,6 +39,12 @@ export const useDescribeActivity = () => {
 				return event.payload.left
 					? t('dashboardPage.activity.events.memberLeft')
 					: t('dashboardPage.activity.events.memberRemoved', { member: memberName(event.payload.member) })
+			case ACTIVITY_TYPE.MEMBER_ROLE_CHANGED:
+				return t('dashboardPage.activity.events.memberRoleChanged', {
+					member: memberName(event.payload.member),
+					from: t(`roles.${event.payload.fromRole}`),
+					to: t(`roles.${event.payload.toRole}`),
+				})
 			case ACTIVITY_TYPE.KEYS_IMPORTED: {
 				const { keysCreated, keysCopied = 0, keysRemoved = 0, translationsCreated, translationsUpdated } = event.payload
 				const translationCount = translationsCreated + translationsUpdated

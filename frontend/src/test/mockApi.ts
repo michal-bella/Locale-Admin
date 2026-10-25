@@ -1,6 +1,16 @@
 import { type AxiosAdapter, AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-import { type AuthUser, type ProjectListItem, type ProjectVersion, ROLE, toVersionDate, VERSION_LOCK, type VersionDiffSummary } from '@locale/shared'
+import {
+	type AuthUser,
+	PROJECT_ROLE,
+	type ProjectAccessRole,
+	type ProjectListItem,
+	type ProjectVersion,
+	ROLE,
+	toVersionDate,
+	VERSION_LOCK,
+	type VersionDiffSummary,
+} from '@locale/shared'
 
 import http from '@/api/http'
 
@@ -23,7 +33,7 @@ export const ADMIN_USER: AuthUser = {
 export const EDITOR_USER: AuthUser = {
 	id: '00000000-0000-4000-8000-000000000002',
 	email: 'jana.novakova@firma.sk',
-	role: ROLE.EDITOR,
+	role: ROLE.USER,
 	firstName: null,
 	lastName: null,
 	preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
@@ -32,7 +42,7 @@ export const EDITOR_USER: AuthUser = {
 export const MANAGER_USER: AuthUser = {
 	id: '00000000-0000-4000-8000-000000000004',
 	email: 'eva.spravca@firma.sk',
-	role: ROLE.MANAGER,
+	role: ROLE.USER,
 	firstName: 'Eva',
 	lastName: 'Správcová',
 	preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
@@ -41,11 +51,21 @@ export const MANAGER_USER: AuthUser = {
 export const VISITOR_USER: AuthUser = {
 	id: '00000000-0000-4000-8000-000000000003',
 	email: 'peter.hostak@firma.sk',
-	role: ROLE.VISITOR,
+	role: ROLE.USER,
 	firstName: 'Peter',
 	lastName: 'Hosťák',
 	preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
 }
+
+/** Role of each fixture user in every listed project (`myRole`), unless the project sets its own; the name of the fixture says it. */
+const FIXTURE_PROJECT_ROLES: Record<string, ProjectAccessRole> = {
+	[ADMIN_USER.id]: ROLE.ADMIN,
+	[EDITOR_USER.id]: PROJECT_ROLE.EDITOR,
+	[MANAGER_USER.id]: PROJECT_ROLE.MANAGER,
+	[VISITOR_USER.id]: PROJECT_ROLE.VISITOR,
+}
+
+let signedInUser: AuthUser | undefined
 
 export const apiError = (status: number, code: string, extra: { details?: unknown; headers?: Record<string, string> } = {}): MockResponse => ({
 	status,
@@ -55,7 +75,7 @@ export const apiError = (status: number, code: string, extra: { details?: unknow
 
 /** Replaces the HTTP layer of the shared axios instance. Unknown routes answer 404. Returns the list of sent requests. */
 type ListedProject = Pick<ProjectListItem, 'id' | 'name' | 'slug' | 'primaryColor'> &
-	Partial<Pick<ProjectListItem, 'isMember' | 'languageTags' | 'keyCount' | 'translatedCount' | 'memberCount' | 'createdAt'>>
+	Partial<Pick<ProjectListItem, 'isMember' | 'myRole' | 'languageTags' | 'keyCount' | 'translatedCount' | 'memberCount' | 'createdAt'>>
 
 export const projectListResponse = (...projects: ListedProject[]): MockResponse => ({
 	status: 200,
@@ -63,6 +83,7 @@ export const projectListResponse = (...projects: ListedProject[]): MockResponse 
 		projects: projects.map(
 			({
 				isMember = true,
+				myRole = (signedInUser && FIXTURE_PROJECT_ROLES[signedInUser.id]) ?? PROJECT_ROLE.EDITOR,
 				languageTags = [],
 				keyCount = 0,
 				translatedCount = 0,
@@ -72,6 +93,7 @@ export const projectListResponse = (...projects: ListedProject[]): MockResponse 
 			}): ProjectListItem => ({
 				...project,
 				isMember,
+				myRole,
 				languageTags,
 				keyCount,
 				translatedCount,
@@ -82,8 +104,8 @@ export const projectListResponse = (...projects: ListedProject[]): MockResponse 
 	},
 })
 
-/** `GET /projects` with these projects; project routes resolve the slug in the URL through it. */
-export const projectListRoute = (...projects: ListedProject[]): MockRoutes => ({ 'GET /projects': projectListResponse(...projects) })
+/** `GET /projects` with these projects; project routes resolve the slug in the URL through it. Built per request, so `myRole` follows `signedInAs`. */
+export const projectListRoute = (...projects: ListedProject[]): MockRoutes => ({ 'GET /projects': () => projectListResponse(...projects) })
 
 export const mockApi = (routes: MockRoutes) => {
 	const requests: InternalAxiosRequestConfig[] = []
@@ -101,11 +123,18 @@ export const mockApi = (routes: MockRoutes) => {
 	return requests
 }
 
-export const signedInAs = (user: AuthUser, routes: MockRoutes = {}) => mockApi({ 'GET /auth/me': { status: 200, data: user }, ...routes })
+export const signedInAs = (user: AuthUser, routes: MockRoutes = {}) => {
+	signedInUser = user
+	return mockApi({ 'GET /auth/me': { status: 200, data: user }, ...routes })
+}
 
-export const signedOut = (routes: MockRoutes = {}) => mockApi({ 'GET /auth/me': apiError(401, 'AUTH_UNAUTHENTICATED'), ...routes })
+export const signedOut = (routes: MockRoutes = {}) => {
+	signedInUser = undefined
+	return mockApi({ 'GET /auth/me': apiError(401, 'AUTH_UNAUTHENTICATED'), ...routes })
+}
 
 export const resetApiMock = () => {
+	signedInUser = undefined
 	http.defaults.adapter = originalAdapter
 }
 

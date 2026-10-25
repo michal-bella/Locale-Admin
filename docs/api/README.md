@@ -8,7 +8,7 @@ notion_page_id:
 
 Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/shared`.
 
-**Rola `MANAGER` (Správca):** v projekte, ktorého je členom, smie všetko, čo je v tabuľkách nižšie a na detailných stránkach označené ako „iba `ADMIN`“ (nastavenia, jazyky, verzie, import, kľúče, zápis do uzamknutej verzie). Výnimky ostávajú iba pre `ADMIN`: `POST /api/projects`, `POST` a `DELETE …/members` a všetko pod `/api/admin/*` (403 `FORBIDDEN`). Do projektu, kde nie je členom, nemá prístup (404). `ADMIN` nie je členom žiadneho projektu a má prístup ku všetkým.
+**Rola `MANAGER` (Správca)** je rola člena v jednom projekte (`ProjectMember.role`, [projekty](./projects.md#prístup-k-projektu)): v tomto projekte smie všetko, čo je v tabuľkách nižšie a na detailných stránkach označené ako „iba `ADMIN`“ (nastavenia, jazyky, verzie, import, kľúče, zápis do uzamknutej verzie). Výnimky ostávajú iba pre `ADMIN`: `POST /api/projects`, `POST`, `PATCH` a `DELETE …/members` a všetko pod `/api/admin/*` (403 `FORBIDDEN`). Do projektu, kde nie je členom, nemá prístup (404). `ADMIN` nie je členom žiadneho projektu a má prístup ku všetkým.
 
 ## Endpointy
 
@@ -40,6 +40,7 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `GET`    | `/api/projects/:projectId/versions/:versionId/diff`             | súhrn rozdielu verzie oproti predchádzajúcej (člen, ADMIN), [detail](./project-versions.md)                    |
 | `GET`    | `/api/projects/:projectId/members`                              | členovia projektu (člen, ADMIN), [detail](./projects.md)                                                       |
 | `POST`   | `/api/projects/:projectId/members`                              | pridanie existujúceho používateľa do projektu (ADMIN), [detail](./projects.md)                                 |
+| `PATCH`  | `/api/projects/:projectId/members/:userId`                      | zmena roly člena v projekte (ADMIN), [detail](./projects.md)                                                   |
 | `DELETE` | `/api/projects/:projectId/members/:userId`                      | odobranie člena z projektu (ADMIN), [detail](./projects.md)                                                    |
 | `GET`    | `/api/projects/:projectId/dashboard`                            | štatistiky kľúčov a prekladov projektu (člen, ADMIN), [detail](./dashboard.md)                                 |
 | `GET`    | `/api/projects/:projectId/activity`                             | feed aktivity projektu, stránkovanie kurzorom (člen, ADMIN), [detail](./dashboard.md)                          |

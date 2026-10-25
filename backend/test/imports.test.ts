@@ -365,7 +365,7 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 
 		it('returns 404 for a non-member', async () => {
 			const app = createTestApp()
-			const { project, cookie } = await setup(app, ROLE.EDITOR, { member: false })
+			const { project, cookie } = await setup(app, ROLE.USER, { member: false })
 
 			expectErrorCode(await sendMalformed(app, project.id, cookie), 404, ERROR_CODE.NOT_FOUND)
 		})
@@ -396,7 +396,7 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 
 	it('returns 404 NOT_FOUND for a project of which the user is not a member, an unknown or an invalid id', async () => {
 		const app = createTestApp()
-		const { project, cookie } = await setup(app, ROLE.EDITOR, { member: false })
+		const { project, cookie } = await setup(app, ROLE.USER, { member: false })
 		const body = { fileName: 'a.csv', content: SAMPLE.join('\n') }
 
 		expectErrorCode(await preview(app, cookie, project.id, body), 404, ERROR_CODE.NOT_FOUND)
@@ -406,7 +406,7 @@ describe('POST /api/projects/:projectId/imports/preview', () => {
 
 	it('returns 403 FORBIDDEN to an EDITOR who is a member, also for a body over the JSON limit', async () => {
 		const app = createTestApp()
-		const { project, cookie } = await setup(app, ROLE.EDITOR)
+		const { project, cookie } = await setup(app, ROLE.USER)
 
 		expectErrorCode(await preview(app, cookie, project.id, { fileName: 'a.csv', content: SAMPLE.join('\n') }), 403, ERROR_CODE.FORBIDDEN)
 		expectErrorCode(await preview(app, cookie, project.id, { fileName: 'a.csv', content: 'x'.repeat(13 * 1024 * 1024) }), 403, ERROR_CODE.FORBIDDEN)
@@ -1014,7 +1014,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 	it('returns 404 NOT_FOUND for a project of which the user is not a member or an unknown project', async () => {
 		const app = createTestApp()
-		const { project, sk, en, cs, cookie } = await setup(app, ROLE.EDITOR, { member: false })
+		const { project, sk, en, cs, cookie } = await setup(app, ROLE.USER, { member: false })
 
 		expectErrorCode(await importCsv(app, cookie, project.id, FILE, allColumns(sk, en, cs)), 404, ERROR_CODE.NOT_FOUND)
 		expectErrorCode(await importCsv(app, cookie, randomUUID(), FILE, allColumns(sk, en, cs)), 404, ERROR_CODE.NOT_FOUND)
@@ -1023,7 +1023,7 @@ describe('POST /api/projects/:projectId/imports', () => {
 
 	it('returns 403 FORBIDDEN to an EDITOR who is a member and writes nothing', async () => {
 		const app = createTestApp()
-		const { project, sk, en, cs, cookie } = await setup(app, ROLE.EDITOR)
+		const { project, sk, en, cs, cookie } = await setup(app, ROLE.USER)
 
 		expectErrorCode(await importCsv(app, cookie, project.id, FILE, allColumns(sk, en, cs)), 403, ERROR_CODE.FORBIDDEN)
 		expect((await countRows()).keys).toBe(0)

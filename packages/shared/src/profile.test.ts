@@ -12,7 +12,7 @@ describe('updateProfileRequestSchema', () => {
 			role: ROLE.ADMIN,
 		})
 		expect(updateProfileRequestSchema.parse({ firstName: 'Martin', lastName: 'Kováč' })).toEqual({ firstName: 'Martin', lastName: 'Kováč' })
-		expect(updateProfileRequestSchema.safeParse({ firstName: 'Martin', lastName: 'Kováč', role: ROLE.VISITOR }).success).toBe(true)
+		expect(updateProfileRequestSchema.safeParse({ firstName: 'Martin', lastName: 'Kováč', role: ROLE.USER }).success).toBe(true)
 		expect(updateProfileRequestSchema.safeParse({ firstName: 'Martin', lastName: 'Kováč', role: 'OWNER' }).success).toBe(false)
 	})
 
@@ -36,7 +36,7 @@ describe('profileSchema', () => {
 		const profile = {
 			id: '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d',
 			email: 'martin.kovac@firma.sk',
-			role: ROLE.EDITOR,
+			role: ROLE.USER,
 			firstName: 'Martin',
 			lastName: 'Kováč',
 			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },

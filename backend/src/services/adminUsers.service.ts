@@ -1,7 +1,7 @@
 import { ERROR_CODE, ROLE, type AdminUser, type AdminUserDetail, type CreateUserRequest, type UpdateUserRequest } from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
-import { ROLE_FROM_PRISMA, ROLE_TO_PRISMA } from '../lib/authUser'
+import { PROJECT_ROLE_FROM_PRISMA, ROLE_FROM_PRISMA, ROLE_TO_PRISMA } from '../lib/authUser'
 import { AppError } from '../lib/errors'
 import { hashPassword } from '../lib/password'
 import { type PrismaClient } from '../lib/prisma'
@@ -21,7 +21,7 @@ const toAdminUser = (user: Prisma.UserGetPayload<{ select: typeof ADMIN_USER_SEL
 const ADMIN_USER_DETAIL_SELECT = {
 	...ADMIN_USER_SELECT,
 	projectMemberships: {
-		select: { createdAt: true, project: { select: { id: true, name: true, slug: true, primaryColor: true } } },
+		select: { role: true, createdAt: true, project: { select: { id: true, name: true, slug: true, primaryColor: true } } },
 		orderBy: [{ project: { name: 'asc' } }, { projectId: 'asc' }],
 	},
 } satisfies Prisma.UserSelect
@@ -33,7 +33,11 @@ export const getUser = async (prisma: PrismaClient, id: string): Promise<AdminUs
 	}
 	return {
 		...toAdminUser(user),
-		projects: user.projectMemberships.map(({ createdAt, project }) => ({ ...project, joinedAt: createdAt.toISOString() })),
+		projects: user.projectMemberships.map(({ role, createdAt, project }) => ({
+			...project,
+			role: PROJECT_ROLE_FROM_PRISMA[role],
+			joinedAt: createdAt.toISOString(),
+		})),
 	}
 }
 

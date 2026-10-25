@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Roly v projekte, míľnik 1 (2026-10-25)
+
+- rola Správca / Editor / Návštevník patrí členstvu v projekte (`ProjectMember.role`, enum `PROJECT_ROLE`), globálne ostáva iba `ADMIN` / `USER`; ten istý používateľ môže byť v jednom projekte Správca a v inom Návštevník ([plán](./plans/project-roles.md), [ADR 0008](./decisions/0008-project-roles.md))
+- migrácia `project_roles` skopírovala globálnu rolu každého člena do jeho členstiev a `User.role` zmenila na `USER`; práva sa nezmenili
+- API: `POST …/members` prijme `role` (predvolene `EDITOR`), nový `PATCH …/members/:userId` (iba `ADMIN`) mení rolu a zapíše aktivitu `MEMBER_ROLE_CHANGED`; `GET /api/projects` vracia `myRole`, detail používateľa rolu v každom projekte; projektové cesty kontrolujú rolu v projekte (`requireProjectRole`)
+- frontend: práva na stránkach projektu a guardy pre Návštevníka sa riadia rolou v projekte (`useProjectRole`, `fetchProjectRole`); modál Nový používateľ a profil ponúkajú Administrátor / Používateľ. Výber roly pri pridaní člena a jej zmena na stránke Členovia prídu v míľniku 2
+
 ### Rola Správca a admin bez členstva (2026-10-25)
 
 - rola `MANAGER` (Správca): v projektoch, kde je členom, má práva admina (nastavenia, jazyky, verzie, import, kľúče, zápis do uzamknutej verzie), ale nemá sekciu Správa, nevytvára projekty a nespravuje členov ([plán](./plans/manager-role.md))

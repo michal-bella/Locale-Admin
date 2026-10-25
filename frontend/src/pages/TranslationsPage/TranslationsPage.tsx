@@ -5,7 +5,7 @@ import { useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { canManageProject, ROLE, type TranslationsLayout, type TranslationsView } from '@locale/shared'
+import { canManageProject, PROJECT_ROLE, type TranslationsLayout, type TranslationsView } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -30,6 +30,7 @@ import TranslationsViewControls from '@/components/TranslationsViewControls/Tran
 import TranslationsWarningsBanner from '@/components/TranslationsWarningsBanner/TranslationsWarningsBanner'
 import VersionFormModal from '@/components/VersionFormModal/VersionFormModal'
 import VersionLockModal from '@/components/VersionLockModal/VersionLockModal'
+import { useProjectRole } from '@/hooks/useProjectRole'
 import { TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsPage.module.css'
@@ -55,8 +56,9 @@ const TranslationsPage = () => {
 	const navigate = useNavigate({ from: '/projects/$projectSlug/translations' })
 	const { data: project } = useProjectSettingsQuery(projectId)
 	const { data: me } = useMeQuery()
-	const canManage = me !== undefined && canManageProject(me.role)
-	const isVisitor = me?.role === ROLE.VISITOR
+	const projectRole = useProjectRole(projectId)
+	const canManage = projectRole !== undefined && canManageProject(projectRole)
+	const isVisitor = projectRole === PROJECT_ROLE.VISITOR
 	const view: TranslationsView = me?.preferences.translationsView ?? 'EXTENDED'
 	const layout: TranslationsLayout = me?.preferences.translationsLayout ?? 'COLUMNS'
 	const updatePreferences = useUpdatePreferencesMutation()

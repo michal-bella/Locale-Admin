@@ -13,6 +13,7 @@
 	},
 	"roles": {
 		"ADMIN": "Administrátor",
+		"USER": "Uživatel",
 		"MANAGER": "Správce",
 		"EDITOR": "Editor",
 		"VISITOR": "Návštěvník"
@@ -171,9 +172,7 @@
 				"label": "Role",
 				"description": {
 					"ADMIN": "Spravuje systém, uživatele a všechny projekty bez přidávání do nich.",
-					"MANAGER": "Spravuje projekty, do kterých ho přidá administrátor: jazyky, verze, import a klíče. Nespravuje uživatele ani členy.",
-					"EDITOR": "Překládá pouze v projektech, do kterých ho přidá administrátor.",
-					"VISITOR": "Pouze čte a exportuje překlady v projektech, do kterých ho přidá administrátor."
+					"USER": "Pracuje pouze v projektech, do kterých ho přidá administrátor, s rolí nastavenou v každém projektu."
 				}
 			},
 			"cancel": "Zrušit",
@@ -599,6 +598,7 @@
 				"baseLanguageChanged": "změna základního jazyka z {{from}} na {{to}}",
 				"memberAdded": "přidání člena {{member}}",
 				"memberRemoved": "odebrání člena {{member}}",
+				"memberRoleChanged": "změna role člena {{member}}: {{from}} → {{to}}",
 				"memberLeft": "odchod z projektu",
 				"keysImported": "import CSV: {{changes}}",
 				"translationCount_one": "{{count}} překlad",

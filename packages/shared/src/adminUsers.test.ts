@@ -7,10 +7,10 @@ import { PASSWORD_MIN_LENGTH } from './password'
 
 describe('createUserRequestSchema', () => {
 	it('normalizes the email, keeps the role and drops unknown fields', () => {
-		expect(createUserRequestSchema.parse({ email: ' Jana.Novakova@Firma.SK ', password: 'password1', role: ROLE.EDITOR, isActive: false })).toEqual({
+		expect(createUserRequestSchema.parse({ email: ' Jana.Novakova@Firma.SK ', password: 'password1', role: ROLE.USER, isActive: false })).toEqual({
 			email: 'jana.novakova@firma.sk',
 			password: 'password1',
-			role: ROLE.EDITOR,
+			role: ROLE.USER,
 		})
 	})
 
@@ -42,7 +42,7 @@ describe('adminUserSchema', () => {
 		const user = {
 			id: '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d',
 			email: 'jana.novakova@firma.sk',
-			role: ROLE.EDITOR,
+			role: ROLE.USER,
 			projectCount: 2,
 			createdAt: '2026-10-12T08:00:00.000Z',
 			passwordHash: 'secret-hash',
@@ -56,7 +56,7 @@ describe('adminUserDetailSchema', () => {
 		const detail = {
 			id: '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d',
 			email: 'jana.novakova@firma.sk',
-			role: ROLE.EDITOR,
+			role: ROLE.USER,
 			projectCount: 1,
 			createdAt: '2026-10-12T08:00:00.000Z',
 			passwordHash: 'secret-hash',
@@ -66,6 +66,7 @@ describe('adminUserDetailSchema', () => {
 					name: 'Booking Web',
 					slug: 'booking-web',
 					primaryColor: '#E83E8C',
+					role: 'MANAGER',
 					joinedAt: '2026-10-13T08:00:00.000Z',
 					memberCount: 3,
 				},
@@ -74,7 +75,7 @@ describe('adminUserDetailSchema', () => {
 		expect(adminUserDetailSchema.parse(detail)).toEqual({
 			id: detail.id,
 			email: detail.email,
-			role: ROLE.EDITOR,
+			role: ROLE.USER,
 			projectCount: 1,
 			createdAt: detail.createdAt,
 			projects: [
@@ -83,6 +84,7 @@ describe('adminUserDetailSchema', () => {
 					name: 'Booking Web',
 					slug: 'booking-web',
 					primaryColor: '#E83E8C',
+					role: 'MANAGER',
 					joinedAt: '2026-10-13T08:00:00.000Z',
 				},
 			],
@@ -94,7 +96,7 @@ describe('adminUserDetailSchema', () => {
 			adminUserDetailSchema.safeParse({
 				id: '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d',
 				email: 'jana.novakova@firma.sk',
-				role: ROLE.EDITOR,
+				role: ROLE.USER,
 				projectCount: 1,
 				createdAt: '2026-10-12T08:00:00.000Z',
 				projects: [{ id: '6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11', name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C' }],

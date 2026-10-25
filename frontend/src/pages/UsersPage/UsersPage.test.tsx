@@ -23,7 +23,7 @@ const MARTIN: AdminUser = {
 const JANA: AdminUser = {
 	id: '00000000-0000-4000-8000-000000000012',
 	email: 'jana.novakova@firma.sk',
-	role: ROLE.EDITOR,
+	role: ROLE.USER,
 	projectCount: 1,
 	createdAt: '2026-10-03T10:00:00.000Z',
 }
@@ -31,7 +31,7 @@ const JANA: AdminUser = {
 const NEW_USER: AdminUser = {
 	id: '00000000-0000-4000-8000-000000000013',
 	email: 'nova@firma.sk',
-	role: ROLE.EDITOR,
+	role: ROLE.USER,
 	projectCount: 0,
 	createdAt: '2026-10-16T10:00:00.000Z',
 }
@@ -100,7 +100,7 @@ describe('UsersPage table', () => {
 		expect(within(martinRow).getByText('12. 10. 2026')).toBeInTheDocument()
 		expect(within(janaRow).getByText('JA')).toBeInTheDocument()
 		expect(within(janaRow).getByText(JANA.email)).toBeInTheDocument()
-		expect(within(janaRow).getAllByText('Editor')).toHaveLength(2)
+		expect(within(janaRow).getAllByText('Používateľ')).toHaveLength(2)
 		expect(within(janaRow).getByRole('cell', { name: '1' })).toBeInTheDocument()
 		expect(within(janaRow).getByText('3. 10. 2026')).toBeInTheDocument()
 	})
@@ -249,7 +249,7 @@ describe('CreateUserModal', () => {
 		expect(await screen.findByText(NEW_USER.email)).toBeInTheDocument()
 		const posts = requests.filter((request) => request.method === 'post' && request.url === '/admin/users')
 		expect(posts).toHaveLength(1)
-		expect(JSON.parse(posts[0]?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password', role: 'EDITOR' })
+		expect(JSON.parse(posts[0]?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password', role: 'USER' })
 		expect(requests.filter((request) => request.method === 'get' && request.url === '/admin/users')).toHaveLength(2)
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ message: 'Používateľ nova@firma.sk bol vytvorený.' }))
 
@@ -257,36 +257,28 @@ describe('CreateUserModal', () => {
 		expect(within(reopened).getByLabelText('E-mail')).toHaveValue('')
 	})
 
-	it.each([
-		{ label: 'Administrátor', role: ROLE.ADMIN, description: 'Spravuje systém, používateľov a všetky projekty bez pridávania do nich.' },
-		{
-			label: 'Správca',
-			role: ROLE.MANAGER,
-			description: 'Spravuje projekty, do ktorých ho pridá administrátor: jazyky, verzie, import a kľúče. Nespravuje používateľov ani členov.',
-		},
-		{ label: 'Návštevník', role: ROLE.VISITOR, description: 'Iba číta a exportuje preklady v projektoch, do ktorých ho pridá administrátor.' },
-	])('defaults to Editor, explains the picked role and sends $role when $label is picked', async ({ label, role, description }) => {
+	it('defaults to Používateľ, explains the picked role and sends ADMIN when Administrátor is picked', async () => {
 		const requests = signedInAs(ADMIN_USER, {
 			'GET /admin/users': usersResponse([JANA]),
-			'POST /admin/users': { status: 201, data: { ...NEW_USER, role } },
+			'POST /admin/users': { status: 201, data: { ...NEW_USER, role: ROLE.ADMIN } },
 		})
 		renderApp('/admin/users')
 		const dialog = await openModal()
 
 		const select = within(dialog).getByRole('combobox', { name: 'Rola' })
-		expect(select).toHaveValue('Editor')
-		expect(select).toHaveAccessibleDescription('Prekladá iba v projektoch, do ktorých ho pridá administrátor.')
+		expect(select).toHaveValue('Používateľ')
+		expect(select).toHaveAccessibleDescription('Pracuje iba v projektoch, do ktorých ho pridá administrátor, s rolou nastavenou v každom projekte.')
 
 		fireEvent.click(select)
 		const options = await screen.findAllByRole('option')
-		expect(options.map((option) => option.textContent)).toEqual(['Administrátor', 'Správca', 'Editor', 'Návštevník'])
-		fireEvent.click(screen.getByRole('option', { name: label }))
-		expect(select).toHaveAccessibleDescription(description)
+		expect(options.map((option) => option.textContent)).toEqual(['Administrátor', 'Používateľ'])
+		fireEvent.click(screen.getByRole('option', { name: 'Administrátor' }))
+		expect(select).toHaveAccessibleDescription('Spravuje systém, používateľov a všetky projekty bez pridávania do nich.')
 		fillAndSubmit(dialog, 'nova@firma.sk', 'long-enough-password')
 
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		const post = requests.find((request) => request.method === 'post')
-		expect(JSON.parse(post?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password', role })
+		expect(JSON.parse(post?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password', role: ROLE.ADMIN })
 	})
 
 	it('sends one request when the form is submitted twice while pending', async () => {

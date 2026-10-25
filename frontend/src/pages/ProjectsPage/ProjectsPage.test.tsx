@@ -3,7 +3,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import Sortable from 'sortablejs'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test'
 
-import { type ProjectListItem, type ProjectSettings, SUPPORTED_LANGUAGES } from '@locale/shared'
+import { PROJECT_ROLE, type ProjectListItem, type ProjectSettings, ROLE, SUPPORTED_LANGUAGES } from '@locale/shared'
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
@@ -16,6 +16,7 @@ const BOOKING: ProjectListItem = {
 	slug: 'booking-web',
 	primaryColor: '#FACC15',
 	isMember: true,
+	myRole: PROJECT_ROLE.EDITOR,
 	languageTags: ['en', 'sk'],
 	keyCount: 224,
 	translatedCount: 447,
@@ -29,6 +30,7 @@ const DEMO: ProjectListItem = {
 	slug: 'demo-project',
 	primaryColor: '#1D4ED8',
 	isMember: false,
+	myRole: ROLE.ADMIN,
 	languageTags: [],
 	keyCount: 0,
 	translatedCount: 0,
@@ -205,8 +207,8 @@ describe('ProjectsPage list', () => {
 		expect(list.queryByRole('button', { name: 'Opustiť projekt Demo project' })).not.toBeInTheDocument()
 	})
 
-	it('shows a VISITOR neither Nastavenia nor Opustiť projekt', async () => {
-		signedInAs(VISITOR_USER, { 'GET /projects': projectsResponse([BOOKING]) })
+	it('shows a VISITOR of the project neither Nastavenia nor Opustiť projekt', async () => {
+		signedInAs(VISITOR_USER, { 'GET /projects': projectsResponse([{ ...BOOKING, myRole: PROJECT_ROLE.VISITOR }]) })
 		renderApp('/')
 
 		const list = within(await waitFor(getList))

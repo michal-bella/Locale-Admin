@@ -7,12 +7,11 @@ import {
 	canManageProject,
 	type Language,
 	placeholderReference,
-	ROLE,
 	type TranslationCell as TranslationCellData,
 	type TranslationListItem,
+	PROJECT_ROLE,
 } from '@locale/shared'
 
-import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import BaseLanguageHint from '@/components/BaseLanguageHint/BaseLanguageHint'
 import EditKeyModal from '@/components/EditKeyModal/EditKeyModal'
@@ -23,6 +22,7 @@ import RowAction from '@/components/RowAction/RowAction'
 import TranslationCell from '@/components/TranslationCell/TranslationCell'
 import TranslationStatusBadge from '@/components/TranslationStatusBadge/TranslationStatusBadge'
 import TranslationValue from '@/components/TranslationValue/TranslationValue'
+import { useProjectRole } from '@/hooks/useProjectRole'
 import { formatDateTime } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 
@@ -73,9 +73,9 @@ const TranslationsTable = ({
 	onSave,
 }: TranslationsTableProps) => {
 	const { t, i18n } = useTranslation()
-	const { data: me } = useMeQuery()
-	const canManage = me !== undefined && canManageProject(me.role)
-	const canOpenKey = canManage || me?.role === ROLE.EDITOR
+	const projectRole = useProjectRole(projectId)
+	const canManage = projectRole !== undefined && canManageProject(projectRole)
+	const canOpenKey = canManage || projectRole === PROJECT_ROLE.EDITOR
 	const tableRef = useRef<HTMLTableElement>(null)
 	const scrollRef = useRef<HTMLDivElement>(null)
 	// Which sticky column has content scrolled under it: the key column once scrolled right, the status column until the right end.

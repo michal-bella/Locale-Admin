@@ -13,6 +13,7 @@
 	},
 	"roles": {
 		"ADMIN": "Administrator",
+		"USER": "User",
 		"MANAGER": "Manager",
 		"EDITOR": "Editor",
 		"VISITOR": "Visitor"
@@ -171,9 +172,7 @@
 				"label": "Role",
 				"description": {
 					"ADMIN": "Manages the system, users and every project without being added to them.",
-					"MANAGER": "Manages the projects an administrator adds them to: languages, versions, imports and keys. Does not manage users or members.",
-					"EDITOR": "Translates only in the projects an administrator adds them to.",
-					"VISITOR": "Only reads and exports translations in the projects an administrator adds them to."
+					"USER": "Works only in the projects an administrator adds them to, with a role set in each project."
 				}
 			},
 			"cancel": "Cancel",
@@ -583,6 +582,7 @@
 				"baseLanguageChanged": "changed the base language from {{from}} to {{to}}",
 				"memberAdded": "added the member {{member}}",
 				"memberRemoved": "removed the member {{member}}",
+				"memberRoleChanged": "changed the role of {{member}}: {{from}} → {{to}}",
 				"memberLeft": "left the project",
 				"keysImported": "imported a CSV: {{changes}}",
 				"translationCount_one": "{{count}} translation",

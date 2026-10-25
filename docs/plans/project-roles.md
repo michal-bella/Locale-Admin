@@ -46,7 +46,7 @@ Modelová situácia: projekt A má člena 1 s rolou `MANAGER` (je to „vlastní
 ### Databáza
 
 - Migrácia `project_roles`: enum `PROJECT_ROLE`, stĺpec `ProjectMember.role`, naplnenie z `User.role`, potom `User.role` (`MANAGER`, `EDITOR`, `VISITOR` → `USER`) a zúženie enumu `ROLE`.
-- Seed: členovia projektov s rôznymi rolami vrátane jedného používateľa s inou rolou v dvoch projektoch.
+- Seed sa nemení: vytvára iba admina a projekt bez členov (testovacích používateľov s heslami do seedu nedávame).
 
 ### Backend
 
@@ -75,8 +75,8 @@ Modelová situácia: projekt A má člena 1 s rolou `MANAGER` (je to „vlastní
 
 ## Míľniky
 
-1. **Kontrakt + DB + backend**: shared, migrácia, seed, guardy, endpointy, integračné testy. Checkpoint `pnpm verify`.
-2. **Frontend**: role z projektu, modály, Členovia, detail používateľa, profil, i18n, unit testy. Checkpoint `pnpm verify` + prehliadač.
+1. **Kontrakt + DB + backend** (hotové 2026-10-25): shared, migrácia, guardy, endpointy, integračné testy. Aby prešiel `pnpm verify`, patrí sem aj prepnutie kontrol rolí na frontende na `myRole` (`useProjectRole`, guardy) a Administrátor / Používateľ v modáli Nový používateľ a v profile.
+2. **Frontend**: výber roly v Pridať člena (aj pri Vytvoriť nového používateľa) a na detaile používateľa, stĺpec Rola na stránke Členovia so zmenou roly, prepínač Administrátor namiesto výberu roly, profil s projektmi a rolami, i18n, unit testy. Checkpoint `pnpm verify` + prehliadač.
 3. **E2E + docs**: E2E pre používateľa s dvomi rolami, smoke `api-smoke`, dokumentácia a ADR.
 
 ## Overenie

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { PROJECT_ROLE } from './auth'
 import { translationEditorSchema } from './translations'
 import { translationVersionRefSchema } from './versionRef'
 
@@ -12,6 +13,7 @@ export enum ACTIVITY_TYPE {
 	BASE_LANGUAGE_CHANGED = 'BASE_LANGUAGE_CHANGED',
 	MEMBER_ADDED = 'MEMBER_ADDED',
 	MEMBER_REMOVED = 'MEMBER_REMOVED',
+	MEMBER_ROLE_CHANGED = 'MEMBER_ROLE_CHANGED',
 	KEYS_IMPORTED = 'KEYS_IMPORTED',
 	KEY_CREATED = 'KEY_CREATED',
 	KEY_UPDATED = 'KEY_UPDATED',
@@ -65,6 +67,7 @@ export const activityEventDataSchema = z.discriminatedUnion('type', [
 	event(ACTIVITY_TYPE.BASE_LANGUAGE_CHANGED, { fromTag: languageTag.nullable(), toTag: languageTag }),
 	event(ACTIVITY_TYPE.MEMBER_ADDED, { member: activityMemberSchema }),
 	event(ACTIVITY_TYPE.MEMBER_REMOVED, { member: activityMemberSchema, left: z.boolean() }),
+	event(ACTIVITY_TYPE.MEMBER_ROLE_CHANGED, { member: activityMemberSchema, fromRole: z.enum(PROJECT_ROLE), toRole: z.enum(PROJECT_ROLE) }),
 	event(ACTIVITY_TYPE.KEYS_IMPORTED, {
 		keysCreated: count,
 		keysCopied: count.optional(),
@@ -143,6 +146,7 @@ export const ACTIVITY_TYPE_CATEGORY: Record<ACTIVITY_TYPE, ActivityCategory> = {
 	[ACTIVITY_TYPE.BASE_LANGUAGE_CHANGED]: 'LANGUAGE',
 	[ACTIVITY_TYPE.MEMBER_ADDED]: 'MEMBER',
 	[ACTIVITY_TYPE.MEMBER_REMOVED]: 'MEMBER',
+	[ACTIVITY_TYPE.MEMBER_ROLE_CHANGED]: 'MEMBER',
 	[ACTIVITY_TYPE.PROJECT_CREATED]: 'PROJECT',
 	[ACTIVITY_TYPE.PROJECT_UPDATED]: 'PROJECT',
 }

@@ -1,12 +1,12 @@
 import { type RequestHandler } from 'express'
 import { z } from 'zod'
 
-import { addProjectMemberRequestSchema, ERROR_CODE, type ProjectMember, type ProjectMemberListResponse } from '@locale/shared'
+import { addProjectMemberRequestSchema, ERROR_CODE, type ProjectMember, type ProjectMemberListResponse, updateProjectMemberRequestSchema } from '@locale/shared'
 
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 import { getAuth } from '../middleware/auth.middleware'
-import { addProjectMember, listProjectMembers } from '../services/projectMembers.service'
+import { addProjectMember, listProjectMembers, updateProjectMember } from '../services/projectMembers.service'
 import { removeProjectMember } from '../services/projects.service'
 
 export const createListProjectMembersController =
@@ -24,11 +24,24 @@ export const createAddProjectMemberController =
 		res.status(201).json(body)
 	}
 
+const notMember = () => new AppError(404, ERROR_CODE.NOT_FOUND, 'Not a member of the project')
+
+export const createUpdateProjectMemberController =
+	(prisma: PrismaClient): RequestHandler<{ projectId: string; userId: string }> =>
+	async (req, res) => {
+		if (!z.uuid().safeParse(req.params.userId).success) {
+			throw notMember()
+		}
+		const input = updateProjectMemberRequestSchema.parse(req.body)
+		const body: ProjectMember = await updateProjectMember(prisma, req.params.projectId, req.params.userId, getAuth(req).user.id, input)
+		res.status(200).json(body)
+	}
+
 export const createRemoveProjectMemberController =
 	(prisma: PrismaClient): RequestHandler<{ projectId: string; userId: string }> =>
 	async (req, res) => {
 		if (!z.uuid().safeParse(req.params.userId).success) {
-			throw new AppError(404, ERROR_CODE.NOT_FOUND, 'Not a member of the project')
+			throw notMember()
 		}
 		await removeProjectMember(prisma, req.params.projectId, req.params.userId, getAuth(req).user.id)
 		res.status(204).end()

@@ -4,13 +4,14 @@ import { Link, type LinkProps, useMatch, useSearch } from '@tanstack/react-route
 import { type ComponentType, type SVGProps, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ROLE } from '@locale/shared'
+import { ROLE, PROJECT_ROLE } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import { projectSettingsQueryOptions } from '@/api/projectSettings/projectSettingsQuery'
 import Brand from '@/components/Brand/Brand'
 import { ArrowRight, ChevronDown, Clock, Globe, LayoutGrid, Settings, Shield, Tag, Translate, Users } from '@/components/Icons'
 import ProjectSwitcher from '@/components/ProjectSwitcher/ProjectSwitcher'
+import { useProjectRole } from '@/hooks/useProjectRole'
 
 import classes from './Sidebar.module.css'
 import { type SidebarProps } from './types'
@@ -59,7 +60,7 @@ const Sidebar = ({ id, opened, onClose, compact, onToggleCompact }: SidebarProps
 	const { data: project } = useQuery({ ...projectSettingsQueryOptions(projectId ?? ''), enabled: false })
 	const adminLabelId = useId()
 	const isAdmin = user?.role === ROLE.ADMIN
-	const canManageProject = user?.role !== ROLE.VISITOR
+	const canManageProject = useProjectRole(projectId) !== PROJECT_ROLE.VISITOR
 	// The burger opens the sidebar only below `md`, where it must show the labels.
 	const isCompact = compact && !opened
 	const toggleLabel = isCompact ? t('sidebar.expand') : t('sidebar.collapse')

@@ -32,7 +32,7 @@ const createProject = (members: string[] = []) =>
 	})
 
 /** Logs in a new user who is a member of a new project with `sk` (base) and `en`. */
-const setup = async (app: App, role: ROLE = ROLE.EDITOR, { member = true }: { member?: boolean } = {}) => {
+const setup = async (app: App, role: ROLE = ROLE.USER, { member = true }: { member?: boolean } = {}) => {
 	const { user } = await createUser({ role })
 	const project = await createProject(member ? [user.id] : [])
 	await createVersionRow(project.id)
@@ -464,7 +464,7 @@ describe('GET /api/projects/:projectId/translations', () => {
 
 	it('returns 404 NOT_FOUND to an EDITOR who is not a member and 200 to an ADMIN who is not', async () => {
 		const app = createTestApp()
-		const editor = await setup(app, ROLE.EDITOR, { member: false })
+		const editor = await setup(app, ROLE.USER, { member: false })
 		const admin = await setup(app, ROLE.ADMIN, { member: false })
 
 		expectErrorCode(

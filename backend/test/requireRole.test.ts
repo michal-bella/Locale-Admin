@@ -46,7 +46,7 @@ describe('requireRole(ROLE.ADMIN)', () => {
 	it('returns 403 FORBIDDEN for an EDITOR', async () => {
 		const res = await request(createAdminOnlyApp())
 			.get('/admin-only')
-			.set('Cookie', await cookieFor(PRISMA_ROLE.EDITOR))
+			.set('Cookie', await cookieFor(PRISMA_ROLE.USER))
 
 		expect(res.status).toBe(403)
 		expect(errorResponseSchema.parse(res.body).error.code).toBe(ERROR_CODE.FORBIDDEN)

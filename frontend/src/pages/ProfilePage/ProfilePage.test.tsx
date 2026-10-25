@@ -78,8 +78,8 @@ describe('ProfilePage', () => {
 		expect(screen.getByLabelText('Meno')).toHaveValue('')
 		expect(screen.getByLabelText('Priezvisko')).toHaveValue('')
 		expect(screen.getByRole('heading', { level: 2, name: EDITOR_USER.email })).toBeInTheDocument()
-		expect(getMain().getByText('Editor', { selector: 'p' })).toBeInTheDocument()
-		expect(screen.getByRole('combobox', { name: 'Rola' })).toHaveValue('Editor')
+		expect(getMain().getByText('Používateľ', { selector: 'p' })).toBeInTheDocument()
+		expect(screen.getByRole('combobox', { name: 'Rola' })).toHaveValue('Používateľ')
 		expect(screen.getByRole('combobox', { name: 'Rola' })).toBeDisabled()
 	})
 
@@ -186,25 +186,25 @@ describe('ProfilePage', () => {
 		expect(requests.filter((request) => request.url === '/auth/me')).toHaveLength(1)
 	})
 
-	it('lets an admin pick the Editor role and saves it with the names', async () => {
+	it('lets an admin pick the Používateľ role and saves it with the names', async () => {
 		const requests = signedInAs(ADMIN_USER, {
 			'GET /profile': { status: 200, data: ADMIN_PROFILE },
-			'PATCH /profile': { status: 200, data: { ...ADMIN_PROFILE, role: 'EDITOR' } },
+			'PATCH /profile': { status: 200, data: { ...ADMIN_PROFILE, role: 'USER' } },
 		})
 		await renderProfile()
 
 		fireEvent.click(screen.getByRole('combobox', { name: 'Rola' }))
 		const options = await screen.findAllByRole('option')
-		expect(options.map((option) => option.textContent)).toEqual(['Administrátor', 'Správca', 'Editor', 'Návštevník'])
-		fireEvent.click(screen.getByRole('option', { name: 'Editor' }))
+		expect(options.map((option) => option.textContent)).toEqual(['Administrátor', 'Používateľ'])
+		fireEvent.click(screen.getByRole('option', { name: 'Používateľ' }))
 		expect(getSaveButton()).toBeEnabled()
 		fireEvent.click(getSaveButton())
 
-		await waitFor(() => expect(getMain().getByText('Editor', { selector: 'p' })).toBeInTheDocument())
+		await waitFor(() => expect(getMain().getByText('Používateľ', { selector: 'p' })).toBeInTheDocument())
 		const patches = requests.filter((request) => request.method === 'patch' && request.url === '/profile')
 		expect(patches).toHaveLength(1)
-		expect(JSON.parse(patches[0]?.data as string)).toEqual({ firstName: 'Martin', lastName: 'Kováč', role: 'EDITOR' })
-		expect(screen.getByRole('combobox', { name: 'Rola' })).toHaveValue('Editor')
+		expect(JSON.parse(patches[0]?.data as string)).toEqual({ firstName: 'Martin', lastName: 'Kováč', role: 'USER' })
+		expect(screen.getByRole('combobox', { name: 'Rola' })).toHaveValue('Používateľ')
 		expect(screen.getByRole('combobox', { name: 'Rola' })).toBeDisabled()
 	})
 
@@ -214,7 +214,7 @@ describe('ProfilePage', () => {
 		await renderProfile()
 
 		fireEvent.click(screen.getByRole('combobox', { name: 'Rola' }))
-		fireEvent.click(await screen.findByRole('option', { name: 'Editor' }))
+		fireEvent.click(await screen.findByRole('option', { name: 'Používateľ' }))
 		fireEvent.click(getSaveButton())
 
 		await waitFor(() =>

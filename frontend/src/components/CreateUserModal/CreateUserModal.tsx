@@ -15,7 +15,7 @@ import classes from './CreateUserModal.module.css'
 import { type CreateUserModalProps } from './types'
 
 /** "Nový používateľ" modal (Figma 28:191) with the global role (Administrátor, Správca, Editor, Návštevník). Members of projects are added from these users. */
-const CreateUserModal = ({ opened, onClose, defaultRole = ROLE.EDITOR, onCreated }: CreateUserModalProps) => {
+const CreateUserModal = ({ opened, onClose, defaultRole = ROLE.USER, onCreated }: CreateUserModalProps) => {
 	const { t } = useTranslation()
 	const createUser = useCreateUserMutation()
 	const { isPending } = createUser

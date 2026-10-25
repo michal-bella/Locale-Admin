@@ -1,7 +1,7 @@
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 
-import { ERROR_CODE, ROLE, VALIDATION_CODE, errorResponseSchema, projectListItemSchema, projectListResponseSchema } from '@locale/shared'
+import { ERROR_CODE, PROJECT_ROLE, ROLE, VALIDATION_CODE, errorResponseSchema, projectListItemSchema, projectListResponseSchema } from '@locale/shared'
 
 import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
@@ -16,13 +16,13 @@ const expectErrorCode = (res: request.Response, status: number, code: ERROR_CODE
 	expect(errorResponseSchema.parse(res.body).error.code).toBe(code)
 }
 
-const login = async (app: App, role: ROLE = ROLE.EDITOR) => {
+const login = async (app: App, role: ROLE = ROLE.USER) => {
 	const { user } = await createUser({ role })
 	return { user, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
 }
 
-const createProjectRow = (name: string, slug: string, memberIds: string[] = []) =>
-	getTestPrisma().project.create({ data: { name, slug, members: { create: memberIds.map((userId) => ({ userId })) } } })
+const createProjectRow = (name: string, slug: string, memberIds: string[] = [], role?: PROJECT_ROLE) =>
+	getTestPrisma().project.create({ data: { name, slug, members: { create: memberIds.map((userId) => ({ userId, role })) } } })
 
 const postProject = (app: App, cookie: string, body: unknown) =>
 	request(app)
@@ -53,6 +53,7 @@ describe('GET /api/projects', () => {
 				slug: 'b2b-admin',
 				primaryColor: '#E83E8C',
 				isMember: true,
+				myRole: PROJECT_ROLE.EDITOR,
 				languageTags: [],
 				keyCount: 0,
 				translatedCount: 0,
@@ -65,6 +66,7 @@ describe('GET /api/projects', () => {
 				slug: 'booking-web',
 				primaryColor: '#E83E8C',
 				isMember: true,
+				myRole: PROJECT_ROLE.EDITOR,
 				languageTags: [],
 				keyCount: 0,
 				translatedCount: 0,
@@ -133,7 +135,7 @@ describe('GET /api/projects', () => {
 		])
 	})
 
-	it('returns every project to an ADMIN with isMember per project', async () => {
+	it('returns every project to an ADMIN with isMember per project and the ADMIN role in each', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await login(app, ROLE.ADMIN)
 		const own = await createProjectRow('A', 'a', [user.id])
@@ -141,9 +143,23 @@ describe('GET /api/projects', () => {
 
 		const res = await request(app).get('/api/projects').set('Cookie', cookie)
 
-		expect(projectListResponseSchema.parse(res.body).projects.map(({ id, isMember }) => ({ id, isMember }))).toEqual([
-			{ id: own.id, isMember: true },
-			{ id: foreign.id, isMember: false },
+		expect(projectListResponseSchema.parse(res.body).projects.map(({ id, isMember, myRole }) => ({ id, isMember, myRole }))).toEqual([
+			{ id: own.id, isMember: true, myRole: ROLE.ADMIN },
+			{ id: foreign.id, isMember: false, myRole: ROLE.ADMIN },
+		])
+	})
+
+	it('returns the role of the membership in each project as myRole', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app)
+		const managed = await createProjectRow('A', 'a', [user.id], PROJECT_ROLE.MANAGER)
+		const visited = await createProjectRow('B', 'b', [user.id], PROJECT_ROLE.VISITOR)
+
+		const res = await request(app).get('/api/projects').set('Cookie', cookie)
+
+		expect(projectListResponseSchema.parse(res.body).projects.map(({ id, myRole }) => ({ id, myRole }))).toEqual([
+			{ id: managed.id, myRole: PROJECT_ROLE.MANAGER },
+			{ id: visited.id, myRole: PROJECT_ROLE.VISITOR },
 		])
 	})
 
@@ -168,6 +184,7 @@ describe('POST /api/projects', () => {
 			slug: 'booking-web',
 			primaryColor: '#E83E8C',
 			isMember: false,
+			myRole: ROLE.ADMIN,
 			languageTags: ['en', 'sk'],
 			keyCount: 0,
 			translatedCount: 0,
@@ -210,14 +227,15 @@ describe('POST /api/projects', () => {
 		expect(await getTestPrisma().projectLanguage.count()).toBe(0)
 	})
 
-	it.each([ROLE.MANAGER, ROLE.EDITOR])('returns 403 FORBIDDEN for a %s and creates nothing', async (role) => {
+	it.each([PROJECT_ROLE.MANAGER, PROJECT_ROLE.EDITOR])('returns 403 FORBIDDEN for a %s of another project and creates nothing', async (role) => {
 		const app = createTestApp()
-		const { cookie } = await login(app, role)
+		const { user, cookie } = await login(app)
+		await createProjectRow('Other', 'other', [user.id], role)
 
 		const res = await postProject(app, cookie, { name: 'Booking Web', slug: 'booking-web', languageTags: ['sk'] })
 
 		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
-		expect(await getTestPrisma().project.count()).toBe(0)
+		expect(await getTestPrisma().project.count()).toBe(1)
 	})
 
 	it('returns 401 AUTH_UNAUTHENTICATED without a session', async () => {
@@ -256,10 +274,10 @@ describe('DELETE /api/projects/:projectId/membership', () => {
 		expect(await getTestPrisma().projectMember.findMany({ where: { projectId: project.id }, select: { userId: true } })).toEqual([{ userId: other.id }])
 	})
 
-	it.each([ROLE.EDITOR, ROLE.MANAGER])('lets the last member leave as %s', async (role) => {
+	it.each([PROJECT_ROLE.EDITOR, PROJECT_ROLE.MANAGER])('lets the last member leave as %s', async (role) => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app, role)
-		const project = await createProjectRow('A', 'a', [user.id])
+		const { user, cookie } = await login(app)
+		const project = await createProjectRow('A', 'a', [user.id], role)
 
 		const res = await leave(app, cookie, project.id)
 
@@ -303,9 +321,9 @@ describe('DELETE /api/projects/:projectId/membership', () => {
 
 	it('returns 403 FORBIDDEN to a VISITOR member and keeps the membership', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app, ROLE.VISITOR)
+		const { user, cookie } = await login(app)
 		const { user: other } = await createUser()
-		const project = await createProjectRow('A', 'a', [user.id, other.id])
+		const project = await createProjectRow('A', 'a', [user.id, other.id], PROJECT_ROLE.VISITOR)
 
 		const res = await leave(app, cookie, project.id)
 

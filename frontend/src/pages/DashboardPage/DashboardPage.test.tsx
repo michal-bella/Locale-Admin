@@ -12,7 +12,7 @@ import {
 	type LanguageListItem,
 	type ProjectMember,
 	type ProjectSettings,
-	ROLE,
+	PROJECT_ROLE,
 	SUPPORTED_LANGUAGES,
 	TRANSLATIONS_SEARCH_MAX_LENGTH,
 } from '@locale/shared'
@@ -65,7 +65,7 @@ const toLanguage = (tag: LanguageListItem['tag'], index: number, translatedCount
 
 const LANGUAGES = [toLanguage('sk', 1, 248, true), toLanguage('en', 2, 221), toLanguage('cs', 3, 178)]
 
-const member = (index: number, role: ROLE, firstName: string | null, lastName: string | null): ProjectMember => ({
+const member = (index: number, role: PROJECT_ROLE, firstName: string | null, lastName: string | null): ProjectMember => ({
 	id: `00000000-0000-4000-8000-0000000002${String(index).padStart(2, '0')}`,
 	email: `member${index}@firma.sk`,
 	firstName,
@@ -75,7 +75,11 @@ const member = (index: number, role: ROLE, firstName: string | null, lastName: s
 	createdAt: '2026-10-01T10:00:00.000Z',
 })
 
-const MEMBERS = [member(1, ROLE.MANAGER, 'Martin', 'Kováč'), member(2, ROLE.MANAGER, 'Lucia', 'Tichá'), member(3, ROLE.EDITOR, null, null)]
+const MEMBERS = [
+	member(1, PROJECT_ROLE.MANAGER, 'Martin', 'Kováč'),
+	member(2, PROJECT_ROLE.MANAGER, 'Lucia', 'Tichá'),
+	member(3, PROJECT_ROLE.EDITOR, null, null),
+]
 
 const MARTIN = { id: MEMBERS[0]?.id ?? '', name: 'Martin Kováč' }
 const LUCIA = { id: MEMBERS[1]?.id ?? '', name: 'Lucia Tichá' }
@@ -154,7 +158,10 @@ describe('DashboardPage', () => {
 	})
 
 	it('shows the managers of the project under the title, by name or email', async () => {
-		signedInAs(EDITOR_USER, routes({ [`GET ${API}/members`]: { status: 200, data: { members: [...MEMBERS, member(4, ROLE.MANAGER, null, null)] } } }))
+		signedInAs(
+			EDITOR_USER,
+			routes({ [`GET ${API}/members`]: { status: 200, data: { members: [...MEMBERS, member(4, PROJECT_ROLE.MANAGER, null, null)] } } }),
+		)
 		renderApp(PAGE_PATH)
 
 		const managers = within(await screen.findByRole('list', { name: 'Správcovia projektu' }))

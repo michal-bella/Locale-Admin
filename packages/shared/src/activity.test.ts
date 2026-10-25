@@ -26,6 +26,7 @@ describe('activityEventDataSchema', () => {
 			{ type: ACTIVITY_TYPE.BASE_LANGUAGE_CHANGED, payload: { fromTag: null, toTag: 'sk' } },
 			{ type: ACTIVITY_TYPE.MEMBER_ADDED, payload: { member: MEMBER } },
 			{ type: ACTIVITY_TYPE.MEMBER_REMOVED, payload: { member: MEMBER, left: true } },
+			{ type: ACTIVITY_TYPE.MEMBER_ROLE_CHANGED, payload: { member: MEMBER, fromRole: 'EDITOR', toRole: 'MANAGER' } },
 			{ type: ACTIVITY_TYPE.KEYS_IMPORTED, payload: { keysCreated: 2, translationsCreated: 3, translationsUpdated: 0, languageTags: ['sk', 'en'] } },
 			{ type: ACTIVITY_TYPE.KEY_CREATED, payload: { keyId: KEY_ID, namespace: 'loc', name: 'Uložiť', languageTags: ['sk'] } },
 			{ type: ACTIVITY_TYPE.KEY_UPDATED, payload: { keyId: KEY_ID, namespace: 'loc', name: 'Uložiť', fields: ['description'] } },

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
 	ERROR_CODE,
+	PROJECT_ROLE,
 	ROLE,
 	VALIDATION_CODE,
 	adminUserDetailSchema,
@@ -56,7 +57,7 @@ describe('GET /api/admin/users', () => {
 		const { users } = adminUserListResponseSchema.parse(res.body)
 		expect(users.map(({ id }) => id)).toEqual([editor.id, newer.id, admin.id])
 		expect(users.map(({ role, projectCount }) => ({ role, projectCount }))).toEqual([
-			{ role: ROLE.EDITOR, projectCount: 2 },
+			{ role: ROLE.USER, projectCount: 2 },
 			{ role: ROLE.ADMIN, projectCount: 1 },
 			{ role: ROLE.ADMIN, projectCount: 0 },
 		])
@@ -71,9 +72,9 @@ describe('GET /api/admin/users', () => {
 		expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
 	})
 
-	it.each([ROLE.MANAGER, ROLE.EDITOR])('returns 403 FORBIDDEN for a %s', async (role) => {
+	it('returns 403 FORBIDDEN for a USER', async () => {
 		const app = createTestApp()
-		const cookie = await loginWithRole(app, role)
+		const cookie = await loginWithRole(app, ROLE.USER)
 
 		const res = await request(app).get('/api/admin/users').set('Cookie', cookie)
 
@@ -102,12 +103,12 @@ describe('GET /api/admin/users/:id', () => {
 		expect(res.body).toEqual({
 			id: editor.id,
 			email: editor.email,
-			role: ROLE.EDITOR,
+			role: ROLE.USER,
 			projectCount: 2,
 			createdAt: '2026-04-01T00:00:00.000Z',
 			projects: [
-				{ id: alpha.id, name: 'Alpha', slug: 'alpha', primaryColor: '#E83E8C', joinedAt: '2026-06-01T00:00:00.000Z' },
-				{ id: zeta.id, name: 'Zeta', slug: 'zeta', primaryColor: '#123456', joinedAt: '2026-05-01T00:00:00.000Z' },
+				{ id: alpha.id, name: 'Alpha', slug: 'alpha', primaryColor: '#E83E8C', role: PROJECT_ROLE.EDITOR, joinedAt: '2026-06-01T00:00:00.000Z' },
+				{ id: zeta.id, name: 'Zeta', slug: 'zeta', primaryColor: '#123456', role: PROJECT_ROLE.EDITOR, joinedAt: '2026-05-01T00:00:00.000Z' },
 			],
 		})
 		expect(adminUserDetailSchema.extend({ projects: adminUserProjectSchema.strict().array() }).strict().safeParse(res.body).success).toBe(true)
@@ -179,23 +180,23 @@ describe('POST /api/admin/users', () => {
 	it('creates a user who can log in', async () => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
-		await postUser(app, cookie, { email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR }).expect(201)
+		await postUser(app, cookie, { email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.USER }).expect(201)
 
 		const res = await request(app).post('/api/auth/login').set(CSRF_HEADERS).send({ email: 'NOVA.osoba@firma.sk', password: NEW_PASSWORD })
 
 		expect(res.status).toBe(200)
-		expect(res.body).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.EDITOR })
+		expect(res.body).toMatchObject({ email: 'nova.osoba@firma.sk', role: ROLE.USER })
 	})
 
 	it.each([
 		{
 			name: 'invalid email',
-			body: { email: 'not-an-email', password: NEW_PASSWORD, role: ROLE.EDITOR },
+			body: { email: 'not-an-email', password: NEW_PASSWORD, role: ROLE.USER },
 			details: [{ path: 'email', code: VALIDATION_CODE.INVALID_EMAIL }],
 		},
 		{
 			name: 'short password',
-			body: { email: 'nova.osoba@firma.sk', password: 'short', role: ROLE.EDITOR },
+			body: { email: 'nova.osoba@firma.sk', password: 'short', role: ROLE.USER },
 			details: [{ path: 'password', code: VALIDATION_CODE.TOO_SHORT, params: { min: 8 } }],
 		},
 		{
@@ -228,7 +229,7 @@ describe('POST /api/admin/users', () => {
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
 		await createUser({ email: 'existujuci@firma.sk' })
 
-		const res = await postUser(app, cookie, { email: 'Existujuci@FIRMA.sk', password: NEW_PASSWORD, role: ROLE.EDITOR })
+		const res = await postUser(app, cookie, { email: 'Existujuci@FIRMA.sk', password: NEW_PASSWORD, role: ROLE.USER })
 
 		expectErrorCode(res, 409, ERROR_CODE.EMAIL_TAKEN)
 		expect(await getTestPrisma().user.count({ where: { email: 'existujuci@firma.sk' } })).toBe(1)
@@ -239,8 +240,8 @@ describe('POST /api/admin/users', () => {
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
 
 		const responses = await Promise.all([
-			postUser(app, cookie, { email: 'subeh@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR }),
-			postUser(app, cookie, { email: 'subeh@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR }),
+			postUser(app, cookie, { email: 'subeh@firma.sk', password: NEW_PASSWORD, role: ROLE.USER }),
+			postUser(app, cookie, { email: 'subeh@firma.sk', password: NEW_PASSWORD, role: ROLE.USER }),
 		])
 
 		expect(responses.map(({ status }) => status).sort()).toEqual([201, 409])
@@ -251,7 +252,7 @@ describe('POST /api/admin/users', () => {
 		const res = await request(createTestApp())
 			.post('/api/admin/users')
 			.set(CSRF_HEADERS)
-			.send({ email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR })
+			.send({ email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.USER })
 
 		expectErrorCode(res, 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
 		expect(await getTestPrisma().user.count()).toBe(0)
@@ -259,9 +260,9 @@ describe('POST /api/admin/users', () => {
 
 	it('returns 403 FORBIDDEN for an EDITOR', async () => {
 		const app = createTestApp()
-		const cookie = await loginWithRole(app, ROLE.EDITOR)
+		const cookie = await loginWithRole(app, ROLE.USER)
 
-		const res = await postUser(app, cookie, { email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR })
+		const res = await postUser(app, cookie, { email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.USER })
 
 		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
 		expect(await getTestPrisma().user.count()).toBe(1)
@@ -274,7 +275,7 @@ describe('POST /api/admin/users', () => {
 		const res = await request(app)
 			.post('/api/admin/users')
 			.set('Cookie', cookie)
-			.send({ email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.EDITOR })
+			.send({ email: 'nova.osoba@firma.sk', password: NEW_PASSWORD, role: ROLE.USER })
 
 		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
 		expect(await getTestPrisma().user.count()).toBe(1)
@@ -289,19 +290,22 @@ describe('PATCH /api/admin/users/:id', () => {
 			.set(CSRF_HEADERS)
 			.send(body as object)
 
-	it('changes the role of another user and returns the detail', async () => {
+	it('returns the role of each membership in the detail', async () => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
-		const { user: editor } = await createUser()
-		await getTestPrisma().project.create({ data: { name: 'A', slug: 'a', members: { create: { userId: editor.id } } } })
+		const { user } = await createUser()
+		await getTestPrisma().project.create({ data: { name: 'A', slug: 'a', members: { create: { userId: user.id, role: PROJECT_ROLE.MANAGER } } } })
+		await getTestPrisma().project.create({ data: { name: 'B', slug: 'b', members: { create: { userId: user.id, role: PROJECT_ROLE.VISITOR } } } })
 
-		const res = await patchUser(app, cookie, editor.id, { role: ROLE.MANAGER })
+		const res = await request(app).get(`/api/admin/users/${user.id}`).set('Cookie', cookie)
 
 		expect(res.status).toBe(200)
 		const detail = adminUserDetailSchema.parse(res.body)
-		expect(detail).toMatchObject({ id: editor.id, role: ROLE.MANAGER, projectCount: 1 })
-		expect(detail.projects.map((project) => project.slug)).toEqual(['a'])
-		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: editor.id } })).role).toBe(ROLE.MANAGER)
+		expect(detail).toMatchObject({ id: user.id, role: ROLE.USER, projectCount: 2 })
+		expect(detail.projects.map(({ slug, role }) => ({ slug, role }))).toEqual([
+			{ slug: 'a', role: PROJECT_ROLE.MANAGER },
+			{ slug: 'b', role: PROJECT_ROLE.VISITOR },
+		])
 	})
 
 	it('drops the project memberships of a user who becomes an ADMIN', async () => {
@@ -323,18 +327,18 @@ describe('PATCH /api/admin/users/:id', () => {
 		const cookie = await loginAs(app, { email: me.email, password: TEST_PASSWORD })
 		const { user: other } = await createUser({ role: ROLE.ADMIN })
 
-		expect((await patchUser(app, cookie, other.id, { role: ROLE.EDITOR })).body).toMatchObject({ role: ROLE.EDITOR })
+		expect((await patchUser(app, cookie, other.id, { role: ROLE.USER })).body).toMatchObject({ role: ROLE.USER })
 		await patchUser(app, cookie, other.id, { role: ROLE.ADMIN }).expect(200)
-		expect((await patchUser(app, cookie, me.id, { role: ROLE.EDITOR })).body).toMatchObject({ role: ROLE.EDITOR })
-		expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).body).toMatchObject({ role: ROLE.EDITOR })
+		expect((await patchUser(app, cookie, me.id, { role: ROLE.USER })).body).toMatchObject({ role: ROLE.USER })
+		expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).body).toMatchObject({ role: ROLE.USER })
 	})
 
-	it.each([ROLE.EDITOR, ROLE.VISITOR])('returns 409 LAST_ADMIN when the only admin would become a %s and keeps the role', async (role) => {
+	it('returns 409 LAST_ADMIN when the only admin would become a USER and keeps the role', async () => {
 		const app = createTestApp()
 		const { user: admin } = await createUser({ role: ROLE.ADMIN })
 		const cookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
 
-		const res = await patchUser(app, cookie, admin.id, { role })
+		const res = await patchUser(app, cookie, admin.id, { role: ROLE.USER })
 
 		expectErrorCode(res, 409, ERROR_CODE.LAST_ADMIN)
 		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: admin.id } })).role).toBe(ROLE.ADMIN)
@@ -361,7 +365,7 @@ describe('PATCH /api/admin/users/:id', () => {
 		const res = await patchUser(app, cookie, editor.id, { email: '  New.Mail@Example.com ' })
 
 		expect(res.status).toBe(200)
-		expect(adminUserDetailSchema.parse(res.body)).toMatchObject({ id: editor.id, email: 'new.mail@example.com', role: ROLE.EDITOR })
+		expect(adminUserDetailSchema.parse(res.body)).toMatchObject({ id: editor.id, email: 'new.mail@example.com', role: ROLE.USER })
 		const login = (email: string) => request(app).post('/api/auth/login').set(CSRF_HEADERS).send({ email, password: TEST_PASSWORD })
 		expect((await login('new.mail@example.com')).status).toBe(200)
 		expect((await login(editor.email)).status).toBe(401)
@@ -389,7 +393,7 @@ describe('PATCH /api/admin/users/:id', () => {
 		expect(errorResponseSchema.parse(invalid.body).error.details).toEqual([{ path: 'email', code: VALIDATION_CODE.INVALID_EMAIL }])
 		expect(await getTestPrisma().user.findUniqueOrThrow({ where: { id: editor.id }, select: { email: true, role: true } })).toEqual({
 			email: editor.email,
-			role: ROLE.EDITOR,
+			role: ROLE.USER,
 		})
 	})
 
@@ -403,7 +407,7 @@ describe('PATCH /api/admin/users/:id', () => {
 
 	it('returns 403 FORBIDDEN for an EDITOR and 403 CSRF_REJECTED without X-Requested-With', async () => {
 		const app = createTestApp()
-		const editorCookie = await loginWithRole(app, ROLE.EDITOR)
+		const editorCookie = await loginWithRole(app, ROLE.USER)
 		const { user: target } = await createUser()
 
 		expectErrorCode(await patchUser(app, editorCookie, target.id, { role: ROLE.ADMIN }), 403, ERROR_CODE.FORBIDDEN)
@@ -411,7 +415,7 @@ describe('PATCH /api/admin/users/:id', () => {
 		const adminCookie = await loginWithRole(app, ROLE.ADMIN)
 		const res = await request(app).patch(`/api/admin/users/${target.id}`).set('Cookie', adminCookie).send({ role: ROLE.ADMIN })
 		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
-		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: target.id } })).role).toBe(ROLE.EDITOR)
+		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: target.id } })).role).toBe(ROLE.USER)
 	})
 })
 
@@ -475,7 +479,7 @@ describe('DELETE /api/admin/users/:id', () => {
 
 	it('returns 403 FORBIDDEN for an EDITOR', async () => {
 		const app = createTestApp()
-		const cookie = await loginWithRole(app, ROLE.EDITOR)
+		const cookie = await loginWithRole(app, ROLE.USER)
 		const { user: admin } = await createUser({ role: ROLE.ADMIN })
 
 		const res = await deleteUser(app, cookie, admin.id)

@@ -3,6 +3,7 @@ import {
 	ERROR_CODE,
 	ROLE,
 	type AuthUser,
+	type ProjectAccessRole,
 	type CreateProjectRequest,
 	type LanguageTag,
 	type ProjectListItem,
@@ -11,6 +12,7 @@ import {
 
 import { Prisma } from '../generated/prisma/client'
 import { recordActivity } from '../lib/activity'
+import { PROJECT_ROLE_FROM_PRISMA } from '../lib/authUser'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 import { toDbDate, todayVersionDate } from '../lib/projectVersions'
@@ -30,9 +32,14 @@ type ProjectListRow = Prisma.ProjectGetPayload<{ select: typeof PROJECT_LIST_SEL
 type VersionCounts = { keyCount: number; translatedCount: number }
 
 // `tag` is always a catalog value (written only from the validated API and the seed).
-const toListItem = ({ languages, _count, createdAt, ...project }: ProjectListRow, isMember: boolean, counts: VersionCounts): ProjectListItem => ({
+const toListItem = (
+	{ languages, _count, createdAt, ...project }: ProjectListRow,
+	{ isMember, myRole }: Pick<ProjectListItem, 'isMember' | 'myRole'>,
+	counts: VersionCounts,
+): ProjectListItem => ({
 	...project,
 	isMember,
+	myRole,
 	languageTags: languages.map((language) => language.tag as LanguageTag),
 	...counts,
 	memberCount: _count.members,
@@ -66,11 +73,13 @@ export const isPrismaError = (err: unknown, code: string): boolean => err instan
 
 export const slugTaken = () => new AppError(409, ERROR_CODE.SLUG_TAKEN, 'Project slug is already taken')
 
-export const hasProjectAccess = async (prisma: PrismaClient, projectId: string, user: AuthUser): Promise<boolean> => {
+/** What the user may do in the project: `ADMIN` for an admin, the membership role for a member, `null` without access (or no such project). */
+export const getProjectRole = async (prisma: PrismaClient, projectId: string, user: AuthUser): Promise<ProjectAccessRole | null> => {
 	if (user.role === ROLE.ADMIN) {
-		return (await prisma.project.count({ where: { id: projectId } })) > 0
+		return (await prisma.project.count({ where: { id: projectId } })) > 0 ? ROLE.ADMIN : null
 	}
-	return (await prisma.projectMember.count({ where: { projectId, userId: user.id } })) > 0
+	const membership = await prisma.projectMember.findUnique({ where: { projectId_userId: { projectId, userId: user.id } }, select: { role: true } })
+	return membership ? PROJECT_ROLE_FROM_PRISMA[membership.role] : null
 }
 
 const visibleProjects = (user: AuthUser) => (user.role === ROLE.ADMIN ? {} : { members: { some: { userId: user.id } } })
@@ -80,7 +89,7 @@ export const listProjects = async (prisma: PrismaClient, user: AuthUser): Promis
 	const [projects, orders] = await Promise.all([
 		prisma.project.findMany({
 			where: visibleProjects(user),
-			select: { ...PROJECT_LIST_SELECT, members: { where: { userId: user.id }, select: { userId: true } } },
+			select: { ...PROJECT_LIST_SELECT, members: { where: { userId: user.id }, select: { role: true } } },
 			orderBy: [{ name: 'asc' }, { id: 'asc' }],
 		}),
 		prisma.projectOrder.findMany({ where: { userId: user.id }, select: { projectId: true, position: true } }),
@@ -93,7 +102,14 @@ export const listProjects = async (prisma: PrismaClient, user: AuthUser): Promis
 	const position = (projectId: string) => positions.get(projectId) ?? Number.MAX_SAFE_INTEGER
 	// Stable sort, so projects with the same (missing) position keep the name order of the query.
 	return projects
-		.map(({ members, ...project }) => toListItem(project, members.length > 0, counts.get(project.id) ?? { keyCount: 0, translatedCount: 0 }))
+		.map(({ members: [membership], ...project }) =>
+			toListItem(
+				project,
+				// Only an ADMIN sees a project without a membership (`visibleProjects`).
+				{ isMember: membership !== undefined, myRole: membership && user.role !== ROLE.ADMIN ? PROJECT_ROLE_FROM_PRISMA[membership.role] : ROLE.ADMIN },
+				counts.get(project.id) ?? { keyCount: 0, translatedCount: 0 },
+			),
+		)
 		.sort((a, b) => position(a.id) - position(b.id))
 }
 
@@ -123,7 +139,7 @@ export const createProject = async (prisma: PrismaClient, userId: string, { name
 			await recordActivity(tx, { projectId: created.id, userId, type: ACTIVITY_TYPE.PROJECT_CREATED, payload: { name } })
 			return created
 		})
-		return toListItem(project, false, { keyCount: 0, translatedCount: 0 })
+		return toListItem(project, { isMember: false, myRole: ROLE.ADMIN }, { keyCount: 0, translatedCount: 0 })
 	} catch (err) {
 		if (isPrismaError(err, 'P2002')) {
 			throw slugTaken()

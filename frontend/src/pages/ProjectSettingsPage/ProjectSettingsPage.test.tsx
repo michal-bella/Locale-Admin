@@ -46,10 +46,7 @@ const LANGUAGES_URL = `/projects/${SETTINGS.id}/languages`
 const loaded = (settings: ProjectSettings = SETTINGS, languages: Language[] = [SLOVAK, ENGLISH], isMember = true) => ({
 	[`GET ${SETTINGS_URL}`]: { status: 200, data: settings },
 	[`GET ${LANGUAGES_URL}`]: { status: 200, data: languages },
-	'GET /projects': {
-		status: 200,
-		data: { projects: [{ id: settings.id, name: settings.name, slug: settings.slug, primaryColor: settings.primaryColor, isMember }] },
-	},
+	'GET /projects': () => projectListResponse({ id: settings.id, name: settings.name, slug: settings.slug, primaryColor: settings.primaryColor, isMember }),
 })
 
 const getSaveButton = () => screen.getByRole('button', { name: 'Uložiť zmeny' })

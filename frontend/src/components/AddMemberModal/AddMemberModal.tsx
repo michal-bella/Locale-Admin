@@ -4,7 +4,7 @@ import { notifications } from '@mantine/notifications'
 import { type SubmitEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ERROR_CODE, ROLE } from '@locale/shared'
+import { ERROR_CODE, PROJECT_ROLE, ROLE } from '@locale/shared'
 
 import { useAdminUsersQuery } from '@/api/adminUsers/adminUsersQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -56,7 +56,7 @@ const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => 
 			return
 		}
 		addMember.mutate(
-			{ userId },
+			{ userId, role: PROJECT_ROLE.EDITOR },
 			{
 				onSuccess: (member) => {
 					notifications.show({ color: 'green', message: t('membersPage.addModal.success', { email: member.email }) })
@@ -154,7 +154,7 @@ const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => 
 			<CreateUserModal
 				opened={createOpened}
 				onClose={createModal.close}
-				defaultRole={ROLE.EDITOR}
+				defaultRole={ROLE.USER}
 				onCreated={(user) => {
 					if (user.role !== ROLE.ADMIN) {
 						setUserId(user.id)

@@ -1,6 +1,8 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vite-plus/test'
 
+import { PROJECT_ROLE } from '@locale/shared'
+
 import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { installUnauthorizedInterceptor } from '@/api/unauthorizedInterceptor'
@@ -92,6 +94,21 @@ describe('route guards', () => {
 			renderApp(`/projects/${project.slug}/translations`)
 
 			expect(await screen.findByRole('heading', { level: 1, name: 'Preklady' })).toBeInTheDocument()
+		})
+
+		it('blocks only the project the user visits: the settings of a project they edit open', async () => {
+			const edited = { id: '00000000-0000-4000-8000-000000000603', name: 'B2C iOS', slug: 'b2c-ios', primaryColor: '#E83E8C' }
+			signedInAs(EDITOR_USER, {
+				...routes,
+				...projectListRoute({ ...project, myRole: PROJECT_ROLE.VISITOR }, { ...edited, myRole: PROJECT_ROLE.EDITOR }),
+				[`GET /projects/${edited.id}/settings`]: { status: 200, data: { ...edited, protectVariables: true, baseLanguageId: null } },
+				[`GET /projects/${edited.id}/languages`]: { status: 200, data: [] },
+			})
+			const router = renderApp(`/projects/${project.slug}/settings`)
+
+			expect(await screen.findByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeInTheDocument()
+			await router.navigate({ to: '/projects/$projectSlug/settings', params: { projectSlug: edited.slug } })
+			expect(await screen.findByRole('heading', { level: 1, name: 'Nastavenia projektu' })).toBeInTheDocument()
 		})
 
 		it('shows the 403 page on /admin/users', async () => {

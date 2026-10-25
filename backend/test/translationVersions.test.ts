@@ -11,6 +11,7 @@ import {
 	dashboardResponseSchema,
 	importPreviewResponseSchema,
 	versionDiffSummarySchema,
+	PROJECT_ROLE,
 	ROLE,
 	VERSION_LOCK,
 	createTranslationKeyResponseSchema,
@@ -45,9 +46,9 @@ const setup = async (app: App, role: ROLE = ROLE.ADMIN) => {
 }
 
 /** A second member of the project with the given role. */
-const addMember = async (app: App, projectId: string, role: ROLE) => {
-	const { user } = await createUser({ role })
-	await getTestPrisma().projectMember.create({ data: { projectId, userId: user.id } })
+const addMember = async (app: App, projectId: string, role: PROJECT_ROLE) => {
+	const { user } = await createUser({ role: ROLE.USER })
+	await getTestPrisma().projectMember.create({ data: { projectId, userId: user.id, role } })
 	return loginAs(app, { email: user.email, password: TEST_PASSWORD })
 }
 
@@ -118,8 +119,8 @@ describe('a cell edit stays in the version of its key', () => {
 	it('lets an ADMIN and a MANAGER edit in any version and an EDITOR only in a running, unlocked one', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie: adminCookie } = await setup(app)
-		const editorCookie = await addMember(app, project.id, ROLE.EDITOR)
-		const managerCookie = await addMember(app, project.id, ROLE.MANAGER)
+		const editorCookie = await addMember(app, project.id, PROJECT_ROLE.EDITOR)
+		const managerCookie = await addMember(app, project.id, PROJECT_ROLE.MANAGER)
 		const expired = await createVersionRow(project.id, { name: 'v1', ...PAST })
 		const running = await createVersionRow(project.id, { name: 'v2', ...RUNNING })
 		const upcoming = await createVersionRow(project.id, { name: 'v3', ...UPCOMING })
@@ -151,7 +152,7 @@ describe('a key added by hand goes into the requested version', () => {
 	it('requires the version, checks the namespace within it and refuses a locked one to an EDITOR', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie } = await setup(app)
-		const editorCookie = await addMember(app, project.id, ROLE.EDITOR)
+		const editorCookie = await addMember(app, project.id, PROJECT_ROLE.EDITOR)
 		const running = await createVersionRow(project.id, { name: 'v2', ...RUNNING })
 		const expired = await createVersionRow(project.id, { name: 'v1', ...PAST })
 		await createKey(project.id, running.id, 'Existujúci', { [sk.id]: 'Existujúci' })
@@ -258,7 +259,7 @@ describe('an import fills one version', () => {
 		// Imports are ADMIN only today, so the lock is checked on the service with an EDITOR role directly.
 		const { importFile, parseImportFile } = await import('../src/services/imports.service')
 		const prisma = getTestPrisma()
-		const { user } = await createUser({ role: ROLE.EDITOR })
+		const { user } = await createUser({ role: ROLE.USER })
 		const project = await prisma.project.create({ data: { name: 'A', slug: `a-${randomUUID().slice(0, 8)}` } })
 		const sk = await prisma.projectLanguage.create({ data: { projectId: project.id, tag: 'sk', isBase: true } })
 		const locked = await createVersionRow(project.id, { name: 'v1', ...PAST })
@@ -271,7 +272,7 @@ describe('an import fills one version', () => {
 			versionId: locked.id,
 		}
 
-		await expect(importFile(prisma, { projectId: project.id, userId: user.id, role: ROLE.EDITOR }, file, body)).rejects.toMatchObject({
+		await expect(importFile(prisma, { projectId: project.id, userId: user.id, role: PROJECT_ROLE.EDITOR }, file, body)).rejects.toMatchObject({
 			code: ERROR_CODE.PROJECT_VERSION_LOCKED,
 		})
 		expect(await prisma.translationKey.count({ where: { projectId: project.id } })).toBe(0)
@@ -552,7 +553,7 @@ describe('deleting a version', () => {
 	it('removes the version with its keys and cells, records VERSION_DELETED and refuses the current version and an EDITOR', async () => {
 		const app = createTestApp()
 		const { project, sk, cookie } = await setup(app)
-		const editorCookie = await addMember(app, project.id, ROLE.EDITOR)
+		const editorCookie = await addMember(app, project.id, PROJECT_ROLE.EDITOR)
 		const old = await createVersionRow(project.id, { name: 'v1', ...PAST })
 		const current = await createVersionRow(project.id, { name: 'v2', ...RUNNING })
 		const key = await createKey(project.id, old.id, 'A', { [sk.id]: 'A' })

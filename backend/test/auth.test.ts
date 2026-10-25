@@ -197,7 +197,7 @@ describe('GET /api/auth/me', () => {
 
 	it('returns the AuthUser with a valid cookie', async () => {
 		const app = createTestApp()
-		const { user } = await createUser({ role: ROLE.EDITOR })
+		const { user } = await createUser({ role: ROLE.USER })
 		const cookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
 
 		const res = await request(app).get('/api/auth/me').set('Cookie', cookie)
@@ -206,7 +206,7 @@ describe('GET /api/auth/me', () => {
 		expect(res.body).toEqual({
 			id: user.id,
 			email: user.email,
-			role: ROLE.EDITOR,
+			role: ROLE.USER,
 			firstName: null,
 			lastName: null,
 			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },

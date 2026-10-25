@@ -550,10 +550,10 @@
 			"baseLanguage": "1 zdrojový",
 			"showLanguages": "Zobraziť jazyky",
 			"members": "Členovia",
-			"admins_one": "{{count}} administrátor",
-			"admins_few": "{{count}} administrátori",
-			"admins_many": "{{count}} administrátorov",
-			"admins_other": "{{count}} administrátorov",
+			"managers_one": "{{count}} správca",
+			"managers_few": "{{count}} správcovia",
+			"managers_many": "{{count}} správcov",
+			"managers_other": "{{count}} správcov",
 			"showMembers": "Zobraziť členov",
 			"loadError": "Štatistiky projektu sa nepodarilo načítať.",
 			"retry": "Skúsiť znova"
@@ -578,7 +578,7 @@
 		"activity": {
 			"title": "Posledná aktivita",
 			"description": "Zmeny v projekte od najnovšej",
-			"showHistory": "Zobraziť históriu",
+			"showHistory": "Zobraziť celú históriu",
 			"today": "Dnes",
 			"yesterday": "Včera",
 			"empty": "Zatiaľ žiadna aktivita. Zmeny v projekte sa zobrazia tu.",
@@ -667,6 +667,12 @@
 			"noContributors": "V tomto období nikto nič nezmenil.",
 			"loadError": "Dennú aktivitu sa nepodarilo načítať.",
 			"retry": "Skúsiť znova"
+		},
+		"managers": {
+			"label_one": "Správca projektu",
+			"label_few": "Správcovia projektu",
+			"label_many": "Správcovia projektu",
+			"label_other": "Správcovia projektu"
 		}
 	},
 	"historyPage": {

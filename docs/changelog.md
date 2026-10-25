@@ -14,6 +14,8 @@ notion_page_id:
 - `ADMIN` nie je členom žiadneho projektu a má prístup ku všetkým: migrácia `add_manager_role` zmazala jeho členstvá, nový projekt nemá členov, `POST …/members` s adminom vráti 409 `MEMBER_IS_ADMIN`, zmena roly na `ADMIN` zmaže členstvá; na stránke Členovia admin nie je
 - zrušené pravidlo `LAST_MEMBER`: projekt môže opustiť aj posledný člen
 - frontend: pole **Rola** v modáli Nový používateľ je select so 4 rolami; modál Pridať člena neponúka adminov; detail admina a tabuľka Používatelia ukazujú prístup ku všetkým projektom
+- frontend: **Prehľad** projektu ukazuje pod názvom správcov projektu ako odznaky (meno alebo e-mail), karta Členovia namiesto počtu administrátorov počet správcov
+- frontend: Stav jazykov a Posledná aktivita v Prehľade sú vedľa seba 50 : 50 (predtým 11 : 9), odkaz **Zobraziť celú históriu**
 
 ### Popis kľúča v Upraviť preklad (2026-10-25)
 

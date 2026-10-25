@@ -534,8 +534,10 @@
 			"baseLanguage": "1 source",
 			"showLanguages": "Show languages",
 			"members": "Members",
-			"admins_one": "{{count}} administrator",
-			"admins_other": "{{count}} administrators",
+			"managers_one": "{{count}} manager",
+			"managers_few": "{{count}} managers",
+			"managers_many": "{{count}} managers",
+			"managers_other": "{{count}} managers",
 			"showMembers": "Show members",
 			"loadError": "Project statistics could not be loaded.",
 			"retry": "Try again"
@@ -560,7 +562,7 @@
 		"activity": {
 			"title": "Recent activity",
 			"description": "Changes in the project, newest first",
-			"showHistory": "Show history",
+			"showHistory": "Show full history",
 			"today": "Today",
 			"yesterday": "Yesterday",
 			"empty": "No activity yet. Changes in the project will show up here.",
@@ -637,6 +639,12 @@
 			"noContributors": "Nobody changed anything in this period.",
 			"loadError": "Daily activity could not be loaded.",
 			"retry": "Try again"
+		},
+		"managers": {
+			"label_one": "Project manager",
+			"label_few": "Project managers",
+			"label_many": "Project managers",
+			"label_other": "Project managers"
 		}
 	},
 	"historyPage": {

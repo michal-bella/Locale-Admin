@@ -1,6 +1,6 @@
 ---
 title: 'API: preklady'
-updated: 2026-10-19
+updated: 2026-10-25
 notion_page_id:
 ---
 
@@ -8,12 +8,12 @@ notion_page_id:
 
 Zoznam kľúčov projektu s prekladmi vo všetkých jazykoch pre stránku Preklady (rozšírené zobrazenie so všetkými jazykmi alebo kompaktné zdrojový → cieľový jazyk), úprava jedného prekladu a úprava kľúča (názov, popis, plurál). Schémy sú v `packages/shared/src/translations.ts`, dátový model v [Databáza](../database.md#translationkey).
 
-| Metóda  | Cesta                                                           | Prístup                     | Popis                                             |
-| ------- | --------------------------------------------------------------- | --------------------------- | ------------------------------------------------- |
-| `GET`   | `/api/projects/:projectId/translations`                         | člen alebo `ADMIN`          | stránkovaný zoznam kľúčov, štatistika a namespace |
-| `PUT`   | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | `ADMIN` alebo člen `EDITOR` | uloženie prekladu kľúča v jednom jazyku           |
-| `POST`  | `/api/projects/:projectId/keys`                                 | iba `ADMIN`                 | ručné pridanie kľúča do existujúceho namespace    |
-| `PATCH` | `/api/projects/:projectId/keys/:keyId`                          | iba `ADMIN`                 | premenovanie kľúča, popis, plurálové formy        |
+| Metóda  | Cesta                                                           | Prístup                      | Popis                                             |
+| ------- | --------------------------------------------------------------- | ---------------------------- | ------------------------------------------------- |
+| `GET`   | `/api/projects/:projectId/translations`                         | člen alebo `ADMIN`           | stránkovaný zoznam kľúčov, štatistika a namespace |
+| `PUT`   | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | `ADMIN` alebo člen `EDITOR`  | uloženie prekladu kľúča v jednom jazyku           |
+| `POST`  | `/api/projects/:projectId/keys`                                 | iba `ADMIN`                  | ručné pridanie kľúča do existujúceho namespace    |
+| `PATCH` | `/api/projects/:projectId/keys/:keyId`                          | `ADMIN`, člen `EDITOR` popis | premenovanie kľúča, popis, plurálové formy        |
 
 Prístup rieši `requireProjectAccess` rovnako ako ostatné cesty projektu: bez session 401 `AUTH_UNAUTHENTICATED`, mimo prístupu 404 `NOT_FOUND` (viď [projekty](./projects.md#prístup-k-projektu)). `PUT`, `POST` a `PATCH` prechádzajú CSRF kontrolou (`Content-Type: application/json` a `X-Requested-With: XMLHttpRequest`).
 
@@ -262,7 +262,7 @@ curl -i -b cookies.txt -X POST \
 
 ## PATCH /api/projects/:projectId/keys/:keyId
 
-Upraví kľúč: názov, popis alebo plurálové formy. Iba globálny `ADMIN` (člen s rolou `EDITOR` dostane 403 `FORBIDDEN`; kto nemá k projektu prístup, dostane 404 `NOT_FOUND` ako pri ostatných cestách projektu). Namespace sa meniť nedá.
+Upraví kľúč: názov, popis alebo plurálové formy. Globálny `ADMIN` mení všetko; člen s rolou `EDITOR` iba `description` (telo s `name` alebo `plural` dostane 403 `FORBIDDEN`, aj keď obsahuje popis) a nie v uzamknutej verzii kľúča (409 `PROJECT_VERSION_LOCKED`, rovnako ako pri úprave prekladu); `VISITOR` dostane 403 `FORBIDDEN`. Kto nemá k projektu prístup, dostane 404 `NOT_FOUND` ako pri ostatných cestách projektu. Namespace sa meniť nedá.
 
 Telo (schéma `updateTranslationKeyRequestSchema`): každé pole je voliteľné, aspoň jedno musí byť uvedené.
 
@@ -312,10 +312,11 @@ Schéma `updateTranslationKeyResponseSchema`: kľúč ako v zozname, bez preklad
 | ---- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | 400  | `VALIDATION_ERROR`          | prázdne telo, prázdny alebo pridlhý `name`, `description` nad 500 znakov, `plural.variable` mimo vzoru, `details` podľa poľa |
 | 401  | `AUTH_UNAUTHENTICATED`      | bez session                                                                                                                  |
-| 403  | `FORBIDDEN`                 | člen projektu bez globálnej role `ADMIN`                                                                                     |
+| 403  | `FORBIDDEN`                 | `VISITOR`, alebo `EDITOR` s `name` či `plural` v tele                                                                        |
 | 403  | `CSRF_REJECTED`             | bez `X-Requested-With` alebo JSON tela                                                                                       |
 | 404  | `NOT_FOUND`                 | projekt mimo prístupu                                                                                                        |
 | 404  | `TRANSLATION_KEY_NOT_FOUND` | `keyId` nie je UUID alebo nie je kľúč tohto projektu                                                                         |
+| 409  | `PROJECT_VERSION_LOCKED`    | `EDITOR` a verzia kľúča je mimo okna alebo uzamknutá ručne                                                                   |
 | 409  | `TRANSLATION_KEY_TAKEN`     | kľúč s novým `name` už v tom istom namespace existuje (unikátny index, bez predbežnej kontroly, nič sa nezapíše)             |
 
 ### Príklad (curl)

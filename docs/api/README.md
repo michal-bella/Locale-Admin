@@ -1,6 +1,6 @@
 ---
 title: 'API'
-updated: 2026-10-22
+updated: 2026-10-25
 notion_page_id:
 ---
 
@@ -45,7 +45,7 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `GET`    | `/api/projects/:projectId/translations`                         | zoznam prekladov projektu (člen, ADMIN), [detail](./translations.md)                                           |
 | `PUT`    | `/api/projects/:projectId/keys/:keyId/translations/:languageId` | uloženie prekladu kľúča v jazyku (člen, ADMIN), [detail](./translations.md)                                    |
 | `POST`   | `/api/projects/:projectId/keys`                                 | ručné pridanie kľúča do existujúceho namespace (iba ADMIN), [detail](./translations.md)                        |
-| `PATCH`  | `/api/projects/:projectId/keys/:keyId`                          | úprava kľúča: názov, popis, plurál (iba ADMIN), [detail](./translations.md)                                    |
+| `PATCH`  | `/api/projects/:projectId/keys/:keyId`                          | úprava kľúča: názov, popis, plurál (ADMIN; člen iba popis), [detail](./translations.md)                        |
 | `POST`   | `/api/projects/:projectId/imports/preview`                      | kontrola súboru pred importom, nič nezapíše (iba ADMIN), [detail](./imports.md)                                |
 | `POST`   | `/api/projects/:projectId/imports`                              | import súboru do projektu (iba ADMIN), [detail](./imports.md)                                                  |
 | `GET`    | `/api/projects/:projectId/export`                               | export prekladov do CSV (člen, ADMIN), [detail](./exports.md)                                                  |

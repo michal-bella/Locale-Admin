@@ -1,12 +1,18 @@
 ---
 title: 'Changelog'
-updated: 2026-10-24
+updated: 2026-10-25
 notion_page_id:
 ---
 
 # Changelog
 
 ## Po fáze 1
+
+### Upraviť kľúč pre editora (2026-10-25)
+
+- API: `PATCH …/keys/:keyId` povolí členovi `EDITOR` meniť `description` (názov a plurál ostávajú iba pre `ADMIN`, inak 403 `FORBIDDEN`); v uzamknutej verzii dostane editor 409 `PROJECT_VERSION_LOCKED`
+- frontend: editor vidí tlačidlo **Upraviť kľúč**; modál mu ukáže celý kľúč a plurálové formy iba na čítanie a dovolí upraviť popis (v uzamknutej verzii nič)
+- frontend: pole **Kľúč** v modáli Upraviť kľúč zalamuje dlhý kľúč pod seba namiesto vodorovného posunu
 
 ### Modál Upraviť preklad a sticky stĺpce (2026-10-24)
 

@@ -13,6 +13,7 @@ import {
 	translationsResponseSchema,
 	updateTranslationKeyResponseSchema,
 	type UpdateTranslationKeyRequestInput,
+	VERSION_LOCK,
 } from '@locale/shared'
 
 import { createTestApp } from './helpers/app'
@@ -224,16 +225,35 @@ describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 	it('returns 403 FORBIDDEN to a member, 404 NOT_FOUND to a non-member EDITOR and 200 to an ADMIN who is not a member', async () => {
 		const app = createTestApp()
 		const member = await setup(app, { role: ROLE.EDITOR })
+		const visitor = await setup(app, { role: ROLE.VISITOR })
 		const outsider = await setup(app, { role: ROLE.EDITOR, member: false })
 		const admin = await setup(app, { role: ROLE.ADMIN, member: false })
 		const memberKey = await createKey(member.project.id, 'a')
+		const visitorKey = await createKey(visitor.project.id, 'a')
 		const outsiderKey = await createKey(outsider.project.id, 'a')
 		const adminKey = await createKey(admin.project.id, 'a')
 
 		expectErrorCode(await patch(app, member.cookie, member.project.id, memberKey.id, { name: 'b' }), 403, ERROR_CODE.FORBIDDEN)
+		expectErrorCode(await patch(app, member.cookie, member.project.id, memberKey.id, { plural: { variable: 'n' } }), 403, ERROR_CODE.FORBIDDEN)
+		expectErrorCode(await patch(app, member.cookie, member.project.id, memberKey.id, { name: 'b', description: 'Hint' }), 403, ERROR_CODE.FORBIDDEN)
+		expectErrorCode(await patch(app, visitor.cookie, visitor.project.id, visitorKey.id, { description: 'Hint' }), 403, ERROR_CODE.FORBIDDEN)
 		expectErrorCode(await patch(app, outsider.cookie, outsider.project.id, outsiderKey.id, { name: 'b' }), 404, ERROR_CODE.NOT_FOUND)
 		expect(await patchOk(app, admin.cookie, admin.project.id, adminKey.id, { name: 'b' })).toMatchObject({ name: 'b' })
-		expect((await findKey(memberKey.id)).name).toBe('a')
+		expect(await findKey(memberKey.id)).toMatchObject({ name: 'a', description: null, pluralVariable: null })
+	})
+
+	it('lets an EDITOR member set the description, except in a locked version', async () => {
+		const app = createTestApp()
+		const member = await setup(app, { role: ROLE.EDITOR })
+		const key = await createKey(member.project.id, 'a')
+
+		expect(await patchOk(app, member.cookie, member.project.id, key.id, { description: 'Hint' })).toMatchObject({ name: 'a', description: 'Hint' })
+		const activity = await getTestPrisma().activityEvent.findFirst({ where: { projectId: member.project.id, type: ACTIVITY_TYPE.KEY_UPDATED } })
+		expect(activity).toMatchObject({ userId: member.user.id, payload: { fields: ['description'] } })
+
+		await getTestPrisma().projectVersion.updateMany({ where: { projectId: member.project.id }, data: { lock: VERSION_LOCK.LOCKED } })
+		expectErrorCode(await patch(app, member.cookie, member.project.id, key.id, { description: null }), 409, ERROR_CODE.PROJECT_VERSION_LOCKED)
+		expect((await findKey(key.id)).description).toBe('Hint')
 	})
 
 	it('returns 401 AUTH_UNAUTHENTICATED without a session and 403 CSRF_REJECTED without X-Requested-With', async () => {

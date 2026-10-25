@@ -3,7 +3,7 @@ import { useDisclosure } from '@mantine/hooks'
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type AdminUser, getInitials } from '@locale/shared'
+import { type AdminUser, getInitials, ROLE } from '@locale/shared'
 
 import { useAdminUsersQuery } from '@/api/adminUsers/adminUsersQuery'
 import { useMeQuery } from '@/api/auth/meQuery'
@@ -120,8 +120,10 @@ const UsersTable = () => {
 									<RoleBadge role={user.role} />
 								</span>
 								<Text size='xs'>
-									{t('usersPage.table.projectCount', { count: user.projectCount })} ·{' '}
-									{t('usersPage.table.createdOn', { date: formatDate(user.createdAt, i18n.language) })}
+									{user.role === ROLE.ADMIN
+										? t('usersPage.table.allProjects')
+										: t('usersPage.table.projectCount', { count: user.projectCount })}{' '}
+									· {t('usersPage.table.createdOn', { date: formatDate(user.createdAt, i18n.language) })}
 								</Text>
 							</div>
 						</div>
@@ -131,7 +133,7 @@ const UsersTable = () => {
 					<RoleBadge role={user.role} />
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
-					<Text size='sm'>{user.projectCount}</Text>
+					<Text size='sm'>{user.role === ROLE.ADMIN ? t('usersPage.table.allProjectsShort') : user.projectCount}</Text>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 					<Text size='xs'>{formatDate(user.createdAt, i18n.language)}</Text>

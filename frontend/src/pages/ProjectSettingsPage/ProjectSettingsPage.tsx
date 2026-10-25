@@ -3,7 +3,7 @@ import { useLoaderData, useNavigate, useParams } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ROLE } from '@locale/shared'
+import { canManageProject, ROLE } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -69,7 +69,7 @@ const ProjectSettingsPage = () => {
 				settings={settingsQuery.data}
 				languages={languagesQuery.data}
 				isMember={isMember}
-				readOnly={!isAdmin}
+				readOnly={user === undefined || !canManageProject(user.role)}
 				onLeft={() => void navigate({ to: '/' })}
 				onSaved={({ slug }) => {
 					if (slug !== projectSlug) {

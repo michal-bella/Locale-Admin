@@ -4,7 +4,7 @@ import { useLoaderData } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type Language, ROLE, SUPPORTED_LANGUAGES } from '@locale/shared'
+import { canManageProject, type Language, SUPPORTED_LANGUAGES } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
@@ -14,13 +14,13 @@ import { Plus } from '@/components/Icons'
 import LanguagesTable from '@/components/LanguagesTable/LanguagesTable'
 import PageIntro from '@/components/PageIntro/PageIntro'
 
-/** Languages of the project (Figma 3:812 without the translation statistics columns): an ADMIN adds from the catalog, removes or reorders. */
+/** Languages of the project (Figma 3:812 without the translation statistics columns): an ADMIN or MANAGER adds from the catalog, removes or reorders. */
 const ProjectLanguagesPage = () => {
 	const { t } = useTranslation()
 	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { data: languages } = useProjectLanguagesQuery(projectId)
 	const { data: user } = useMeQuery()
-	const isAdmin = user?.role === ROLE.ADMIN
+	const canManage = user !== undefined && canManageProject(user.role)
 	const [addOpened, addModal] = useDisclosure(false)
 	const [deleteOpened, deleteModal] = useDisclosure(false)
 	const [deleteLanguage, setDeleteLanguage] = useState<Language | null>(null)
@@ -69,10 +69,10 @@ const ProjectLanguagesPage = () => {
 				<PageIntro
 					eyebrow={t('languagesPage.eyebrow')}
 					title={t('languagesPage.title')}
-					description={t(isAdmin ? 'languagesPage.description' : 'languagesPage.descriptionEditor')}
+					description={t(canManage ? 'languagesPage.description' : 'languagesPage.descriptionEditor')}
 					titleSize='h2'
 				/>
-				{isAdmin && (
+				{canManage && (
 					<Button leftSection={<Plus aria-hidden />} onClick={(event) => openAdd(event.currentTarget)} disabled={!languages || allAdded}>
 						{t('languagesPage.addButton')}
 					</Button>
@@ -81,12 +81,12 @@ const ProjectLanguagesPage = () => {
 			<LanguagesTable
 				ref={tableRef}
 				projectId={projectId}
-				onAdd={isAdmin ? openAdd : undefined}
-				onDelete={isAdmin ? openDelete : undefined}
-				reorderable={isAdmin}
+				onAdd={canManage ? openAdd : undefined}
+				onDelete={canManage ? openDelete : undefined}
+				reorderable={canManage}
 			/>
-			{isAdmin && <AddLanguageModal projectId={projectId} opened={addOpened} onClose={closeAdd} languages={languages ?? []} />}
-			{isAdmin && (
+			{canManage && <AddLanguageModal projectId={projectId} opened={addOpened} onClose={closeAdd} languages={languages ?? []} />}
+			{canManage && (
 				<ConfirmDeleteModal projectId={projectId} opened={deleteOpened} language={deleteLanguage} onClose={closeDelete} onDeleted={handleDeleted} />
 			)}
 		</div>

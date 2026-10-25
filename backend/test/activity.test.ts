@@ -126,7 +126,7 @@ describe('activity events', () => {
 		await send(app, cookie, 'post', path, { userId: peter.id }, 201)
 		await send(app, cookie, 'delete', `${path}/${peter.id}`, {}, 204)
 		await send(app, janaCookie, 'delete', `/projects/${project.id}/membership`, {}, 204)
-		await send(app, cookie, 'delete', `/projects/${project.id}/membership`, {}, 409)
+		await send(app, janaCookie, 'delete', `/projects/${project.id}/membership`, {}, 404)
 
 		const snapshot = (user: typeof jana) => ({ id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email })
 		expect(await events(project.id)).toEqual([

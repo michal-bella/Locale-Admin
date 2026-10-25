@@ -5,15 +5,20 @@ import { PASSWORD_MAX_LENGTH } from './password'
 import { translationsLayoutSchema, translationsViewSchema } from './translations'
 
 /**
- * Global role stored on `User.role`. `ADMIN` manages everything, `EDITOR` translates in the projects they are a member of, `VISITOR`
- * only reads, filters and exports translations in those projects (no edits, no project settings). Project roles are a different concept
- * (later phases).
+ * Global role stored on `User.role`. `ADMIN` manages everything and works in every project without a membership, `MANAGER` has the
+ * rights of an ADMIN in the projects they are a member of but no administration (users, projects, members), `EDITOR` translates in the
+ * projects they are a member of, `VISITOR` only reads, filters and exports translations in those projects (no edits, no project settings).
+ * Project roles are a different concept (later phases).
  */
 export enum ROLE {
 	ADMIN = 'ADMIN',
+	MANAGER = 'MANAGER',
 	EDITOR = 'EDITOR',
 	VISITOR = 'VISITOR',
 }
+
+/** ADMIN and MANAGER manage a project they can open: settings, languages, versions, imports and keys. Members stay ADMIN only. */
+export const canManageProject = (role: ROLE): boolean => role === ROLE.ADMIN || role === ROLE.MANAGER
 
 /** Login only requires a password; the rules for new passwords would turn a wrong password into a 400 instead of a 401. */
 export const loginRequestSchema = z.object({

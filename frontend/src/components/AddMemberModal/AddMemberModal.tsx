@@ -17,8 +17,8 @@ import { ChevronDown, Plus } from '@/components/Icons'
 import { type AddMemberModalProps } from './types'
 
 /**
- * "Pridať člena" (ADMIN only): a searchable select over the users who are not members yet. "Vytvoriť nového používateľa"
- * opens `CreateUserModal` on top and preselects the created user; the admin still confirms with Pridať.
+ * "Pridať člena" (ADMIN only): a searchable select over the users who are neither members yet nor admins. "Vytvoriť nového používateľa"
+ * opens `CreateUserModal` on top and preselects the created user unless it is an admin; the admin still confirms with Pridať.
  */
 const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => {
 	const { t } = useTranslation()
@@ -32,7 +32,10 @@ const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => 
 	const inputRef = useRef<HTMLInputElement>(null)
 
 	const memberIds = new Set(membersData?.members.map((member) => member.id))
-	const options = (users.data?.users ?? []).filter((user) => !memberIds.has(user.id)).map((user) => ({ value: user.id, label: user.email }))
+	// An ADMIN works in every project without a membership (409 MEMBER_IS_ADMIN), so admins are not offered.
+	const options = (users.data?.users ?? [])
+		.filter((user) => user.role !== ROLE.ADMIN && !memberIds.has(user.id))
+		.map((user) => ({ value: user.id, label: user.email }))
 
 	const resetAndClose = () => {
 		setUserId(null)
@@ -61,7 +64,7 @@ const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => 
 				},
 				onError: (error) => {
 					const code = getApiErrorCode(error)
-					if (code === ERROR_CODE.ALREADY_MEMBER || code === ERROR_CODE.NOT_FOUND) {
+					if (code === ERROR_CODE.ALREADY_MEMBER || code === ERROR_CODE.MEMBER_IS_ADMIN || code === ERROR_CODE.NOT_FOUND) {
 						setUserId(null)
 						setFieldError(t(`errors.${code}`))
 						// Deferred so the error is in the DOM (aria-describedby) when the input gets focus and is announced.
@@ -153,8 +156,10 @@ const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => 
 				onClose={createModal.close}
 				defaultRole={ROLE.EDITOR}
 				onCreated={(user) => {
-					setUserId(user.id)
-					setFieldError(undefined)
+					if (user.role !== ROLE.ADMIN) {
+						setUserId(user.id)
+						setFieldError(undefined)
+					}
 				}}
 			/>
 		</>

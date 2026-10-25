@@ -16,7 +16,7 @@
 }
 
 .trigger:hover {
-	background-color: var(--app-color-surface-muted);
+	background-color: var(--mantine-color-slate-light-hover);
 }
 
 .trigger:focus-visible {
@@ -59,6 +59,7 @@
 .item[aria-current='true'] {
 	font-weight: 600;
 	background-color: var(--app-color-brand-tint);
+	color: var(--app-color-eyebrow);
 }
 
 .dropdown {

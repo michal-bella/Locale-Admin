@@ -94,9 +94,9 @@ describe('UsersPage table', () => {
 		const [martinRow, janaRow] = rows as [HTMLElement, HTMLElement]
 		expect(within(martinRow).getByText('MA')).toBeInTheDocument()
 		// Decorative initials; the email cell also repeats the hidden columns for narrow screens, where CSS hides those columns.
-		expect(within(martinRow).getByRole('cell', { name: `${MARTIN.email} Administrátor 3 projekty · Vytvorený 12. 10. 2026` })).toBeInTheDocument()
+		expect(within(martinRow).getByRole('cell', { name: `${MARTIN.email} Administrátor Všetky projekty · Vytvorený 12. 10. 2026` })).toBeInTheDocument()
 		expect(within(martinRow).getAllByText('Administrátor')).toHaveLength(2)
-		expect(within(martinRow).getByRole('cell', { name: '3' })).toBeInTheDocument()
+		expect(within(martinRow).getByRole('cell', { name: 'Všetky' })).toBeInTheDocument()
 		expect(within(martinRow).getByText('12. 10. 2026')).toBeInTheDocument()
 		expect(within(janaRow).getByText('JA')).toBeInTheDocument()
 		expect(within(janaRow).getByText(JANA.email)).toBeInTheDocument()
@@ -257,44 +257,36 @@ describe('CreateUserModal', () => {
 		expect(within(reopened).getByLabelText('E-mail')).toHaveValue('')
 	})
 
-	it('defaults to Editor, explains the picked role and sends ADMIN when picked', async () => {
+	it.each([
+		{ label: 'Administrátor', role: ROLE.ADMIN, description: 'Spravuje systém, používateľov a všetky projekty bez pridávania do nich.' },
+		{
+			label: 'Správca',
+			role: ROLE.MANAGER,
+			description: 'Spravuje projekty, do ktorých ho pridá administrátor: jazyky, verzie, import a kľúče. Nespravuje používateľov ani členov.',
+		},
+		{ label: 'Návštevník', role: ROLE.VISITOR, description: 'Iba číta a exportuje preklady v projektoch, do ktorých ho pridá administrátor.' },
+	])('defaults to Editor, explains the picked role and sends $role when $label is picked', async ({ label, role, description }) => {
 		const requests = signedInAs(ADMIN_USER, {
 			'GET /admin/users': usersResponse([JANA]),
-			'POST /admin/users': { status: 201, data: { ...NEW_USER, role: ROLE.ADMIN } },
+			'POST /admin/users': { status: 201, data: { ...NEW_USER, role } },
 		})
 		renderApp('/admin/users')
 		const dialog = await openModal()
 
-		const group = within(dialog).getByRole('radiogroup', { name: 'Rola' })
-		expect(within(group).getByRole('radio', { name: 'Editor' })).toBeChecked()
-		expect(group).toHaveAccessibleDescription('Prekladá iba v projektoch, do ktorých ho pridá administrátor.')
+		const select = within(dialog).getByRole('combobox', { name: 'Rola' })
+		expect(select).toHaveValue('Editor')
+		expect(select).toHaveAccessibleDescription('Prekladá iba v projektoch, do ktorých ho pridá administrátor.')
 
-		fireEvent.click(within(group).getByRole('radio', { name: 'Administrátor' }))
-		expect(group).toHaveAccessibleDescription('Spravuje systém, používateľov a všetky projekty.')
+		fireEvent.click(select)
+		const options = await screen.findAllByRole('option')
+		expect(options.map((option) => option.textContent)).toEqual(['Administrátor', 'Správca', 'Editor', 'Návštevník'])
+		fireEvent.click(screen.getByRole('option', { name: label }))
+		expect(select).toHaveAccessibleDescription(description)
 		fillAndSubmit(dialog, 'nova@firma.sk', 'long-enough-password')
 
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		const post = requests.find((request) => request.method === 'post')
-		expect(JSON.parse(post?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password', role: 'ADMIN' })
-	})
-
-	it('offers Návštevník, explains it and sends VISITOR when picked', async () => {
-		const requests = signedInAs(ADMIN_USER, {
-			'GET /admin/users': usersResponse([JANA]),
-			'POST /admin/users': { status: 201, data: { ...NEW_USER, role: ROLE.VISITOR } },
-		})
-		renderApp('/admin/users')
-		const dialog = await openModal()
-
-		const group = within(dialog).getByRole('radiogroup', { name: 'Rola' })
-		expect(within(group).getAllByRole('radio')).toHaveLength(3)
-		fireEvent.click(within(group).getByRole('radio', { name: 'Návštevník' }))
-		expect(group).toHaveAccessibleDescription('Iba číta a exportuje preklady v projektoch, do ktorých ho pridá administrátor.')
-		fillAndSubmit(dialog, 'nova@firma.sk', 'long-enough-password')
-
-		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-		const post = requests.find((request) => request.method === 'post')
-		expect(JSON.parse(post?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password', role: 'VISITOR' })
+		expect(JSON.parse(post?.data as string)).toEqual({ email: 'nova@firma.sk', password: 'long-enough-password', role })
 	})
 
 	it('sends one request when the form is submitted twice while pending', async () => {

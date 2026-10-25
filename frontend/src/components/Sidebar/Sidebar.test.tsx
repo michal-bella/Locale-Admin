@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import { type ProjectSettings } from '@locale/shared'
 
-import { ADMIN_USER, EDITOR_USER, projectListRoute, signedInAs, VISITOR_USER } from '@/test/mockApi'
+import { ADMIN_USER, EDITOR_USER, MANAGER_USER, projectListRoute, signedInAs, VISITOR_USER } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 const PROJECT: ProjectSettings = {
@@ -31,8 +31,11 @@ describe('Sidebar', () => {
 		expect(within(screen.getByRole('complementary')).getByText('Locale')).toBeInTheDocument()
 	})
 
-	it('shows only Všetky projekty and no SPRÁVA label to an EDITOR outside a project', async () => {
-		signedInAs(EDITOR_USER)
+	it.each([
+		['an EDITOR', EDITOR_USER],
+		['a MANAGER', MANAGER_USER],
+	])('shows only Všetky projekty and no SPRÁVA label to %s outside a project', async (_name, user) => {
+		signedInAs(user)
 		renderApp('/profile')
 		const navigation = await findNavigation()
 

@@ -12,7 +12,7 @@
 
 .root:hover,
 .root[aria-expanded='true'] {
-	background-color: var(--app-color-surface-muted);
+	background-color: var(--mantine-color-slate-light-hover);
 }
 
 .email {

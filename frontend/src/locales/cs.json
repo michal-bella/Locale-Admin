@@ -13,6 +13,7 @@
 	},
 	"roles": {
 		"ADMIN": "Administrátor",
+		"MANAGER": "Správce",
 		"EDITOR": "Editor",
 		"VISITOR": "Návštěvník"
 	},
@@ -142,6 +143,8 @@
 			"projectCount_few": "{{count}} projekty",
 			"projectCount_many": "{{count}} projektů",
 			"projectCount_other": "{{count}} projektů",
+			"allProjects": "Všechny projekty",
+			"allProjectsShort": "Všechny",
 			"createdOn": "Vytvořen {{date}}",
 			"empty": "Zatím zde nejsou žádní uživatelé.",
 			"loadError": "Seznam uživatelů se nepodařilo načíst.",
@@ -167,7 +170,8 @@
 			"role": {
 				"label": "Role",
 				"description": {
-					"ADMIN": "Spravuje systém, uživatele a všechny projekty.",
+					"ADMIN": "Spravuje systém, uživatele a všechny projekty bez přidávání do nich.",
+					"MANAGER": "Spravuje projekty, do kterých ho přidá administrátor: jazyky, verze, import a klíče. Nespravuje uživatele ani členy.",
 					"EDITOR": "Překládá pouze v projektech, do kterých ho přidá administrátor.",
 					"VISITOR": "Pouze čte a exportuje překlady v projektech, do kterých ho přidá administrátor."
 				}
@@ -233,7 +237,8 @@
 				"openLabel": "Otevřít členy projektu {{name}}",
 				"remove": "Odebrat z projektu",
 				"removeLabel": "Odebrat z projektu {{name}}"
-			}
+			},
+			"allProjects": "Administrátor má přístup do všech projektů, do projektů se nepřidává."
 		},
 		"addModal": {
 			"title": "Přidat do projektu",
@@ -545,10 +550,10 @@
 			"baseLanguage": "1 zdrojový",
 			"showLanguages": "Zobrazit jazyky",
 			"members": "Členové",
-			"admins_one": "{{count}} administrátor",
-			"admins_few": "{{count}} administrátoři",
-			"admins_many": "{{count}} administrátorů",
-			"admins_other": "{{count}} administrátorů",
+			"managers_one": "{{count}} správce",
+			"managers_few": "{{count}} správci",
+			"managers_many": "{{count}} správců",
+			"managers_other": "{{count}} správců",
 			"showMembers": "Zobrazit členy",
 			"loadError": "Statistiky projektu se nepodařilo načíst.",
 			"retry": "Zkusit znovu"
@@ -573,7 +578,7 @@
 		"activity": {
 			"title": "Poslední aktivita",
 			"description": "Změny v projektu od nejnovější",
-			"showHistory": "Zobrazit historii",
+			"showHistory": "Zobrazit celou historii",
 			"today": "Dnes",
 			"yesterday": "Včera",
 			"empty": "Zatím žádná aktivita. Změny v projektu se zobrazí zde.",
@@ -662,6 +667,12 @@
 			"noContributors": "V tomto období nikdo nic nezměnil.",
 			"loadError": "Denní aktivitu se nepodařilo načíst.",
 			"retry": "Zkusit znovu"
+		},
+		"managers": {
+			"label_one": "Správce projektu",
+			"label_few": "Správci projektu",
+			"label_many": "Správci projektu",
+			"label_other": "Správci projektu"
 		}
 	},
 	"historyPage": {
@@ -1392,8 +1403,8 @@
 		"LANGUAGE_TAKEN": "Tento jazyk je již přidán.",
 		"LANGUAGE_IS_BASE": "Základní jazyk nelze odstranit. Nejprve nastavte jiný základní jazyk.",
 		"SLUG_TAKEN": "Projekt s tímto slugem již existuje.",
-		"LAST_MEMBER": "Projekt musí mít alespoň jednoho člena.",
 		"ALREADY_MEMBER": "Uživatel už je členem projektu.",
+		"MEMBER_IS_ADMIN": "Administrátor má přístup do všech projektů, nepřidává se jako člen.",
 		"SELF_DELETE": "Vlastní účet nemůžete odstranit.",
 		"LAST_ADMIN": "Poslední administrátor se nemůže vzdát své role.",
 		"PASSWORD_INCORRECT": "Aktuální heslo není správné.",

@@ -61,7 +61,8 @@ export const createUser = async (prisma: PrismaClient, { email, password, role }
 
 /**
  * Changes the global role and/or the email of any user, the own account included; the last ADMIN keeps the role so that somebody can
- * manage users. No pre-check for the email: the unique constraint (P2002) also covers concurrent requests.
+ * manage users. A new ADMIN loses their project memberships (an ADMIN works in every project without one).
+ * No pre-check for the email: the unique constraint (P2002) also covers concurrent requests.
  */
 export const updateUser = async (prisma: PrismaClient, id: string, { role, email }: UpdateUserRequest): Promise<AdminUserDetail> => {
 	const user = await prisma.user.findUnique({ where: { id }, select: { role: true } })
@@ -77,7 +78,12 @@ export const updateUser = async (prisma: PrismaClient, id: string, { role, email
 		throw new AppError(409, ERROR_CODE.LAST_ADMIN, 'The last admin cannot lose the admin role')
 	}
 	try {
-		await prisma.user.update({ where: { id }, data: { role: role && ROLE_TO_PRISMA[role], email }, select: { id: true } })
+		await prisma.$transaction(async (tx) => {
+			await tx.user.update({ where: { id }, data: { role: role && ROLE_TO_PRISMA[role], email }, select: { id: true } })
+			if (role === ROLE.ADMIN) {
+				await tx.projectMember.deleteMany({ where: { userId: id } })
+			}
+		})
 	} catch (err) {
 		if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
 			throw emailTaken()

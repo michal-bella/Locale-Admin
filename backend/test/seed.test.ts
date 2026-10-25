@@ -33,11 +33,10 @@ describe('seedAdmin', () => {
 })
 
 describe('seedProject', () => {
-	it('creates the project with only the seeded admin as a member and changes nothing on the second run', async () => {
+	it('creates the project without members and changes nothing on the second run', async () => {
 		const prisma = getTestPrisma()
 		await seedAdmin(prisma, 'FirstPassword1')
 		await createUser({ role: ROLE.ADMIN })
-		const admin = await prisma.user.findUniqueOrThrow({ where: { email: SEED_ADMIN_EMAIL } })
 
 		await expect(seedProject(prisma)).resolves.toBe('created')
 		const created = await prisma.project.findMany({ include: { members: true, languages: { orderBy: { tag: 'asc' } } } })
@@ -46,14 +45,13 @@ describe('seedProject', () => {
 				...SEED_PROJECT,
 				primaryColor: '#E83E8C',
 				protectVariables: true,
-				members: [{ userId: admin.id }],
+				members: [],
 				languages: [
 					{ tag: 'en', isBase: false },
 					{ tag: 'sk', isBase: true },
 				],
 			},
 		])
-		expect(created[0]?.members).toHaveLength(1)
 
 		await prisma.translation.updateMany({ data: { value: 'edited' } })
 		await expect(seedProject(prisma)).resolves.toBe('exists')
@@ -123,7 +121,7 @@ describe('seed script', () => {
 		await expect(getTestPrisma().user.count()).resolves.toBe(1)
 		await expect(getTestPrisma().projectLanguage.count()).resolves.toBe(2)
 		await expect(getTestPrisma().project.count()).resolves.toBe(1)
-		await expect(getTestPrisma().projectMember.count()).resolves.toBe(1)
+		await expect(getTestPrisma().projectMember.count()).resolves.toBe(0)
 		await expect(getTestPrisma().translationKey.count()).resolves.toBe(SEED_TRANSLATIONS.length + SEED_PREVIOUS_KEY_COUNT)
 	})
 

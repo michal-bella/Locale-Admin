@@ -18,13 +18,15 @@ import DailyActivity from '@/components/DailyActivity/DailyActivity'
 import { ArrowRight, Check, Globe, Key, LayoutGrid, Tag, Users } from '@/components/Icons'
 import LanguageStatus from '@/components/LanguageStatus/LanguageStatus'
 import PageIntro from '@/components/PageIntro/PageIntro'
+import ProjectManagers from '@/components/ProjectManagers/ProjectManagers'
 import StatCard from '@/components/StatCard/StatCard'
 import { formatShare } from '@/lib/formatShare'
 
 import classes from './DashboardPage.module.css'
 
 /**
- * Prehľad of the project (Figma 3:475) without Importovať and Exportovať: the stat cards, Stav jazykov, Posledná aktivita and Denná aktivita.
+ * Prehľad of the project (Figma 3:475) without Importovať and Exportovať: Správcovia projektu under the title, the stat cards, Stav jazykov,
+ * Posledná aktivita and Denná aktivita.
  * Languages and members come from their own queries (shared with their pages), the key counts from the dashboard endpoint. The numbers and
  * the daily activity are per version: the select in the header starts on the version the backend answered with (the current one).
  */
@@ -60,7 +62,10 @@ const DashboardPage = () => {
 	return (
 		<div className='mx-auto flex w-full max-w-[1440px] flex-col gap-6 p-8'>
 			<div className='flex flex-wrap items-end justify-between gap-4'>
-				<PageIntro eyebrow={t('dashboardPage.eyebrow')} title={project?.name ?? ''} description={t('dashboardPage.description')} titleSize='h2' />
+				<div className='flex flex-col gap-3'>
+					<PageIntro eyebrow={t('dashboardPage.eyebrow')} title={project?.name ?? ''} description={t('dashboardPage.description')} titleSize='h2' />
+					{members && <ProjectManagers members={members} />}
+				</div>
 				<div className='flex flex-wrap items-center gap-3'>
 					{versions && versions.items.length > 0 && (
 						<Select
@@ -153,7 +158,7 @@ const DashboardPage = () => {
 					<StatCard
 						label={t('dashboardPage.stats.members')}
 						value={members?.length}
-						hint={members && t('dashboardPage.stats.admins', { count: members.filter((member) => member.role === ROLE.ADMIN).length })}
+						hint={members && t('dashboardPage.stats.managers', { count: members.filter((member) => member.role === ROLE.MANAGER).length })}
 						icon={Users}
 						tone='brand'
 						link={
@@ -175,7 +180,7 @@ const DashboardPage = () => {
 					</Link>
 				</div>
 			)}
-			<div className='grid grid-cols-1 gap-5 lg:grid-cols-[11fr_9fr]'>
+			<div className='grid grid-cols-1 gap-5 lg:grid-cols-2'>
 				<LanguageStatus projectId={projectId} projectSlug={projectSlug} manageable={canManageProject} />
 				<ActivityFeed projectId={projectId} projectSlug={projectSlug} />
 			</div>

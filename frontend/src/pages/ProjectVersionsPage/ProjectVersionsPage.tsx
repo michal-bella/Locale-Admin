@@ -4,7 +4,7 @@ import { useLoaderData, useParams } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type ProjectVersion, ROLE } from '@locale/shared'
+import { canManageProject, type ProjectVersion } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import DeleteVersionModal from '@/components/DeleteVersionModal/DeleteVersionModal'
@@ -14,13 +14,13 @@ import VersionFormModal from '@/components/VersionFormModal/VersionFormModal'
 import VersionLockModal from '@/components/VersionLockModal/VersionLockModal'
 import VersionsTable from '@/components/VersionsTable/VersionsTable'
 
-/** Versions of the project (named date windows matching the code releases): an ADMIN creates, edits, locks, unlocks and deletes them. */
+/** Versions of the project (named date windows matching the code releases): an ADMIN or MANAGER creates, edits, locks, unlocks and deletes them. */
 const ProjectVersionsPage = () => {
 	const { t } = useTranslation()
 	const { projectSlug } = useParams({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { data: user } = useMeQuery()
-	const isAdmin = user?.role === ROLE.ADMIN
+	const canManage = user !== undefined && canManageProject(user.role)
 	const [formOpened, formModal] = useDisclosure(false)
 	const [lockOpened, lockModal] = useDisclosure(false)
 	const [deleteOpened, deleteModal] = useDisclosure(false)
@@ -83,10 +83,10 @@ const ProjectVersionsPage = () => {
 				<PageIntro
 					eyebrow={t('versionsPage.eyebrow')}
 					title={t('versionsPage.title')}
-					description={t(isAdmin ? 'versionsPage.description' : 'versionsPage.descriptionEditor')}
+					description={t(canManage ? 'versionsPage.description' : 'versionsPage.descriptionEditor')}
 					titleSize='h2'
 				/>
-				{isAdmin && (
+				{canManage && (
 					<Button leftSection={<Plus aria-hidden />} onClick={(event) => openCreate(event.currentTarget)}>
 						{t('versionsPage.createButton')}
 					</Button>
@@ -96,14 +96,14 @@ const ProjectVersionsPage = () => {
 				ref={tableRef}
 				projectId={projectId}
 				projectSlug={projectSlug}
-				onCreate={isAdmin ? openCreate : undefined}
-				onEdit={isAdmin ? openEdit : undefined}
-				onToggleLock={isAdmin ? openLock : undefined}
-				onDelete={isAdmin ? openDelete : undefined}
+				onCreate={canManage ? openCreate : undefined}
+				onEdit={canManage ? openEdit : undefined}
+				onToggleLock={canManage ? openLock : undefined}
+				onDelete={canManage ? openDelete : undefined}
 			/>
-			{isAdmin && <VersionFormModal projectId={projectId} opened={formOpened} version={editVersion} onClose={closeForm} />}
-			{isAdmin && <VersionLockModal projectId={projectId} opened={lockOpened} version={lockVersion} onClose={closeLock} />}
-			{isAdmin && <DeleteVersionModal projectId={projectId} opened={deleteOpened} version={deleteVersion} onClose={closeDelete} />}
+			{canManage && <VersionFormModal projectId={projectId} opened={formOpened} version={editVersion} onClose={closeForm} />}
+			{canManage && <VersionLockModal projectId={projectId} opened={lockOpened} version={lockVersion} onClose={closeLock} />}
+			{canManage && <DeleteVersionModal projectId={projectId} opened={deleteOpened} version={deleteVersion} onClose={closeDelete} />}
 		</div>
 	)
 }

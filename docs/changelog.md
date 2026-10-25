@@ -8,6 +8,13 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Rola Správca a admin bez členstva (2026-10-25)
+
+- rola `MANAGER` (Správca): v projektoch, kde je členom, má práva admina (nastavenia, jazyky, verzie, import, kľúče, zápis do uzamknutej verzie), ale nemá sekciu Správa, nevytvára projekty a nespravuje členov ([plán](./plans/manager-role.md))
+- `ADMIN` nie je členom žiadneho projektu a má prístup ku všetkým: migrácia `add_manager_role` zmazala jeho členstvá, nový projekt nemá členov, `POST …/members` s adminom vráti 409 `MEMBER_IS_ADMIN`, zmena roly na `ADMIN` zmaže členstvá; na stránke Členovia admin nie je
+- zrušené pravidlo `LAST_MEMBER`: projekt môže opustiť aj posledný člen
+- frontend: pole **Rola** v modáli Nový používateľ je select so 4 rolami; modál Pridať člena neponúka adminov; detail admina a tabuľka Používatelia ukazujú prístup ku všetkým projektom
+
 ### Popis kľúča v Upraviť preklad (2026-10-25)
 
 - frontend: popis kľúča v modáli **Upraviť preklad** nie je text pod kľúčom, ale ikona (i) za labelom **Kľúč** s tooltipom, rovnako ako v tabuľke prekladov

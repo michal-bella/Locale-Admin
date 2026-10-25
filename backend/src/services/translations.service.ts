@@ -3,8 +3,9 @@ import {
 	ACTIVITY_TYPE,
 	type CreateTranslationKeyRequest,
 	type CreateTranslationKeyResponse,
+	canManageProject,
 	ERROR_CODE,
-	ROLE,
+	type ROLE,
 	TRANSLATION_KEY_PATH_PATTERN,
 	VALIDATION_CODE,
 	normalizePluralValue,
@@ -408,8 +409,8 @@ export const updateTranslationKey = async (
 	{ name, description, plural }: UpdateTranslationKeyRequest,
 ): Promise<UpdateTranslationKeyResponse> =>
 	prisma.$transaction(async (tx) => {
-		if (role !== ROLE.ADMIN && (name !== undefined || plural !== undefined)) {
-			throw new AppError(403, ERROR_CODE.FORBIDDEN, 'Only an admin can rename a key or change its plural forms')
+		if (!canManageProject(role) && (name !== undefined || plural !== undefined)) {
+			throw new AppError(403, ERROR_CODE.FORBIDDEN, 'Only an admin or a manager can rename a key or change its plural forms')
 		}
 		const key = await tx.translationKey.findFirst({
 			where: { id: keyId, projectId },

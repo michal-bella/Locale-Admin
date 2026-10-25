@@ -3,7 +3,14 @@ import { useDisclosure } from '@mantine/hooks'
 import { Fragment, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type Language, placeholderReference, ROLE, type TranslationCell as TranslationCellData, type TranslationListItem } from '@locale/shared'
+import {
+	canManageProject,
+	type Language,
+	placeholderReference,
+	ROLE,
+	type TranslationCell as TranslationCellData,
+	type TranslationListItem,
+} from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -40,7 +47,7 @@ type Editing = { item: TranslationListItem; language: Language; viaNext?: boolea
  * `STACKED` either view puts its languages under each other in one column and the status badge into the key cell. With `showGroups`
  * a group header row starts every run of keys with the same `group` (also the first row of a page), so with the default sort the untranslated keys come first
  * and are grouped inside. `translationsOnly` hides the key and status columns (more room for the languages on a phone); the key stays in the
- * accessible name of every cell. An untranslated cell has a soft red background. An ADMIN or EDITOR gets an edit button next to every key that opens `EditKeyModal`.
+ * accessible name of every cell. An untranslated cell has a soft red background. An ADMIN, MANAGER or EDITOR gets an edit button next to every key that opens `EditKeyModal`.
  * With `item.diff` (every version but the first) an added key wears a „Nové“ badge and a changed cell a brand left border.
  */
 const TranslationsTable = ({
@@ -67,8 +74,8 @@ const TranslationsTable = ({
 }: TranslationsTableProps) => {
 	const { t, i18n } = useTranslation()
 	const { data: me } = useMeQuery()
-	const isAdmin = me?.role === ROLE.ADMIN
-	const canOpenKey = isAdmin || me?.role === ROLE.EDITOR
+	const canManage = me !== undefined && canManageProject(me.role)
+	const canOpenKey = canManage || me?.role === ROLE.EDITOR
 	const tableRef = useRef<HTMLTableElement>(null)
 	const scrollRef = useRef<HTMLDivElement>(null)
 	// Which sticky column has content scrolled under it: the key column once scrolled right, the status column until the right end.
@@ -394,8 +401,8 @@ const TranslationsTable = ({
 		if (!data || data.stats.totalKeys === 0) {
 			return stateRow(
 				<div className='flex flex-col items-center gap-4'>
-					<Text size='sm'>{isAdmin ? t('translationsPage.table.empty') : t('translationsPage.table.emptyEditor')}</Text>
-					{isAdmin && (
+					<Text size='sm'>{canManage ? t('translationsPage.table.empty') : t('translationsPage.table.emptyEditor')}</Text>
+					{canManage && (
 						<Button variant='default' leftSection={<Upload aria-hidden />} onClick={onImport}>
 							{t('translationsPage.importButton')}
 						</Button>
@@ -508,8 +515,8 @@ const TranslationsTable = ({
 					item={editing}
 					opened={editOpened}
 					onClose={editModal.close}
-					canEditKey={isAdmin}
-					canEditDescription={isAdmin || !readOnly}
+					canEditKey={canManage}
+					canEditDescription={canManage || !readOnly}
 				/>
 			)}
 			{!readOnly && (

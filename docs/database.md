@@ -12,19 +12,19 @@ PostgreSQL 17, Prisma 7 s driver adapterom `@prisma/adapter-pg`. Schéma je v `b
 
 ### User
 
-| Pole                     | Typ                        | Poznámka                                                                                                                                                 |
-| ------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                     | UUID                       | PK                                                                                                                                                       |
-| `email`                  | string, unique             | uložený normalizovaný (`trim()` + malé písmená)                                                                                                          |
-| `passwordHash`           | string                     | argon2id, nikdy sa nevracia v API                                                                                                                        |
-| `role`                   | enum `ROLE`                | `ADMIN`, `EDITOR` alebo `VISITOR` (iba číta a exportuje), default `EDITOR`; nastavuje ho `POST /api/admin/users` (jediná cesta, ako používateľ vzniká)   |
-| `firstName`, `lastName`  | string, nullable           | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                                                                                   |
-| `isActive`               | boolean                    | default `true`, neaktívny user sa neprihlási                                                                                                             |
-| `translationsView`       | enum `TRANSLATIONS_VIEW`   | `EXTENDED` (default, všetky jazyky vedľa seba) alebo `COMPACT` (zdrojový → cieľový); preferencia stránky Preklady, mení `PATCH /api/profile/preferences` |
-| `translationsLayout`     | enum `TRANSLATIONS_LAYOUT` | `COLUMNS` (default, jazyky vedľa seba) alebo `STACKED` (pod sebou); preferencia stránky Preklady, mení `PATCH /api/profile/preferences`                  |
-| `lastLoginAt`            | datetime, nullable         | nastaví sa pri úspešnom logine                                                                                                                           |
-| `passwordChangedAt`      | datetime                   | default čas vytvorenia                                                                                                                                   |
-| `createdAt`, `updatedAt` | datetime                   |                                                                                                                                                          |
+| Pole                     | Typ                        | Poznámka                                                                                                                                                                                                              |
+| ------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                     | UUID                       | PK                                                                                                                                                                                                                    |
+| `email`                  | string, unique             | uložený normalizovaný (`trim()` + malé písmená)                                                                                                                                                                       |
+| `passwordHash`           | string                     | argon2id, nikdy sa nevracia v API                                                                                                                                                                                     |
+| `role`                   | enum `ROLE`                | `ADMIN`, `MANAGER` (práva `ADMIN`-a vo svojich projektoch, bez správy), `EDITOR` alebo `VISITOR` (iba číta a exportuje), default `EDITOR`; nastavuje ho `POST /api/admin/users` (jediná cesta, ako používateľ vzniká) |
+| `firstName`, `lastName`  | string, nullable           | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                                                                                                                                                |
+| `isActive`               | boolean                    | default `true`, neaktívny user sa neprihlási                                                                                                                                                                          |
+| `translationsView`       | enum `TRANSLATIONS_VIEW`   | `EXTENDED` (default, všetky jazyky vedľa seba) alebo `COMPACT` (zdrojový → cieľový); preferencia stránky Preklady, mení `PATCH /api/profile/preferences`                                                              |
+| `translationsLayout`     | enum `TRANSLATIONS_LAYOUT` | `COLUMNS` (default, jazyky vedľa seba) alebo `STACKED` (pod sebou); preferencia stránky Preklady, mení `PATCH /api/profile/preferences`                                                                               |
+| `lastLoginAt`            | datetime, nullable         | nastaví sa pri úspešnom logine                                                                                                                                                                                        |
+| `passwordChangedAt`      | datetime                   | default čas vytvorenia                                                                                                                                                                                                |
+| `createdAt`, `updatedAt` | datetime                   |                                                                                                                                                                                                                       |
 
 ### Session
 
@@ -84,7 +84,7 @@ Každý projekt má vlastné jazyky a vlastný základný jazyk (`ProjectLanguag
 
 ### ProjectMember
 
-Členstvo používateľa v projekte. Určuje, ktoré projekty vidí `EDITOR` a `VISITOR` a ku ktorým majú prístup (`ADMIN` má prístup ku všetkým). Vzniká pri vytvorení projektu (tvorca), pridaním existujúceho používateľa na stránke Členovia (iba `ADMIN`) a zo seedu; zaniká akciou Opustiť projekt, odobratím členom `ADMIN`-om alebo kaskádou pri zmazaní používateľa či projektu.
+Členstvo používateľa v projekte. Určuje, ktoré projekty vidí `MANAGER`, `EDITOR` a `VISITOR` a ku ktorým majú prístup (`ADMIN` má prístup ku všetkým a členom nie je nikdy: migrácia `add_manager_role` jeho členstvá zmazala, `POST …/members` ho odmietne a zmena roly na `ADMIN` jeho členstvá zmaže). Vzniká pridaním existujúceho používateľa na stránke Členovia alebo na detaile používateľa (iba `ADMIN`); zaniká akciou Opustiť projekt, odobratím členom `ADMIN`-om alebo kaskádou pri zmazaní používateľa či projektu.
 
 | Pole        | Typ      | Poznámka                                       |
 | ----------- | -------- | ---------------------------------------------- |
@@ -124,7 +124,7 @@ Verzia prekladov projektu: pomenované časové okno zhodné s verziou aplikáci
 
 Indexy: unikátna dvojica (`projectId`, `name`), (`projectId`, `startsAt` DESC) pre zoznam a hľadanie aktuálnej verzie. Dátumy sú `DATE` bez času; Prisma ich vracia ako UTC polnoc, backend ich číta a zapisuje cez `fromDbDate` / `toDbDate` v `backend/src/lib/projectVersions.ts`, „dnes“ je dátum servera.
 
-Kľúče verzie na ňu ukazujú s `Cascade`, takže zmazanie verzie (plánované v míľniku C) zmaže aj jej kľúče a bunky. Uzamknutá verzia (`isVersionLocked` v `packages/shared`: `lock = LOCKED`, alebo `AUTO` a dnešok mimo okna `startsAt`–`endsAt`) blokuje zápisy `EDITOR`-a a `VISITOR`-a (409 `PROJECT_VERSION_LOCKED`), `ADMIN` zapisuje vždy. Aktuálna verzia (dnešok medzi dátumami, pri prekryve najneskorší `startsAt`) sa odvodzuje dotazom (`findCurrentVersionId`), neukladá sa; projektové súhrny (zoznam projektov, stránka Jazyky) počítajú predvolenú verziu (`findDefaultVersionId`: aktuálna, inak najnovšia).
+Kľúče verzie na ňu ukazujú s `Cascade`, takže zmazanie verzie (plánované v míľniku C) zmaže aj jej kľúče a bunky. Uzamknutá verzia (`isVersionLocked` v `packages/shared`: `lock = LOCKED`, alebo `AUTO` a dnešok mimo okna `startsAt`–`endsAt`) blokuje zápisy `EDITOR`-a a `VISITOR`-a (409 `PROJECT_VERSION_LOCKED`), `ADMIN` a `MANAGER` zapisujú vždy. Aktuálna verzia (dnešok medzi dátumami, pri prekryve najneskorší `startsAt`) sa odvodzuje dotazom (`findCurrentVersionId`), neukladá sa; projektové súhrny (zoznam projektov, stránka Jazyky) počítajú predvolenú verziu (`findDefaultVersionId`: aktuálna, inak najnovšia).
 
 ### TranslationKey
 

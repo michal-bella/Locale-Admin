@@ -115,10 +115,11 @@ const exportedKeys = (text: string) =>
 		.map((line) => line.trim().split(';')[0])
 
 describe('a cell edit stays in the version of its key', () => {
-	it('lets an ADMIN edit in any version and an EDITOR only in a running, unlocked one', async () => {
+	it('lets an ADMIN and a MANAGER edit in any version and an EDITOR only in a running, unlocked one', async () => {
 		const app = createTestApp()
 		const { project, sk, en, cookie: adminCookie } = await setup(app)
 		const editorCookie = await addMember(app, project.id, ROLE.EDITOR)
+		const managerCookie = await addMember(app, project.id, ROLE.MANAGER)
 		const expired = await createVersionRow(project.id, { name: 'v1', ...PAST })
 		const running = await createVersionRow(project.id, { name: 'v2', ...RUNNING })
 		const upcoming = await createVersionRow(project.id, { name: 'v3', ...UPCOMING })
@@ -140,6 +141,7 @@ describe('a cell edit stays in the version of its key', () => {
 		expect((await put(app, adminCookie, project.id, inExpired.id, en.id, { value: 'Store' })).status).toBe(200)
 		expect((await put(app, adminCookie, project.id, inUpcoming.id, en.id, { value: 'Store' })).status).toBe(200)
 		expect(await cellValue(inExpired.id, en.id)).toBe('Store')
+		expect((await put(app, managerCookie, project.id, inLockedByHand.id, en.id, { value: 'Keep' })).status).toBe(200)
 		// The copies are independent: the running version's cell keeps the editor's value.
 		expect(await cellValue(inRunning.id, en.id)).toBe('Save')
 	})

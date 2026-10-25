@@ -125,6 +125,18 @@ describe('UserPage', () => {
 		await i18n.changeLanguage('sk')
 	})
 
+	it('shows an admin a note instead of the projects and Pridať do projektu', async () => {
+		signedInAs(
+			ADMIN_USER,
+			routes(() => ({ ...JANA, role: ROLE.ADMIN, projectCount: 0, projects: [] })),
+		)
+		renderApp(USER_URL)
+
+		expect(await screen.findByText('Administrátor má prístup do všetkých projektov, do projektov sa nepridáva.')).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Pridať do projektu' })).not.toBeInTheDocument()
+		expect(screen.queryByText('Používateľ zatiaľ nie je v žiadnom projekte.')).not.toBeInTheDocument()
+	})
+
 	it('shows the empty state for a user without projects', async () => {
 		signedInAs(
 			ADMIN_USER,
@@ -336,15 +348,17 @@ describe('RemoveUserProjectModal', () => {
 		await waitFor(() => expect(getProjectsTable()).toHaveFocus())
 	})
 
-	it('shows LAST_MEMBER as a notification and keeps the row', async () => {
+	it('shows a server error as a notification and keeps the row', async () => {
 		const show = vi.spyOn(notifications, 'show')
-		signedInAs(ADMIN_USER, { ...routes(() => JANA), [`DELETE /projects/${BOOKING.id}/members/${JANA.id}`]: apiError(409, 'LAST_MEMBER') })
+		signedInAs(ADMIN_USER, { ...routes(() => JANA), [`DELETE /projects/${BOOKING.id}/members/${JANA.id}`]: apiError(500, 'INTERNAL_ERROR') })
 		renderApp(USER_URL)
 
 		fireEvent.click(await screen.findByRole('button', { name: 'Odobrať z projektu Booking Web' }))
 		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Odobrať z projektu' })).getByRole('button', { name: 'Odobrať' }))
 
-		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Projekt musí mať aspoň jedného člena.' })))
+		await waitFor(() =>
+			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Nastala neočakávaná chyba. Skúste to znova.' })),
+		)
 		expect(screen.getByText('Booking Web')).toBeInTheDocument()
 	})
 

@@ -285,18 +285,20 @@ describe('LeaveProjectModal from the list', () => {
 		expect(requests.filter((request) => request.method === 'delete')).toHaveLength(1)
 	})
 
-	it('keeps the project and shows LAST_MEMBER as a notification', async () => {
+	it('keeps the project and shows a server error as a notification', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		signedInAs(EDITOR_USER, {
 			'GET /projects': projectsResponse([BOOKING]),
-			[`DELETE /projects/${BOOKING.id}/membership`]: apiError(409, 'LAST_MEMBER'),
+			[`DELETE /projects/${BOOKING.id}/membership`]: apiError(500, 'INTERNAL_ERROR'),
 		})
 		renderApp('/')
 
 		await clickLeave('Booking Web')
 		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Opustiť projekt' })).getByRole('button', { name: 'Opustiť projekt' }))
 
-		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Projekt musí mať aspoň jedného člena.' })))
+		await waitFor(() =>
+			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Nastala neočakávaná chyba. Skúste to znova.' })),
+		)
 		expect(screen.getByRole('dialog', { name: 'Opustiť projekt' })).toBeInTheDocument()
 		expect(screen.getByRole('link', { name: 'Booking Web' })).toBeInTheDocument()
 	})

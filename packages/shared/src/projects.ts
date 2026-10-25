@@ -17,7 +17,7 @@ export const createProjectRequestSchema = z.object({
 export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>
 
 /**
- * One project on the index page and the body of `201 POST /api/projects`. `isMember` is `false` only for an ADMIN outside the project.
+ * One project on the index page and the body of `201 POST /api/projects`. `isMember` is always `false` for an ADMIN, who works in every project without a membership.
  * `languageTags` start with the base language; `translatedCount` is the number of filled values over all keys and languages, so the
  * project is fully translated when it equals `keyCount * languageTags.length`. `memberCount` counts every member of the project.
  */

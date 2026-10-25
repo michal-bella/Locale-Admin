@@ -222,9 +222,10 @@ describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		expect((await findKey(foreignKey.id)).name).toBe('a')
 	})
 
-	it('returns 403 FORBIDDEN to a member, 404 NOT_FOUND to a non-member EDITOR and 200 to an ADMIN who is not a member', async () => {
+	it('returns 403 FORBIDDEN to a member, 404 NOT_FOUND to a non-member EDITOR and 200 to a MANAGER member and an ADMIN who is not a member', async () => {
 		const app = createTestApp()
 		const member = await setup(app, { role: ROLE.EDITOR })
+		const manager = await setup(app, { role: ROLE.MANAGER })
 		const visitor = await setup(app, { role: ROLE.VISITOR })
 		const outsider = await setup(app, { role: ROLE.EDITOR, member: false })
 		const admin = await setup(app, { role: ROLE.ADMIN, member: false })
@@ -232,6 +233,7 @@ describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		const visitorKey = await createKey(visitor.project.id, 'a')
 		const outsiderKey = await createKey(outsider.project.id, 'a')
 		const adminKey = await createKey(admin.project.id, 'a')
+		const managerKey = await createKey(manager.project.id, 'a')
 
 		expectErrorCode(await patch(app, member.cookie, member.project.id, memberKey.id, { name: 'b' }), 403, ERROR_CODE.FORBIDDEN)
 		expectErrorCode(await patch(app, member.cookie, member.project.id, memberKey.id, { plural: { variable: 'n' } }), 403, ERROR_CODE.FORBIDDEN)
@@ -239,6 +241,7 @@ describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 		expectErrorCode(await patch(app, visitor.cookie, visitor.project.id, visitorKey.id, { description: 'Hint' }), 403, ERROR_CODE.FORBIDDEN)
 		expectErrorCode(await patch(app, outsider.cookie, outsider.project.id, outsiderKey.id, { name: 'b' }), 404, ERROR_CODE.NOT_FOUND)
 		expect(await patchOk(app, admin.cookie, admin.project.id, adminKey.id, { name: 'b' })).toMatchObject({ name: 'b' })
+		expect(await patchOk(app, manager.cookie, manager.project.id, managerKey.id, { name: 'b' })).toMatchObject({ name: 'b' })
 		expect(await findKey(memberKey.id)).toMatchObject({ name: 'a', description: null, pluralVariable: null })
 	})
 

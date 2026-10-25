@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vite-plus/test'
 import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { installUnauthorizedInterceptor } from '@/api/unauthorizedInterceptor'
-import { ADMIN_USER, apiError, EDITOR_USER, mockApi, projectListRoute, signedInAs, signedOut, VISITOR_USER } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, MANAGER_USER, mockApi, projectListRoute, signedInAs, signedOut, VISITOR_USER } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
 describe('route guards', () => {
@@ -61,6 +61,13 @@ describe('route guards', () => {
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Preklady' })).toBeInTheDocument()
 		expect(router.state.location.pathname).toBe(`/projects/${project.slug}/translations`)
+	})
+
+	it.each(['/admin/users', '/admin/projects'])('shows the 403 page on %s to a MANAGER', async (path) => {
+		signedInAs(MANAGER_USER)
+		renderApp(path)
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeInTheDocument()
 	})
 
 	describe('VISITOR', () => {

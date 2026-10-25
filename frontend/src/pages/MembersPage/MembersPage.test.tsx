@@ -152,10 +152,14 @@ describe('MembersPage', () => {
 		)
 	})
 
-	it('offers an admin only the users who are not members yet', async () => {
+	it('offers an admin only the users who are neither members yet nor admins', async () => {
+		const otherAdmin: AdminUser = { ...NEW_USER, email: 'druhy.admin@firma.sk', role: ROLE.ADMIN }
 		const requests = signedInAs(
 			ADMIN_USER,
-			routes(() => [ADMIN_MEMBER, JANA]),
+			routes(
+				() => [ADMIN_MEMBER, JANA],
+				() => [ADMIN_SELF, otherAdmin, JANA_USER, PETER_USER],
+			),
 		)
 		renderApp(PAGE_PATH)
 		await screen.findByText('Jana Nováková')
@@ -262,7 +266,7 @@ describe('MembersPage', () => {
 
 		fireEvent.click(within(addDialog).getByRole('button', { name: 'Vytvoriť nového používateľa' }))
 		const createDialog = await screen.findByRole('dialog', { name: 'Nový používateľ' })
-		expect(within(createDialog).getByRole('radio', { name: 'Editor' })).toBeChecked()
+		expect(within(createDialog).getByRole('combobox', { name: 'Rola' })).toHaveValue('Editor')
 		fireEvent.change(within(createDialog).getByLabelText('E-mail'), { target: { value: NEW_USER.email } })
 		fireEvent.change(within(createDialog).getByLabelText('Heslo'), { target: { value: 'NewMemberPassword1' } })
 		fireEvent.click(within(createDialog).getByRole('button', { name: 'Vytvoriť používateľa' }))
@@ -316,15 +320,17 @@ describe('RemoveMemberModal', () => {
 		expect(invalidate).toHaveBeenCalledWith({ queryKey: QUERY_KEYS.ADMIN.USERS() })
 	})
 
-	it('shows LAST_MEMBER as a notification and keeps the row', async () => {
+	it('shows a server error as a notification and keeps the row', async () => {
 		const show = vi.spyOn(notifications, 'show')
-		signedInAs(ADMIN_USER, { ...routes(() => [JANA, PETER]), [`DELETE ${MEMBERS_URL}/${PETER.id}`]: apiError(409, 'LAST_MEMBER') })
+		signedInAs(ADMIN_USER, { ...routes(() => [JANA, PETER]), [`DELETE ${MEMBERS_URL}/${PETER.id}`]: apiError(500, 'INTERNAL_ERROR') })
 		renderApp(PAGE_PATH)
 
 		fireEvent.click(await screen.findByRole('button', { name: `Odobrať ${PETER.email} z projektu` }))
 		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Odobrať z projektu' })).getByRole('button', { name: 'Odobrať' }))
 
-		await waitFor(() => expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Projekt musí mať aspoň jedného člena.' })))
+		await waitFor(() =>
+			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Nastala neočakávaná chyba. Skúste to znova.' })),
+		)
 		expect(screen.getByText('Peter Malý')).toBeInTheDocument()
 	})
 })

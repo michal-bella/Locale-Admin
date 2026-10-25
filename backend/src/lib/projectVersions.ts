@@ -1,4 +1,4 @@
-import { ERROR_CODE, ROLE, type VERSION_LOCK, isVersionLocked, toVersionDate } from '@locale/shared'
+import { canManageProject, ERROR_CODE, type ROLE, type VERSION_LOCK, isVersionLocked, toVersionDate } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
 import { type PrismaClient } from '../lib/prisma'
@@ -64,7 +64,7 @@ export const assertProjectVersion = async (db: PrismaClient | Prisma.Transaction
 }
 
 /**
- * The version a write goes into: a version of the project (404 `PROJECT_VERSION_NOT_FOUND`) that, for anyone but an ADMIN, is not
+ * The version a write goes into: a version of the project (404 `PROJECT_VERSION_NOT_FOUND`) that, for anyone but an ADMIN or a MANAGER, is not
  * locked (409 `PROJECT_VERSION_LOCKED`): locked by hand, or `AUTO` outside its `startsAt`–`endsAt` window (`isVersionLocked`).
  */
 export const resolveVersion = async (
@@ -79,7 +79,7 @@ export const resolveVersion = async (
 		throw versionNotFound()
 	}
 	const dates = { lock: version.lock as VERSION_LOCK, startsAt: fromDbDate(version.startsAt), endsAt: fromDbDate(version.endsAt) }
-	if (role !== ROLE.ADMIN && isVersionLocked(dates, todayVersionDate())) {
+	if (!canManageProject(role) && isVersionLocked(dates, todayVersionDate())) {
 		throw new AppError(409, ERROR_CODE.PROJECT_VERSION_LOCKED, 'Version is locked')
 	}
 	return { id: version.id, name: version.name, importedAt: version.importedAt }

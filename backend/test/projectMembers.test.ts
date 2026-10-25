@@ -129,6 +129,30 @@ describe('POST /api/projects/:projectId/members', () => {
 		expect(await getTestPrisma().projectMember.count()).toBe(0)
 	})
 
+	it('returns 409 MEMBER_IS_ADMIN for an ADMIN and adds nothing', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const { user: admin } = await createUser({ role: ROLE.ADMIN })
+		const project = await createProjectRow()
+
+		const res = await postMember(app, cookie, project.id, { userId: admin.id })
+
+		expectErrorCode(res, 409, ERROR_CODE.MEMBER_IS_ADMIN)
+		expect(await getTestPrisma().projectMember.count()).toBe(0)
+	})
+
+	it('returns 403 FORBIDDEN to a MANAGER who is a member', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app, ROLE.MANAGER)
+		const { user: other } = await createUser()
+		const project = await createProjectRow([user.id])
+
+		const res = await postMember(app, cookie, project.id, { userId: other.id })
+
+		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
+		expect(await getTestPrisma().projectMember.count({ where: { projectId: project.id } })).toBe(1)
+	})
+
 	it('returns 404 NOT_FOUND for an unknown user', async () => {
 		const app = createTestApp()
 		const { cookie } = await login(app, ROLE.ADMIN)
@@ -212,7 +236,7 @@ describe('DELETE /api/projects/:projectId/members/:userId', () => {
 		expect(await getTestPrisma().projectMember.count()).toBe(2)
 	})
 
-	it('returns 409 LAST_MEMBER when an ADMIN removes the only member', async () => {
+	it('lets an ADMIN remove the only member', async () => {
 		const app = createTestApp()
 		const { cookie } = await login(app, ROLE.ADMIN)
 		const { user: only } = await createUser()
@@ -220,8 +244,20 @@ describe('DELETE /api/projects/:projectId/members/:userId', () => {
 
 		const res = await removeMember(app, cookie, project.id, only.id)
 
-		expectErrorCode(res, 409, ERROR_CODE.LAST_MEMBER)
-		expect(await getTestPrisma().projectMember.count()).toBe(1)
+		expect(res.status).toBe(204)
+		expect(await getTestPrisma().projectMember.count()).toBe(0)
+	})
+
+	it('returns 403 FORBIDDEN to a MANAGER who is a member', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await login(app, ROLE.MANAGER)
+		const { user: other } = await createUser()
+		const project = await createProjectRow([user.id, other.id])
+
+		const res = await removeMember(app, cookie, project.id, other.id)
+
+		expectErrorCode(res, 403, ERROR_CODE.FORBIDDEN)
+		expect(await getTestPrisma().projectMember.count()).toBe(2)
 	})
 
 	it.each([

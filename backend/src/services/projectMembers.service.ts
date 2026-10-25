@@ -1,4 +1,4 @@
-import { ACTIVITY_TYPE, ERROR_CODE, type AddProjectMemberRequest, type ProjectMember } from '@locale/shared'
+import { ACTIVITY_TYPE, ERROR_CODE, ROLE, type AddProjectMemberRequest, type ProjectMember } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
 import { recordActivity } from '../lib/activity'
@@ -29,7 +29,10 @@ export const listProjectMembers = async (prisma: PrismaClient, projectId: string
 	return members.map(toProjectMember)
 }
 
-/** Adds an existing user to the project. A missing user fails the `connect` (P2025), an existing membership the composite key (P2002). */
+/**
+ * Adds an existing user to the project. A missing user fails the `connect` (P2025), an existing membership the composite key (P2002).
+ * An ADMIN works in every project without a membership, so adding one is 409 `MEMBER_IS_ADMIN`.
+ */
 export const addProjectMember = async (
 	prisma: PrismaClient,
 	projectId: string,
@@ -38,6 +41,10 @@ export const addProjectMember = async (
 ): Promise<ProjectMember> => {
 	try {
 		const member = await prisma.$transaction(async (tx) => {
+			const user = await tx.user.findUnique({ where: { id: userId }, select: { role: true } })
+			if (user && ROLE_FROM_PRISMA[user.role] === ROLE.ADMIN) {
+				throw new AppError(409, ERROR_CODE.MEMBER_IS_ADMIN, 'An admin works in every project without a membership')
+			}
 			const created = await tx.projectMember.create({
 				data: { project: { connect: { id: projectId } }, user: { connect: { id: userId } } },
 				select: MEMBER_SELECT,

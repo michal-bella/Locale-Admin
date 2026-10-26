@@ -5,7 +5,7 @@ import {
 	type CreateTranslationKeyResponse,
 	canManageProject,
 	ERROR_CODE,
-	type ROLE,
+	type ProjectAccessRole,
 	TRANSLATION_KEY_PATH_PATTERN,
 	VALIDATION_CODE,
 	normalizePluralValue,
@@ -270,7 +270,7 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 			)
 			SELECT u.id, u.email, u."firstName", u."lastName", COALESCE(e.edits, 0) AS edits
 			FROM "User" u LEFT JOIN edits e ON e.id = u.id
-			WHERE e.id IS NOT NULL OR u.id IN (SELECT "userId" FROM "ProjectMember" WHERE "projectId" = ${projectId}::uuid)`,
+			WHERE e.id IS NOT NULL OR (u.role <> 'ADMIN' AND u.id IN (SELECT "userId" FROM "ProjectMember" WHERE "projectId" = ${projectId}::uuid))`,
 		prisma.$queryRaw<{ languageId: string; translated: number }[]>`
 			SELECT t."languageId", count(*)::int AS translated
 			FROM "Translation" t JOIN "TranslationKey" k ON k.id = t."keyId"
@@ -315,7 +315,7 @@ const keyNotFound = () => new AppError(404, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND
  */
 export const updateTranslation = async (
 	prisma: PrismaClient,
-	{ projectId, keyId, languageId, userId, role }: { projectId: string; keyId: string; languageId: string; userId: string; role: ROLE },
+	{ projectId, keyId, languageId, userId, role }: { projectId: string; keyId: string; languageId: string; userId: string; role: ProjectAccessRole },
 	{ value }: { value: string | null },
 ): Promise<UpdateTranslationResponse> => {
 	const key = await prisma.translationKey.findFirst({
@@ -405,7 +405,7 @@ export const convertPluralValue = (value: string, from: string | null, to: strin
  */
 export const updateTranslationKey = async (
 	prisma: PrismaClient,
-	{ projectId, keyId, userId, role }: { projectId: string; keyId: string; userId: string; role: ROLE },
+	{ projectId, keyId, userId, role }: { projectId: string; keyId: string; userId: string; role: ProjectAccessRole },
 	{ name, description, plural }: UpdateTranslationKeyRequest,
 ): Promise<UpdateTranslationKeyResponse> =>
 	prisma.$transaction(async (tx) => {
@@ -472,7 +472,7 @@ export const updateTranslationKey = async (
  */
 export const createTranslationKey = async (
 	prisma: PrismaClient,
-	{ projectId, userId, role }: { projectId: string; userId: string; role: ROLE },
+	{ projectId, userId, role }: { projectId: string; userId: string; role: ProjectAccessRole },
 	{ namespace, name, translations, versionId }: CreateTranslationKeyRequest,
 ): Promise<CreateTranslationKeyResponse> => {
 	const project = await prisma.project.findUniqueOrThrow({

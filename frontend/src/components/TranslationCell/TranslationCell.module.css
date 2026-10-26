@@ -22,11 +22,7 @@
 	border-color: var(--mantine-color-orange-6);
 }
 
-.button[data-readonly] {
-	cursor: default;
-}
-
-.button:not([data-readonly]):hover {
+.button:hover {
 	border-color: var(--app-color-muted);
 }
 

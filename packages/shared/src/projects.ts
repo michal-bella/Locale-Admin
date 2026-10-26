@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { ROLE } from './auth'
+import { PROJECT_ROLE, projectAccessRoleSchema } from './auth'
 import { LANGUAGE_TAGS } from './languages'
 import { projectNameSchema, projectSlugSchema } from './projectSettings'
 
@@ -17,7 +17,8 @@ export const createProjectRequestSchema = z.object({
 export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>
 
 /**
- * One project on the index page and the body of `201 POST /api/projects`. `isMember` is always `false` for an ADMIN, who works in every project without a membership.
+ * One project on the index page and the body of `201 POST /api/projects`. `isMember` is always `false` for an ADMIN, who works in every project without a membership;
+ * `myRole` is what the user may do in the project (`ADMIN` for an admin, otherwise the role of their membership).
  * `languageTags` start with the base language; `translatedCount` is the number of filled values over all keys and languages, so the
  * project is fully translated when it equals `keyCount * languageTags.length`. `memberCount` counts every member of the project.
  */
@@ -27,6 +28,7 @@ export const projectListItemSchema = z.object({
 	slug: z.string(),
 	primaryColor: z.string(),
 	isMember: z.boolean(),
+	myRole: projectAccessRoleSchema,
 	languageTags: z.array(z.enum(LANGUAGE_TAGS)),
 	keyCount: z.number().int().nonnegative(),
 	translatedCount: z.number().int().nonnegative(),
@@ -46,15 +48,23 @@ export const projectListResponseSchema = z.object({
 
 export type ProjectListResponse = z.infer<typeof projectListResponseSchema>
 
-/** Body of `POST /api/projects/:projectId/members`: adds an existing user to the project. ADMIN only. */
+/** Body of `POST /api/projects/:projectId/members`: adds an existing user to the project with a role (`EDITOR` when missing). ADMIN only. */
 export const addProjectMemberRequestSchema = z.object({
 	userId: z.uuid(),
+	role: z.enum(PROJECT_ROLE).default(PROJECT_ROLE.EDITOR),
 })
 
 export type AddProjectMemberRequest = z.infer<typeof addProjectMemberRequestSchema>
 
+/** Body of `PATCH /api/projects/:projectId/members/:userId`: changes the role of a member in the project. ADMIN only. */
+export const updateProjectMemberRequestSchema = z.object({
+	role: z.enum(PROJECT_ROLE),
+})
+
+export type UpdateProjectMemberRequest = z.infer<typeof updateProjectMemberRequestSchema>
+
 /**
- * One member in `GET /api/projects/:projectId/members` and the body of `201 POST`. `role` is the global role and
+ * One member in `GET /api/projects/:projectId/members` and the body of `201 POST` and `PATCH`. `role` is the role in this project and
  * `projectCount` the number of projects the user is a member of (as on `/admin/users`); `createdAt` is when the user
  * joined the project.
  */
@@ -63,7 +73,7 @@ export const projectMemberSchema = z.object({
 	email: z.email(),
 	firstName: z.string().nullable(),
 	lastName: z.string().nullable(),
-	role: z.enum(ROLE),
+	role: z.enum(PROJECT_ROLE),
 	projectCount: z.number().int(),
 	createdAt: z.iso.datetime(),
 })

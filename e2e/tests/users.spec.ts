@@ -29,10 +29,11 @@ test('ADMIN creates an admin who can then log in and sees Používatelia', async
 	const dialog = await openCreateModal(page)
 	await dialog.getByLabel('E-mail', { exact: true }).fill(credentials.email)
 	await dialog.getByLabel('Heslo', { exact: true }).fill(credentials.password)
-	await expect(dialog.getByRole('radio', { name: 'Editor' })).toBeChecked()
-	// The SegmentedControl radio is visually hidden, so the label is clicked instead of check().
-	await dialog.getByText('Administrátor', { exact: true }).click()
-	await expect(dialog.getByRole('radio', { name: 'Administrátor' })).toBeChecked()
+	const adminSwitch = dialog.getByRole('switch', { name: /^Administrátor/ })
+	await expect(adminSwitch).not.toBeChecked()
+	// The Mantine Switch input is visually hidden under its track, so the actionability checks are skipped.
+	await adminSwitch.check({ force: true })
+	await expect(adminSwitch).toBeChecked()
 	const createResponse = page.waitForResponse((response) => response.url().endsWith('/api/admin/users') && response.request().method() === 'POST')
 	await dialog.getByRole('button', { name: 'Vytvoriť používateľa' }).click()
 	expect((await createResponse).status()).toBe(201)
@@ -42,7 +43,7 @@ test('ADMIN creates an admin who can then log in and sees Používatelia', async
 	const row = table.getByRole('row').filter({ hasText: credentials.email })
 	await expect(row).toBeVisible()
 	await expect(row.getByRole('cell').nth(1)).toHaveText('Administrátor')
-	await expect(row.getByRole('cell').nth(2)).toHaveText('0')
+	await expect(row.getByRole('cell').nth(2)).toHaveText('Všetky')
 	expect(await page.evaluate(() => 'e2eNoReload' in window)).toBe(true)
 
 	const context = await browser.newContext({ baseURL, storageState: ANONYMOUS })
@@ -108,7 +109,7 @@ test('ADMIN creates a member who logs in and has no Používatelia', async ({ pa
 	const createResponse = page.waitForResponse((response) => response.url().endsWith('/api/admin/users') && response.request().method() === 'POST')
 	await dialog.getByRole('button', { name: 'Vytvoriť používateľa' }).click()
 	expect((await createResponse).status()).toBe(201)
-	await expect(table.getByRole('row').filter({ hasText: credentials.email }).getByRole('cell').nth(1)).toHaveText('Editor')
+	await expect(table.getByRole('row').filter({ hasText: credentials.email }).getByRole('cell').nth(1)).toHaveText('Používateľ')
 
 	const context = await browser.newContext({ baseURL, storageState: ANONYMOUS })
 	const memberPage = await context.newPage()
@@ -126,7 +127,7 @@ test('lists members with their role and project count', async ({ page, playwrigh
 	const table = await openUsersPage(page)
 
 	const cellsOf = (email: string) => table.getByRole('row').filter({ hasText: email }).getByRole('cell')
-	await expect(cellsOf(editor.email).nth(1)).toHaveText('Editor')
+	await expect(cellsOf(editor.email).nth(1)).toHaveText('Používateľ')
 	await expect(cellsOf(editor.email).nth(2)).toHaveText('1')
 	await expect(cellsOf(member.email).nth(2)).toHaveText('0')
 	await expect(cellsOf(admin.email).nth(1)).toHaveText('Administrátor')

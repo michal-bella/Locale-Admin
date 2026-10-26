@@ -61,7 +61,7 @@ test.describe('ADMIN', () => {
 		await expect(getSidebar(page)).toHaveCount(0)
 	})
 
-	test('inside a project sees the switcher with Preklady, Prehľad, Nastavenia, Jazyky, Verzie and Členovia; switching keeps the page, from settings opens translations', async ({
+	test('inside a project sees the switcher with Prehľad, Preklady, Verzie, História, Jazyky, Členovia and Nastavenia; switching keeps the page, from settings opens translations', async ({
 		page,
 		playwright,
 	}) => {
@@ -74,7 +74,7 @@ test.describe('ADMIN', () => {
 		const section = getMainNavigation(page).getByRole('list', { name: project.name })
 		const settings = section.getByRole('link', { name: 'Nastavenia', exact: true })
 		const members = section.getByRole('link', { name: 'Členovia' })
-		await expect(section.getByRole('link')).toHaveText(['Preklady', 'Prehľad', 'História', 'Nastavenia', 'Jazyky', 'Verzie', 'Členovia'])
+		await expect(section.getByRole('link')).toHaveText(['Prehľad', 'Preklady', 'Verzie', 'História', 'Jazyky', 'Členovia', 'Nastavenia'])
 		await expect(settings).toHaveAttribute('aria-current', 'page')
 
 		await members.click()
@@ -141,12 +141,12 @@ test.describe('ADMIN', () => {
 test.describe('EDITOR', () => {
 	test.use({ storageState: STORAGE_STATE.EDITOR })
 
-	test('outside a project sees only Všetky projekty and the user block with the Člen role', async ({ page }) => {
+	test('outside a project sees only Všetky projekty and the user block with the Používateľ role', async ({ page }) => {
 		await page.goto('/profile')
 		const navigation = getMainNavigation(page)
 		await expect(navigation.getByRole('link')).toHaveText(['Všetky projekty'])
 		await expect(navigation.getByText('Správa')).toHaveCount(0)
-		await expectUserBlock(page, 'Editor')
+		await expectUserBlock(page, 'Používateľ')
 
 		const menu = await openUserMenu(page)
 		await expect(menu.getByRole('menuitem')).toHaveText(['Môj profil', 'Odhlásiť sa'])

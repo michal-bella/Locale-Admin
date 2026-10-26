@@ -3,9 +3,8 @@ import { Link, useLoaderData, useParams } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ROLE } from '@locale/shared'
+import { PROJECT_ROLE } from '@locale/shared'
 
-import { useMeQuery } from '@/api/auth/meQuery'
 import { useDashboardQuery } from '@/api/dashboard/dashboardQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
@@ -20,6 +19,7 @@ import LanguageStatus from '@/components/LanguageStatus/LanguageStatus'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import ProjectManagers from '@/components/ProjectManagers/ProjectManagers'
 import StatCard from '@/components/StatCard/StatCard'
+import { useProjectRole } from '@/hooks/useProjectRole'
 import { formatShare } from '@/lib/formatShare'
 
 import classes from './DashboardPage.module.css'
@@ -34,9 +34,8 @@ const DashboardPage = () => {
 	const { t, i18n } = useTranslation()
 	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { projectSlug } = useParams({ from: '/_authenticated/_app/projects/$projectSlug/dashboard' })
-	const { data: me } = useMeQuery()
 	// A VISITOR cannot open Jazyky, Verzie and Členovia (403), so the links there are not shown.
-	const canManageProject = me?.role !== ROLE.VISITOR
+	const canManageProject = useProjectRole(projectId) !== PROJECT_ROLE.VISITOR
 	const { data: project } = useProjectSettingsQuery(projectId)
 	const versionsQuery = useProjectVersionsQuery(projectId)
 	const versions = versionsQuery.data
@@ -158,7 +157,7 @@ const DashboardPage = () => {
 					<StatCard
 						label={t('dashboardPage.stats.members')}
 						value={members?.length}
-						hint={members && t('dashboardPage.stats.managers', { count: members.filter((member) => member.role === ROLE.MANAGER).length })}
+						hint={members && t('dashboardPage.stats.managers', { count: members.filter((member) => member.role === PROJECT_ROLE.MANAGER).length })}
 						icon={Users}
 						tone='brand'
 						link={

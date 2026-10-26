@@ -6,7 +6,7 @@ import { ADMIN_EMAIL } from '../support/env'
 import { openUserMenu } from '../support/layout'
 import { createEditor, type TestUser } from '../support/users'
 
-type Profile = { id: string; email: string; role: 'ADMIN' | 'EDITOR'; firstName: string | null; lastName: string | null; passwordChangedAt: string }
+type Profile = { id: string; email: string; role: 'ADMIN' | 'USER'; firstName: string | null; lastName: string | null; passwordChangedAt: string }
 
 const PROFILE_HEADING = { level: 1, name: 'Môj profil' } as const
 
@@ -85,7 +85,7 @@ test.describe('EDITOR with a dedicated user', () => {
 		await expect(page.getByLabel('Meno', { exact: true })).toHaveValue('Ľubomír')
 		await expect(page.getByLabel('Priezvisko', { exact: true })).toHaveValue('Šťastný')
 		await expect(topBar.getByText('ĽŠ', { exact: true })).toBeVisible()
-		expect(await getProfile(page)).toMatchObject({ email: editor.email, role: 'EDITOR', firstName: 'Ľubomír', lastName: 'Šťastný' })
+		expect(await getProfile(page)).toMatchObject({ email: editor.email, role: 'USER', firstName: 'Ľubomír', lastName: 'Šťastný' })
 	})
 
 	test('changes the password in the modal, stays signed in and signs in again only with the new one', async ({ page, context }) => {
@@ -153,17 +153,18 @@ test.describe('EDITOR with a dedicated user', () => {
 test.describe('EDITOR', () => {
 	test.use({ storageState: STORAGE_STATE.EDITOR })
 
-	test('opens the profile from the menu with the disabled controls', async ({ page }) => {
+	test('opens the profile from the menu with the disabled controls, without the Administrátor switch and with the role in the project', async ({ page }) => {
 		await openProfileFromMenu(page)
 		const profile = await getProfile(page)
-		expect(profile.role).toBe('EDITOR')
+		expect(profile.role).toBe('USER')
 
 		const email = page.getByLabel('E-mailová adresa', { exact: true })
 		await expect(email).toHaveValue(profile.email)
 		await expect(email).toBeDisabled()
-		const role = page.getByRole('combobox', { name: 'Rola', exact: true })
-		await expect(role).toHaveValue('Editor')
-		await expect(role).toBeDisabled()
+		await expect(page.getByRole('switch', { name: /^Administrátor/ })).toHaveCount(0)
+		const projects = page.getByRole('list', { name: 'Moje projekty a roly' }).getByRole('listitem')
+		await expect(projects.first()).toBeVisible()
+		await expect(projects.filter({ hasText: 'Editor' }).first()).toBeVisible()
 
 		for (const name of [/^Zmienky a komentáre/, /^Preklady na kontrolu/, /^Importy a exporty/]) {
 			const toggle = page.getByRole('switch', { name })
@@ -210,7 +211,8 @@ test.describe('ADMIN', () => {
 	test('opens the profile from the menu', async ({ page }) => {
 		await openProfileFromMenu(page)
 		await expect(page.getByLabel('E-mailová adresa', { exact: true })).toHaveValue(ADMIN_EMAIL)
-		await expect(page.getByRole('main').getByText('Administrátor', { exact: true })).toBeVisible()
+		await expect(page.getByRole('switch', { name: /^Administrátor/ })).toBeChecked()
+		await expect(page.getByRole('heading', { level: 2, name: 'Moje projekty' })).toHaveCount(0)
 		await expect(page.getByRole('button', { name: 'Uložiť profil' })).toBeDisabled()
 		expect(await getProfile(page)).toMatchObject({ email: ADMIN_EMAIL, role: 'ADMIN' })
 	})

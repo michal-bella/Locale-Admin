@@ -1,15 +1,13 @@
-import { Avatar, Select, Text } from '@mantine/core'
+import { Avatar, Switch, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { notifications } from '@mantine/notifications'
-import { useId } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { getInitials, ROLE } from '@locale/shared'
 
-import { useUpdateUserMutation } from '@/api/adminUsers/useUpdateUserMutation'
-import getApiErrorCode from '@/api/getApiErrorCode'
+import AdminAccessModal from '@/components/AdminAccessModal/AdminAccessModal'
 import EditUserEmailModal from '@/components/EditUserEmailModal/EditUserEmailModal'
-import { ChevronDown, Edit } from '@/components/Icons'
+import { Edit } from '@/components/Icons'
 import RowAction from '@/components/RowAction/RowAction'
 import { formatDate } from '@/lib/formatDate'
 
@@ -17,28 +15,14 @@ import classes from './UserCard.module.css'
 import { type UserCardProps } from './types'
 
 /**
- * Header card of the user detail: avatar with initials from the email, the email with Upraviť e-mail, the created date and the global role
- * as a select that saves on change.
+ * Header card of the user detail: avatar with initials from the email, the email with Upraviť e-mail, the created date and the Administrátor
+ * switch (the global role), which saves only after the confirmation in `AdminAccessModal`.
  */
 const UserCard = ({ user }: UserCardProps) => {
 	const { t, i18n } = useTranslation()
-	const roleId = useId()
-	const updateRole = useUpdateUserMutation(user.id)
 	const [emailModalOpened, emailModal] = useDisclosure(false)
-
-	const changeRole = (value: string | null) => {
-		const role = Object.values(ROLE).find((candidate) => candidate === value)
-		if (!role || role === user.role || updateRole.isPending) {
-			return
-		}
-		updateRole.mutate(
-			{ role },
-			{
-				onSuccess: () => notifications.show({ color: 'green', message: t('userPage.card.roleSaved') }),
-				onError: (error) => notifications.show({ color: 'red', message: t(`errors.${getApiErrorCode(error)}`) }),
-			},
-		)
-	}
+	const [adminModalOpened, adminModal] = useDisclosure(false)
+	const [adminAction, setAdminAction] = useState<'grant' | 'revoke'>('grant')
 
 	return (
 		<section aria-label={t('userPage.card.label')} className={`${classes.card} flex flex-wrap items-center gap-4`}>
@@ -62,19 +46,17 @@ const UserCard = ({ user }: UserCardProps) => {
 					{t('userPage.card.createdAt', { date: formatDate(user.createdAt, i18n.language) })}
 				</Text>
 			</div>
-			<Select
-				id={roleId}
-				label={t('userPage.card.role')}
-				className={classes.role}
-				value={user.role}
-				onChange={changeRole}
-				disabled={updateRole.isPending}
-				allowDeselect={false}
-				rightSection={<ChevronDown aria-hidden />}
-				rightSectionPointerEvents='none'
-				data={Object.values(ROLE).map((role) => ({ value: role, label: t(`roles.${role}`) }))}
+			<Switch
+				label={t('adminAccess.label')}
+				checked={user.role === ROLE.ADMIN}
+				onChange={() => {
+					setAdminAction(user.role === ROLE.ADMIN ? 'revoke' : 'grant')
+					adminModal.open()
+				}}
+				withThumbIndicator={false}
 			/>
 			<EditUserEmailModal user={user} opened={emailModalOpened} onClose={emailModal.close} />
+			<AdminAccessModal user={user} action={adminAction} opened={adminModalOpened} onClose={adminModal.close} />
 		</section>
 	)
 }

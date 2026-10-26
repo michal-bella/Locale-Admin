@@ -17,16 +17,6 @@
 	min-width: 0;
 }
 
-.role {
-	width: 14rem;
-}
-
-@media (max-width: 39.99em) {
-	.role {
-		width: 100%;
-	}
-}
-
 .email {
 	line-height: 1.5556;
 	letter-spacing: -0.02em;

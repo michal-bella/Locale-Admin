@@ -10,6 +10,6 @@ export type TranslationCellProps = {
 	reference?: string
 	/** The value differs from the previous version of the project (diff of the version): brand left border and a hidden „Zmenené“. */
 	changed?: boolean
-	/** Opens the edit modal for this key and language; without it the cell is plain text (a VISITOR). */
-	onClick?: () => void
+	/** Opens `EditTranslationModal` for this key and language (read-only where the user cannot write). */
+	onClick: () => void
 }

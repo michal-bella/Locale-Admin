@@ -1,21 +1,23 @@
 import { notifications } from '@mantine/notifications'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { type AxiosAdapter } from 'axios'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
-import { type AuthUser, type Profile } from '@locale/shared'
+import { type AuthUser, type Profile, PROJECT_ROLE } from '@locale/shared'
 
 import http from '@/api/http'
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
 import { LOCALE_STORAGE_KEY } from '@/lib/constants'
 import i18n from '@/lib/i18n'
-import { ADMIN_USER, apiError, EDITOR_USER, signedInAs } from '@/test/mockApi'
+import { ADMIN_USER, apiError, EDITOR_USER, projectListRoute, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
+
+const NOW = new Date(2026, 9, 20, 12, 0, 0)
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000
 
-const profileOf = (user: AuthUser): Profile => ({ ...user, passwordChangedAt: new Date(Date.now() - NINETY_DAYS_MS).toISOString() })
+const profileOf = (user: AuthUser): Profile => ({ ...user, passwordChangedAt: new Date(NOW.getTime() - NINETY_DAYS_MS).toISOString() })
 
 const ADMIN_PROFILE = profileOf(ADMIN_USER)
 
@@ -54,7 +56,13 @@ beforeAll(() => {
 	queryClient.setQueryDefaults(QUERY_KEYS.PROFILE(), { retry: false })
 })
 
+beforeEach(() => {
+	vi.useFakeTimers({ toFake: ['Date'] })
+	vi.setSystemTime(NOW)
+})
+
 afterEach(() => {
+	vi.useRealTimers()
 	vi.restoreAllMocks()
 })
 
@@ -71,16 +79,23 @@ describe('ProfilePage', () => {
 		expect(screen.getByText('Heslo bolo naposledy zmenené pred 3 mesiacmi.')).toBeInTheDocument()
 	})
 
-	it('shows the email as the name and empty fields when the user has no name', async () => {
-		signedInAs(EDITOR_USER, { 'GET /profile': { status: 200, data: profileOf(EDITOR_USER) } })
+	it('shows the email as the name, empty fields and the projects with roles without the Administrátor switch to a USER', async () => {
+		signedInAs(EDITOR_USER, {
+			'GET /profile': { status: 200, data: profileOf(EDITOR_USER) },
+			...projectListRoute(
+				{ id: '00000000-0000-4000-8000-000000000701', name: 'Booking Web', slug: 'booking-web', primaryColor: '#E83E8C', myRole: PROJECT_ROLE.MANAGER },
+				{ id: '00000000-0000-4000-8000-000000000702', name: 'B2C iOS', slug: 'b2c-ios', primaryColor: '#1D4ED8', myRole: PROJECT_ROLE.VISITOR },
+			),
+		})
 		await renderProfile()
 
 		expect(screen.getByLabelText('Meno')).toHaveValue('')
 		expect(screen.getByLabelText('Priezvisko')).toHaveValue('')
 		expect(screen.getByRole('heading', { level: 2, name: EDITOR_USER.email })).toBeInTheDocument()
-		expect(getMain().getByText('Editor', { selector: 'p' })).toBeInTheDocument()
-		expect(screen.getByRole('combobox', { name: 'Rola' })).toHaveValue('Editor')
-		expect(screen.getByRole('combobox', { name: 'Rola' })).toBeDisabled()
+		expect(getMain().getByText('Používateľ', { selector: 'p' })).toBeInTheDocument()
+		expect(screen.queryByRole('switch', { name: /^Administrátor/ })).not.toBeInTheDocument()
+		const projects = within(await screen.findByRole('list', { name: 'Moje projekty a roly' })).getAllByRole('listitem')
+		expect(projects.map((project) => project.textContent)).toEqual(['BWBooking WebSprávca', 'BIB2C iOSNávštevník'])
 	})
 
 	it('shows the controls outside the MVP as disabled', async () => {
@@ -89,8 +104,9 @@ describe('ProfilePage', () => {
 
 		expect(screen.getByLabelText('E-mailová adresa')).toBeDisabled()
 		expect(screen.getByLabelText('E-mailová adresa')).toHaveValue(ADMIN_USER.email)
-		expect(screen.getByRole('combobox', { name: 'Rola' })).toHaveValue('Administrátor')
-		expect(screen.getByRole('combobox', { name: 'Rola' })).toBeEnabled()
+		expect(screen.getByRole('switch', { name: /^Administrátor/ })).toBeChecked()
+		expect(screen.getByRole('switch', { name: /^Administrátor/ })).toBeEnabled()
+		expect(screen.queryByRole('heading', { level: 2, name: 'Moje projekty' })).not.toBeInTheDocument()
 		const switches = within(screen.getByRole('group', { name: 'E-mailové oznámenia' })).getAllByRole('switch')
 		expect(switches).toHaveLength(3)
 		switches.forEach((toggle) => {
@@ -186,26 +202,22 @@ describe('ProfilePage', () => {
 		expect(requests.filter((request) => request.url === '/auth/me')).toHaveLength(1)
 	})
 
-	it('lets an admin pick the Editor role and saves it with the names', async () => {
+	it('lets an admin turn off Administrátor and saves it with the names', async () => {
 		const requests = signedInAs(ADMIN_USER, {
 			'GET /profile': { status: 200, data: ADMIN_PROFILE },
-			'PATCH /profile': { status: 200, data: { ...ADMIN_PROFILE, role: 'EDITOR' } },
+			'PATCH /profile': { status: 200, data: { ...ADMIN_PROFILE, role: 'USER' } },
 		})
 		await renderProfile()
 
-		fireEvent.click(screen.getByRole('combobox', { name: 'Rola' }))
-		const options = await screen.findAllByRole('option')
-		expect(options.map((option) => option.textContent)).toEqual(['Administrátor', 'Správca', 'Editor', 'Návštevník'])
-		fireEvent.click(screen.getByRole('option', { name: 'Editor' }))
+		fireEvent.click(screen.getByRole('switch', { name: /^Administrátor/ }))
 		expect(getSaveButton()).toBeEnabled()
 		fireEvent.click(getSaveButton())
 
-		await waitFor(() => expect(getMain().getByText('Editor', { selector: 'p' })).toBeInTheDocument())
+		await waitFor(() => expect(getMain().getByText('Používateľ', { selector: 'p' })).toBeInTheDocument())
 		const patches = requests.filter((request) => request.method === 'patch' && request.url === '/profile')
 		expect(patches).toHaveLength(1)
-		expect(JSON.parse(patches[0]?.data as string)).toEqual({ firstName: 'Martin', lastName: 'Kováč', role: 'EDITOR' })
-		expect(screen.getByRole('combobox', { name: 'Rola' })).toHaveValue('Editor')
-		expect(screen.getByRole('combobox', { name: 'Rola' })).toBeDisabled()
+		expect(JSON.parse(patches[0]?.data as string)).toEqual({ firstName: 'Martin', lastName: 'Kováč', role: 'USER' })
+		expect(screen.queryByRole('switch', { name: /^Administrátor/ })).not.toBeInTheDocument()
 	})
 
 	it('shows the last admin error as a notification', async () => {
@@ -213,8 +225,7 @@ describe('ProfilePage', () => {
 		signedInAs(ADMIN_USER, { 'GET /profile': { status: 200, data: ADMIN_PROFILE }, 'PATCH /profile': apiError(409, 'LAST_ADMIN') })
 		await renderProfile()
 
-		fireEvent.click(screen.getByRole('combobox', { name: 'Rola' }))
-		fireEvent.click(await screen.findByRole('option', { name: 'Editor' }))
+		fireEvent.click(screen.getByRole('switch', { name: /^Administrátor/ }))
 		fireEvent.click(getSaveButton())
 
 		await waitFor(() =>

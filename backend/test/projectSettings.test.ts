@@ -3,12 +3,12 @@ import { randomUUID } from 'node:crypto'
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 
-import { ERROR_CODE, ROLE, VALIDATION_CODE, errorResponseSchema, projectSettingsSchema, type LanguageTag } from '@locale/shared'
+import { ERROR_CODE, PROJECT_ROLE, ROLE, VALIDATION_CODE, errorResponseSchema, projectSettingsSchema, type LanguageTag } from '@locale/shared'
 
 import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
-import { TEST_PASSWORD, createUser } from './helpers/users'
+import { TEST_PASSWORD, createUser, globalRoleOf, memberRoleOf, type TestRole } from './helpers/users'
 
 type App = ReturnType<typeof createTestApp>
 
@@ -18,10 +18,10 @@ const expectErrorCode = (res: request.Response, status: number, code: ERROR_CODE
 }
 
 /** Logs in a new user; an EDITOR is a member of `memberOf` when given. */
-const loginWithRole = async (app: App, role: ROLE, memberOf?: string) => {
-	const { user } = await createUser({ role })
+const loginWithRole = async (app: App, role: TestRole, memberOf?: string) => {
+	const { user } = await createUser({ role: globalRoleOf(role) })
 	if (memberOf) {
-		await getTestPrisma().projectMember.create({ data: { projectId: memberOf, userId: user.id } })
+		await getTestPrisma().projectMember.create({ data: { projectId: memberOf, userId: user.id, role: memberRoleOf(role) } })
 	}
 	return loginAs(app, { email: user.email, password: TEST_PASSWORD })
 }
@@ -49,7 +49,7 @@ describe('GET /api/projects/:projectId/settings', () => {
 	it('returns the project settings with the base language to a member', async () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
-		const cookie = await loginWithRole(app, ROLE.EDITOR, project.id)
+		const cookie = await loginWithRole(app, PROJECT_ROLE.EDITOR, project.id)
 		const sk = await createLanguageRow(project.id, 'sk', { isBase: true })
 		await createLanguageRow(project.id, 'en')
 
@@ -77,8 +77,8 @@ describe('GET /api/projects/:projectId/settings', () => {
 		expect(projectSettingsSchema.parse(res.body).baseLanguageId).toBeNull()
 	})
 
-	it.each([
-		{ name: 'an EDITOR who is not a member', role: ROLE.EDITOR, projectId: undefined },
+	it.each<{ name: string; role: TestRole; projectId: string | undefined }>([
+		{ name: 'an EDITOR who is not a member', role: PROJECT_ROLE.EDITOR, projectId: undefined },
 		{ name: 'an unknown project', role: ROLE.ADMIN, projectId: randomUUID() },
 		{ name: 'an id that is not a UUID', role: ROLE.ADMIN, projectId: 'b2b-admin' },
 	])('returns 404 NOT_FOUND for $name', async ({ role, projectId }) => {
@@ -225,7 +225,7 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 	it('lets a MANAGER member save the settings', async () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
-		const cookie = await loginWithRole(app, ROLE.MANAGER, project.id)
+		const cookie = await loginWithRole(app, PROJECT_ROLE.MANAGER, project.id)
 
 		const res = await patchProject(app, cookie, project.id, updateBody())
 
@@ -233,10 +233,28 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 		expect(await getTestPrisma().project.findUniqueOrThrow({ where: { id: project.id } })).toMatchObject({ name: 'B2C iOS', slug: 'b2c-ios' })
 	})
 
+	it('uses the role of the membership in each project: a MANAGER of one saves, a VISITOR of the other gets 403', async () => {
+		const app = createTestApp()
+		const managed = await createProjectRow('managed')
+		const visited = await createProjectRow('visited')
+		const { user } = await createUser()
+		await getTestPrisma().projectMember.createMany({
+			data: [
+				{ projectId: managed.id, userId: user.id, role: PROJECT_ROLE.MANAGER },
+				{ projectId: visited.id, userId: user.id, role: PROJECT_ROLE.VISITOR },
+			],
+		})
+		const cookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
+
+		expect((await patchProject(app, cookie, managed.id, updateBody())).status).toBe(200)
+		expectErrorCode(await patchProject(app, cookie, visited.id, { ...updateBody(), slug: 'other' }), 403, ERROR_CODE.FORBIDDEN)
+		expect(await getTestPrisma().project.findUniqueOrThrow({ where: { id: visited.id } })).toEqual(visited)
+	})
+
 	it('returns 404 NOT_FOUND for a MANAGER who is not a member', async () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
-		const cookie = await loginWithRole(app, ROLE.MANAGER)
+		const cookie = await loginWithRole(app, PROJECT_ROLE.MANAGER)
 
 		const res = await patchProject(app, cookie, project.id, updateBody())
 
@@ -246,7 +264,7 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 	it('returns 403 FORBIDDEN for an EDITOR member and saves nothing', async () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
-		const cookie = await loginWithRole(app, ROLE.EDITOR, project.id)
+		const cookie = await loginWithRole(app, PROJECT_ROLE.EDITOR, project.id)
 
 		const res = await patchProject(app, cookie, project.id, updateBody())
 
@@ -257,7 +275,7 @@ describe('PATCH /api/projects/:projectId/settings', () => {
 	it('returns 404 NOT_FOUND for an EDITOR who is not a member', async () => {
 		const app = createTestApp()
 		const project = await createProjectRow()
-		const cookie = await loginWithRole(app, ROLE.EDITOR)
+		const cookie = await loginWithRole(app, PROJECT_ROLE.EDITOR)
 
 		const res = await patchProject(app, cookie, project.id, updateBody())
 

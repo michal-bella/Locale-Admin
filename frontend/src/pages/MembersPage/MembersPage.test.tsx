@@ -2,7 +2,7 @@ import { notifications } from '@mantine/notifications'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test'
 
-import { type AdminUser, type ProjectMember, type ProjectSettings, ROLE } from '@locale/shared'
+import { type AdminUser, PROJECT_ROLE, type ProjectMember, type ProjectSettings, ROLE } from '@locale/shared'
 
 import queryClient from '@/api/queryClient'
 import { QUERY_KEYS } from '@/api/queryKeys'
@@ -23,7 +23,7 @@ const JANA: ProjectMember = {
 	email: 'jana.novakova@firma.sk',
 	firstName: 'Jana',
 	lastName: 'Nováková',
-	role: ROLE.EDITOR,
+	role: PROJECT_ROLE.EDITOR,
 	projectCount: 1,
 	createdAt: '2026-10-03T10:00:00.000Z',
 }
@@ -33,7 +33,7 @@ const PETER: ProjectMember = {
 	email: 'peter.maly@firma.sk',
 	firstName: 'Peter',
 	lastName: 'Malý',
-	role: ROLE.EDITOR,
+	role: PROJECT_ROLE.EDITOR,
 	projectCount: 3,
 	createdAt: '2026-10-18T10:00:00.000Z',
 }
@@ -43,21 +43,21 @@ const ADMIN_MEMBER: ProjectMember = {
 	email: ADMIN_USER.email,
 	firstName: 'Martin',
 	lastName: 'Kováč',
-	role: ROLE.ADMIN,
+	role: PROJECT_ROLE.MANAGER,
 	projectCount: 2,
 	createdAt: '2026-10-01T10:00:00.000Z',
 }
 
-const asAdminUser = ({ id, email, role, projectCount, createdAt }: ProjectMember): AdminUser => ({ id, email, role, projectCount, createdAt })
+const asAdminUser = ({ id, email, projectCount, createdAt }: ProjectMember, role = ROLE.USER): AdminUser => ({ id, email, role, projectCount, createdAt })
 
 const JANA_USER = asAdminUser(JANA)
 const PETER_USER = asAdminUser(PETER)
-const ADMIN_SELF = asAdminUser(ADMIN_MEMBER)
+const ADMIN_SELF = asAdminUser(ADMIN_MEMBER, ROLE.ADMIN)
 
 const NEW_USER: AdminUser = {
 	id: '00000000-0000-4000-8000-000000000503',
 	email: 'nova@firma.sk',
-	role: ROLE.EDITOR,
+	role: ROLE.USER,
 	projectCount: 0,
 	createdAt: '2026-10-19T10:00:00.000Z',
 }
@@ -118,7 +118,7 @@ describe('MembersPage', () => {
 		expect(jana.getByText('3. 10. 2026')).toBeInTheDocument()
 		expect(jana.getByText('1 projekt · Pridaný 3. 10. 2026')).toBeInTheDocument()
 		const admin = within(table.getByRole('row', { name: /Martin Kováč/ }))
-		expect(admin.getAllByText('Administrátor')).toHaveLength(2)
+		expect(admin.getAllByText('Správca')).toHaveLength(2)
 		expect(admin.getByText('2')).toBeInTheDocument()
 	})
 
@@ -134,7 +134,33 @@ describe('MembersPage', () => {
 		expect(screen.queryByRole('button', { name: /Odobrať .* z projektu/ })).not.toBeInTheDocument()
 		expect(screen.queryByRole('link', { name: /Otvoriť používateľa/ })).not.toBeInTheDocument()
 		expect(screen.getByRole('columnheader', { name: 'Akcie' })).toBeInTheDocument()
+		expect(screen.queryByRole('combobox', { name: /^Rola používateľa/ })).not.toBeInTheDocument()
 		expect(requests.some((request) => request.url === '/admin/users')).toBe(false)
+	})
+
+	it('lets an admin change the role of a member, refetches the members and notifies', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		let members = [ADMIN_MEMBER, JANA]
+		const requests = signedInAs(ADMIN_USER, {
+			...routes(() => members),
+			[`PATCH ${MEMBERS_URL}/${JANA.id}`]: () => {
+				members = [ADMIN_MEMBER, { ...JANA, role: PROJECT_ROLE.VISITOR }]
+				return { status: 200, data: { ...JANA, role: PROJECT_ROLE.VISITOR } }
+			},
+		})
+		renderApp(PAGE_PATH)
+
+		// The table renders the role twice: in the Rola column and, for narrow screens (hidden by CSS otherwise), under the email.
+		const [select] = await screen.findAllByRole('combobox', { name: `Rola používateľa ${JANA.email} v projekte` })
+		expect(select).toHaveValue('Editor')
+		fireEvent.click(select as HTMLElement)
+		fireEvent.click(await screen.findByRole('option', { name: 'Návštevník' }))
+
+		await waitFor(() => expect(screen.getAllByRole('combobox', { name: `Rola používateľa ${JANA.email} v projekte` })[0]).toHaveValue('Návštevník'))
+		const patches = requests.filter((request) => request.method === 'patch')
+		expect(patches).toHaveLength(1)
+		expect(JSON.parse(patches[0]?.data as string)).toEqual({ role: 'VISITOR' })
+		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Rola v projekte bola uložená.' }))
 	})
 
 	it('links an admin from every row to the user detail, which links back to this project', async () => {
@@ -188,12 +214,17 @@ describe('MembersPage', () => {
 		const dialog = await openAddModal()
 
 		await pickUser(dialog, PETER.email)
+		fireEvent.click(within(dialog).getByRole('combobox', { name: 'Rola v projekte' }))
+		fireEvent.click(await screen.findByRole('option', { name: 'Správca' }))
+		expect(within(dialog).getByRole('combobox', { name: 'Rola v projekte' })).toHaveAccessibleDescription(
+			'Spravuje projekt: nastavenia, jazyky, verzie, import a kľúče. Členov nespravuje.',
+		)
 		submitAdd(dialog)
 
 		expect(await screen.findByText('Peter Malý')).toBeInTheDocument()
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		const post = requests.find((request) => request.method === 'post')
-		expect(JSON.parse(post?.data as string)).toEqual({ userId: PETER.id })
+		expect(JSON.parse(post?.data as string)).toEqual({ userId: PETER.id, role: 'MANAGER' })
 		expect(requests.filter((request) => request.method === 'get' && request.url === '/admin/users')).toHaveLength(2)
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: `Člen ${PETER.email} bol pridaný do projektu.` }))
 	})
@@ -247,7 +278,7 @@ describe('MembersPage', () => {
 		expect(await within(dialog).findByLabelText('Používateľ', { selector: 'input' })).toBeInTheDocument()
 	})
 
-	it('creates a new user from the modal with the role Editor and preselects them', async () => {
+	it('creates a new user from the modal with the role Používateľ and preselects them', async () => {
 		let users = [ADMIN_SELF, JANA_USER]
 		const requests = signedInAs(ADMIN_USER, {
 			...routes(
@@ -266,20 +297,20 @@ describe('MembersPage', () => {
 
 		fireEvent.click(within(addDialog).getByRole('button', { name: 'Vytvoriť nového používateľa' }))
 		const createDialog = await screen.findByRole('dialog', { name: 'Nový používateľ' })
-		expect(within(createDialog).getByRole('combobox', { name: 'Rola' })).toHaveValue('Editor')
+		expect(within(createDialog).getByRole('switch', { name: /^Administrátor/ })).not.toBeChecked()
 		fireEvent.change(within(createDialog).getByLabelText('E-mail'), { target: { value: NEW_USER.email } })
 		fireEvent.change(within(createDialog).getByLabelText('Heslo'), { target: { value: 'NewMemberPassword1' } })
 		fireEvent.click(within(createDialog).getByRole('button', { name: 'Vytvoriť používateľa' }))
 
 		await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nový používateľ' })).not.toBeInTheDocument())
 		const createPost = requests.find((request) => request.method === 'post' && request.url === '/admin/users')
-		expect(JSON.parse(createPost?.data as string)).toEqual({ email: NEW_USER.email, password: 'NewMemberPassword1', role: 'EDITOR' })
+		expect(JSON.parse(createPost?.data as string)).toEqual({ email: NEW_USER.email, password: 'NewMemberPassword1', role: 'USER' })
 		expect(getUserInput(addDialog)).toHaveValue(NEW_USER.email)
 
 		submitAdd(addDialog)
 		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 		const addPost = requests.find((request) => request.method === 'post' && request.url === MEMBERS_URL)
-		expect(JSON.parse(addPost?.data as string)).toEqual({ userId: NEW_USER.id })
+		expect(JSON.parse(addPost?.data as string)).toEqual({ userId: NEW_USER.id, role: 'EDITOR' })
 		await waitFor(() => expect(screen.getByRole('button', { name: 'Pridať člena' })).toHaveFocus())
 	})
 })

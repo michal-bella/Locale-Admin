@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { ROLE } from './auth'
+import { PROJECT_ROLE, ROLE } from './auth'
 import { emailSchema } from './email'
 import { passwordSchema } from './password'
 
@@ -13,7 +13,7 @@ export const createUserRequestSchema = z.object({
 
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>
 
-/** Body of `PATCH /api/admin/users/:id`: changes the global role, the email or both. The last `ADMIN` cannot become an `EDITOR`. */
+/** Body of `PATCH /api/admin/users/:id`: changes the global role, the email or both. The last `ADMIN` cannot become a `USER`. */
 export const updateUserRequestSchema = z
 	.object({
 		role: z.enum(ROLE).optional(),
@@ -34,19 +34,20 @@ export const adminUserSchema = z.object({
 
 export type AdminUser = z.infer<typeof adminUserSchema>
 
-/** Body of `GET /api/admin/users`: every user (ADMIN and EDITOR), sorted newest first. */
+/** Body of `GET /api/admin/users`: every user (ADMIN and USER), sorted newest first. */
 export const adminUserListResponseSchema = z.object({
 	users: z.array(adminUserSchema),
 })
 
 export type AdminUserListResponse = z.infer<typeof adminUserListResponseSchema>
 
-/** One project of a user in `GET /api/admin/users/:id`. `joinedAt` is when the user became a member. */
+/** One project of a user in `GET /api/admin/users/:id`. `role` is the role of the membership, `joinedAt` is when the user became a member. */
 export const adminUserProjectSchema = z.object({
 	id: z.uuid(),
 	name: z.string(),
 	slug: z.string(),
 	primaryColor: z.string(),
+	role: z.enum(PROJECT_ROLE),
 	joinedAt: z.iso.datetime(),
 })
 

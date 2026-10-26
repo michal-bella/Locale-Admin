@@ -267,16 +267,29 @@ th.stickyEnd {
 	overflow-wrap: anywhere;
 }
 
+/* `contain` keeps the one-line namespace from widening the key column (the table sizes columns by their content); the meta takes the cell's width. */
 .meta {
 	display: flex;
-	flex-wrap: wrap;
+	contain: inline-size;
 	align-items: center;
 	gap: 0.5rem;
 	padding-top: 0.25rem;
 	font-size: var(--mantine-font-size-3xs);
 	line-height: 1.5;
 	color: var(--app-color-muted);
-	overflow-wrap: anywhere;
+}
+
+/* A long namespace takes one line with an ellipsis (the whole one is in the title and in Upraviť kľúč), so it does not make the row tall. */
+.metaGroup {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.meta time,
+.metaDot {
+	flex-shrink: 0;
 }
 
 .metaDot {

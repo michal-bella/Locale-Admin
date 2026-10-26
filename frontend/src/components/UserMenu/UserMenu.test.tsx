@@ -23,14 +23,14 @@ describe('UserMenu', () => {
 		expect(topBar.getByRole('button', { name: /^Menu používateľa/ })).toBeInTheDocument()
 	})
 
-	it('shows the email instead of a missing name and the EDITOR role', async () => {
+	it('shows the email instead of a missing name and the USER role', async () => {
 		signedInAs(EDITOR_USER)
 		renderApp('/profile')
 		const topBar = await getTopBar()
 
 		expect(await topBar.findByText('JA')).toBeInTheDocument()
 		expect(topBar.getByText(EDITOR_USER.email)).toBeInTheDocument()
-		expect(topBar.getByText('Editor')).toBeInTheDocument()
+		expect(topBar.getByText('Používateľ')).toBeInTheDocument()
 	})
 
 	it('has only the profile link and logout in the menu', async () => {

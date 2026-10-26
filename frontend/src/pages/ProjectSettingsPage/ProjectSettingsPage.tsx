@@ -12,6 +12,7 @@ import { useProjectSettingsQuery } from '@/api/projectSettings/projectSettingsQu
 import { useProjectsQuery } from '@/api/projects/projectsQuery'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import ProjectSettingsForm from '@/components/ProjectSettingsForm/ProjectSettingsForm'
+import { useProjectRole } from '@/hooks/useProjectRole'
 
 import classes from './ProjectSettingsPage.module.css'
 
@@ -28,6 +29,7 @@ const ProjectSettingsPage = () => {
 	const { data: projects } = useProjectsQuery()
 	const settingsQuery = useProjectSettingsQuery(projectId)
 	const languagesQuery = useProjectLanguagesQuery(projectId)
+	const projectRole = useProjectRole(projectId)
 	const [retrySucceeded, setRetrySucceeded] = useState(false)
 	const failedQueries = [settingsQuery, languagesQuery].filter((query) => query.isError && query.data === undefined)
 
@@ -69,7 +71,7 @@ const ProjectSettingsPage = () => {
 				settings={settingsQuery.data}
 				languages={languagesQuery.data}
 				isMember={isMember}
-				readOnly={user === undefined || !canManageProject(user.role)}
+				readOnly={projectRole === undefined || !canManageProject(projectRole)}
 				onLeft={() => void navigate({ to: '/' })}
 				onSaved={({ slug }) => {
 					if (slug !== projectSlug) {

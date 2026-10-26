@@ -16,7 +16,7 @@ import {
 	type ImportPreviewResponse,
 	type ImportRequest,
 	type ImportResult,
-	type ROLE,
+	type ProjectAccessRole,
 	comparePlaceholders,
 	placeholderReference,
 } from '@locale/shared'
@@ -301,7 +301,7 @@ const batches = <T>(items: T[]): T[][] =>
  */
 export const importFile = (
 	prisma: PrismaClient,
-	{ projectId, userId, role }: { projectId: string; userId: string; role: ROLE },
+	{ projectId, userId, role }: { projectId: string; userId: string; role: ProjectAccessRole },
 	file: ParsedFile,
 	request: ImportRequest,
 ): Promise<ImportResult> =>

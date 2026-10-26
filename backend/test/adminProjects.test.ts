@@ -109,7 +109,7 @@ describe('GET /api/admin/projects', () => {
 
 	it('returns 403 FORBIDDEN for an EDITOR', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await loginWithRole(app, ROLE.EDITOR)
+		const { user, cookie } = await loginWithRole(app, ROLE.USER)
 		await createProject({ name: 'Web', slug: 'web', memberIds: [user.id] })
 
 		const res = await request(app).get('/api/admin/projects').set('Cookie', cookie)
@@ -174,7 +174,7 @@ describe('DELETE /api/admin/projects/:projectId', () => {
 
 	it('returns 403 FORBIDDEN for an EDITOR, even a member of the project', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await loginWithRole(app, ROLE.EDITOR)
+		const { user, cookie } = await loginWithRole(app, ROLE.USER)
 		const project = await createProject({ name: 'Web', slug: 'web', memberIds: [user.id] })
 
 		const res = await deleteProject(app, cookie, project.id)

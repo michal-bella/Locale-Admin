@@ -1,6 +1,6 @@
 ---
 title: 'API: auth'
-updated: 2026-10-19
+updated: 2026-10-25
 notion_page_id:
 ---
 
@@ -18,20 +18,20 @@ Prihlásenie emailom a heslom, server-side session v Postgrese (tabuľka `Sessio
 
 Schéma `authUserSchema`. Rovnaké telo vracia `POST /api/auth/login` aj `GET /api/auth/me`. Hash hesla, token ani jeho hash sa nikdy nevracajú.
 
-| Pole          | Typ                                        | Popis                                                                                                                                                                                                                    |
-| ------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`          | UUID                                       | ID používateľa                                                                                                                                                                                                           |
-| `email`       | string                                     | normalizovaný email (malé písmená)                                                                                                                                                                                       |
-| `role`        | `ADMIN` / `MANAGER` / `EDITOR` / `VISITOR` | globálna rola                                                                                                                                                                                                            |
-| `firstName`   | string alebo `null`                        | meno, upravuje sa na obrazovke Môj profil ([`PATCH /api/profile`](./profile.md))                                                                                                                                         |
-| `lastName`    | string alebo `null`                        | priezvisko                                                                                                                                                                                                               |
-| `preferences` | objekt                                     | `{ translationsView: "EXTENDED" \| "COMPACT", translationsLayout: "COLUMNS" \| "STACKED" }`, zobrazenie a rozloženie stránky Preklady, mení [`PATCH /api/profile/preferences`](./profile.md#patch-apiprofilepreferences) |
+| Pole          | Typ                 | Popis                                                                                                                                                                                                                    |
+| ------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`          | UUID                | ID používateľa                                                                                                                                                                                                           |
+| `email`       | string              | normalizovaný email (malé písmená)                                                                                                                                                                                       |
+| `role`        | `ADMIN` / `USER`    | globálna rola                                                                                                                                                                                                            |
+| `firstName`   | string alebo `null` | meno, upravuje sa na obrazovke Môj profil ([`PATCH /api/profile`](./profile.md))                                                                                                                                         |
+| `lastName`    | string alebo `null` | priezvisko                                                                                                                                                                                                               |
+| `preferences` | objekt              | `{ translationsView: "EXTENDED" \| "COMPACT", translationsLayout: "COLUMNS" \| "STACKED" }`, zobrazenie a rozloženie stránky Preklady, mení [`PATCH /api/profile/preferences`](./profile.md#patch-apiprofilepreferences) |
 
 ```json
 {
 	"id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11",
 	"email": "meno@firma.sk",
-	"role": "EDITOR",
+	"role": "USER",
 	"firstName": null,
 	"lastName": null,
 	"preferences": { "translationsView": "EXTENDED", "translationsLayout": "COLUMNS" }

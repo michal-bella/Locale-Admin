@@ -5,7 +5,7 @@ import { useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { canManageProject, ROLE, type TranslationsLayout, type TranslationsView } from '@locale/shared'
+import { canManageProject, PROJECT_ROLE, type TranslationsLayout, type TranslationsView } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -30,6 +30,7 @@ import TranslationsViewControls from '@/components/TranslationsViewControls/Tran
 import TranslationsWarningsBanner from '@/components/TranslationsWarningsBanner/TranslationsWarningsBanner'
 import VersionFormModal from '@/components/VersionFormModal/VersionFormModal'
 import VersionLockModal from '@/components/VersionLockModal/VersionLockModal'
+import { useProjectRole } from '@/hooks/useProjectRole'
 import { TRANSLATIONS_PAGE_SIZES, type TranslationsSearch } from '@/routes/projectTranslationsRoute'
 
 import classes from './TranslationsPage.module.css'
@@ -42,7 +43,8 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
  * by all of them (no language ids in the query); `?languages=` narrows its columns to the base language plus the chosen ones without changing
  * the row status. `COMPACT` is the Figma source → target pair. Either view lays its languages side by side or stacked, also a preference
  * (`me.preferences.translationsLayout`). Without Posledný sync and the Na kontrolu card. Importovať (ADMIN and MANAGER only) opens `ImportModal`, Exportovať (every member) `ExportModal`.
- * A VISITOR gets the table read-only: cells are text and there is no edit modal. The list always shows one version of the project
+ * A VISITOR, and anyone else where the version is locked for them, gets the table read-only: a cell opens the translation in the modal
+ * read-only, without the editor and without saving. The list always shows one version of the project
  * (`?version=`, else the current one, else the newest); a project without versions, or a version without import, gets an empty state
  * instead of the table. Zobraziť len zmeny (`?diff=true`) lists only the keys added or changed against the previous version, with the
  * added keys and changed cells marked, and the banner sums the diff up. An ADMIN or MANAGER also creates a version here (the page then shows it)
@@ -55,8 +57,9 @@ const TranslationsPage = () => {
 	const navigate = useNavigate({ from: '/projects/$projectSlug/translations' })
 	const { data: project } = useProjectSettingsQuery(projectId)
 	const { data: me } = useMeQuery()
-	const canManage = me !== undefined && canManageProject(me.role)
-	const isVisitor = me?.role === ROLE.VISITOR
+	const projectRole = useProjectRole(projectId)
+	const canManage = projectRole !== undefined && canManageProject(projectRole)
+	const isVisitor = projectRole === PROJECT_ROLE.VISITOR
 	const view: TranslationsView = me?.preferences.translationsView ?? 'EXTENDED'
 	const layout: TranslationsLayout = me?.preferences.translationsLayout ?? 'COLUMNS'
 	const updatePreferences = useUpdatePreferencesMutation()
@@ -321,8 +324,11 @@ const TranslationsPage = () => {
 						sourceLanguage={sourceLanguage}
 						targetLanguage={targetLanguage}
 						shownLanguages={search.languages}
+						translationsOnly={search.translationsOnly}
+						diffOnly={search.diff}
+						diffAvailable={versionHasImport}
 						// The shown languages and Len preklady change only the columns, so the page stays; the pair changes what counts as untranslated.
-						onChange={(patch) => updateSearch(patch, { resetPage: !('languages' in patch) })}
+						onChange={(patch) => updateSearch(patch, { resetPage: !('languages' in patch || 'translationsOnly' in patch) })}
 					/>
 					<div className={classes.card}>
 						<div className={classes.toolbar}>
@@ -337,11 +343,7 @@ const TranslationsPage = () => {
 								versions={versions}
 								editors={data?.editors ?? []}
 								namespaces={namespaces}
-								translationsOnly={search.translationsOnly}
-								diffOnly={search.diff}
-								diffAvailable={versionHasImport}
-								// Len preklady changes only the columns, so the page stays.
-								onChange={(patch) => updateSearch(patch, { resetPage: !('translationsOnly' in patch) })}
+								onChange={updateSearch}
 							/>
 						</div>
 						{/* The toolbar stays, so the Verzia select still leads out of an empty version; only the table gives way to the empty state. */}

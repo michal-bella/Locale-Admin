@@ -62,6 +62,7 @@ const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
  * The footer shows who saved the value last and when. With `onNext`, Uložiť a ďalší (and Cmd/Ctrl+Enter) saves and moves to the next
  * untranslated cell instead of closing. Both save buttons and the shortcut wait for a change in the field. A translation changed against the
  * previous version has a toggle under the field that shows its previous value, read-only, with the words the current value dropped marked.
+ * `readOnly` (a VISITOR) turns it into „Preklad“: the whole value as text, so a long translation cut in the table can be read, and only Zavrieť.
  */
 const EditTranslationModal = ({
 	item,
@@ -72,6 +73,7 @@ const EditTranslationModal = ({
 	onSave,
 	onNext,
 	focusOnSwitch = false,
+	readOnly = false,
 	previousVersionName,
 }: EditTranslationModalProps) => {
 	const { t } = useTranslation()
@@ -81,7 +83,7 @@ const EditTranslationModal = ({
 		<AppModal
 			opened={opened}
 			onClose={onClose}
-			title={t('translationsPage.editModal.title')}
+			title={t(readOnly ? 'translationsPage.editModal.titleReadOnly' : 'translationsPage.editModal.title')}
 			closeLabel={t('translationsPage.editModal.close')}
 			isPending={saving}
 			size={680}
@@ -98,6 +100,7 @@ const EditTranslationModal = ({
 					onSave={onSave}
 					onNext={onNext}
 					focusOnMount={focusOnSwitch}
+					readOnly={readOnly}
 					previousVersionName={previousVersionName}
 				/>
 			)}
@@ -106,6 +109,7 @@ const EditTranslationModal = ({
 }
 
 type FieldsProps = Pick<EditTranslationModalProps, 'baseLanguage' | 'onClose' | 'onSave' | 'onNext' | 'previousVersionName'> & {
+	readOnly: boolean
 	item: TranslationListItem
 	language: Language
 	saving: boolean
@@ -113,7 +117,7 @@ type FieldsProps = Pick<EditTranslationModalProps, 'baseLanguage' | 'onClose' | 
 	focusOnMount: boolean
 }
 
-const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSave, onNext, focusOnMount, previousVersionName }: FieldsProps) => {
+const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSave, onNext, focusOnMount, readOnly, previousVersionName }: FieldsProps) => {
 	const { t, i18n } = useTranslation()
 	const cell = item.translations[language.id]
 	const value = cell?.value ?? null
@@ -335,7 +339,7 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 						<span className={`${classes.label} ${classes.labelWithLanguage}`}>
 							{labelWithLanguage(t('translationsPage.editModal.baseLanguage'), baseLanguage)}
 						</span>
-						{baseValue !== null && (
+						{baseValue !== null && !readOnly && (
 							<RowAction
 								icon={Copy}
 								tooltip={t('translationsPage.editModal.copyBase')}
@@ -354,21 +358,29 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 				<span className={`${classes.label} ${classes.labelWithLanguage}`}>
 					{labelWithLanguage(t('translationsPage.editModal.value'), language)}
 					{lastEdit}
-					{draftMismatch && <PlaceholderWarning missing={draftMismatch.missing} extra={draftMismatch.extra} />}
+					{!readOnly && draftMismatch && <PlaceholderWarning missing={draftMismatch.missing} extra={draftMismatch.extra} />}
 				</span>
-				<div className={classes.forms}>
-					{plural
-						? forms.map((form, index) => (
-								<div key={form} className={classes.formRow}>
-									<PluralFormChip form={form} />
-									{field(form, index)}
-								</div>
-							))
-						: field(PLAIN, 0)}
-				</div>
-				<VisuallyHidden id={lockedHintId}>
-					{[t('translationsPage.editor.lockedHint'), plural && t('translationsPage.editor.hashHint')].filter(Boolean).join(' ')}
-				</VisuallyHidden>
+				{readOnly ? (
+					<div className={`${classes.reference} ${classes.readOnlyValue}`}>
+						<TranslationValue value={value} pluralTag={item.plural ? language.tag : undefined} reference={reference} />
+					</div>
+				) : (
+					<>
+						<div className={classes.forms}>
+							{plural
+								? forms.map((form, index) => (
+										<div key={form} className={classes.formRow}>
+											<PluralFormChip form={form} />
+											{field(form, index)}
+										</div>
+									))
+								: field(PLAIN, 0)}
+						</div>
+						<VisuallyHidden id={lockedHintId}>
+							{[t('translationsPage.editor.lockedHint'), plural && t('translationsPage.editor.hashHint')].filter(Boolean).join(' ')}
+						</VisuallyHidden>
+					</>
+				)}
 				{message && (
 					<span id={errorId} role='alert' className={classes.error}>
 						{message}
@@ -410,29 +422,37 @@ const Fields = ({ item, language, baseLanguage, saving, setSaving, onClose, onSa
 					</>
 				)}
 			</div>
-			<div className={`${appModalClasses.footer} ${appModalClasses.footerInBody} flex flex-wrap items-center gap-2`}>
-				<Button variant='default' onClick={onClose} disabled={saving}>
-					{t('translationsPage.editModal.cancel')}
-				</Button>
-				<div className='ml-auto flex flex-wrap items-center justify-end gap-2'>
-					<Button
-						variant={onNext ? 'default' : 'filled'}
-						loading={saving}
-						disabled={isPristine}
-						onClick={() => void save()}
-						aria-keyshortcuts={onNext ? undefined : 'Meta+Enter Control+Enter'}
-					>
-						{t(onNext ? 'translationsPage.editModal.submitClose' : 'translationsPage.editModal.submit')}
+			{readOnly ? (
+				<div className={`${appModalClasses.footer} ${appModalClasses.footerInBody} flex justify-end`}>
+					<Button variant='default' onClick={onClose}>
+						{t('translationsPage.editModal.close')}
 					</Button>
-					{onNext && (
-						<Tooltip label={t('translationsPage.editModal.submitNextHint', { shortcut: SHORTCUT })}>
-							<Button loading={saving} disabled={isPristine} onClick={() => void save(true)} aria-keyshortcuts='Meta+Enter Control+Enter'>
-								{t('translationsPage.editModal.submitNext')}
-							</Button>
-						</Tooltip>
-					)}
 				</div>
-			</div>
+			) : (
+				<div className={`${appModalClasses.footer} ${appModalClasses.footerInBody} flex flex-wrap items-center gap-2`}>
+					<Button variant='default' onClick={onClose} disabled={saving}>
+						{t('translationsPage.editModal.cancel')}
+					</Button>
+					<div className='ml-auto flex flex-wrap items-center justify-end gap-2'>
+						<Button
+							variant={onNext ? 'default' : 'filled'}
+							loading={saving}
+							disabled={isPristine}
+							onClick={() => void save()}
+							aria-keyshortcuts={onNext ? undefined : 'Meta+Enter Control+Enter'}
+						>
+							{t(onNext ? 'translationsPage.editModal.submitClose' : 'translationsPage.editModal.submit')}
+						</Button>
+						{onNext && (
+							<Tooltip label={t('translationsPage.editModal.submitNextHint', { shortcut: SHORTCUT })}>
+								<Button loading={saving} disabled={isPristine} onClick={() => void save(true)} aria-keyshortcuts='Meta+Enter Control+Enter'>
+									{t('translationsPage.editModal.submitNext')}
+								</Button>
+							</Tooltip>
+						)}
+					</div>
+				</div>
+			)}
 		</>
 	)
 }

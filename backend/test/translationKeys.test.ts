@@ -8,6 +8,7 @@ import {
 	createTranslationKeyResponseSchema,
 	type CreateTranslationKeyRequestInput,
 	ERROR_CODE,
+	PROJECT_ROLE,
 	ROLE,
 	errorResponseSchema,
 	translationsResponseSchema,
@@ -19,7 +20,7 @@ import {
 import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
-import { TEST_PASSWORD, createUser } from './helpers/users'
+import { TEST_PASSWORD, createUser, globalRoleOf, memberRoleOf, type TestRole } from './helpers/users'
 import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
@@ -29,8 +30,10 @@ const expectErrorCode = (res: request.Response, status: number, code: ERROR_CODE
 	expect(errorResponseSchema.parse(res.body).error.code).toBe(code)
 }
 
-const createProject = (members: string[] = []) =>
-	getTestPrisma().project.create({ data: { name: 'A', slug: `a-${randomUUID().slice(0, 8)}`, members: { create: members.map((userId) => ({ userId })) } } })
+const createProject = (members: string[] = [], role?: PROJECT_ROLE) =>
+	getTestPrisma().project.create({
+		data: { name: 'A', slug: `a-${randomUUID().slice(0, 8)}`, members: { create: members.map((userId) => ({ userId, role })) } },
+	})
 
 const createLanguage = (projectId: string, tag: string, isBase = false) => getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase } })
 
@@ -50,9 +53,9 @@ const createKey = async (projectId: string, name: string, { namespace = 'loc', v
 	})
 
 /** Logs in a new user (ADMIN member by default) with a new project with `sk` (base) and `en`. */
-const setup = async (app: App, { role = ROLE.ADMIN, member = true } = {}) => {
-	const { user } = await createUser({ role })
-	const project = await createProject(member ? [user.id] : [])
+const setup = async (app: App, { role = ROLE.ADMIN, member = true }: { role?: TestRole; member?: boolean } = {}) => {
+	const { user } = await createUser({ role: globalRoleOf(role) })
+	const project = await createProject(member ? [user.id] : [], memberRoleOf(role))
 	await createVersionRow(project.id)
 	const sk = await createLanguage(project.id, 'sk', true)
 	const en = await createLanguage(project.id, 'en')
@@ -224,10 +227,10 @@ describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 
 	it('returns 403 FORBIDDEN to a member, 404 NOT_FOUND to a non-member EDITOR and 200 to a MANAGER member and an ADMIN who is not a member', async () => {
 		const app = createTestApp()
-		const member = await setup(app, { role: ROLE.EDITOR })
-		const manager = await setup(app, { role: ROLE.MANAGER })
-		const visitor = await setup(app, { role: ROLE.VISITOR })
-		const outsider = await setup(app, { role: ROLE.EDITOR, member: false })
+		const member = await setup(app, { role: PROJECT_ROLE.EDITOR })
+		const manager = await setup(app, { role: PROJECT_ROLE.MANAGER })
+		const visitor = await setup(app, { role: PROJECT_ROLE.VISITOR })
+		const outsider = await setup(app, { role: PROJECT_ROLE.EDITOR, member: false })
 		const admin = await setup(app, { role: ROLE.ADMIN, member: false })
 		const memberKey = await createKey(member.project.id, 'a')
 		const visitorKey = await createKey(visitor.project.id, 'a')
@@ -247,7 +250,7 @@ describe('PATCH /api/projects/:projectId/keys/:keyId', () => {
 
 	it('lets an EDITOR member set the description, except in a locked version', async () => {
 		const app = createTestApp()
-		const member = await setup(app, { role: ROLE.EDITOR })
+		const member = await setup(app, { role: PROJECT_ROLE.EDITOR })
 		const key = await createKey(member.project.id, 'a')
 
 		expect(await patchOk(app, member.cookie, member.project.id, key.id, { description: 'Hint' })).toMatchObject({ name: 'a', description: 'Hint' })
@@ -409,8 +412,8 @@ describe('POST /api/projects/:projectId/keys', () => {
 
 	it('returns 403 FORBIDDEN to a member, 404 NOT_FOUND to a non-member EDITOR and 201 to an ADMIN who is not a member', async () => {
 		const app = createTestApp()
-		const member = await setup(app, { role: ROLE.EDITOR })
-		const outsider = await setup(app, { role: ROLE.EDITOR, member: false })
+		const member = await setup(app, { role: PROJECT_ROLE.EDITOR })
+		const outsider = await setup(app, { role: PROJECT_ROLE.EDITOR, member: false })
 		const admin = await setup(app, { role: ROLE.ADMIN, member: false })
 		await Promise.all([member, outsider, admin].map(({ project }) => createKey(project.id, 'existing')))
 

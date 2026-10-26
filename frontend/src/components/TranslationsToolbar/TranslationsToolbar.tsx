@@ -1,4 +1,4 @@
-import { CloseButton, type ComboboxItem, type ComboboxLikeRenderOptionInput, Select, Switch, TextInput } from '@mantine/core'
+import { CloseButton, type ComboboxItem, type ComboboxLikeRenderOptionInput, Select, TextInput } from '@mantine/core'
 import { useDebouncedCallback } from '@mantine/hooks'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -22,8 +22,8 @@ const renderStatusOption = ({ option }: ComboboxLikeRenderOptionInput<ComboboxIt
 
 /**
  * Filters of the translations table (Figma 3:121): search, sort, Verzia, status, namespace, Editor and Zmenené, each with an icon in the left
- * section so the row of selects reads apart, then the switches Zobraziť len zmeny and Len preklady. How the table is laid out (view, layout,
- * languages) lives in `TranslationsViewControls`. The search writes to the URL 300 ms after the last keystroke; the X and Esc clear it right away,
+ * section so the row of selects reads apart. The switches Zobraziť len zmeny and Len preklady sit with the view controls in
+ * `TranslationsViewControls`, so the search and the selects keep one row on a desktop. The search writes to the URL 300 ms after the last keystroke; the X and Esc clear it right away,
  * as the other filters do.
  */
 const TranslationsToolbar = ({
@@ -37,9 +37,6 @@ const TranslationsToolbar = ({
 	versions,
 	editors,
 	namespaces,
-	translationsOnly,
-	diffOnly,
-	diffAvailable,
 	onChange,
 }: TranslationsToolbarProps) => {
 	const { t } = useTranslation()
@@ -66,7 +63,7 @@ const TranslationsToolbar = ({
 	const namespaceOptions = namespaces.filter(Boolean)
 
 	return (
-		// The search grows to fill its row; the selects grow only up to a cap, so a wrapped row keeps them at their size and the switches at its end.
+		// The search grows to fill its row; the selects grow only up to a cap, so a wrapped row keeps them at their size.
 		<div className={classes.filters}>
 			<TextInput
 				aria-label={t('translationsPage.toolbar.search.label')}
@@ -89,7 +86,7 @@ const TranslationsToolbar = ({
 			/>
 			<Select
 				aria-label={t('translationsPage.toolbar.sort.label')}
-				className={classes.select}
+				className={`${classes.select} ${classes.sortSelect}`}
 				leftSection={<ArrowsSort aria-hidden />}
 				data={translationsSortSchema.options.map((value) => ({ value, label: t(`translationsPage.toolbar.sort.${value}`) }))}
 				value={sort}
@@ -183,24 +180,6 @@ const TranslationsToolbar = ({
 				clearable
 				withScrollArea={false}
 			/>
-			<div className={classes.switches}>
-				{diffAvailable && (
-					<Switch
-						label={t('translationsPage.view.diffOnly')}
-						checked={diffOnly === true}
-						onChange={(event) => onChange({ diff: event.currentTarget.checked || undefined })}
-						className={classes.switch}
-						classNames={{ track: classes.pointer, label: classes.pointer }}
-					/>
-				)}
-				<Switch
-					label={t('translationsPage.toolbar.translationsOnly')}
-					checked={translationsOnly === true}
-					onChange={(event) => onChange({ translationsOnly: event.currentTarget.checked || undefined })}
-					className={classes.switch}
-					classNames={{ track: classes.pointer, label: classes.pointer }}
-				/>
-			</div>
 		</div>
 	)
 }

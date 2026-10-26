@@ -8,6 +8,7 @@ import { getInitials } from '@locale/shared'
 import { useMeQuery } from '@/api/auth/meQuery'
 import { useLogoutMutation } from '@/api/auth/useLogoutMutation'
 import getApiErrorCode from '@/api/getApiErrorCode'
+import { LogOut, User } from '@/components/Icons'
 
 import classes from './UserMenu.module.css'
 
@@ -54,10 +55,10 @@ const UserMenu = () => {
 					</Text>
 				</Menu.Label>
 				<Menu.Divider />
-				<Menu.Item component={Link} to='/profile'>
+				<Menu.Item component={Link} to='/profile' leftSection={<User aria-hidden width={16} height={16} />}>
 					{t('sidebar.userMenu.profile')}
 				</Menu.Item>
-				<Menu.Item onClick={handleLogout} disabled={logout.isPending}>
+				<Menu.Item onClick={handleLogout} disabled={logout.isPending} leftSection={<LogOut aria-hidden width={16} height={16} />}>
 					{t('sidebar.userMenu.logout')}
 				</Menu.Item>
 			</Menu.Dropdown>

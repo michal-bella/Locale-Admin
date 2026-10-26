@@ -1,7 +1,7 @@
 import { notifications } from '@mantine/notifications'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios'
-import { beforeAll, describe, expect, it, vi } from 'vite-plus/test'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import {
 	type AuthUser,
@@ -63,7 +63,9 @@ const VISITOR_USER = compact(EXTENDED_VISITOR)
 
 const TRANSLATIONS_URL = `/projects/${PROJECT.id}/translations`
 
-const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60 * 1000).toISOString()
+const NOW = new Date(2026, 9, 20, 12, 0, 0)
+
+const minutesAgo = (minutes: number) => new Date(NOW.getTime() - minutes * 60 * 1000).toISOString()
 
 let keyIndex = 0
 
@@ -173,6 +175,15 @@ const pickOption = async (label: string, option: string) => {
 beforeAll(() => {
 	// The global 3 retries with backoff would delay the error state by seconds.
 	queryClient.setQueryDefaults(QUERY_KEYS.PROJECTS.DETAIL(PROJECT.id), { retry: false })
+})
+
+beforeEach(() => {
+	vi.useFakeTimers({ toFake: ['Date'] })
+	vi.setSystemTime(NOW)
+})
+
+afterEach(() => {
+	vi.useRealTimers()
 })
 
 describe('TranslationsPage', () => {
@@ -694,7 +705,7 @@ describe('TranslationsPage', () => {
 		expect(within(getRow('dashboard.welcome')).queryByRole('img', { name: /^Popis kľúča/ })).not.toBeInTheDocument()
 	})
 
-	it('shows a VISITOR only Exportovať, text cells that open nothing, and the filters', async () => {
+	it('shows a VISITOR only Exportovať, cells that open the translation read-only, and the filters', async () => {
 		const requests = mockPage({ user: VISITOR_USER })
 		renderApp(PAGE_PATH)
 		await screen.findByText('orders.empty.title')
@@ -703,12 +714,21 @@ describe('TranslationsPage', () => {
 		expect(screen.queryByRole('button', { name: 'Importovať' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: 'Pridať kľúč' })).not.toBeInTheDocument()
 		const body = getTable().querySelector('tbody')
-		expect(body?.querySelectorAll('button, a, input, textarea, select, [tabindex]')).toHaveLength(0)
+		// Only the cells take the focus: no key pencil and no other control.
+		expect(
+			[...(body?.querySelectorAll('button, a, input, textarea, select, [tabindex]') ?? [])].every((element) => element.hasAttribute('data-status')),
+		).toBe(true)
 		const cell = screen.getByText('Preklad kľúča orders.empty.title, angličtina:').closest('[data-status]')
-		expect(cell?.tagName).toBe('DIV')
+		expect(cell?.tagName).toBe('BUTTON')
 		expect(cell).toHaveAttribute('data-status', 'UNTRANSLATED')
 		fireEvent.click(cell as HTMLElement)
-		expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+		const dialog = await screen.findByRole('dialog', { name: 'Preklad' })
+		expect(within(dialog).getByText('orders.empty.title')).toBeInTheDocument()
+		expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument()
+		expect(within(dialog).queryByRole('button', { name: /^Uložiť/ })).not.toBeInTheDocument()
+		expect(within(dialog).queryByRole('button', { name: /^Prevziať text zo základného jazyka/ })).not.toBeInTheDocument()
+		fireEvent.click(within(dialog).getAllByRole('button', { name: 'Zavrieť' }).at(-1) as HTMLElement)
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 
 		await pickOption('Stav', 'Nepreložené')
 		await waitFor(() => expect(lastParams(requests)).toMatchObject({ status: 'UNTRANSLATED' }))
@@ -1341,11 +1361,13 @@ describe('TranslationsPage edit modal', () => {
 		expect(screen.getByRole('dialog', { name: DIALOG })).toBe(dialog)
 	})
 
-	it('only filters for a visitor, who cannot edit', async () => {
+	it('opens the translation of the URL read-only for a visitor, who cannot edit', async () => {
 		mockEditing(undefined, VISITOR_USER)
 		const router = renderApp(`${PAGE_PATH}?editKey=${WELCOME.keyId}&editLanguage=en`)
 
-		await screen.findByText('dashboard.welcome')
+		const dialog = await screen.findByRole('dialog', { name: 'Preklad' })
+		expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument()
+		expect(within(dialog).queryByRole('button', { name: /^Uložiť/ })).not.toBeInTheDocument()
 		await waitFor(() => expect(router.state.location.search).toEqual({}))
 		expect(screen.queryByRole('dialog', { name: DIALOG })).not.toBeInTheDocument()
 	})

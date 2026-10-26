@@ -1,15 +1,18 @@
 import { Avatar, Button, Skeleton, Table, Text, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
+import { notifications } from '@mantine/notifications'
 import { useParams } from '@tanstack/react-router'
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { getInitials, type ProjectMember, ROLE } from '@locale/shared'
+import { getInitials, type PROJECT_ROLE, type ProjectMember, ROLE } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useProjectMembersQuery } from '@/api/projectMembers/projectMembersQuery'
+import { useUpdateProjectMemberMutation } from '@/api/projectMembers/useUpdateProjectMemberMutation'
 import { ArrowRight, UserMinus } from '@/components/Icons'
+import ProjectRoleSelect from '@/components/ProjectRoleSelect/ProjectRoleSelect'
 import RemoveMemberModal from '@/components/RemoveMemberModal/RemoveMemberModal'
 import RoleBadge from '@/components/RoleBadge/RoleBadge'
 import RowAction from '@/components/RowAction/RowAction'
@@ -22,7 +25,7 @@ const SKELETON_ROWS = 3
 
 /**
  * Members of a project in a card with the same columns, look and states as the users table. A member sees the role and
- * project count too; only an ADMIN opens the user detail (the route is ADMIN only) and removes members, the actions
+ * project count too; only an ADMIN changes the role (a select that saves on change), opens the user detail (the route is ADMIN only) and removes members, the actions
  * column stays so the layout does not depend on the role. The own row has no remove button, leaving goes through
  * Opustiť projekt.
  */
@@ -36,6 +39,20 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 	const [removeOpened, removeModal] = useDisclosure(false)
 	const [removing, setRemoving] = useState<ProjectMember | null>(null)
 	const isAdmin = me?.role === ROLE.ADMIN
+	const updateRole = useUpdateProjectMemberMutation()
+
+	const changeRole = (member: ProjectMember, role: PROJECT_ROLE) => {
+		if (role === member.role || updateRole.isPending) {
+			return
+		}
+		updateRole.mutate(
+			{ projectId, userId: member.id, role },
+			{
+				onSuccess: () => notifications.show({ color: 'green', message: t('projectRole.saved') }),
+				onError: (mutationError) => notifications.show({ color: 'red', message: t(`errors.${getApiErrorCode(mutationError)}`) }),
+			},
+		)
+	}
 
 	const openRemove = (member: ProjectMember, trigger: HTMLButtonElement | null) => {
 		triggerRef.current = trigger
@@ -105,6 +122,16 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 			return stateRow(<Text size='sm'>{t('membersPage.table.empty')}</Text>)
 		}
 		return data.members.map((member) => {
+			const role = isAdmin ? (
+				<ProjectRoleSelect
+					ariaLabel={t('projectRole.memberLabel', { email: member.email })}
+					value={member.role}
+					onChange={(picked) => changeRole(member, picked)}
+					disabled={updateRole.isPending}
+				/>
+			) : (
+				<RoleBadge role={member.role} />
+			)
 			const fullName = [member.firstName, member.lastName].filter(Boolean).join(' ')
 			// A long email breaks after the @ first, not inside the domain.
 			const email = member.email.split('@').map((part, index) => (index === 0 ? part : [<wbr key={index} />, `@${part}`]))
@@ -132,9 +159,7 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 									</Text>
 								)}
 								<div className={`${classes.narrowDetails} flex-col items-start gap-1`}>
-									<span className={classes.phoneOnly}>
-										<RoleBadge role={member.role} />
-									</span>
+									<span className={classes.phoneOnly}>{role}</span>
 									<Text size='xs'>
 										{t('membersPage.table.projectCount', { count: member.projectCount })} ·{' '}
 										{t('membersPage.table.joinedOn', { date: formatDate(member.createdAt, i18n.language) })}
@@ -143,9 +168,7 @@ const MembersTable = ({ projectId }: MembersTableProps) => {
 							</div>
 						</div>
 					</Table.Td>
-					<Table.Td className={`${classes.td} ${classes.tabletUp}`}>
-						<RoleBadge role={member.role} />
-					</Table.Td>
+					<Table.Td className={`${classes.td} ${classes.tabletUp}`}>{role}</Table.Td>
 					<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 						<Text size='sm'>{member.projectCount}</Text>
 					</Table.Td>

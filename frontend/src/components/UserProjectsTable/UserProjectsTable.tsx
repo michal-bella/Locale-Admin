@@ -62,67 +62,71 @@ const UserProjectsTable = ({ user }: UserProjectsTableProps) => {
 				</Table.Tr>
 			)
 		}
-		return user.projects.map((project) => (
-			<Table.Tr key={project.id} className={classes.tr}>
-				<Table.Td className={classes.td}>
-					<div className='flex items-center gap-3'>
-						<span
-							aria-hidden
-							data-tone={isLightColor(project.primaryColor) ? 'dark' : 'light'}
-							className={classes.avatar}
-							style={{ backgroundColor: project.primaryColor }}
-						>
-							{getProjectInitials(project.name)}
-						</span>
-						<div className='flex min-w-0 flex-col'>
-							<Text size='sm' fw={500} c='var(--app-color-text-strong)' className={classes.name}>
-								{project.name}
-							</Text>
-							<Text size='xs' className={`${classes.name} ${classes.narrowOnly}`}>
-								{project.slug}
-							</Text>
-							<Text size='xs' className={classes.narrowOnly}>
-								{t('userPage.projects.table.joinedOn', { date: formatDate(project.joinedAt, i18n.language) })}
-							</Text>
+		return user.projects.map((project) => {
+			const role = (
+				<ProjectRoleSelect
+					ariaLabel={t('projectRole.projectLabel', { name: project.name })}
+					value={project.role}
+					onChange={(picked) => changeRole(project, picked)}
+					disabled={updateRole.isPending}
+				/>
+			)
+			return (
+				<Table.Tr key={project.id} className={classes.tr}>
+					<Table.Td className={classes.td}>
+						<div className='flex items-center gap-3'>
+							<span
+								aria-hidden
+								data-tone={isLightColor(project.primaryColor) ? 'dark' : 'light'}
+								className={classes.avatar}
+								style={{ backgroundColor: project.primaryColor }}
+							>
+								{getProjectInitials(project.name)}
+							</span>
+							<div className='flex min-w-0 flex-col'>
+								<Text size='sm' fw={500} c='var(--app-color-text-strong)' className={classes.name}>
+									{project.name}
+								</Text>
+								<Text size='xs' className={`${classes.name} ${classes.narrowOnly}`}>
+									{project.slug}
+								</Text>
+								<Text size='xs' className={classes.narrowOnly}>
+									{t('userPage.projects.table.joinedOn', { date: formatDate(project.joinedAt, i18n.language) })}
+								</Text>
+								<div className={classes.phoneOnly}>{role}</div>
+							</div>
 						</div>
-					</div>
-				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.slugColumn}`}>
-					<Text size='xs' className={classes.name}>
-						{project.slug}
-					</Text>
-				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.roleColumn}`}>
-					<ProjectRoleSelect
-						ariaLabel={t('projectRole.projectLabel', { name: project.name })}
-						value={project.role}
-						onChange={(role) => changeRole(project, role)}
-						disabled={updateRole.isPending}
-					/>
-				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.joinedColumn}`}>
-					<Text size='xs'>{formatDate(project.joinedAt, i18n.language)}</Text>
-				</Table.Td>
-				<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
-					<div className='flex items-center justify-end gap-1'>
-						<RowAction
-							icon={ArrowRight}
-							tooltip={t('userPage.projects.table.open')}
-							label={t('userPage.projects.table.openLabel', { name: project.name })}
-							to='/projects/$projectSlug/members'
-							params={{ projectSlug: project.slug }}
-						/>
-						<RowAction
-							icon={UserMinus}
-							tooltip={t('userPage.projects.table.remove')}
-							label={t('userPage.projects.table.removeLabel', { name: project.name })}
-							danger
-							onClick={(event) => openRemove(project, event.currentTarget)}
-						/>
-					</div>
-				</Table.Td>
-			</Table.Tr>
-		))
+					</Table.Td>
+					<Table.Td className={`${classes.td} ${classes.slugColumn}`}>
+						<Text size='xs' className={classes.name}>
+							{project.slug}
+						</Text>
+					</Table.Td>
+					<Table.Td className={`${classes.td} ${classes.roleColumn}`}>{role}</Table.Td>
+					<Table.Td className={`${classes.td} ${classes.joinedColumn}`}>
+						<Text size='xs'>{formatDate(project.joinedAt, i18n.language)}</Text>
+					</Table.Td>
+					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
+						<div className='flex items-center justify-end gap-1'>
+							<RowAction
+								icon={ArrowRight}
+								tooltip={t('userPage.projects.table.open')}
+								label={t('userPage.projects.table.openLabel', { name: project.name })}
+								to='/projects/$projectSlug/members'
+								params={{ projectSlug: project.slug }}
+							/>
+							<RowAction
+								icon={UserMinus}
+								tooltip={t('userPage.projects.table.remove')}
+								label={t('userPage.projects.table.removeLabel', { name: project.name })}
+								danger
+								onClick={(event) => openRemove(project, event.currentTarget)}
+							/>
+						</div>
+					</Table.Td>
+				</Table.Tr>
+			)
+		})
 	}
 
 	return (

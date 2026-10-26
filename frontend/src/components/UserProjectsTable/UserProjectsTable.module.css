@@ -1,4 +1,5 @@
 .card {
+	container-type: inline-size;
 	overflow-x: auto;
 	border: 1px solid var(--app-color-border);
 	border-radius: var(--mantine-radius-xl);
@@ -61,20 +62,8 @@
 	display: none;
 }
 
-/* On a narrow screen the slug and the date move under the project name, so the name keeps whole words and the actions stay in view. */
-@media (max-width: 39.99em) {
-	.slugColumn,
-	.joinedColumn {
-		display: none;
-	}
-
-	.narrowOnly {
-		display: block;
-	}
-
-	.actionsColumn {
-		width: auto;
-	}
+.phoneOnly {
+	display: none;
 }
 
 .state {
@@ -89,4 +78,44 @@
 .actionsCell {
 	padding-inline: 0 1.25rem;
 	white-space: nowrap;
+}
+
+/* By the width of the card, not the window: beside the sidebar a wide window still leaves a narrow table. The slug and the date
+   move under the project name, so the name keeps whole words beside the role. */
+@container (max-width: 51.99rem) {
+	.slugColumn,
+	.joinedColumn {
+		display: none;
+	}
+
+	.narrowOnly {
+		display: block;
+	}
+}
+
+/* In a phone-wide card the role moves under the name too and the actions stay in view. */
+@container (max-width: 31.99rem) {
+	.roleColumn {
+		display: none;
+	}
+
+	.phoneOnly {
+		display: block;
+		width: 100%;
+		max-width: 10rem;
+		margin-top: 0.5rem;
+	}
+
+	.th,
+	.td {
+		padding-inline: 0.75rem;
+	}
+
+	.actionsColumn {
+		width: auto;
+	}
+
+	.actionsCell {
+		padding-inline: 0 0.75rem;
+	}
 }

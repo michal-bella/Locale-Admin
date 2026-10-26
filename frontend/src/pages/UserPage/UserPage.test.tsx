@@ -105,7 +105,9 @@ describe('UserPage', () => {
 		expect(rows).toHaveLength(2)
 		const [bookingRow, iosRow] = rows as [HTMLElement, HTMLElement]
 		expect(within(bookingRow).getByText('Booking Web')).toBeInTheDocument()
-		expect(within(bookingRow).getByRole('combobox', { name: 'Rola v projekte Booking Web' })).toHaveValue('Editor')
+		// The role select is in the Rola column and, for a phone-wide card (hidden by CSS otherwise), under the name.
+		expect(within(bookingRow).getAllByRole('combobox', { name: 'Rola v projekte Booking Web' })).toHaveLength(2)
+		expect(within(bookingRow).getAllByRole('combobox', { name: 'Rola v projekte Booking Web' })[0]).toHaveValue('Editor')
 		// In the Slug and Pridaný columns and, for narrow screens (hidden by CSS otherwise), under the name.
 		expect(within(bookingRow).getAllByText('booking-web')).toHaveLength(2)
 		expect(within(bookingRow).getByText('13. 10. 2026')).toBeInTheDocument()
@@ -344,11 +346,15 @@ describe('Role in a project', () => {
 		renderApp(USER_URL)
 
 		fireEvent.click(
-			await within(await screen.findByRole('table', { name: 'Projekty používateľa' })).findByRole('combobox', { name: 'Rola v projekte Booking Web' }),
+			(
+				await within(await screen.findByRole('table', { name: 'Projekty používateľa' })).findAllByRole('combobox', {
+					name: 'Rola v projekte Booking Web',
+				})
+			)[0] as HTMLElement,
 		)
 		fireEvent.click(await screen.findByRole('option', { name: 'Správca' }))
 
-		await waitFor(() => expect(within(getProjectsTable()).getByRole('combobox', { name: 'Rola v projekte Booking Web' })).toHaveValue('Správca'))
+		await waitFor(() => expect(within(getProjectsTable()).getAllByRole('combobox', { name: 'Rola v projekte Booking Web' })[0]).toHaveValue('Správca'))
 		const patches = requests.filter((request) => request.method === 'patch')
 		expect(patches).toHaveLength(1)
 		expect(JSON.parse(patches[0]?.data as string)).toEqual({ role: 'MANAGER' })

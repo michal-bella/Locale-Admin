@@ -10,7 +10,8 @@ notion_page_id:
 
 ### Príručka pre editorov (2026-10-26)
 
-- verejná routa `/onboarding` otvorí PDF príručky pre editorov v jazyku rozhrania (sk, en, cs, súbory v `frontend/public/guides/`)
+- verejná routa `/onboarding` zobrazí náhľad PDF príručky pre editorov v jazyku rozhrania (sk, en, cs, súbory v `frontend/public/guides/`)
+- Preklady: kľúč bez namespace nemá v modáli **Upraviť kľúč** pole Namespace; hlavička prázdnej skupiny v tabuľke je **Bez namespace** (predtým Bez skupiny)
 - Môj profil: karta **Príručka pre editorov** s tlačidlom **Otvoriť príručku**
 
 ### Prístup administrátora s potvrdením (2026-10-26)

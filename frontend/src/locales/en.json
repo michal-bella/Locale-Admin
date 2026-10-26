@@ -382,7 +382,7 @@
 			"translations": "Translations",
 			"key": "Key",
 			"status": "Status",
-			"noGroup": "No group",
+			"noNamespace": "No namespace",
 			"description": "Key description: {{description}}",
 			"emptyValue": "No translation",
 			"loadError": "The translations could not be loaded.",
@@ -1074,6 +1074,11 @@
 			"confirm": "Remove",
 			"success": "{{email}} has been removed from the project."
 		}
+	},
+	"onboardingPage": {
+		"eyebrow": "Guide",
+		"title": "Editor guide",
+		"description": "How to translate in Locale Admin: translations, placeholders, plurals and versions."
 	},
 	"profilePage": {
 		"eyebrow": "User account",

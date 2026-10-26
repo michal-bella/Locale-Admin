@@ -1,0 +1,7 @@
+.viewer {
+	flex: 1;
+	width: 100%;
+	min-height: 70dvh;
+	border: 1px solid var(--app-color-border);
+	border-radius: var(--mantine-radius-lg);
+}

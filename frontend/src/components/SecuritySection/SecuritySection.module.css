@@ -4,8 +4,3 @@
 	border-radius: var(--mantine-radius-xl);
 	background-color: var(--app-color-surface);
 }
-
-.icon {
-	flex-shrink: 0;
-	color: var(--app-color-muted);
-}

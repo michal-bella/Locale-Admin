@@ -388,7 +388,7 @@
 			"translations": "Preklady",
 			"key": "Kľúč",
 			"status": "Stav",
-			"noGroup": "Bez skupiny",
+			"noNamespace": "Bez namespace",
 			"description": "Popis kľúča: {{description}}",
 			"emptyValue": "Bez prekladu",
 			"loadError": "Preklady sa nepodarilo načítať.",
@@ -1114,6 +1114,11 @@
 			"confirm": "Odobrať",
 			"success": "{{email}} bol odobraný z projektu."
 		}
+	},
+	"onboardingPage": {
+		"eyebrow": "Príručka",
+		"title": "Príručka pre editorov",
+		"description": "Ako prekladať v Locale Admin: preklady, premenné, plurály a verzie."
 	},
 	"profilePage": {
 		"eyebrow": "Používateľský účet",

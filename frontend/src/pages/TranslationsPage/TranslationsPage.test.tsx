@@ -1,7 +1,7 @@
 import { notifications } from '@mantine/notifications'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios'
-import { beforeAll, describe, expect, it, vi } from 'vite-plus/test'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import {
 	type AuthUser,
@@ -63,7 +63,9 @@ const VISITOR_USER = compact(EXTENDED_VISITOR)
 
 const TRANSLATIONS_URL = `/projects/${PROJECT.id}/translations`
 
-const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60 * 1000).toISOString()
+const NOW = new Date(2026, 9, 20, 12, 0, 0)
+
+const minutesAgo = (minutes: number) => new Date(NOW.getTime() - minutes * 60 * 1000).toISOString()
 
 let keyIndex = 0
 
@@ -173,6 +175,15 @@ const pickOption = async (label: string, option: string) => {
 beforeAll(() => {
 	// The global 3 retries with backoff would delay the error state by seconds.
 	queryClient.setQueryDefaults(QUERY_KEYS.PROJECTS.DETAIL(PROJECT.id), { retry: false })
+})
+
+beforeEach(() => {
+	vi.useFakeTimers({ toFake: ['Date'] })
+	vi.setSystemTime(NOW)
+})
+
+afterEach(() => {
+	vi.useRealTimers()
 })
 
 describe('TranslationsPage', () => {

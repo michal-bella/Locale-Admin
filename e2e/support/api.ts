@@ -10,4 +10,14 @@ export type Role = 'ADMIN' | 'USER'
 /** Role of a member in one project (`ProjectMember.role`). */
 export type ProjectRole = 'MANAGER' | 'EDITOR' | 'VISITOR'
 
-export type AdminUser = { id: string; email: string; role: Role; projectCount: number; createdAt: string }
+export type AdminUser = {
+	id: string
+	email: string
+	role: Role
+	isActive: boolean
+	hasPassword: boolean
+	hasGoogle: boolean
+	projectCount: number
+	lastLoginAt: string | null
+	createdAt: string
+}

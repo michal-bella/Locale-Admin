@@ -1,12 +1,21 @@
 ---
 title: 'Changelog'
-updated: 2026-10-25
+updated: 2026-10-26
 notion_page_id:
 ---
 
 # Changelog
 
 ## Po fáze 1
+
+### Prihlásenie cez Google (2026-10-26)
+
+- prihlasovacia stránka má tlačidlo **Prihlásiť sa cez Google** (OpenID Connect, [ADR 0009](./decisions/0009-google-login.md)), keď sú nastavené ENV `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` a `GOOGLE_REDIRECT_URI`; prihlásenie heslom ostáva
+- prvé prihlásenie cez Google pripojí účet s rovnakým overeným e-mailom, inak založí používateľa bez projektov a bez hesla; meno a priezvisko z Googlu sa doplnia, iba keď chýbajú
+- detail používateľa: **Nastaviť heslo** (aj používateľovi iba s Googlom, všade ho odhlási), **Zablokovať** / **Odblokovať** (neprihlási sa heslom ani cez Google), spôsob prihlásenia a posledné prihlásenie; tabuľka Používatelia označí zablokovaných
+- zmena vlastného hesla v profile odhlási ostatné zariadenia; používateľ bez hesla vidí v profile namiesto **Zmeniť heslo** poznámku
+- migrácia `google_login`: `User.passwordHash` a `passwordChangedAt` sú voliteľné, nový `User.googleSub`
+- E2E: `user-access.spec.ts` (reset hesla, blokovanie, odhlásenie iných zariadení, tlačidlo Google a chyba z `?error=`); samotné prihlásenie cez Google E2E nemá
 
 ### Príručka pre editorov (2026-10-26)
 

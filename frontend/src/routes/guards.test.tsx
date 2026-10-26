@@ -5,6 +5,7 @@ import { PROJECT_ROLE } from '@locale/shared'
 
 import http from '@/api/http'
 import queryClient from '@/api/queryClient'
+import { QUERY_KEYS } from '@/api/queryKeys'
 import { installUnauthorizedInterceptor } from '@/api/unauthorizedInterceptor'
 import { ADMIN_USER, apiError, EDITOR_USER, MANAGER_USER, mockApi, projectListRoute, signedInAs, signedOut, VISITOR_USER } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
@@ -87,6 +88,14 @@ describe('route guards', () => {
 			expect(await screen.findByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeInTheDocument()
 			expect(router.state.location.pathname).toBe(`/projects/${project.slug}/${page}`)
 			expect(requests.some((request) => request.url === `/projects/${project.id}/members`)).toBe(false)
+		})
+
+		it('refetches a cached project list that predates the membership and shows the 403 page', async () => {
+			signedInAs(VISITOR_USER, routes)
+			queryClient.setQueryData(QUERY_KEYS.PROJECTS.LIST(), { projects: [] })
+			renderApp(`/projects/${project.slug}/settings`)
+
+			expect(await screen.findByRole('heading', { level: 1, name: 'Prístup zamietnutý' })).toBeInTheDocument()
 		})
 
 		it('opens the translations and the dashboard', async () => {

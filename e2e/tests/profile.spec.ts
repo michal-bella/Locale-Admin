@@ -6,7 +6,15 @@ import { ADMIN_EMAIL } from '../support/env'
 import { openUserMenu } from '../support/layout'
 import { createEditor, type TestUser } from '../support/users'
 
-type Profile = { id: string; email: string; role: 'ADMIN' | 'USER'; firstName: string | null; lastName: string | null; passwordChangedAt: string }
+type Profile = {
+	id: string
+	email: string
+	role: 'ADMIN' | 'USER'
+	firstName: string | null
+	lastName: string | null
+	hasPassword: boolean
+	passwordChangedAt: string | null
+}
 
 const PROFILE_HEADING = { level: 1, name: 'Môj profil' } as const
 

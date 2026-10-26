@@ -118,6 +118,8 @@
 		"eyebrow": "Prihlásenie",
 		"title": "Vitajte späť",
 		"description": "Prihláste sa do svojho prekladového workspace.",
+		"google": "Prihlásiť sa cez Google",
+		"or": "alebo",
 		"form": {
 			"email": {
 				"label": "E-mail",
@@ -168,7 +170,8 @@
 			"actionsColumn": "Akcie",
 			"delete": "Odstrániť",
 			"open": "Otvoriť",
-			"openLabel": "Otvoriť používateľa {{email}}"
+			"openLabel": "Otvoriť používateľa {{email}}",
+			"blocked": "Zablokovaný"
 		},
 		"createModal": {
 			"title": "Nový používateľ",
@@ -210,6 +213,9 @@
 			"description": "Používateľ neexistuje alebo bol odstránený.",
 			"back": "Späť na používateľov"
 		},
+		"passwordButton": "Nastaviť heslo",
+		"blockButton": "Zablokovať",
+		"unblockButton": "Odblokovať",
 		"deleteButton": "Odstrániť používateľa",
 		"emailModal": {
 			"title": "Upraviť e-mail",
@@ -220,12 +226,53 @@
 			"submit": "Uložiť",
 			"success": "E-mail bol zmenený na {{email}}."
 		},
+		"passwordModal": {
+			"title": "Nastaviť heslo",
+			"description": "Používateľ {{email}} sa bude prihlasovať novým heslom. Na všetkých zariadeniach sa odhlási.",
+			"googleOnly": "Používateľ sa zatiaľ prihlasuje iba cez Google. S heslom sa bude môcť prihlásiť aj e-mailom a heslom.",
+			"close": "Zavrieť",
+			"cancel": "Zrušiť",
+			"submit": "Nastaviť heslo",
+			"success": "Heslo používateľa {{email}} bolo nastavené.",
+			"password": {
+				"label": "Nové heslo",
+				"placeholder": "Min. {{min}} znakov"
+			},
+			"passwordConfirm": {
+				"label": "Nové heslo znova",
+				"placeholder": "••••••••",
+				"mismatch": "Heslá sa nezhodujú."
+			}
+		},
+		"blockModal": {
+			"close": "Zavrieť",
+			"cancel": "Zrušiť",
+			"block": {
+				"title": "Zablokovať používateľa",
+				"message": "Používateľ {{email}} sa hneď odhlási a neprihlási sa heslom ani cez Google, kým ho neodblokujete. Jeho projekty a roly ostanú.",
+				"confirm": "Zablokovať",
+				"success": "Používateľ {{email}} bol zablokovaný."
+			},
+			"unblock": {
+				"title": "Odblokovať používateľa",
+				"message": "Používateľ {{email}} sa bude môcť znova prihlásiť heslom aj cez Google.",
+				"confirm": "Odblokovať",
+				"success": "Používateľ {{email}} bol odblokovaný."
+			}
+		},
 		"card": {
 			"label": "Účet používateľa",
 			"createdAt": "Vytvorený {{date}}",
 			"roleSaved": "Prístup administrátora bol uložený.",
 			"editEmail": "Upraviť e-mail",
-			"editEmailLabel": "Upraviť e-mail používateľa {{email}}"
+			"editEmailLabel": "Upraviť e-mail používateľa {{email}}",
+			"signIn": "Prihlásenie: {{methods}}",
+			"methods": {
+				"password": "heslo",
+				"google": "Google"
+			},
+			"lastLogin": "naposledy {{date}}",
+			"neverLoggedIn": "ešte sa neprihlásil"
 		},
 		"adminModal": {
 			"close": "Zavrieť",
@@ -1165,10 +1212,11 @@
 		"security": {
 			"title": "Heslo a zabezpečenie",
 			"passwordChanged": "Heslo bolo naposledy zmenené {{relative}}.",
+			"googleOnly": "Prihlasujete sa cez Google. Heslo vám môže nastaviť administrátor.",
 			"changePassword": "Zmeniť heslo",
 			"modal": {
 				"title": "Zmeniť heslo",
-				"description": "Zadajte aktuálne heslo a nové heslo. Ostatné prihlásenia zostanú aktívne.",
+				"description": "Zadajte aktuálne heslo a nové heslo. Na ostatných zariadeniach sa odhlásite.",
 				"close": "Zavrieť",
 				"cancel": "Zrušiť",
 				"submit": "Zmeniť heslo",
@@ -1446,6 +1494,10 @@
 		"VALIDATION_ERROR": "Skontrolujte vyplnené údaje.",
 		"AUTH_INVALID_CREDENTIALS": "Nesprávny e-mail alebo heslo.",
 		"AUTH_UNAUTHENTICATED": "Vaše prihlásenie vypršalo. Prihláste sa znova.",
+		"AUTH_USER_BLOCKED": "Váš účet je zablokovaný. Obráťte sa na administrátora.",
+		"AUTH_EMAIL_NOT_VERIFIED": "Google účet nemá overený e-mail.",
+		"AUTH_ACCOUNT_CONFLICT": "E-mail patrí používateľovi s iným Google účtom. Obráťte sa na administrátora.",
+		"AUTH_OAUTH_FAILED": "Prihlásenie cez Google sa nepodarilo. Skúste to znova.",
 		"FORBIDDEN": "Na túto akciu nemáte oprávnenie.",
 		"CSRF_REJECTED": "Požiadavku sa nepodarilo overiť. Obnovte stránku a skúste to znova.",
 		"NOT_FOUND": "Požadovaný záznam sa nenašiel.",
@@ -1456,8 +1508,10 @@
 		"ALREADY_MEMBER": "Používateľ už je členom projektu.",
 		"MEMBER_IS_ADMIN": "Administrátor má prístup do všetkých projektov, nepridáva sa ako člen.",
 		"SELF_DELETE": "Vlastný účet nemôžete odstrániť.",
+		"SELF_BLOCK": "Vlastný účet nemôžete zablokovať.",
 		"LAST_ADMIN": "Posledný administrátor sa nemôže vzdať svojej roly.",
 		"PASSWORD_INCORRECT": "Aktuálne heslo nie je správne.",
+		"PASSWORD_NOT_SET": "Účet nemá heslo. Heslo vám nastaví administrátor.",
 		"IMPORT_FILE_INVALID": "Súbor obsahuje chyby. Opravte ich a nahrajte ho znova.",
 		"IMPORT_FILE_TOO_LARGE": "Súbor je príliš veľký. Maximálna veľkosť je 10 MB.",
 		"IMPORT_COLUMNS_INVALID": "Priradenie stĺpcov k jazykom je neplatné. Skontrolujte jazyky a skúste to znova.",

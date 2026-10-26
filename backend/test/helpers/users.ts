@@ -12,7 +12,9 @@ export const TEST_PASSWORD = 'TestPassword123'
 type CreateUserOptions = {
 	role?: ROLE
 	email?: string
-	password?: string
+	/** `null` creates a user who signs in only with Google. */
+	password?: string | null
+	googleSub?: string
 	isActive?: boolean
 	firstName?: string
 	lastName?: string
@@ -20,10 +22,11 @@ type CreateUserOptions = {
 }
 
 export const createUser = async ({ role = ROLE.USER, email, password = TEST_PASSWORD, ...rest }: CreateUserOptions = {}) => {
+	const passwordData = password === null ? {} : { passwordHash: await hashPassword(password), passwordChangedAt: new Date() }
 	const user = await getTestPrisma().user.create({
-		data: { email: email ?? `user-${randomUUID()}@example.com`, passwordHash: await hashPassword(password), role, ...rest },
+		data: { email: email ?? `user-${randomUUID()}@example.com`, ...passwordData, role, ...rest },
 	})
-	return { user, password }
+	return { user, password: password ?? '' }
 }
 
 /** Role of a test user in its project: `ADMIN` (works without a membership) or the membership role of a `USER`. */

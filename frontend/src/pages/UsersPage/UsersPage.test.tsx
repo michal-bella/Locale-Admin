@@ -16,6 +16,10 @@ const MARTIN: AdminUser = {
 	id: '00000000-0000-4000-8000-000000000011',
 	email: 'martin.kovac@firma.sk',
 	role: ROLE.ADMIN,
+	isActive: true,
+	hasPassword: true,
+	hasGoogle: false,
+	lastLoginAt: null,
 	projectCount: 3,
 	createdAt: '2026-10-12T10:00:00.000Z',
 }
@@ -24,6 +28,10 @@ const JANA: AdminUser = {
 	id: '00000000-0000-4000-8000-000000000012',
 	email: 'jana.novakova@firma.sk',
 	role: ROLE.USER,
+	isActive: true,
+	hasPassword: true,
+	hasGoogle: false,
+	lastLoginAt: null,
 	projectCount: 1,
 	createdAt: '2026-10-03T10:00:00.000Z',
 }
@@ -32,6 +40,10 @@ const NEW_USER: AdminUser = {
 	id: '00000000-0000-4000-8000-000000000013',
 	email: 'nova@firma.sk',
 	role: ROLE.USER,
+	isActive: true,
+	hasPassword: true,
+	hasGoogle: false,
+	lastLoginAt: null,
 	projectCount: 0,
 	createdAt: '2026-10-16T10:00:00.000Z',
 }
@@ -103,6 +115,17 @@ describe('UsersPage table', () => {
 		expect(within(janaRow).getAllByText('Používateľ')).toHaveLength(2)
 		expect(within(janaRow).getByRole('cell', { name: '1' })).toBeInTheDocument()
 		expect(within(janaRow).getByText('3. 10. 2026')).toBeInTheDocument()
+	})
+
+	it('marks a blocked user with Zablokovaný next to the role', async () => {
+		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, { ...JANA, isActive: false }]) })
+		renderApp('/admin/users')
+
+		expect(await screen.findByText(JANA.email)).toBeInTheDocument()
+		const [martinRow, janaRow] = within(getTable()).getAllByRole('row').slice(1) as [HTMLElement, HTMLElement]
+		// In the Rola column and, for a phone-wide table (hidden by CSS otherwise), under the email.
+		expect(within(janaRow).getAllByText('Zablokovaný')).toHaveLength(2)
+		expect(within(martinRow).queryByText('Zablokovaný')).not.toBeInTheDocument()
 	})
 
 	it('opens the user detail from the row', async () => {
@@ -329,7 +352,17 @@ describe('CreateUserModal', () => {
 })
 
 describe('DeleteUserModal', () => {
-	const SELF: AdminUser = { id: ADMIN_USER.id, email: ADMIN_USER.email, role: ROLE.ADMIN, projectCount: 0, createdAt: '2026-10-01T10:00:00.000Z' }
+	const SELF: AdminUser = {
+		id: ADMIN_USER.id,
+		email: ADMIN_USER.email,
+		role: ROLE.ADMIN,
+		isActive: true,
+		hasPassword: true,
+		hasGoogle: false,
+		projectCount: 0,
+		lastLoginAt: null,
+		createdAt: '2026-10-01T10:00:00.000Z',
+	}
 
 	it('offers no delete for the own row', async () => {
 		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, SELF]) })

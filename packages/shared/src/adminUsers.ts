@@ -13,22 +13,40 @@ export const createUserRequestSchema = z.object({
 
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>
 
-/** Body of `PATCH /api/admin/users/:id`: changes the global role, the email or both. The last `ADMIN` cannot become a `USER`. */
+/**
+ * Body of `PATCH /api/admin/users/:id`: changes the global role, the email, the block or any of them. The last `ADMIN` cannot become a `USER`,
+ * nobody blocks their own account (`isActive: false` signs the user out everywhere).
+ */
 export const updateUserRequestSchema = z
 	.object({
 		role: z.enum(ROLE).optional(),
 		email: emailSchema.optional(),
+		isActive: z.boolean().optional(),
 	})
-	.refine(({ role, email }) => role !== undefined || email !== undefined)
+	.refine(({ role, email, isActive }) => role !== undefined || email !== undefined || isActive !== undefined)
 
 export type UpdateUserRequest = z.infer<typeof updateUserRequestSchema>
 
-/** One user in the admin list and the body of `201 POST /api/admin/users`. Never contains `passwordHash`. */
+/** Body of `PUT /api/admin/users/:id/password`: sets a new password (also for a user who signs in only with Google) and signs the user out everywhere. */
+export const setUserPasswordRequestSchema = z.object({
+	password: passwordSchema,
+})
+
+export type SetUserPasswordRequest = z.infer<typeof setUserPasswordRequestSchema>
+
+/**
+ * One user in the admin list and the body of `201 POST /api/admin/users`. Never contains `passwordHash`. `isActive: false` is a blocked user,
+ * `hasPassword` and `hasGoogle` are the sign-in methods.
+ */
 export const adminUserSchema = z.object({
 	id: z.uuid(),
 	email: z.email(),
 	role: z.enum(ROLE),
+	isActive: z.boolean(),
+	hasPassword: z.boolean(),
+	hasGoogle: z.boolean(),
 	projectCount: z.number().int(),
+	lastLoginAt: z.iso.datetime().nullable(),
 	createdAt: z.iso.datetime(),
 })
 

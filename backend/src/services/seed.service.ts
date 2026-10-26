@@ -15,7 +15,7 @@ export const seedAdmin = async (prisma: PrismaClient, password: string): Promise
 	if (existing) {
 		return 'exists'
 	}
-	await prisma.user.create({ data: { email: SEED_ADMIN_EMAIL, passwordHash: await hashPassword(password), role: ROLE.ADMIN } })
+	await prisma.user.create({ data: { email: SEED_ADMIN_EMAIL, passwordHash: await hashPassword(password), passwordChangedAt: new Date(), role: ROLE.ADMIN } })
 	return 'created'
 }
 

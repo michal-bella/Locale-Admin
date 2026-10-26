@@ -1,4 +1,12 @@
-import { ERROR_CODE, ROLE, type AdminUser, type AdminUserDetail, type CreateUserRequest, type UpdateUserRequest } from '@locale/shared'
+import {
+	ERROR_CODE,
+	ROLE,
+	type AdminUser,
+	type AdminUserDetail,
+	type CreateUserRequest,
+	type SetUserPasswordRequest,
+	type UpdateUserRequest,
+} from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
 import { PROJECT_ROLE_FROM_PRISMA, ROLE_FROM_PRISMA, ROLE_TO_PRISMA } from '../lib/authUser'
@@ -6,7 +14,20 @@ import { AppError } from '../lib/errors'
 import { hashPassword } from '../lib/password'
 import { type PrismaClient } from '../lib/prisma'
 
-const ADMIN_USER_SELECT = { id: true, email: true, role: true, createdAt: true, _count: { select: { projectMemberships: true } } } satisfies Prisma.UserSelect
+import { deleteUserSessions } from './session.service'
+
+/** `passwordHash` and `googleSub` are read only to report the sign-in methods, never returned. */
+const ADMIN_USER_SELECT = {
+	id: true,
+	email: true,
+	role: true,
+	isActive: true,
+	passwordHash: true,
+	googleSub: true,
+	lastLoginAt: true,
+	createdAt: true,
+	_count: { select: { projectMemberships: true } },
+} satisfies Prisma.UserSelect
 
 const emailTaken = () => new AppError(409, ERROR_CODE.EMAIL_TAKEN, 'Email is already taken')
 
@@ -14,7 +35,11 @@ const toAdminUser = (user: Prisma.UserGetPayload<{ select: typeof ADMIN_USER_SEL
 	id: user.id,
 	email: user.email,
 	role: ROLE_FROM_PRISMA[user.role],
+	isActive: user.isActive,
+	hasPassword: user.passwordHash !== null,
+	hasGoogle: user.googleSub !== null,
 	projectCount: user._count.projectMemberships,
+	lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
 	createdAt: user.createdAt.toISOString(),
 })
 
@@ -64,14 +89,23 @@ export const createUser = async (prisma: PrismaClient, { email, password, role }
 }
 
 /**
- * Changes the global role and/or the email of any user, the own account included; the last ADMIN keeps the role so that somebody can
- * manage users. A new ADMIN keeps their memberships with the roles, they apply again once the admin role is taken away (`ACTIVE_MEMBERSHIP`).
+ * Changes the global role, the email and/or the block of any user, the own account included (except the block); the last ADMIN keeps the
+ * role so that somebody can manage users. A new ADMIN keeps their memberships with the roles, they apply again once the admin role is taken
+ * away (`ACTIVE_MEMBERSHIP`). Blocking signs the user out everywhere; the Google link stays, so the user can sign in again once unblocked.
  * No pre-check for the email: the unique constraint (P2002) also covers concurrent requests.
  */
-export const updateUser = async (prisma: PrismaClient, id: string, { role, email }: UpdateUserRequest): Promise<AdminUserDetail> => {
+export const updateUser = async (
+	prisma: PrismaClient,
+	id: string,
+	{ role, email, isActive }: UpdateUserRequest,
+	currentUserId: string,
+): Promise<AdminUserDetail> => {
 	const user = await prisma.user.findUnique({ where: { id }, select: { role: true } })
 	if (!user) {
 		throw new AppError(404, ERROR_CODE.NOT_FOUND, 'User not found')
+	}
+	if (isActive === false && id === currentUserId) {
+		throw new AppError(409, ERROR_CODE.SELF_BLOCK, 'A user cannot block their own account')
 	}
 	if (
 		role !== undefined &&
@@ -82,13 +116,32 @@ export const updateUser = async (prisma: PrismaClient, id: string, { role, email
 		throw new AppError(409, ERROR_CODE.LAST_ADMIN, 'The last admin cannot lose the admin role')
 	}
 	try {
-		await prisma.user.update({ where: { id }, data: { role: role && ROLE_TO_PRISMA[role], email }, select: { id: true } })
+		await prisma.user.update({ where: { id }, data: { role: role && ROLE_TO_PRISMA[role], email, isActive }, select: { id: true } })
 	} catch (err) {
 		if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
 			throw emailTaken()
 		}
 		throw err
 	}
+	if (isActive === false) {
+		await deleteUserSessions(prisma, id)
+	}
+	return getUser(prisma, id)
+}
+
+/** Sets a new password of any user and signs them out everywhere; on the own account the caller's session (`currentSessionId`) stays. */
+export const setUserPassword = async (
+	prisma: PrismaClient,
+	id: string,
+	{ password }: SetUserPasswordRequest,
+	current: { userId: string; sessionId: string },
+): Promise<AdminUserDetail> => {
+	const passwordHash = await hashPassword(password)
+	const { count } = await prisma.user.updateMany({ where: { id }, data: { passwordHash, passwordChangedAt: new Date() } })
+	if (count === 0) {
+		throw new AppError(404, ERROR_CODE.NOT_FOUND, 'User not found')
+	}
+	await deleteUserSessions(prisma, id, id === current.userId ? current.sessionId : undefined)
 	return getUser(prisma, id)
 }
 

@@ -17,7 +17,7 @@ const NOW = new Date(2026, 9, 20, 12, 0, 0)
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000
 
-const profileOf = (user: AuthUser): Profile => ({ ...user, passwordChangedAt: new Date(NOW.getTime() - NINETY_DAYS_MS).toISOString() })
+const profileOf = (user: AuthUser): Profile => ({ ...user, hasPassword: true, passwordChangedAt: new Date(NOW.getTime() - NINETY_DAYS_MS).toISOString() })
 
 const ADMIN_PROFILE = profileOf(ADMIN_USER)
 
@@ -337,6 +337,14 @@ describe('ProfilePage', () => {
 
 		await waitFor(() => expect(router.state.location.pathname).toBe('/profile'))
 		expect(await screen.findByRole('heading', { level: 1, name: 'Môj profil' })).toBeInTheDocument()
+	})
+
+	it('shows a Google-only user a note instead of Zmeniť heslo', async () => {
+		signedInAs(EDITOR_USER, { 'GET /profile': { status: 200, data: { ...profileOf(EDITOR_USER), hasPassword: false, passwordChangedAt: null } } })
+		await renderProfile()
+
+		expect(screen.getByText('Prihlasujete sa cez Google. Heslo vám môže nastaviť administrátor.')).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Zmeniť heslo' })).not.toBeInTheDocument()
 	})
 
 	it('changes the password from the modal and shows the new change time', async () => {

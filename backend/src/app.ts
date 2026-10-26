@@ -5,6 +5,7 @@ import { type Logger } from 'pino'
 import { pinoHttp } from 'pino-http'
 
 import { type Config } from './config/env'
+import { type GoogleOidc } from './lib/googleOidc'
 import { type PrismaClient } from './lib/prisma'
 import { csrfMiddleware } from './middleware/csrf.middleware'
 import { errorMiddleware } from './middleware/error.middleware'
@@ -19,6 +20,8 @@ import { createProjectsRouter } from './routes/projects.routes'
 export type AppDeps = {
 	prisma: PrismaClient
 	logger: Logger
+	/** Google sign-in; `undefined` turns it off. */
+	googleOidc?: GoogleOidc
 }
 
 export const createApp = (config: Config, deps: AppDeps): Express => {
@@ -41,7 +44,7 @@ export const createApp = (config: Config, deps: AppDeps): Express => {
 	app.use(createJsonBodyMiddleware())
 
 	app.use('/api/health', createHealthRouter(deps.prisma, config.appVersion))
-	app.use('/api/auth', createAuthRouter(deps.prisma, config))
+	app.use('/api/auth', createAuthRouter(deps.prisma, config, deps.googleOidc))
 	app.use('/api/admin', createAdminRouter(deps.prisma, config))
 	app.use('/api/profile', createProfileRouter(deps.prisma, config))
 	app.use('/api/projects', createProjectsRouter(deps.prisma, config))

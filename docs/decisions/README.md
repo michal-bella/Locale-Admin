@@ -15,3 +15,4 @@ notion_page_id:
 | [0005](./0005-activity-events.md)  | Tabuľka udalostí `ActivityEvent` pre aktivitu projektu  | prijaté |
 | [0006](./0006-project-versions.md) | Verzia prekladov ako štítok s dátumami, nie vetva       | prijaté |
 | [0008](./0008-project-roles.md)    | Rola v projekte namiesto globálnej roly člena           | prijaté |
+| [0009](./0009-google-login.md)     | Prihlásenie cez Google (OpenID Connect) popri hesle     | prijaté |

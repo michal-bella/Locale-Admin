@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
 	ERROR_CODE,
+	PASSWORD_MIN_LENGTH,
 	PROJECT_ROLE,
 	projectListResponseSchema,
 	ROLE,
@@ -62,7 +63,18 @@ describe('GET /api/admin/users', () => {
 			{ role: ROLE.ADMIN, projectCount: 1 },
 			{ role: ROLE.ADMIN, projectCount: 0 },
 		])
-		expect(users[1]).toEqual({ id: newer.id, email: newer.email, role: ROLE.ADMIN, projectCount: 1, createdAt: '2026-03-01T00:00:00.000Z' })
+		expect(users[1]).toEqual({
+			id: newer.id,
+			email: newer.email,
+			role: ROLE.ADMIN,
+			isActive: true,
+			hasPassword: true,
+			hasGoogle: false,
+			projectCount: 1,
+			lastLoginAt: null,
+			createdAt: '2026-03-01T00:00:00.000Z',
+		})
+		expect(users[2]?.lastLoginAt).toEqual(expect.any(String))
 		expect(adminUserListResponseSchema.extend({ users: adminUserSchema.strict().array() }).strict().safeParse(res.body).success).toBe(true)
 		expect(JSON.stringify(res.body)).not.toContain('passwordHash')
 	})
@@ -105,7 +117,11 @@ describe('GET /api/admin/users/:id', () => {
 			id: editor.id,
 			email: editor.email,
 			role: ROLE.USER,
+			isActive: true,
+			hasPassword: true,
+			hasGoogle: false,
 			projectCount: 2,
+			lastLoginAt: null,
 			createdAt: '2026-04-01T00:00:00.000Z',
 			projects: [
 				{ id: alpha.id, name: 'Alpha', slug: 'alpha', primaryColor: '#E83E8C', role: PROJECT_ROLE.EDITOR, joinedAt: '2026-06-01T00:00:00.000Z' },
@@ -173,8 +189,8 @@ describe('POST /api/admin/users', () => {
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: body.id } })
 		expect(stored).toMatchObject({ email: 'nova.osoba@firma.sk', role, isActive: true })
 		expect(stored.passwordHash).toMatch(/^\$argon2id\$/)
-		expect(await verifyPassword(stored.passwordHash, NEW_PASSWORD)).toBe(true)
-		expect(stored.passwordChangedAt.getTime()).toBeGreaterThanOrEqual(before - 1000)
+		expect(await verifyPassword(stored.passwordHash ?? '', NEW_PASSWORD)).toBe(true)
+		expect(stored.passwordChangedAt?.getTime()).toBeGreaterThanOrEqual(before - 1000)
 		expect(body.createdAt).toBe(stored.createdAt.toISOString())
 	})
 
@@ -513,5 +529,105 @@ describe('DELETE /api/admin/users/:id', () => {
 
 		expectErrorCode(res, 403, ERROR_CODE.CSRF_REJECTED)
 		expect(await getTestPrisma().user.count({ where: { id: other.id } })).toBe(1)
+	})
+})
+
+describe('PATCH /api/admin/users/:id with isActive', () => {
+	const patchUser = (app: App, cookie: string, id: string, body: unknown) =>
+		request(app)
+			.patch(`/api/admin/users/${id}`)
+			.set('Cookie', cookie)
+			.set(CSRF_HEADERS)
+			.send(body as object)
+
+	it('blocks a user, signs them out everywhere and lets them sign in again once unblocked', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user } = await createUser()
+		const userCookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
+
+		const res = await patchUser(app, cookie, user.id, { isActive: false })
+
+		expect(res.status).toBe(200)
+		expect(adminUserDetailSchema.parse(res.body)).toMatchObject({ id: user.id, isActive: false })
+		expect(await getTestPrisma().session.count({ where: { userId: user.id } })).toBe(0)
+		expect((await request(app).get('/api/auth/me').set('Cookie', userCookie)).status).toBe(401)
+		await expect(loginAs(app, { email: user.email, password: TEST_PASSWORD })).rejects.toThrow(/401/)
+
+		expect((await patchUser(app, cookie, user.id, { isActive: true })).body).toMatchObject({ isActive: true })
+		await expect(loginAs(app, { email: user.email, password: TEST_PASSWORD })).resolves.toBeTruthy()
+	})
+
+	it('returns 409 SELF_BLOCK for the own account and keeps it active', async () => {
+		const app = createTestApp()
+		const { user: admin } = await createUser({ role: ROLE.ADMIN })
+		const cookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
+
+		expectErrorCode(await patchUser(app, cookie, admin.id, { isActive: false }), 409, ERROR_CODE.SELF_BLOCK)
+		expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: admin.id } })).isActive).toBe(true)
+	})
+})
+
+describe('PUT /api/admin/users/:id/password', () => {
+	const putPassword = (app: App, cookie: string, id: string, body: unknown) =>
+		request(app)
+			.put(`/api/admin/users/${id}/password`)
+			.set('Cookie', cookie)
+			.set(CSRF_HEADERS)
+			.send(body as object)
+
+	it('sets a password of a Google-only user who can then sign in with it', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user } = await createUser({ password: null, googleSub: 'google-sub-1' })
+
+		const res = await putPassword(app, cookie, user.id, { password: NEW_PASSWORD })
+
+		expect(res.status).toBe(200)
+		expect(adminUserDetailSchema.parse(res.body)).toMatchObject({ id: user.id, hasPassword: true, hasGoogle: true })
+		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
+		expect(stored.passwordChangedAt).not.toBeNull()
+		await expect(loginAs(app, { email: user.email, password: NEW_PASSWORD })).resolves.toBeTruthy()
+	})
+
+	it('signs the user out everywhere and the old password stops working', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user } = await createUser()
+		const userCookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
+
+		expect((await putPassword(app, cookie, user.id, { password: NEW_PASSWORD })).status).toBe(200)
+
+		expect((await request(app).get('/api/auth/me').set('Cookie', userCookie)).status).toBe(401)
+		await expect(loginAs(app, { email: user.email, password: TEST_PASSWORD })).rejects.toThrow(/401/)
+	})
+
+	it('keeps the own current session and signs out the other ones', async () => {
+		const app = createTestApp()
+		const { user: admin } = await createUser({ role: ROLE.ADMIN })
+		const cookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
+		const otherCookie = await loginAs(app, { email: admin.email, password: TEST_PASSWORD })
+
+		expect((await putPassword(app, cookie, admin.id, { password: NEW_PASSWORD })).status).toBe(200)
+
+		expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).status).toBe(200)
+		expect((await request(app).get('/api/auth/me').set('Cookie', otherCookie)).status).toBe(401)
+	})
+
+	it('returns 400 for a short password, 404 for an unknown user and 403 for a USER', async () => {
+		const app = createTestApp()
+		const cookie = await loginWithRole(app, ROLE.ADMIN)
+		const { user } = await createUser()
+
+		const short = await putPassword(app, cookie, user.id, { password: 'short' })
+		expectErrorCode(short, 400, ERROR_CODE.VALIDATION_ERROR)
+		expect(errorResponseSchema.parse(short.body).error.details).toEqual([
+			{ path: 'password', code: VALIDATION_CODE.TOO_SHORT, params: { min: PASSWORD_MIN_LENGTH } },
+		])
+		expectErrorCode(await putPassword(app, cookie, '00000000-0000-4000-8000-000000000000', { password: NEW_PASSWORD }), 404, ERROR_CODE.NOT_FOUND)
+		expectErrorCode(await putPassword(app, cookie, 'not-a-uuid', { password: NEW_PASSWORD }), 404, ERROR_CODE.NOT_FOUND)
+
+		const userCookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
+		expectErrorCode(await putPassword(app, userCookie, user.id, { password: NEW_PASSWORD }), 403, ERROR_CODE.FORBIDDEN)
 	})
 })

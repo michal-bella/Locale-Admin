@@ -33,6 +33,7 @@ export const createChangePasswordController =
 	(prisma: PrismaClient): RequestHandler =>
 	async (req, res) => {
 		const input = changePasswordRequestSchema.parse(req.body)
-		const body: Profile = await changePassword(prisma, getAuth(req).user.id, input)
+		const { user, sessionId } = getAuth(req)
+		const body: Profile = await changePassword(prisma, { userId: user.id, sessionId }, input)
 		res.status(200).json(body)
 	}

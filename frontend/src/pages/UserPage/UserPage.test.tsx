@@ -43,6 +43,10 @@ const JANA: AdminUserDetail = {
 	id: '00000000-0000-4000-8000-000000000012',
 	email: 'jana.novakova@firma.sk',
 	role: ROLE.USER,
+	isActive: true,
+	hasPassword: true,
+	hasGoogle: false,
+	lastLoginAt: null,
 	projectCount: 1,
 	createdAt: '2026-10-03T10:00:00.000Z',
 	projects: [BOOKING],
@@ -577,5 +581,86 @@ describe('Delete user from the detail', () => {
 		expect(await screen.findByRole('region', { name: 'Účet používateľa' })).toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: 'Odstrániť používateľa' })).not.toBeInTheDocument()
 		expect(screen.getByRole('button', { name: `Upraviť e-mail používateľa ${ADMIN_USER.email}` })).toBeInTheDocument()
+	})
+})
+
+describe('Sign-in, password and block', () => {
+	it('shows the sign-in methods and the last sign-in on the card', async () => {
+		signedInAs(
+			ADMIN_USER,
+			routes(() => ({ ...JANA, hasGoogle: true, lastLoginAt: '2026-10-20T08:00:00.000Z' })),
+		)
+		renderApp(USER_URL)
+		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
+
+		expect(within(card).getByText('Prihlásenie: heslo, Google · naposledy 20. 10. 2026')).toBeInTheDocument()
+		expect(within(card).queryByText('Zablokovaný')).not.toBeInTheDocument()
+	})
+
+	it('sets the password of a Google-only user after the confirmation matches', async () => {
+		const show = vi.spyOn(notifications, 'show')
+		const googleOnly: AdminUserDetail = { ...JANA, hasPassword: false, hasGoogle: true }
+		const requests = signedInAs(ADMIN_USER, {
+			...routes(() => googleOnly),
+			'GET /admin/users': () => ({ status: 200, data: { users: [] } }),
+			[`PUT ${USER_URL}/password`]: () => ({ status: 200, data: { ...googleOnly, hasPassword: true } }),
+		})
+		renderApp(USER_URL)
+		expect(await screen.findByText('Prihlásenie: Google · ešte sa neprihlásil')).toBeInTheDocument()
+
+		fireEvent.click(screen.getByRole('button', { name: 'Nastaviť heslo' }))
+		const dialog = within(await screen.findByRole('dialog', { name: 'Nastaviť heslo' }))
+		expect(dialog.getByText(/prihlasuje iba cez Google/)).toBeInTheDocument()
+		fireEvent.change(dialog.getByLabelText('Nové heslo', { exact: true }), { target: { value: 'NewPassword456' } })
+		fireEvent.change(dialog.getByLabelText('Nové heslo znova'), { target: { value: 'OtherPassword' } })
+		fireEvent.click(dialog.getByRole('button', { name: 'Nastaviť heslo' }))
+		expect(await dialog.findByText('Heslá sa nezhodujú.')).toBeInTheDocument()
+		expect(requests.filter((request) => request.method === 'put')).toHaveLength(0)
+
+		fireEvent.change(dialog.getByLabelText('Nové heslo znova'), { target: { value: 'NewPassword456' } })
+		fireEvent.click(dialog.getByRole('button', { name: 'Nastaviť heslo' }))
+
+		await waitFor(() =>
+			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: `Heslo používateľa ${JANA.email} bolo nastavené.` })),
+		)
+		const put = requests.find((request) => request.method === 'put')
+		expect(JSON.parse(put?.data as string)).toEqual({ password: 'NewPassword456' })
+		expect(await screen.findByText('Prihlásenie: heslo, Google · ešte sa neprihlásil')).toBeInTheDocument()
+	})
+
+	it('blocks the user after the confirmation and then offers Odblokovať', async () => {
+		let isActive = true
+		const requests = signedInAs(ADMIN_USER, {
+			...routes(() => ({ ...JANA, isActive })),
+			'GET /admin/users': () => ({ status: 200, data: { users: [] } }),
+			[`PATCH ${USER_URL}`]: () => {
+				isActive = false
+				return { status: 200, data: { ...JANA, isActive } }
+			},
+		})
+		renderApp(USER_URL)
+
+		fireEvent.click(await screen.findByRole('button', { name: 'Zablokovať' }))
+		const dialog = within(await screen.findByRole('dialog', { name: 'Zablokovať používateľa' }))
+		expect(dialog.getByText(/neprihlási sa heslom ani cez Google/)).toBeInTheDocument()
+		fireEvent.click(dialog.getByRole('button', { name: 'Zablokovať' }))
+
+		expect(await screen.findByRole('button', { name: 'Odblokovať' })).toBeInTheDocument()
+		expect(within(screen.getByRole('region', { name: 'Účet používateľa' })).getByText('Zablokovaný')).toBeInTheDocument()
+		const patch = requests.find((request) => request.method === 'patch')
+		expect(JSON.parse(patch?.data as string)).toEqual({ isActive: false })
+	})
+
+	it('offers Nastaviť heslo but neither Zablokovať nor Odstrániť on the own account', async () => {
+		const me: AdminUserDetail = { ...JANA, id: ADMIN_USER.id, email: ADMIN_USER.email, role: ROLE.ADMIN }
+		signedInAs(ADMIN_USER, {
+			[`GET /admin/users/${me.id}`]: () => ({ status: 200, data: me }),
+			'GET /admin/projects': () => ({ status: 200, data: { projects: [] } }),
+		})
+		renderApp(`/admin/users/${me.id}`)
+
+		expect(await screen.findByRole('button', { name: 'Nastaviť heslo' })).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Zablokovať' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Odstrániť používateľa' })).not.toBeInTheDocument()
 	})
 })

@@ -67,24 +67,27 @@ flowchart LR
 
 ## ENV premenné
 
-| Premenná                                            | Kde              | Popis                                                                                                               |
-| --------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `DB_PORT`                                           | compose          | port Postgresu na hoste (default `5433`, `5432` býva obsadený)                                                      |
-| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | compose          | prístup do lokálnej DB                                                                                              |
-| `DATABASE_URL`                                      | BE, Prisma       | pripojenie k DB z hosta. V kontajneri ho compose prepíše na host `db`                                               |
-| `TEST_DATABASE_URL`                                 | integračné testy | test DB, názov musí končiť na `_test`                                                                               |
-| `NODE_ENV`, `PORT`, `LOG_LEVEL`                     | BE               | prostredie, port, úroveň logovania                                                                                  |
-| `SEED_ADMIN_PASSWORD`                               | BE, seed         | heslo admina pre seed, povinné, min. 8 znakov                                                                       |
-| `APP_VERSION`                                       | BE               | verzia v odpovedi `GET /api/health`, nepovinná (default `0.0.0`)                                                    |
-| `COOKIE_SECURE`                                     | BE               | `Secure` príznak session cookie. Default `true`, v `.env.example` a compose `false` (lokálne http)                  |
-| `SESSION_TTL_DAYS`                                  | BE               | platnosť session od poslednej aktivity v dňoch (default `7`)                                                        |
-| `SESSION_MAX_AGE_DAYS`                              | BE               | absolútny limit session od prihlásenia v dňoch (default `30`)                                                       |
-| `LOGIN_RATE_LIMIT_MAX`                              | BE               | počet pokusov o login z jednej IP za okno (default `10`, `pnpm test:e2e` používa `1000`)                            |
-| `LOGIN_RATE_LIMIT_WINDOW_MS`                        | BE               | dĺžka okna rate limitu v ms (default `900000` = 15 min)                                                             |
-| `EXPORT_MAX_CONCURRENT`                             | BE               | počet exportov, ktoré bežia naraz v jednom procese (pode), default `2` ([export](./api/exports.md#súbežné-exporty)) |
-| `EXPORT_QUEUE_MAX`                                  | BE               | koľko exportov môže čakať vo fronte, default `20`; plná fronta → 429 `EXPORT_BUSY`                                  |
-| `EXPORT_QUEUE_TIMEOUT_MS`                           | BE               | najdlhšie čakanie vo fronte v ms, default `10000`; potom 429                                                        |
-| `EXPORT_TIMEOUT_MS`                                 | BE               | najdlhší export v ms vrátane sťahovania, default `60000`; potom backend zavrie spojenie a export skončí             |
+| Premenná                                            | Kde              | Popis                                                                                                                                                                     |
+| --------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB_PORT`                                           | compose          | port Postgresu na hoste (default `5433`, `5432` býva obsadený)                                                                                                            |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | compose          | prístup do lokálnej DB                                                                                                                                                    |
+| `DATABASE_URL`                                      | BE, Prisma       | pripojenie k DB z hosta. V kontajneri ho compose prepíše na host `db`                                                                                                     |
+| `TEST_DATABASE_URL`                                 | integračné testy | test DB, názov musí končiť na `_test`                                                                                                                                     |
+| `NODE_ENV`, `PORT`, `LOG_LEVEL`                     | BE               | prostredie, port, úroveň logovania                                                                                                                                        |
+| `SEED_ADMIN_PASSWORD`                               | BE, seed         | heslo admina pre seed, povinné, min. 8 znakov                                                                                                                             |
+| `APP_VERSION`                                       | BE               | verzia v odpovedi `GET /api/health`, nepovinná (default `0.0.0`)                                                                                                          |
+| `COOKIE_SECURE`                                     | BE               | `Secure` príznak session cookie. Default `true`, v `.env.example` a compose `false` (lokálne http)                                                                        |
+| `SESSION_TTL_DAYS`                                  | BE               | platnosť session od poslednej aktivity v dňoch (default `7`)                                                                                                              |
+| `SESSION_MAX_AGE_DAYS`                              | BE               | absolútny limit session od prihlásenia v dňoch (default `30`)                                                                                                             |
+| `LOGIN_RATE_LIMIT_MAX`                              | BE               | počet pokusov o login z jednej IP za okno (default `10`, `pnpm test:e2e` používa `1000`)                                                                                  |
+| `LOGIN_RATE_LIMIT_WINDOW_MS`                        | BE               | dĺžka okna rate limitu v ms (default `900000` = 15 min)                                                                                                                   |
+| `EXPORT_MAX_CONCURRENT`                             | BE               | počet exportov, ktoré bežia naraz v jednom procese (pode), default `2` ([export](./api/exports.md#súbežné-exporty))                                                       |
+| `EXPORT_QUEUE_MAX`                                  | BE               | koľko exportov môže čakať vo fronte, default `20`; plná fronta → 429 `EXPORT_BUSY`                                                                                        |
+| `EXPORT_QUEUE_TIMEOUT_MS`                           | BE               | najdlhšie čakanie vo fronte v ms, default `10000`; potom 429                                                                                                              |
+| `EXPORT_TIMEOUT_MS`                                 | BE               | najdlhší export v ms vrátane sťahovania, default `60000`; potom backend zavrie spojenie a export skončí                                                                   |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`          | BE, compose      | OAuth klient z Google Cloud Console (Web application). Nepovinné; bez nich je prihlásenie cez Google vypnuté. Secret iba v `.env`                                         |
+| `GOOGLE_REDIRECT_URI`                               | BE               | callback v dev režime, `http://localhost:5173/api/auth/oauth/google/callback`; musí byť medzi Authorized redirect URIs klienta. Nastav všetky tri `GOOGLE_*` alebo žiadnu |
+| `GOOGLE_STACK_REDIRECT_URI`                         | compose          | callback v Docker stacku, `http://localhost:8080/api/auth/oauth/google/callback`; compose ho odovzdá backendu ako `GOOGLE_REDIRECT_URI`                                   |
 
 ## Troubleshooting
 

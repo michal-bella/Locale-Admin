@@ -36,6 +36,13 @@ export const loginRequestSchema = z.object({
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>
 
+/** Body of `GET /api/auth/providers`: sign-in methods besides the password; `google` is on when the backend has the `GOOGLE_*` ENV. */
+export const authProvidersResponseSchema = z.object({
+	google: z.boolean(),
+})
+
+export type AuthProvidersResponse = z.infer<typeof authProvidersResponseSchema>
+
 /** Choices of the user that every screen needs on load; changed with `PATCH /api/profile/preferences`. */
 export const userPreferencesSchema = z.object({
 	translationsView: translationsViewSchema,

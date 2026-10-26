@@ -10,6 +10,7 @@ export const QUERY_KEYS = {
 	HEALTH: () => ['health'] as const,
 	AUTH: {
 		ME: () => ['auth', 'me'] as const,
+		PROVIDERS: () => ['auth', 'providers'] as const,
 	},
 	ADMIN: {
 		USERS: () => ['admin', 'users'] as const,

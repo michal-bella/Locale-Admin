@@ -11,7 +11,16 @@ const positiveIntSchema = z.coerce.number().int().positive()
 
 const nonNegativeIntSchema = z.coerce.number().int().nonnegative()
 
-export const envSchema = z.object({
+// An empty value (`GOOGLE_CLIENT_ID=` in .env.example) means not set.
+const optionalStringSchema = z
+	.string()
+	.trim()
+	.optional()
+	.transform((value) => value || undefined)
+
+const GOOGLE_ENV_KEYS = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI'] as const
+
+const baseEnvSchema = z.object({
 	NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 	PORT: z.coerce.number().int().positive().default(4000),
 	LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
@@ -27,11 +36,30 @@ export const envSchema = z.object({
 	EXPORT_QUEUE_MAX: nonNegativeIntSchema.default(20),
 	EXPORT_QUEUE_TIMEOUT_MS: positiveIntSchema.default(10000),
 	EXPORT_TIMEOUT_MS: positiveIntSchema.default(60000),
+	GOOGLE_CLIENT_ID: optionalStringSchema,
+	GOOGLE_CLIENT_SECRET: optionalStringSchema,
+	GOOGLE_REDIRECT_URI: optionalStringSchema.pipe(z.url({ protocol: /^https?$/ }).optional()),
 })
 
-export const seedEnvSchema = envSchema.pick({ DATABASE_URL: true, SEED_ADMIN_PASSWORD: true })
+export const envSchema = baseEnvSchema.superRefine((env, ctx) => {
+	const missing = GOOGLE_ENV_KEYS.filter((key) => env[key] === undefined)
+	if (missing.length > 0 && missing.length < GOOGLE_ENV_KEYS.length) {
+		for (const key of missing) {
+			ctx.addIssue({ code: 'custom', path: [key], message: `Set all of ${GOOGLE_ENV_KEYS.join(', ')} or none` })
+		}
+	}
+})
+
+export const seedEnvSchema = baseEnvSchema.pick({ DATABASE_URL: true, SEED_ADMIN_PASSWORD: true })
 
 export type Env = z.infer<typeof envSchema>
+
+/** Google sign-in (OpenID Connect); `redirectUri` is the callback registered in the Google client. */
+export type GoogleConfig = {
+	clientId: string
+	clientSecret: string
+	redirectUri: string
+}
 
 export type Config = {
 	nodeEnv: Env['NODE_ENV']
@@ -50,6 +78,8 @@ export type Config = {
 	exportQueueTimeoutMs: number
 	/** Whole export including the client download; after it the connection is closed and the export stops at its next database call. */
 	exportTimeoutMs: number
+	/** `null` turns Google sign-in off: the endpoints return 404 and `GET /api/auth/providers` reports `google: false`. */
+	google: GoogleConfig | null
 }
 
 /** Formats zod issues as `NAME: message` lines without echoing the values (they may be secrets). */
@@ -77,5 +107,9 @@ export const parseEnv = (env: NodeJS.ProcessEnv): Config => {
 		exportQueueMax: data.EXPORT_QUEUE_MAX,
 		exportQueueTimeoutMs: data.EXPORT_QUEUE_TIMEOUT_MS,
 		exportTimeoutMs: data.EXPORT_TIMEOUT_MS,
+		google:
+			data.GOOGLE_CLIENT_ID && data.GOOGLE_CLIENT_SECRET && data.GOOGLE_REDIRECT_URI
+				? { clientId: data.GOOGLE_CLIENT_ID, clientSecret: data.GOOGLE_CLIENT_SECRET, redirectUri: data.GOOGLE_REDIRECT_URI }
+				: null,
 	}
 }

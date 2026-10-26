@@ -9,7 +9,7 @@ import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import classes from './SecuritySection.module.css'
 import { type SecuritySectionProps } from './types'
 
-/** "Heslo a zabezpečenie" (Figma 3:1912). "Zmeniť heslo" opens `ChangePasswordModal`. */
+/** "Heslo a zabezpečenie" (Figma 3:1912). "Zmeniť heslo" opens `ChangePasswordModal`; without a password (Google only) just a note. */
 const SecuritySection = ({ passwordChangedAt }: SecuritySectionProps) => {
 	const { t, i18n } = useTranslation()
 	const titleId = useId()
@@ -22,13 +22,19 @@ const SecuritySection = ({ passwordChangedAt }: SecuritySectionProps) => {
 					{t('profilePage.security.title')}
 				</Text>
 				<Text size='xs' c='var(--app-color-muted)'>
-					{t('profilePage.security.passwordChanged', { relative: formatRelativeTime(passwordChangedAt, i18n.language) })}
+					{passwordChangedAt
+						? t('profilePage.security.passwordChanged', { relative: formatRelativeTime(passwordChangedAt, i18n.language) })
+						: t('profilePage.security.googleOnly')}
 				</Text>
 			</div>
-			<Button variant='default' leftSection={<Shield aria-hidden />} onClick={() => setModalOpened(true)}>
-				{t('profilePage.security.changePassword')}
-			</Button>
-			<ChangePasswordModal opened={modalOpened} onClose={() => setModalOpened(false)} />
+			{passwordChangedAt && (
+				<>
+					<Button variant='default' leftSection={<Shield aria-hidden />} onClick={() => setModalOpened(true)}>
+						{t('profilePage.security.changePassword')}
+					</Button>
+					<ChangePasswordModal opened={modalOpened} onClose={() => setModalOpened(false)} />
+				</>
+			)}
 		</section>
 	)
 }

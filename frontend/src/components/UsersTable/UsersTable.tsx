@@ -8,6 +8,7 @@ import { type AdminUser, getInitials, ROLE } from '@locale/shared'
 import { useAdminUsersQuery } from '@/api/adminUsers/adminUsersQuery'
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
+import BlockedBadge from '@/components/BlockedBadge/BlockedBadge'
 import DeleteUserModal from '@/components/DeleteUserModal/DeleteUserModal'
 import { ArrowRight, Trash } from '@/components/Icons'
 import RoleBadge from '@/components/RoleBadge/RoleBadge'
@@ -117,7 +118,10 @@ const UsersTable = () => {
 							{/* The hidden columns, for screens too narrow for them (see the CSS). */}
 							<div className={`${classes.narrowDetails} flex-col items-start gap-1`}>
 								<span className={classes.phoneOnly}>
-									<RoleBadge role={user.role} />
+									<span className='flex flex-wrap items-center gap-1'>
+										<RoleBadge role={user.role} />
+										{!user.isActive && <BlockedBadge />}
+									</span>
 								</span>
 								<Text size='xs'>
 									{user.role === ROLE.ADMIN
@@ -130,7 +134,10 @@ const UsersTable = () => {
 					</div>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.tabletUp}`}>
-					<RoleBadge role={user.role} />
+					<div className='flex flex-wrap items-center gap-1'>
+						<RoleBadge role={user.role} />
+						{!user.isActive && <BlockedBadge />}
+					</div>
 				</Table.Td>
 				<Table.Td className={`${classes.td} ${classes.wideOnly}`}>
 					<Text size='sm'>{user.role === ROLE.ADMIN ? t('usersPage.table.allProjectsShort') : user.projectCount}</Text>

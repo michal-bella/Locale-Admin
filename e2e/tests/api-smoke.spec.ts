@@ -71,7 +71,17 @@ test.describe('ADMIN /api/admin/users', () => {
 		})
 		expect(response.status()).toBe(201)
 		const body = (await response.json()) as Record<string, unknown>
-		expect(body).toEqual({ id: expect.any(String), email: credentials.email, role: 'USER', projectCount: 0, createdAt: expect.any(String) })
+		expect(body).toEqual({
+			id: expect.any(String),
+			email: credentials.email,
+			role: 'USER',
+			isActive: true,
+			hasPassword: true,
+			hasGoogle: false,
+			projectCount: 0,
+			lastLoginAt: null,
+			createdAt: expect.any(String),
+		})
 		expect(new Date(body.createdAt as string).toISOString()).toBe(body.createdAt)
 
 		const users = ((await (await request.get('/api/admin/users')).json()) as { users: AdminUser[] }).users
@@ -169,6 +179,7 @@ test.describe('/api/profile', () => {
 			firstName: 'Jana',
 			lastName: 'Kováčová',
 			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
+			hasPassword: true,
 			passwordChangedAt: expect.any(String),
 		}
 		expect(await update.json()).toEqual(expected)
@@ -211,6 +222,7 @@ test.describe('/api/profile', () => {
 			firstName: null,
 			lastName: null,
 			preferences: { translationsView: 'COMPACT', translationsLayout: 'COLUMNS' },
+			hasPassword: true,
 			passwordChangedAt: expect.any(String),
 		}
 		expect(await compact.json()).toEqual(expected)

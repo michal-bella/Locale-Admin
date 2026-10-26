@@ -16,14 +16,15 @@ PostgreSQL 17, Prisma 7 s driver adapterom `@prisma/adapter-pg`. Schéma je v `b
 | ------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`                     | UUID                       | PK                                                                                                                                                                                                                                            |
 | `email`                  | string, unique             | uložený normalizovaný (`trim()` + malé písmená)                                                                                                                                                                                               |
-| `passwordHash`           | string                     | argon2id, nikdy sa nevracia v API                                                                                                                                                                                                             |
+| `passwordHash`           | string, nullable           | argon2id, nikdy sa nevracia v API; `null` pre používateľa, ktorý sa prihlasuje iba cez Google (heslo mu môže nastaviť `ADMIN`)                                                                                                                |
+| `googleSub`              | string, nullable, unique   | Google ID (`sub` z ID tokenu) pripojeného Google účtu; nastaví sa pri prvom prihlásení cez Google                                                                                                                                             |
 | `role`                   | enum `ROLE`                | `ADMIN` alebo `USER` (default); práva `USER`-a v projekte určuje `ProjectMember.role`. Nastavuje ho `POST /api/admin/users` (jediná cesta, ako používateľ vzniká), migrácia `project_roles` zmenila `MANAGER`, `EDITOR` a `VISITOR` na `USER` |
 | `firstName`, `lastName`  | string, nullable           | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                                                                                                                                                                        |
-| `isActive`               | boolean                    | default `true`, neaktívny user sa neprihlási                                                                                                                                                                                                  |
+| `isActive`               | boolean                    | default `true`; `false` = zablokovaný `ADMIN`-om, neprihlási sa heslom ani cez Google                                                                                                                                                         |
 | `translationsView`       | enum `TRANSLATIONS_VIEW`   | `EXTENDED` (default, všetky jazyky vedľa seba) alebo `COMPACT` (zdrojový → cieľový); preferencia stránky Preklady, mení `PATCH /api/profile/preferences`                                                                                      |
 | `translationsLayout`     | enum `TRANSLATIONS_LAYOUT` | `COLUMNS` (default, jazyky vedľa seba) alebo `STACKED` (pod sebou); preferencia stránky Preklady, mení `PATCH /api/profile/preferences`                                                                                                       |
-| `lastLoginAt`            | datetime, nullable         | nastaví sa pri úspešnom logine                                                                                                                                                                                                                |
-| `passwordChangedAt`      | datetime                   | default čas vytvorenia                                                                                                                                                                                                                        |
+| `lastLoginAt`            | datetime, nullable         | nastaví sa pri úspešnom prihlásení heslom aj cez Google                                                                                                                                                                                       |
+| `passwordChangedAt`      | datetime, nullable         | čas nastavenia hesla; `null`, kým používateľ nemá heslo                                                                                                                                                                                       |
 | `createdAt`, `updatedAt` | datetime                   |                                                                                                                                                                                                                                               |
 
 ### Session
@@ -233,6 +234,7 @@ erDiagram
         uuid id PK
         string email UK
         string passwordHash
+        string googleSub
         ROLE role
         string firstName
         string lastName

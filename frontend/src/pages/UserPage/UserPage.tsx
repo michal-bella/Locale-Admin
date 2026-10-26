@@ -1,7 +1,7 @@
 import { Button, Skeleton, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ERROR_CODE, ROLE } from '@locale/shared'
@@ -11,17 +11,20 @@ import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import ButtonLink from '@/atoms/ButtonLink/ButtonLink'
 import AddUserProjectModal from '@/components/AddUserProjectModal/AddUserProjectModal'
+import BlockUserModal from '@/components/BlockUserModal/BlockUserModal'
 import DeleteUserModal from '@/components/DeleteUserModal/DeleteUserModal'
-import { Plus, Trash } from '@/components/Icons'
+import { Key, Lock, LockUnlocked, Plus, Trash } from '@/components/Icons'
 import PageIntro from '@/components/PageIntro/PageIntro'
+import SetUserPasswordModal from '@/components/SetUserPasswordModal/SetUserPasswordModal'
 import UserCard from '@/components/UserCard/UserCard'
 import UserProjectsTable from '@/components/UserProjectsTable/UserProjectsTable'
 
 import classes from './UserPage.module.css'
 
 /**
- * Detail of one user (ADMIN only): account card (role, email) and the projects they are a member of, with adding and removing (an admin
- * works in every project, so only a note is shown); the user can be deleted here too, except the own account. No Figma, same look as Používatelia.
+ * Detail of one user (ADMIN only): account card (role, email, sign-in) and the projects they are a member of, with adding and removing (an
+ * admin works in every project, so only a note is shown). Nastaviť heslo for anyone; Zablokovať / Odblokovať and Odstrániť except the own
+ * account. No Figma, same look as Používatelia.
  */
 const UserPage = () => {
 	const { t } = useTranslation()
@@ -32,6 +35,9 @@ const UserPage = () => {
 	const { data: me } = useMeQuery()
 	const navigate = useNavigate()
 	const [deleteOpened, deleteModal] = useDisclosure(false)
+	const [passwordOpened, passwordModal] = useDisclosure(false)
+	const [blockOpened, blockModal] = useDisclosure(false)
+	const [blockAction, setBlockAction] = useState<'block' | 'unblock'>('block')
 
 	const closeModal = () => {
 		modal.close()
@@ -109,13 +115,38 @@ const UserPage = () => {
 		<div className='mx-auto flex w-full max-w-[1200px] flex-col gap-6 p-8'>
 			<div className='flex flex-wrap items-end justify-between gap-4'>
 				<PageIntro eyebrow={t('userPage.eyebrow')} title={t('userPage.title')} description={t('userPage.description')} titleSize='h2' />
-				{data && data.id !== me?.id && (
-					<Button variant='light' color='red' leftSection={<Trash aria-hidden />} onClick={deleteModal.open}>
-						{t('userPage.deleteButton')}
-					</Button>
+				{data && (
+					<div className='flex flex-wrap gap-2'>
+						<Button variant='default' leftSection={<Key aria-hidden />} onClick={passwordModal.open}>
+							{t('userPage.passwordButton')}
+						</Button>
+						{data.id !== me?.id && (
+							<>
+								<Button
+									variant='default'
+									leftSection={data.isActive ? <Lock aria-hidden /> : <LockUnlocked aria-hidden />}
+									onClick={() => {
+										setBlockAction(data.isActive ? 'block' : 'unblock')
+										blockModal.open()
+									}}
+								>
+									{t(data.isActive ? 'userPage.blockButton' : 'userPage.unblockButton')}
+								</Button>
+								<Button variant='light' color='red' leftSection={<Trash aria-hidden />} onClick={deleteModal.open}>
+									{t('userPage.deleteButton')}
+								</Button>
+							</>
+						)}
+					</div>
 				)}
 			</div>
 			{renderContent()}
+			{data && (
+				<>
+					<SetUserPasswordModal user={data} opened={passwordOpened} onClose={passwordModal.close} />
+					<BlockUserModal user={data} action={blockAction} opened={blockOpened} onClose={blockModal.close} />
+				</>
+			)}
 			<DeleteUserModal
 				opened={deleteOpened}
 				user={data ?? null}

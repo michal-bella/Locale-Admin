@@ -14,6 +14,8 @@ import { AppError } from '../lib/errors'
 import { hashPassword, verifyPassword } from '../lib/password'
 import { type PrismaClient } from '../lib/prisma'
 
+import { deleteUserSessions } from './session.service'
+
 const PROFILE_SELECT = {
 	id: true,
 	email: true,
@@ -22,12 +24,14 @@ const PROFILE_SELECT = {
 	lastName: true,
 	translationsView: true,
 	translationsLayout: true,
+	passwordHash: true,
 	passwordChangedAt: true,
 } satisfies Prisma.UserSelect
 
-const toProfile = (user: AuthUserRow & Pick<User, 'passwordChangedAt'>): Profile => ({
+const toProfile = (user: AuthUserRow & Pick<User, 'passwordHash' | 'passwordChangedAt'>): Profile => ({
 	...toAuthUser(user),
-	passwordChangedAt: user.passwordChangedAt.toISOString(),
+	hasPassword: user.passwordHash !== null,
+	passwordChangedAt: user.passwordChangedAt?.toISOString() ?? null,
 })
 
 export const getProfile = async (prisma: PrismaClient, userId: string): Promise<Profile> => {
@@ -65,9 +69,16 @@ export const updatePreferences = async (
 	return toProfile(user)
 }
 
-/** Other sessions of the user stay signed in; the change is only the hash and `passwordChangedAt`. */
-export const changePassword = async (prisma: PrismaClient, userId: string, { currentPassword, newPassword }: ChangePasswordRequest): Promise<Profile> => {
+/** Signs the user out on every other device (`sessionId` is the caller's session). A user without a password gets one only from an ADMIN. */
+export const changePassword = async (
+	prisma: PrismaClient,
+	{ userId, sessionId }: { userId: string; sessionId: string },
+	{ currentPassword, newPassword }: ChangePasswordRequest,
+): Promise<Profile> => {
 	const { passwordHash } = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { passwordHash: true } })
+	if (!passwordHash) {
+		throw new AppError(409, ERROR_CODE.PASSWORD_NOT_SET, 'The user has no password')
+	}
 	if (!(await verifyPassword(passwordHash, currentPassword))) {
 		throw new AppError(400, ERROR_CODE.PASSWORD_INCORRECT, 'The current password is incorrect')
 	}
@@ -76,5 +87,6 @@ export const changePassword = async (prisma: PrismaClient, userId: string, { cur
 		data: { passwordHash: await hashPassword(newPassword), passwordChangedAt: new Date() },
 		select: PROFILE_SELECT,
 	})
+	await deleteUserSessions(prisma, userId, sessionId)
 	return toProfile(user)
 }

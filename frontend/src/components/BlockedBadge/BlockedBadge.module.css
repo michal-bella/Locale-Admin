@@ -1,0 +1,9 @@
+/* Same size as RoleBadge, so both fit side by side in the Rola column. */
+.badge {
+	height: 1.375rem;
+	padding: 1px 0.5rem 0;
+	border: 0;
+	font-size: var(--mantine-font-size-4xs);
+	font-weight: 700;
+	line-height: 1.5;
+}

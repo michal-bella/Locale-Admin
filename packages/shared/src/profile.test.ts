@@ -40,10 +40,25 @@ describe('profileSchema', () => {
 			firstName: 'Martin',
 			lastName: 'Kováč',
 			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
+			hasPassword: true,
 			passwordChangedAt: '2026-07-17T08:00:00.000Z',
 			passwordHash: 'secret-hash',
 		}
 		expect(profileSchema.parse(profile)).not.toHaveProperty('passwordHash')
+	})
+
+	it('accepts a user without a password', () => {
+		const profile = {
+			id: '0b6f6f5e-2f4e-4a3b-9c1d-1e2f3a4b5c6d',
+			email: 'martin.kovac@gmail.com',
+			role: ROLE.USER,
+			firstName: null,
+			lastName: null,
+			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
+			hasPassword: false,
+			passwordChangedAt: null,
+		}
+		expect(profileSchema.parse(profile)).toEqual(profile)
 	})
 })
 

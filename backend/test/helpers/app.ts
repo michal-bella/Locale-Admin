@@ -2,6 +2,7 @@ import { pino } from 'pino'
 
 import { createApp } from '../../src/app'
 import { type Config } from '../../src/config/env'
+import { type GoogleOidc } from '../../src/lib/googleOidc'
 import { type PrismaClient } from '../../src/lib/prisma'
 
 import { getTestPrisma } from './db'
@@ -21,7 +22,8 @@ export const TEST_CONFIG: Config = {
 	exportQueueMax: 20,
 	exportQueueTimeoutMs: 10000,
 	exportTimeoutMs: 60000,
+	google: null,
 }
 
-export const createTestApp = ({ config, prisma }: { config?: Partial<Config>; prisma?: PrismaClient } = {}) =>
-	createApp({ ...TEST_CONFIG, ...config }, { prisma: prisma ?? getTestPrisma(), logger: pino({ level: 'silent' }) })
+export const createTestApp = ({ config, prisma, googleOidc }: { config?: Partial<Config>; prisma?: PrismaClient; googleOidc?: GoogleOidc } = {}) =>
+	createApp({ ...TEST_CONFIG, ...config }, { prisma: prisma ?? getTestPrisma(), logger: pino({ level: 'silent' }), googleOidc })

@@ -1,6 +1,6 @@
 ---
 title: 'API: profil'
-updated: 2026-10-25
+updated: 2026-10-26
 notion_page_id:
 ---
 
@@ -19,17 +19,18 @@ Router `/api/profile` je za `requireAuth`, rola sa nekontroluje. Bez session vr�
 
 ## Odpoveď `Profile`
 
-Schéma `profileSchema` = `AuthUser` (viď [auth](./auth.md#odpoveď-authuser)) a navyše `passwordChangedAt`. Hash hesla sa nikdy nevracia.
+Schéma `profileSchema` = `AuthUser` (viď [auth](./auth.md#odpoveď-authuser)) a navyše `hasPassword` a `passwordChangedAt`. Hash hesla sa nikdy nevracia.
 
-| Pole                | Typ               | Popis                                                                               |
-| ------------------- | ----------------- | ----------------------------------------------------------------------------------- |
-| `id`                | UUID              | ID používateľa                                                                      |
-| `email`             | string            | normalizovaný email (malé písmená)                                                  |
-| `role`              | `ADMIN` / `USER`  | globálna rola                                                                       |
-| `firstName`         | string / `null`   | meno, `null` ak ešte nie je vyplnené                                                |
-| `lastName`          | string / `null`   | priezvisko, `null` ak ešte nie je vyplnené                                          |
-| `preferences`       | objekt            | `{ translationsView, translationsLayout }` (viď [auth](./auth.md#odpoveď-authuser)) |
-| `passwordChangedAt` | string (ISO 8601) | posledná zmena hesla, napr. `2026-10-12T08:30:00.000Z`                              |
+| Pole                | Typ                            | Popis                                                                                 |
+| ------------------- | ------------------------------ | ------------------------------------------------------------------------------------- |
+| `id`                | UUID                           | ID používateľa                                                                        |
+| `email`             | string                         | normalizovaný email (malé písmená)                                                    |
+| `role`              | `ADMIN` / `USER`               | globálna rola                                                                         |
+| `firstName`         | string / `null`                | meno, `null` ak ešte nie je vyplnené                                                  |
+| `lastName`          | string / `null`                | priezvisko, `null` ak ešte nie je vyplnené                                            |
+| `preferences`       | objekt                         | `{ translationsView, translationsLayout }` (viď [auth](./auth.md#odpoveď-authuser))   |
+| `hasPassword`       | boolean                        | `false` pre používateľa, ktorý sa prihlasuje iba cez Google; heslo mu nastaví `ADMIN` |
+| `passwordChangedAt` | string (ISO 8601) alebo `null` | posledná zmena hesla, napr. `2026-10-12T08:30:00.000Z`; `null` bez hesla              |
 
 ```json
 {
@@ -39,6 +40,7 @@ Schéma `profileSchema` = `AuthUser` (viď [auth](./auth.md#odpoveď-authuser)) 
 	"firstName": "Jana",
 	"lastName": "Nováková",
 	"preferences": { "translationsView": "EXTENDED", "translationsLayout": "COLUMNS" },
+	"hasPassword": true,
 	"passwordChangedAt": "2026-10-12T08:30:00.000Z"
 }
 ```
@@ -114,7 +116,8 @@ Telo (schéma `changePasswordRequestSchema`):
 - `currentPassword` je povinné a musí sa zhodovať s aktuálnym heslom (argon2), inak 400 `PASSWORD_INCORRECT` a nič sa nemení.
 - `newPassword` má 8 až 128 znakov (`passwordSchema`, rovnaké pravidlá ako pri vytvorení používateľa). Môže byť rovnaké ako aktuálne.
 - Mení iba prihláseného používateľa: uloží nový hash a nastaví `passwordChangedAt` na teraz. Pri úspechu vráti `200` s novým `Profile`.
-- Zámerne jednoduché: žiadne e-maily, tokeny ani notifikácie. Existujúce sessions (aj v iných prehliadačoch) zostávajú prihlásené.
+- Zmaže ostatné session používateľa (iné prehliadače a zariadenia sa odhlásia), aktuálna session ostáva. Žiadne e-maily, tokeny ani notifikácie.
+- Používateľ bez hesla (iba Google) dostane 409 `PASSWORD_NOT_SET`; heslo mu nastaví `ADMIN` ([reset hesla](./admin-users.md#put-apiadminusersidpassword)).
 
 | HTTP | `code`                 | Kedy                                                                |
 | ---- | ---------------------- | ------------------------------------------------------------------- |
@@ -123,6 +126,7 @@ Telo (schéma `changePasswordRequestSchema`):
 | 400  | `PASSWORD_INCORRECT`   | `currentPassword` nesedí                                            |
 | 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                                      |
 | 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo                                 |
+| 409  | `PASSWORD_NOT_SET`     | používateľ nemá heslo (prihlasuje sa iba cez Google)                |
 
 Príklady `details` pri 400 `VALIDATION_ERROR`:
 

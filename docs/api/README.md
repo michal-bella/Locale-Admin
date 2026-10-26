@@ -18,11 +18,16 @@ Všetky endpointy sú pod `/api`. Request a response schémy sú v `packages/sha
 | `POST`   | `/api/auth/login`                                               | prihlásenie, session cookie, [detail](./auth.md)                                                               |
 | `POST`   | `/api/auth/logout`                                              | odhlásenie, [detail](./auth.md)                                                                                |
 | `GET`    | `/api/auth/me`                                                  | prihlásený používateľ, [detail](./auth.md)                                                                     |
+| `GET`    | `/api/auth/providers`                                           | spôsoby prihlásenia okrem hesla (`google`), [detail](./auth.md#get-apiauthproviders)                           |
+| `GET`    | `/api/auth/oauth/google`                                        | presmerovanie na prihlásenie cez Google, [detail](./auth.md#prihlásenie-cez-google)                            |
+| `GET`    | `/api/auth/oauth/google/callback`                               | návrat z Googlu, prihlásenie, [detail](./auth.md#prihlásenie-cez-google)                                       |
 | `GET`    | `/api/admin/projects`                                           | všetky projekty s počtami (ADMIN), [detail](./admin-projects.md)                                               |
 | `DELETE` | `/api/admin/projects/:projectId`                                | zmazanie projektu (ADMIN), [detail](./admin-projects.md)                                                       |
 | `GET`    | `/api/admin/users`                                              | zoznam všetkých používateľov (ADMIN), [detail](./admin-users.md)                                               |
 | `GET`    | `/api/admin/users/:id`                                          | detail používateľa s jeho projektmi (ADMIN), [detail](./admin-users.md)                                        |
 | `POST`   | `/api/admin/users`                                              | vytvorenie používateľa s rolou (ADMIN), [detail](./admin-users.md)                                             |
+| `PATCH`  | `/api/admin/users/:id`                                          | zmena roly, emailu, zablokovanie (ADMIN), [detail](./admin-users.md#patch-apiadminusersid)                     |
+| `PUT`    | `/api/admin/users/:id/password`                                 | nastavenie hesla a odhlásenie používateľa (ADMIN), [detail](./admin-users.md#put-apiadminusersidpassword)      |
 | `DELETE` | `/api/admin/users/:id`                                          | odstránenie používateľa (ADMIN), [detail](./admin-users.md)                                                    |
 | `GET`    | `/api/projects`                                                 | projekty používateľa (ADMIN všetky), [detail](./projects.md)                                                   |
 | `POST`   | `/api/projects`                                                 | vytvorenie projektu, [detail](./projects.md)                                                                   |

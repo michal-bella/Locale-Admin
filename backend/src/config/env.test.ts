@@ -24,7 +24,29 @@ describe('parseEnv', () => {
 			exportQueueMax: 20,
 			exportQueueTimeoutMs: 10000,
 			exportTimeoutMs: 60000,
+			google: null,
 		})
+	})
+
+	it('turns Google sign-in on when all GOOGLE_* variables are set and off when all are empty', () => {
+		const google = {
+			GOOGLE_CLIENT_ID: 'client-id.apps.googleusercontent.com',
+			GOOGLE_CLIENT_SECRET: 'client-secret',
+			GOOGLE_REDIRECT_URI: 'http://localhost:5173/api/auth/oauth/google/callback',
+		}
+		expect(parseEnv({ ...VALID_ENV, ...google }).google).toEqual({
+			clientId: google.GOOGLE_CLIENT_ID,
+			clientSecret: google.GOOGLE_CLIENT_SECRET,
+			redirectUri: google.GOOGLE_REDIRECT_URI,
+		})
+		expect(parseEnv({ ...VALID_ENV, GOOGLE_CLIENT_ID: '', GOOGLE_CLIENT_SECRET: '', GOOGLE_REDIRECT_URI: '' }).google).toBeNull()
+	})
+
+	it('rejects only some GOOGLE_* variables and an invalid redirect URI', () => {
+		expect(() => parseEnv({ ...VALID_ENV, GOOGLE_CLIENT_ID: 'client-id' })).toThrow(/GOOGLE_CLIENT_SECRET[\s\S]*GOOGLE_REDIRECT_URI/)
+		expect(() =>
+			parseEnv({ ...VALID_ENV, GOOGLE_CLIENT_ID: 'client-id', GOOGLE_CLIENT_SECRET: 'client-secret', GOOGLE_REDIRECT_URI: 'not-a-url' }),
+		).toThrow(/GOOGLE_REDIRECT_URI/)
 	})
 
 	it.each([

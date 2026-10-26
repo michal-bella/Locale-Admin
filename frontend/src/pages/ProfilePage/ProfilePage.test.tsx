@@ -17,7 +17,7 @@ const NOW = new Date(2026, 9, 20, 12, 0, 0)
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000
 
-const profileOf = (user: AuthUser): Profile => ({ ...user, passwordChangedAt: new Date(NOW.getTime() - NINETY_DAYS_MS).toISOString() })
+const profileOf = (user: AuthUser): Profile => ({ ...user, hasPassword: true, passwordChangedAt: new Date(NOW.getTime() - NINETY_DAYS_MS).toISOString() })
 
 const ADMIN_PROFILE = profileOf(ADMIN_USER)
 

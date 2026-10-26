@@ -43,6 +43,9 @@ services:
       EXPORT_QUEUE_MAX: ${EXPORT_QUEUE_MAX:-20}
       EXPORT_QUEUE_TIMEOUT_MS: ${EXPORT_QUEUE_TIMEOUT_MS:-10000}
       EXPORT_TIMEOUT_MS: ${EXPORT_TIMEOUT_MS:-60000}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_STACK_REDIRECT_URI:-}
     # init: true runs a tiny init as PID 1 that forwards signals and reaps zombies.
     init: true
     ports:

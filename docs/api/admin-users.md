@@ -1,37 +1,52 @@
 ---
 title: 'API: správa používateľov'
-updated: 2026-10-25
+updated: 2026-10-26
 notion_page_id:
 ---
 
 # Správa používateľov (`/api/admin/users`)
 
-Zoznam všetkých používateľov, detail používateľa s jeho projektmi, vytvorenie používateľa s globálnou rolou (`ADMIN` alebo `USER`; rolu v projekte nastavuje admin pri pridaní do projektu) a jeho odstránenie. Registrácia neexistuje a toto je jediná cesta, ako používateľ vzniká; do projektov sa existujúci používatelia pridávajú na stránke Členovia projektu (viď [projekty](./projects.md#členovia)). Editácia a deaktivácia nie sú, meno si každý mení v profile. Schémy sú v `packages/shared/src/adminUsers.ts`.
+Zoznam všetkých používateľov, detail používateľa s jeho projektmi, vytvorenie používateľa s globálnou rolou (`ADMIN` alebo `USER`; rolu v projekte nastavuje admin pri pridaní do projektu) a jeho odstránenie. Registrácia neexistuje: používateľ s heslom vzniká tu, používateľ bez hesla pri prvom prihlásení cez Google ([auth](./auth.md#prihlásenie-cez-google)); do projektov sa existujúci používatelia pridávajú na stránke Členovia projektu (viď [projekty](./projects.md#členovia)). `ADMIN` mení rolu a email, blokuje používateľov a nastavuje im heslo; meno si každý mení v profile. Schémy sú v `packages/shared/src/adminUsers.ts`.
 
-| Metóda   | Cesta                  | Prihlásenie | Popis                                       |
-| -------- | ---------------------- | ----------- | ------------------------------------------- |
-| `GET`    | `/api/admin/users`     | `ADMIN`     | zoznam všetkých používateľov od najnovšieho |
-| `GET`    | `/api/admin/users/:id` | `ADMIN`     | detail používateľa s jeho projektmi         |
-| `POST`   | `/api/admin/users`     | `ADMIN`     | vytvorí používateľa s danou rolou           |
-| `PATCH`  | `/api/admin/users/:id` | `ADMIN`     | zmení globálnu rolu používateľa             |
-| `DELETE` | `/api/admin/users/:id` | `ADMIN`     | odstráni používateľa                        |
+| Metóda   | Cesta                           | Prihlásenie | Popis                                         |
+| -------- | ------------------------------- | ----------- | --------------------------------------------- |
+| `GET`    | `/api/admin/users`              | `ADMIN`     | zoznam všetkých používateľov od najnovšieho   |
+| `GET`    | `/api/admin/users/:id`          | `ADMIN`     | detail používateľa s jeho projektmi           |
+| `POST`   | `/api/admin/users`              | `ADMIN`     | vytvorí používateľa s danou rolou             |
+| `PATCH`  | `/api/admin/users/:id`          | `ADMIN`     | zmení globálnu rolu, email alebo zablokovanie |
+| `PUT`    | `/api/admin/users/:id/password` | `ADMIN`     | nastaví nové heslo a odhlási používateľa      |
+| `DELETE` | `/api/admin/users/:id`          | `ADMIN`     | odstráni používateľa                          |
 
 Celý router `/api/admin` je za `requireAuth` a `requireRole(ROLE.ADMIN)`: bez session vráti 401 `AUTH_UNAUTHENTICATED`, prihlásený `USER` (aj `MANAGER` projektu) dostane 403 `FORBIDDEN` (viď [auth](./auth.md#oprávnenia)).
 
 ## Odpoveď `AdminUser`
 
-Schéma `adminUserSchema`. Hash hesla sa nikdy nevracia (backend ho z databázy ani nečíta).
+Schéma `adminUserSchema`. Hash hesla ani Google ID sa nikdy nevracajú, backend z nich počíta iba `hasPassword` a `hasGoogle`.
 
-| Pole           | Typ               | Popis                                            |
-| -------------- | ----------------- | ------------------------------------------------ |
-| `id`           | UUID              | ID používateľa                                   |
-| `email`        | string            | normalizovaný email (malé písmená)               |
-| `role`         | `ADMIN` / `USER`  | globálna rola                                    |
-| `projectCount` | number            | počet projektov, v ktorých je členom             |
-| `createdAt`    | string (ISO 8601) | čas vytvorenia, napr. `2026-10-12T08:30:00.000Z` |
+| Pole           | Typ                            | Popis                                            |
+| -------------- | ------------------------------ | ------------------------------------------------ |
+| `id`           | UUID                           | ID používateľa                                   |
+| `email`        | string                         | normalizovaný email (malé písmená)               |
+| `role`         | `ADMIN` / `USER`               | globálna rola                                    |
+| `isActive`     | boolean                        | `false` = zablokovaný, neprihlási sa             |
+| `hasPassword`  | boolean                        | má heslo (prihlásenie heslom)                    |
+| `hasGoogle`    | boolean                        | má pripojený Google účet                         |
+| `projectCount` | number                         | počet projektov, v ktorých je členom             |
+| `lastLoginAt`  | string (ISO 8601) alebo `null` | posledné prihlásenie heslom alebo cez Google     |
+| `createdAt`    | string (ISO 8601)              | čas vytvorenia, napr. `2026-10-12T08:30:00.000Z` |
 
 ```json
-{ "id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11", "email": "meno@firma.sk", "role": "USER", "projectCount": 2, "createdAt": "2026-10-12T08:30:00.000Z" }
+{
+	"id": "6f1c0f8e-1b7e-4c47-9a53-0a4b1f3e2d11",
+	"email": "meno@firma.sk",
+	"role": "USER",
+	"isActive": true,
+	"hasPassword": true,
+	"hasGoogle": false,
+	"projectCount": 2,
+	"lastLoginAt": "2026-10-20T07:15:00.000Z",
+	"createdAt": "2026-10-12T08:30:00.000Z"
+}
 ```
 
 ## GET /api/admin/users
@@ -129,12 +144,13 @@ Príklady `details` pri 400:
 Telo (schéma `updateUserRequestSchema`), aspoň jedno z polí:
 
 ```json
-{ "role": "ADMIN", "email": "jana@firma.sk" }
+{ "role": "ADMIN", "email": "jana@firma.sk", "isActive": false }
 ```
 
 - `role` (voliteľné) je `ADMIN` alebo `USER`. Mení ktoréhokoľvek používateľa vrátane vlastného účtu; nová rola platí hneď (ďalšia požiadavka aj `GET /api/auth/me` ju už vrátia). Kto sa stane `ADMIN`-om, členstvá v projektoch aj s rolami si ponechá: kým je `ADMIN`, nepočítajú sa (nie je v zozname členov ani v počtoch, pracuje všade ako `ADMIN`), detail ich vráti v `projects`; po zmene späť na `USER` platia znova.
 - Posledný `ADMIN` sa nemôže stať `USER`-om (409 `LAST_ADMIN`), aby mal kto spravovať používateľov. Rovnakú rolu, akú používateľ má, vráti 200 bez zmeny.
 - `email` (voliteľné) sa uloží normalizovaný (orezaný, malými písmenami) ako pri vytvorení. Používateľ sa odteraz prihlasuje novým emailom; heslo a session ostávajú. Email iného používateľa vráti 409 `EMAIL_TAKEN` a nezmení sa nič (ani rola z toho istého tela).
+- `isActive` (voliteľné): `false` používateľa zablokuje a zmaže všetky jeho session (hneď sa odhlási), neprihlási sa heslom ani cez Google. `true` ho odblokuje; heslo aj pripojený Google účet ostávajú. Vlastný účet zablokovať nejde (409 `SELF_BLOCK`), takže vždy ostane aktívny admin. Zablokovanie je náhrada zmazania pre používateľov z Googlu: zmazaný by sa pri ďalšom prihlásení cez Google založil znova.
 - Pri úspechu vráti `200` s `AdminUserDetail` (ako `GET /api/admin/users/:id`).
 
 | HTTP | `code`                 | Kedy                                                                                                                      |
@@ -147,6 +163,26 @@ Telo (schéma `updateUserRequestSchema`), aspoň jedno z polí:
 | 404  | `NOT_FOUND`            | používateľ s týmto `id` neexistuje alebo `id` nie je UUID                                                                 |
 | 409  | `LAST_ADMIN`           | posledný `ADMIN` by prišiel o rolu                                                                                        |
 | 409  | `EMAIL_TAKEN`          | email už má iný používateľ                                                                                                |
+| 409  | `SELF_BLOCK`           | pokus zablokovať vlastný účet                                                                                             |
+
+## PUT /api/admin/users/:id/password
+
+Telo (schéma `setUserPasswordRequestSchema`):
+
+```json
+{ "password": "••••••••" }
+```
+
+Nastaví ktorémukoľvek používateľovi nové heslo (pravidlá `passwordSchema`, 8 až 128 znakov) a `passwordChangedAt`, aj používateľovi, ktorý sa doteraz prihlasoval iba cez Google. Zmaže všetky jeho session, takže sa všade odhlási; pri vlastnom účte ostane session volajúceho. Vráti `200` s `AdminUserDetail`.
+
+| HTTP | `code`                 | Kedy                                                      |
+| ---- | ---------------------- | --------------------------------------------------------- |
+| 200  |                        | heslo nastavené, telo `AdminUserDetail`                   |
+| 400  | `VALIDATION_ERROR`     | heslo chýba, je kratšie ako 8 alebo dlhšie ako 128 znakov |
+| 401  | `AUTH_UNAUTHENTICATED` | chýba alebo expirovala session                            |
+| 403  | `FORBIDDEN`            | prihlásený používateľ nie je `ADMIN`                      |
+| 403  | `CSRF_REJECTED`        | chýba CSRF hlavička alebo JSON telo                       |
+| 404  | `NOT_FOUND`            | používateľ s týmto `id` neexistuje alebo `id` nie je UUID |
 
 ## DELETE /api/admin/users/:id
 

@@ -1,5 +1,6 @@
 import { createApp } from './app'
 import { parseEnv } from './config/env'
+import { createGoogleOidc } from './lib/googleOidc'
 import { createLogger } from './lib/logger'
 import { getDummyPasswordHash } from './lib/password'
 import { createPrismaClient } from './lib/prisma'
@@ -7,7 +8,7 @@ import { createPrismaClient } from './lib/prisma'
 const config = parseEnv(process.env)
 const logger = createLogger(config)
 const prisma = createPrismaClient(config.databaseUrl)
-const app = createApp(config, { prisma, logger })
+const app = createApp(config, { prisma, logger, googleOidc: config.google ? createGoogleOidc(config.google) : undefined })
 
 // Warm-up so the first unknown-email login does not pay for creating the dummy hash (timing side channel).
 void getDummyPasswordHash()

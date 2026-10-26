@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest'
 
 import { ERROR_CODE, ROLE, VALIDATION_CODE, errorResponseSchema, profileSchema } from '@locale/shared'
 
-import { createTestApp } from './helpers/app'
-import { CSRF_HEADERS, loginAs } from './helpers/auth'
+import { buildNewSession } from '../src/services/session.service'
+
+import { TEST_CONFIG, createTestApp } from './helpers/app'
+import { CSRF_HEADERS, loginAs, toCookieHeader } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
 import { TEST_PASSWORD, createUser } from './helpers/users'
 
@@ -47,6 +49,7 @@ describe('GET /api/profile', () => {
 			firstName: 'Jana',
 			lastName: 'Nováková',
 			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
+			hasPassword: true,
 			passwordChangedAt: '2026-05-04T10:20:30.000Z',
 		})
 	})
@@ -81,7 +84,8 @@ describe('PATCH /api/profile', () => {
 			firstName: 'Jana',
 			lastName: 'Nováková',
 			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
-			passwordChangedAt: user.passwordChangedAt.toISOString(),
+			hasPassword: true,
+			passwordChangedAt: user.passwordChangedAt?.toISOString(),
 		})
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
 		expect(stored).toMatchObject({ firstName: 'Jana', lastName: 'Nováková' })
@@ -301,7 +305,7 @@ describe('PUT /api/profile/password', () => {
 		const body = profileSchema.parse(res.body)
 		expect(body).toMatchObject({ id: user.id, email: user.email })
 		expect(res.body).not.toHaveProperty('passwordHash')
-		expect(new Date(body.passwordChangedAt).getTime()).toBeGreaterThan(before.getTime())
+		expect(new Date(body.passwordChangedAt ?? 0).getTime()).toBeGreaterThan(before?.getTime() ?? 0)
 		expect((await request(app).get('/api/profile').set('Cookie', cookie)).status).toBe(200)
 		expectErrorCode(
 			await request(app).post('/api/auth/login').set(CSRF_HEADERS).send({ email: user.email, password: TEST_PASSWORD }),
@@ -309,6 +313,31 @@ describe('PUT /api/profile/password', () => {
 			ERROR_CODE.AUTH_INVALID_CREDENTIALS,
 		)
 		expect((await request(app).post('/api/auth/login').set(CSRF_HEADERS).send({ email: user.email, password: NEW_PASSWORD })).status).toBe(200)
+	})
+
+	it('signs out the other sessions of the user and keeps the current one', async () => {
+		const app = createTestApp()
+		const { user, cookie } = await loginWithUser(app)
+		const otherCookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
+
+		expect((await putPassword(app, cookie, { currentPassword: TEST_PASSWORD, newPassword: NEW_PASSWORD })).status).toBe(200)
+
+		expect((await request(app).get('/api/profile').set('Cookie', cookie)).status).toBe(200)
+		expect((await request(app).get('/api/profile').set('Cookie', otherCookie)).status).toBe(401)
+	})
+
+	it('returns 409 PASSWORD_NOT_SET for a user who signs in only with Google', async () => {
+		const app = createTestApp()
+		const { user } = await createUser({ password: null, googleSub: 'google-sub-1' })
+		const { token, data } = buildNewSession(user.id, TEST_CONFIG, new Date())
+		await getTestPrisma().session.create({ data })
+		const cookie = toCookieHeader(token)
+
+		expect(profileSchema.parse((await request(app).get('/api/profile').set('Cookie', cookie)).body)).toMatchObject({
+			hasPassword: false,
+			passwordChangedAt: null,
+		})
+		expectErrorCode(await putPassword(app, cookie, { currentPassword: 'anything', newPassword: NEW_PASSWORD }), 409, ERROR_CODE.PASSWORD_NOT_SET)
 	})
 
 	it('returns 400 PASSWORD_INCORRECT for a wrong current password and changes nothing', async () => {

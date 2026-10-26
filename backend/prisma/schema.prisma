@@ -58,7 +58,10 @@ enum VERSION_LOCK {
 model User {
   id                 String              @id @default(uuid()) @db.Uuid
   email              String              @unique
-  passwordHash       String
+  /// `null` for a user who signs in only with Google; an ADMIN sets a password on create or with the reset.
+  passwordHash       String?
+  /// Google account ID (`sub` of the ID token) linked on the first Google sign-in.
+  googleSub          String?             @unique
   role               ROLE                @default(USER)
   firstName          String?
   lastName           String?
@@ -66,7 +69,7 @@ model User {
   translationsView   TRANSLATIONS_VIEW   @default(EXTENDED)
   translationsLayout TRANSLATIONS_LAYOUT @default(COLUMNS)
   lastLoginAt        DateTime?
-  passwordChangedAt  DateTime            @default(now())
+  passwordChangedAt  DateTime?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   sessions           Session[]

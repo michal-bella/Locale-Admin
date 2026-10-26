@@ -16,9 +16,10 @@ export const updateProfileRequestSchema = z.object({
 
 export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>
 
-/** Body of `GET` and `PATCH /api/profile`. Never contains `passwordHash`. */
+/** Body of `GET` and `PATCH /api/profile`. Never contains `passwordHash`. A user who signs in only with Google has no password (`hasPassword: false`, `passwordChangedAt: null`). */
 export const profileSchema = authUserSchema.extend({
-	passwordChangedAt: z.iso.datetime(),
+	hasPassword: z.boolean(),
+	passwordChangedAt: z.iso.datetime().nullable(),
 })
 
 export type Profile = z.infer<typeof profileSchema>
@@ -30,7 +31,7 @@ export const updatePreferencesRequestSchema = userPreferencesSchema
 
 export type UpdatePreferencesRequest = z.infer<typeof updatePreferencesRequestSchema>
 
-/** Body of `PUT /api/profile/password`: the current password is checked, the new one must satisfy `passwordSchema`; the response is the `Profile`. */
+/** Body of `PUT /api/profile/password`: the current password is checked, the new one must satisfy `passwordSchema`; other sessions are signed out; the response is the `Profile`. */
 export const changePasswordRequestSchema = z.object({
 	currentPassword: z.string().min(1),
 	newPassword: passwordSchema,

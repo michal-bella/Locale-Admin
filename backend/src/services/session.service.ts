@@ -60,6 +60,11 @@ export const resolveSession = async (prisma: PrismaClient, token: string, config
 	return { sessionId: session.id, user: toAuthUser(session.user), expiresAt, touched: true }
 }
 
+/** Signs a user out everywhere, or everywhere else when `exceptSessionId` is the caller's own session. */
+export const deleteUserSessions = async (prisma: PrismaClient, userId: string, exceptSessionId?: string): Promise<void> => {
+	await prisma.session.deleteMany({ where: { userId, ...(exceptSessionId && { id: { not: exceptSessionId } }) } })
+}
+
 export const deleteSessionByToken = async (prisma: PrismaClient, token: string): Promise<void> => {
 	await prisma.session.deleteMany({ where: { tokenHash: hashSessionToken(token) } })
 }

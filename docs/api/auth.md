@@ -1,18 +1,21 @@
 ---
 title: 'API: auth'
-updated: 2026-10-25
+updated: 2026-10-26
 notion_page_id:
 ---
 
 # Autentifikácia (`/api/auth`)
 
-Prihlásenie emailom a heslom, server-side session v Postgrese (tabuľka `Session`, viď [Databáza](../database.md#session)) a session cookie. Registrácia ani reset hesla vo fáze 1 nie sú. Schémy sú v `packages/shared/src/auth.ts`.
+Prihlásenie emailom a heslom alebo cez Google (OpenID Connect, [ADR 0009](../decisions/0009-google-login.md)), server-side session v Postgrese (tabuľka `Session`, viď [Databáza](../database.md#session)) a session cookie. Oba spôsoby vytvoria rovnakú session. Registrácia neexistuje: účet s heslom vytvára `ADMIN`, účet bez hesla vznikne pri prvom prihlásení cez Google. Heslo nastaví `ADMIN` ([reset hesla](./admin-users.md#put-apiadminusersidpassword)). Schémy sú v `packages/shared/src/auth.ts`.
 
-| Metóda | Cesta              | Prihlásenie | Popis                                         |
-| ------ | ------------------ | ----------- | --------------------------------------------- |
-| `POST` | `/api/auth/login`  | nie         | prihlási používateľa a nastaví session cookie |
-| `POST` | `/api/auth/logout` | nie         | zmaže session a cookie (idempotentný)         |
-| `GET`  | `/api/auth/me`     | áno         | vráti prihláseného používateľa                |
+| Metóda | Cesta                             | Prihlásenie | Popis                                         |
+| ------ | --------------------------------- | ----------- | --------------------------------------------- |
+| `POST` | `/api/auth/login`                 | nie         | prihlási používateľa a nastaví session cookie |
+| `POST` | `/api/auth/logout`                | nie         | zmaže session a cookie (idempotentný)         |
+| `GET`  | `/api/auth/me`                    | áno         | vráti prihláseného používateľa                |
+| `GET`  | `/api/auth/providers`             | nie         | spôsoby prihlásenia okrem hesla               |
+| `GET`  | `/api/auth/oauth/google`          | nie         | presmeruje na prihlásenie cez Google          |
+| `GET`  | `/api/auth/oauth/google/callback` | nie         | návrat z Googlu: prihlási a presmeruje na `/` |
 
 ## Odpoveď `AuthUser`
 
@@ -48,7 +51,7 @@ Telo (schéma `loginRequestSchema`):
 
 - `email` sa pred porovnaním upraví cez `trim()` a malé písmená, takže prihlásenie nezávisí od veľkosti písmen.
 - `password` je iba povinné (1 až 128 znakov). Pravidlá nového hesla sa tu nekontrolujú, zlé heslo preto vráti 401, nie 400.
-- Zlý email, zlé heslo aj neaktívny používateľ vrátia rovnakú odpoveď 401 `AUTH_INVALID_CREDENTIALS`. Pri neexistujúcom emaile backend aj tak overí heslo voči falošnému hashu, aby sa odpovede nelíšili časom.
+- Zlý email, zlé heslo, zablokovaný používateľ aj používateľ bez hesla (prihlasuje sa iba cez Google) vrátia rovnakú odpoveď 401 `AUTH_INVALID_CREDENTIALS`. Pri neexistujúcom emaile backend aj tak overí heslo voči falošnému hashu, aby sa odpovede nelíšili časom.
 - Pri úspechu backend nastaví `User.lastLoginAt`, zmaže všetky expirované session (všetkých používateľov) aj session z cookie poslanej s požiadavkou (ak existuje), vytvorí novú session, pošle `Set-Cookie` a vráti `200` s `AuthUser`.
 
 | HTTP | `code`                     | Kedy                                          |
@@ -76,6 +79,45 @@ Vyžaduje platnú session cookie. Vráti `200` s `AuthUser`.
 | ---- | ---------------------- | ------------------------------------------------------------------------ |
 | 200  |                        | prihlásený používateľ                                                    |
 | 401  | `AUTH_UNAUTHENTICATED` | chýba cookie, neznámy token, session expirovala, používateľ je neaktívny |
+
+## GET /api/auth/providers
+
+Vráti `200` s `{ "google": true }` (schéma `authProvidersResponseSchema`). `google` je `true`, keď má backend nastavené všetky ENV `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` a `GOOGLE_REDIRECT_URI` ([lokálny vývoj](../local-development.md)). Podľa neho prihlasovacia stránka zobrazí tlačidlo Google.
+
+## Prihlásenie cez Google
+
+Authorization Code flow s PKCE, `state` a `nonce` (knižnica `openid-client`, issuer `https://accounts.google.com`, scopes `openid email profile`). Oba endpointy sú navigácie prehliadača, nie XHR: odpovedajú presmerovaním, CSRF hlavičky nepotrebujú a bez `GOOGLE_*` ENV vrátia 404 `NOT_FOUND`.
+
+### GET /api/auth/oauth/google
+
+Vygeneruje PKCE verifier, `state` a `nonce`, uloží ich do cookie `locale_oauth` a presmeruje (`302`) na Google. Ak Google nie je dostupný (discovery zlyhá), presmeruje (`303`) na `/login?error=AUTH_OAUTH_FAILED`.
+
+| Atribút cookie         | Hodnota                                               |
+| ---------------------- | ----------------------------------------------------- |
+| názov                  | `locale_oauth`                                        |
+| `HttpOnly`, `SameSite` | áno, `Lax` (prehliadač ju pošle pri návrate z Googlu) |
+| `Path`                 | `/api/auth/oauth`                                     |
+| `Max-Age`              | 600 s                                                 |
+| `Secure`               | podľa `COOKIE_SECURE`                                 |
+
+### GET /api/auth/oauth/google/callback
+
+Google sem vráti prehliadač s `code` a `state`. Backend zmaže cookie `locale_oauth`, overí odpoveď (`state`, PKCE, podpis a `nonce` ID tokenu) a nájde používateľa:
+
+1. podľa Google ID (`User.googleSub`),
+2. inak podľa overeného emailu: Google účet sa pripojí k existujúcemu používateľovi (aj s heslom, ten má potom oba spôsoby prihlásenia),
+3. inak založí `USER` bez projektov a bez hesla. Kým ho `ADMIN` nepridá do projektu, vidí prázdny zoznam projektov.
+
+Meno a priezvisko z Googlu (`given_name`, `family_name`) sa uložia iba vtedy, keď ich používateľ nemá. Email z Googlu sa neskôr neprepisuje (`ADMIN` ho môže zmeniť, väzba ostáva cez `googleSub`). Pri úspechu vznikne session ako pri hesle (nastaví `lastLoginAt`, zmaže expirované session a session z poslanej cookie), backend pošle `Set-Cookie` a presmeruje (`303`) na `/`.
+
+Pri chybe presmeruje (`303`) na `/login?error=<code>` bez session:
+
+| `code`                    | Kedy                                                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_EMAIL_NOT_VERIFIED` | Google účet nemá overený email                                                                                                              |
+| `AUTH_USER_BLOCKED`       | používateľ je zablokovaný (`isActive = false`)                                                                                              |
+| `AUTH_ACCOUNT_CONFLICT`   | email patrí používateľovi s iným pripojeným Google účtom                                                                                    |
+| `AUTH_OAUTH_FAILED`       | chýba alebo je neplatná cookie `locale_oauth`, nesedí `state`, používateľ prihlásenie zrušil, Google vrátil chybu alebo email nie je platný |
 
 ## Session cookie
 
@@ -115,7 +157,7 @@ Inak vráti 403 `CSRF_REJECTED` a telo sa ani neparsuje. `GET` požiadavky sa ne
 
 ## Rate limit
 
-Iba `POST /api/auth/login`, kľúč je IP klienta (`trust proxy` = 1 hop, nginx alebo Vite). Úložisko je v pamäti backendu.
+Iba `POST /api/auth/login` (prihlásenie cez Google rate limit nemá, overuje ho Google), kľúč je IP klienta (`trust proxy` = 1 hop, nginx alebo Vite). Úložisko je v pamäti backendu.
 
 - Limit `LOGIN_RATE_LIMIT_MAX` pokusov (default 10) za okno `LOGIN_RATE_LIMIT_WINDOW_MS` (default 900000 ms = 15 min).
 - Počíta sa každý pokus, ktorý prejde CSRF kontrolou: úspešný, zlé heslo aj nevalidné telo.

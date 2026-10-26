@@ -48,7 +48,17 @@ const ADMIN_MEMBER: ProjectMember = {
 	createdAt: '2026-10-01T10:00:00.000Z',
 }
 
-const asAdminUser = ({ id, email, projectCount, createdAt }: ProjectMember, role = ROLE.USER): AdminUser => ({ id, email, role, projectCount, createdAt })
+const asAdminUser = ({ id, email, projectCount, createdAt }: ProjectMember, role = ROLE.USER): AdminUser => ({
+	id,
+	email,
+	role,
+	isActive: true,
+	hasPassword: true,
+	hasGoogle: false,
+	projectCount,
+	lastLoginAt: null,
+	createdAt,
+})
 
 const JANA_USER = asAdminUser(JANA)
 const PETER_USER = asAdminUser(PETER)
@@ -58,6 +68,10 @@ const NEW_USER: AdminUser = {
 	id: '00000000-0000-4000-8000-000000000503',
 	email: 'nova@firma.sk',
 	role: ROLE.USER,
+	isActive: true,
+	hasPassword: true,
+	hasGoogle: false,
+	lastLoginAt: null,
 	projectCount: 0,
 	createdAt: '2026-10-19T10:00:00.000Z',
 }

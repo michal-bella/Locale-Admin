@@ -293,6 +293,40 @@ describe('PATCH /api/projects/:projectId/members/:userId', () => {
 		expect(await getTestPrisma().activityEvent.count()).toBe(0)
 	})
 
+	it('records one role change for two concurrent identical changes', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const { user: member } = await createUser()
+		const project = await createProjectRow([member.id])
+
+		const responses = await Promise.all([
+			patchMember(app, cookie, project.id, member.id, { role: PROJECT_ROLE.MANAGER }),
+			patchMember(app, cookie, project.id, member.id, { role: PROJECT_ROLE.MANAGER }),
+		])
+
+		expect(responses.map((res) => res.status)).toEqual([200, 200])
+		expect(await getTestPrisma().activityEvent.count({ where: { type: ACTIVITY_TYPE.MEMBER_ROLE_CHANGED } })).toBe(1)
+	})
+
+	it('returns 404 NOT_FOUND instead of 500 when the member is removed concurrently', async () => {
+		const app = createTestApp()
+		const { cookie } = await login(app, ROLE.ADMIN)
+		const { user: member } = await createUser()
+		const project = await createProjectRow([member.id])
+
+		const [patched, removed] = await Promise.all([
+			patchMember(app, cookie, project.id, member.id, { role: PROJECT_ROLE.MANAGER }),
+			request(app)
+				.delete(`${membersUrl(project.id)}/${member.id}`)
+				.set('Cookie', cookie)
+				.set(CSRF_HEADERS)
+				.send({}),
+		])
+
+		expect(removed.status).toBe(204)
+		expect([200, 404]).toContain(patched.status)
+	})
+
 	it('returns 403 FORBIDDEN to a MANAGER of the project and keeps the role', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await login(app)

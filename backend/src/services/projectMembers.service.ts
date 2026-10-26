@@ -75,6 +75,8 @@ export const updateProjectMember = async (
 	{ role }: UpdateProjectMemberRequest,
 ): Promise<ProjectMember> =>
 	prisma.$transaction(async (tx) => {
+		// Same lock as removeProjectMember: concurrent updates record one role change, and a concurrent removal gives 404 instead of a failed update.
+		await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId}::uuid FOR UPDATE`
 		const current = await tx.projectMember.findUnique({ where: { projectId_userId: { projectId, userId } }, select: { role: true } })
 		if (!current) {
 			throw new AppError(404, ERROR_CODE.NOT_FOUND, 'Not a member of the project')

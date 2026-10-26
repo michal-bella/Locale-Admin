@@ -304,13 +304,16 @@ describe('TranslationsPage versions', () => {
 		expect(bodyOf(requests.find((request) => request.method === 'put'))).toEqual({ value: 'Welcome!' })
 	})
 
-	it('keeps the cells of a locked version read-only for an EDITOR and says why', async () => {
+	it('opens the translations of a locked version read-only for an EDITOR and says why', async () => {
 		mockPage({ user: EDITOR_USER })
 		renderApp(`${PAGE_PATH}?version=${LOCKED.id}`)
 
 		const row = await findRow('dashboard.welcome')
 		expect(screen.getByText('Verzia v2.44 je uzamknutá, jej preklady upravuje už len administrátor.')).toBeInTheDocument()
-		expect(within(row).queryByRole('button', { name: /Preklad kľúča dashboard.welcome, angličtina/ })).not.toBeInTheDocument()
+		fireEvent.click(within(row).getByRole('button', { name: /Preklad kľúča dashboard.welcome, angličtina/ }))
+		const dialog = await screen.findByRole('dialog', { name: 'Preklad' })
+		expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument()
+		expect(within(dialog).queryByRole('button', { name: /^Uložiť/ })).not.toBeInTheDocument()
 	})
 
 	it('lets an ADMIN edit in a locked version', async () => {

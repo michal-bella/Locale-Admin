@@ -237,6 +237,15 @@ describe('EditKeyModal', () => {
 		expect(within(dialog).getByLabelText('Názov premennej')).toHaveValue('n')
 	})
 
+	it('hides the namespace field when the key has no namespace', async () => {
+		mockPage({ items: [item('components.footer', { namespace: '' })] })
+		renderApp(PAGE_PATH)
+		const dialog = await openModal('components.footer')
+
+		expect(within(dialog).queryByLabelText('Namespace')).not.toBeInTheDocument()
+		expect(within(dialog).getByLabelText(/Kľúč/)).toHaveValue('components.footer')
+	})
+
 	it('renames the key with only the name in the request, notifies and refetches the list', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		const { patches, lists } = mockPage()

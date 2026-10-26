@@ -307,7 +307,7 @@ const TranslationsTable = ({
 						</div>
 						<span className={classes.meta}>
 							<span className={classes.metaGroup} title={item.group || undefined}>
-								{item.group || t('translationsPage.table.noGroup')}
+								{item.group || t('translationsPage.table.noNamespace')}
 							</span>
 							{updatedAt && (
 								<>
@@ -429,7 +429,7 @@ const TranslationsTable = ({
 					<Table.Tr data-group-header className={classes.groupRow}>
 						<Table.Th colSpan={columnCount} scope='rowgroup' className={classes.groupCell}>
 							{/* Stays in view while the extended table scrolls horizontally. */}
-							<span className={classes.groupLabel}>{item.group || t('translationsPage.table.noGroup')}</span>
+							<span className={classes.groupLabel}>{item.group || t('translationsPage.table.noNamespace')}</span>
 						</Table.Th>
 					</Table.Tr>
 				)}

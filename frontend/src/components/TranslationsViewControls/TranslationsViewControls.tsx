@@ -192,20 +192,22 @@ const TranslationsViewControls = ({
 					comboboxProps={{ width: 260, position: 'bottom-start' }}
 				/>
 			)}
-			{diffAvailable && (
+			<div className={classes.switches}>
+				{diffAvailable && (
+					<Switch
+						label={t('translationsPage.view.diffOnly')}
+						checked={diffOnly === true}
+						onChange={(event) => onChange({ diff: event.currentTarget.checked || undefined })}
+						className={classes.switch}
+					/>
+				)}
 				<Switch
-					label={t('translationsPage.view.diffOnly')}
-					checked={diffOnly === true}
-					onChange={(event) => onChange({ diff: event.currentTarget.checked || undefined })}
+					label={t('translationsPage.toolbar.translationsOnly')}
+					checked={translationsOnly === true}
+					onChange={(event) => onChange({ translationsOnly: event.currentTarget.checked || undefined })}
 					className={classes.switch}
 				/>
-			)}
-			<Switch
-				label={t('translationsPage.toolbar.translationsOnly')}
-				checked={translationsOnly === true}
-				onChange={(event) => onChange({ translationsOnly: event.currentTarget.checked || undefined })}
-				className={classes.switch}
-			/>
+			</div>
 		</div>
 	)
 }

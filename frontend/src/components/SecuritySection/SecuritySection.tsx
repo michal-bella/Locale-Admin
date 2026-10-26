@@ -18,17 +18,14 @@ const SecuritySection = ({ passwordChangedAt }: SecuritySectionProps) => {
 	return (
 		<section aria-labelledby={titleId} className={`${classes.card} flex flex-wrap items-center justify-between gap-4`}>
 			<div className='flex flex-col gap-1.5'>
-				<div className='flex items-center gap-2'>
-					<Shield aria-hidden className={classes.icon} />
-					<Text component='h2' id={titleId} size='sm' fw={700} c='var(--app-color-title)'>
-						{t('profilePage.security.title')}
-					</Text>
-				</div>
+				<Text component='h2' id={titleId} size='sm' fw={700} c='var(--app-color-title)'>
+					{t('profilePage.security.title')}
+				</Text>
 				<Text size='xs' c='var(--app-color-muted)'>
 					{t('profilePage.security.passwordChanged', { relative: formatRelativeTime(passwordChangedAt, i18n.language) })}
 				</Text>
 			</div>
-			<Button variant='default' onClick={() => setModalOpened(true)}>
+			<Button variant='default' leftSection={<Shield aria-hidden />} onClick={() => setModalOpened(true)}>
 				{t('profilePage.security.changePassword')}
 			</Button>
 			<ChangePasswordModal opened={modalOpened} onClose={() => setModalOpened(false)} />

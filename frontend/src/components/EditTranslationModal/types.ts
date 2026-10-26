@@ -15,6 +15,8 @@ export type EditTranslationModalProps = {
 	onNext?: () => void
 	/** Focus the first field when the content switches while the modal stays open (Uložiť a ďalší); on open Mantine focuses it. */
 	focusOnSwitch?: boolean
+	/** Only shows the translation (a VISITOR): the value as text instead of the editor, no copying and only Zavrieť in the footer. */
+	readOnly?: boolean
 	/** Name of the previous version, for the toggle of a changed translation's previous value; without it the text says „predchádzajúcej verzie“. */
 	previousVersionName?: string
 }

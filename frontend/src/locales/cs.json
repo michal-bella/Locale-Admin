@@ -423,6 +423,7 @@
 		},
 		"editModal": {
 			"title": "Upravit překlad",
+			"titleReadOnly": "Překlad",
 			"close": "Zavřít",
 			"key": "Klíč",
 			"baseLanguage": "Základní jazyk",

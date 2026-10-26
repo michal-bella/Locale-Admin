@@ -24,8 +24,10 @@ export type TranslationsTableProps = {
 	showGroups: boolean
 	/** Hides the key and status columns, so the translations get the whole width. */
 	translationsOnly?: boolean
-	/** A VISITOR: cells are plain text and `EditTranslationModal` is not rendered. */
+	/** No writes (a VISITOR, or a version locked for the user): cells are plain text and `EditTranslationModal` is not rendered, unless `viewOnly`. */
 	readOnly?: boolean
+	/** With `readOnly` (a VISITOR): the cells still open `EditTranslationModal`, read-only, so a long value cut in the table can be read whole. */
+	viewOnly?: boolean
 	/** Opens Upraviť preklad of this key and language as soon as the list contains the key (a link from the activity on Prehľad). */
 	openTranslationOf?: { keyId: string; language: Language }
 	/** Name of the version the diff compares with, for the previous value in `EditTranslationModal`. */

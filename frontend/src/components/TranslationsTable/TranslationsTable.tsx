@@ -68,6 +68,7 @@ const TranslationsTable = ({
 	showGroups,
 	translationsOnly = false,
 	readOnly = false,
+	viewOnly = false,
 	openTranslationOf,
 	previousVersionName,
 	onSave,
@@ -151,10 +152,12 @@ const TranslationsTable = ({
 		translationModal.open()
 	}
 
+	const canOpenTranslation = !readOnly || viewOnly
+
 	// Set during render, not in an effect: the request opens the modal once, as soon as the (possibly still placeholder) list has the key.
 	const openRequest = openTranslationOf && `${openTranslationOf.keyId}:${openTranslationOf.language.id}`
 	if (openRequest !== openedRequest) {
-		const requested = openTranslationOf && !readOnly ? data?.items.find((item) => item.keyId === openTranslationOf.keyId) : undefined
+		const requested = openTranslationOf && canOpenTranslation ? data?.items.find((item) => item.keyId === openTranslationOf.keyId) : undefined
 		if (!openTranslationOf || requested) {
 			setOpenedRequest(openRequest)
 		}
@@ -213,7 +216,7 @@ const TranslationsTable = ({
 			pluralTag={item.plural ? language.tag : undefined}
 			reference={referenceFor(item, language)}
 			changed={isChanged(item, language)}
-			onClick={readOnly ? undefined : () => openTranslation(item, language)}
+			onClick={canOpenTranslation ? () => openTranslation(item, language) : undefined}
 		/>
 	)
 
@@ -519,7 +522,7 @@ const TranslationsTable = ({
 					canEditDescription={canManage || !readOnly}
 				/>
 			)}
-			{!readOnly && (
+			{canOpenTranslation && (
 				<EditTranslationModal
 					item={editingTranslation?.item ?? null}
 					language={editingTranslation?.language ?? null}
@@ -529,6 +532,7 @@ const TranslationsTable = ({
 					onSave={onSave}
 					onNext={nextUntranslated && (() => setEditingTranslation({ ...nextUntranslated, viaNext: true }))}
 					focusOnSwitch={editingTranslation?.viaNext}
+					readOnly={readOnly}
 					previousVersionName={previousVersionName}
 				/>
 			)}

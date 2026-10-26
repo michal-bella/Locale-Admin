@@ -138,3 +138,11 @@
 	display: inline-flex;
 	color: var(--app-color-muted);
 }
+
+/* The value of a read-only translation (VISITOR): the reference box with the text color of a field, tall enough for a few lines. */
+.readOnlyValue {
+	justify-content: flex-start;
+	min-height: 5.5rem;
+	color: var(--app-color-text-strong);
+	overflow-wrap: anywhere;
+}

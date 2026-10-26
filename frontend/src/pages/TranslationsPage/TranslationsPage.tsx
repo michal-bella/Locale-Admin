@@ -43,7 +43,7 @@ const ROUTE_ID = '/_authenticated/_app/projects/$projectSlug/translations'
  * by all of them (no language ids in the query); `?languages=` narrows its columns to the base language plus the chosen ones without changing
  * the row status. `COMPACT` is the Figma source → target pair. Either view lays its languages side by side or stacked, also a preference
  * (`me.preferences.translationsLayout`). Without Posledný sync and the Na kontrolu card. Importovať (ADMIN and MANAGER only) opens `ImportModal`, Exportovať (every member) `ExportModal`.
- * A VISITOR gets the table read-only: cells are text and there is no edit modal. The list always shows one version of the project
+ * A VISITOR gets the table read-only: a cell opens the translation in the modal read-only, without the editor and without saving. The list always shows one version of the project
  * (`?version=`, else the current one, else the newest); a project without versions, or a version without import, gets an empty state
  * instead of the table. Zobraziť len zmeny (`?diff=true`) lists only the keys added or changed against the previous version, with the
  * added keys and changed cells marked, and the banner sums the diff up. An ADMIN or MANAGER also creates a version here (the page then shows it)
@@ -377,6 +377,7 @@ const TranslationsPage = () => {
 								showGroups={sort !== 'UPDATED'}
 								translationsOnly={search.translationsOnly}
 								readOnly={isVisitor || writesBlocked}
+								viewOnly={isVisitor}
 								openTranslationOf={openTranslationOf}
 								previousVersionName={diffQuery.data?.previousVersion?.name}
 								onSave={saveTranslation}

@@ -10,6 +10,8 @@ notion_page_id:
 
 ### Prístup administrátora s potvrdením (2026-10-26)
 
+- Návštevník otvorí bunku prekladu v modáli **Preklad** iba na čítanie (celý text, bez editora a bez ukladania), aby si prečítal dlhé preklady orezané v tabuľke
+
 - kto sa stane adminom, ponechá si členstvá aj roly v projektoch; kým je admin, nie je v zozname členov ani v počtoch a pracuje všade ako admin, po odobratí admina mu roly znova platia
 - detail používateľa: prepínač **Administrátor** bez popisu sa ukladá až po potvrdení v modáli (pri udelení zoznam práv admina, pri odobratí projekty a roly, ktoré budú platiť); admin vidí uložené projekty s rolou Administrátor
 - popis pod prepínačom Administrátor zmizol aj v modáli Nový používateľ a v profile; tabuľka projektov na detaile sa prispôsobuje šírke karty

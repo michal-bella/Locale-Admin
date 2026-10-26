@@ -417,6 +417,7 @@
 		},
 		"editModal": {
 			"title": "Edit translation",
+			"titleReadOnly": "Translation",
 			"close": "Close",
 			"key": "Key",
 			"baseLanguage": "Base language",

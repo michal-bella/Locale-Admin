@@ -595,7 +595,7 @@ describe('TranslationsPage versions', () => {
 		expect(Array.from(previous.querySelectorAll('del'), (mark) => mark.textContent)).toEqual(['Hello there'])
 	})
 
-	it('marks the changes in the read-only table of a VISITOR too', async () => {
+	it('marks the changes in the cells of a VISITOR too', async () => {
 		mockPage({
 			user: VISITOR_USER,
 			routes: {
@@ -609,10 +609,7 @@ describe('TranslationsPage versions', () => {
 
 		const row = await findRow('dashboard.welcome')
 		expect(within(row).getByText('Nový kľúč')).toBeInTheDocument()
-		expect(within(row).getByText('Preklad kľúča dashboard.welcome, angličtina: Zmenené:').closest('[data-readonly]')).toHaveAttribute(
-			'data-changed',
-			'true',
-		)
+		expect(within(row).getByText('Preklad kľúča dashboard.welcome, angličtina: Zmenené:').closest('[data-status]')).toHaveAttribute('data-changed', 'true')
 	})
 
 	it('shows an EDITOR no Vytvoriť verziu and no lock button', async () => {

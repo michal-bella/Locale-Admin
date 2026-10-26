@@ -283,26 +283,30 @@ const TranslationsTable = ({
 									<VisuallyHidden>{t('translationsPage.table.diffAddedLabel')}</VisuallyHidden>
 								</span>
 							)}
-							{item.description && (
-								<Tooltip label={item.description} events={TOOLTIP_EVENTS} multiline w={260}>
-									<span
-										role='img'
-										aria-label={t('translationsPage.table.description', { description: item.description })}
-										className={classes.descriptionIcon}
-									>
-										<Info aria-hidden />
-									</span>
-								</Tooltip>
-							)}
-							{canOpenKey && (
-								<span className={classes.editAction}>
-									<RowAction
-										icon={Edit}
-										tooltip={t('translationsPage.table.edit')}
-										label={t('translationsPage.table.editLabel', { key: item.name })}
-										onClick={() => openEdit(item)}
-									/>
-								</span>
+							{(canOpenKey || item.description) && (
+								<div className={classes.keyActions}>
+									{canOpenKey && (
+										<span className={classes.editAction}>
+											<RowAction
+												icon={Edit}
+												tooltip={t('translationsPage.table.edit')}
+												label={t('translationsPage.table.editLabel', { key: item.name })}
+												onClick={() => openEdit(item)}
+											/>
+										</span>
+									)}
+									{item.description && (
+										<Tooltip label={item.description} events={TOOLTIP_EVENTS} multiline w={260}>
+											<span
+												role='img'
+												aria-label={t('translationsPage.table.description', { description: item.description })}
+												className={classes.descriptionIcon}
+											>
+												<Info aria-hidden />
+											</span>
+										</Tooltip>
+									)}
+								</div>
 							)}
 						</div>
 						<span className={classes.meta}>

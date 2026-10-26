@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { getInitials, ROLE } from '@locale/shared'
 
 import AdminAccessModal from '@/components/AdminAccessModal/AdminAccessModal'
+import BlockedBadge from '@/components/BlockedBadge/BlockedBadge'
 import EditUserEmailModal from '@/components/EditUserEmailModal/EditUserEmailModal'
 import { Edit } from '@/components/Icons'
 import RowAction from '@/components/RowAction/RowAction'
@@ -15,8 +16,8 @@ import classes from './UserCard.module.css'
 import { type UserCardProps } from './types'
 
 /**
- * Header card of the user detail: avatar with initials from the email, the email with Upraviť e-mail, the created date and the Administrátor
- * switch (the global role), which saves only after the confirmation in `AdminAccessModal`.
+ * Header card of the user detail: avatar with initials from the email, the email with Upraviť e-mail and Zablokovaný, the created date, the
+ * sign-in methods with the last sign-in and the Administrátor switch (the global role), which saves only after the confirmation in `AdminAccessModal`.
  */
 const UserCard = ({ user }: UserCardProps) => {
 	const { t, i18n } = useTranslation()
@@ -41,9 +42,19 @@ const UserCard = ({ user }: UserCardProps) => {
 						label={t('userPage.card.editEmailLabel', { email: user.email })}
 						onClick={emailModal.open}
 					/>
+					{!user.isActive && <BlockedBadge />}
 				</div>
 				<Text size='xs' c='var(--app-color-muted)'>
 					{t('userPage.card.createdAt', { date: formatDate(user.createdAt, i18n.language) })}
+				</Text>
+				<Text size='xs' c='var(--app-color-muted)'>
+					{t('userPage.card.signIn', {
+						methods: [user.hasPassword && t('userPage.card.methods.password'), user.hasGoogle && t('userPage.card.methods.google')]
+							.filter(Boolean)
+							.join(', '),
+					})}{' '}
+					·{' '}
+					{user.lastLoginAt ? t('userPage.card.lastLogin', { date: formatDate(user.lastLoginAt, i18n.language) }) : t('userPage.card.neverLoggedIn')}
 				</Text>
 			</div>
 			<Switch

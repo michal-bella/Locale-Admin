@@ -88,7 +88,7 @@ K tomu pribúda reset hesla adminom, zablokovanie používateľa a odhlásenie o
 ## Míľniky
 
 1. **Kontrakt + DB + backend** (hotové 2026-10-26): shared, migrácia, Google endpointy s falošným OIDC klientom v testoch, reset hesla, zablokovanie, odhlásenie ostatných session, integračné testy. Frontend iba toľko, aby prešiel `pnpm verify`.
-2. **Frontend:** prihlasovacia stránka, detail a tabuľka používateľov, profil, i18n, unit testy. Overené v prehliadači; tlačidlo Google naozaj až s údajmi od kolegu.
+2. **Frontend** (hotové 2026-10-26): prihlasovacia stránka, detail a tabuľka používateľov, profil, i18n, unit testy. Overené v prehliadači; tlačidlo Google naozaj až s údajmi od kolegu.
 3. **E2E + docs:** E2E pre reset hesla a zablokovanie, úprava existujúcich E2E na nové polia, dokumentácia, ADR 0009.
 4. **Overenie so skutočným Googlom** (keď budú client ID a secret): prihlásenie na `localhost:5173` aj `localhost:8080`, pripojenie existujúceho účtu podľa e-mailu.
 

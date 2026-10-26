@@ -80,7 +80,7 @@ const ProfileForm = ({ profile, focusFirstField = false }: ProfileFormProps) => 
 			<PersonalDetailsSection register={register} errors={errors} control={control} email={profile.email} canChangeRole={profile.role === ROLE.ADMIN} />
 			{profile.role !== ROLE.ADMIN && <ProfileProjectsSection />}
 			<PreferencesSection />
-			{profile.passwordChangedAt && <SecuritySection passwordChangedAt={profile.passwordChangedAt} />}
+			<SecuritySection passwordChangedAt={profile.passwordChangedAt} />
 			<OnboardingGuideSection />
 			<div className='flex justify-end'>
 				<Button type='submit' loading={isPending} disabled={!isDirty}>

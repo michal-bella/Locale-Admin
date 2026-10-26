@@ -339,6 +339,14 @@ describe('ProfilePage', () => {
 		expect(await screen.findByRole('heading', { level: 1, name: 'Môj profil' })).toBeInTheDocument()
 	})
 
+	it('shows a Google-only user a note instead of Zmeniť heslo', async () => {
+		signedInAs(EDITOR_USER, { 'GET /profile': { status: 200, data: { ...profileOf(EDITOR_USER), hasPassword: false, passwordChangedAt: null } } })
+		await renderProfile()
+
+		expect(screen.getByText('Prihlasujete sa cez Google. Heslo vám môže nastaviť administrátor.')).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Zmeniť heslo' })).not.toBeInTheDocument()
+	})
+
 	it('changes the password from the modal and shows the new change time', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		const requests = signedInAs(ADMIN_USER, {

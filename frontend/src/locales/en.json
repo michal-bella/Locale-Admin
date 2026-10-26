@@ -118,6 +118,8 @@
 		"eyebrow": "Sign in",
 		"title": "Welcome back",
 		"description": "Sign in to your translation workspace.",
+		"google": "Sign in with Google",
+		"or": "or",
 		"form": {
 			"email": {
 				"label": "Email",
@@ -168,7 +170,8 @@
 			"actionsColumn": "Actions",
 			"delete": "Delete",
 			"open": "Open",
-			"openLabel": "Open user {{email}}"
+			"openLabel": "Open user {{email}}",
+			"blocked": "Blocked"
 		},
 		"createModal": {
 			"title": "New user",
@@ -208,6 +211,9 @@
 			"description": "The user does not exist or has been deleted.",
 			"back": "Back to users"
 		},
+		"passwordButton": "Set password",
+		"blockButton": "Block",
+		"unblockButton": "Unblock",
 		"deleteButton": "Delete user",
 		"emailModal": {
 			"title": "Edit email",
@@ -218,12 +224,53 @@
 			"submit": "Save",
 			"success": "The email was changed to {{email}}."
 		},
+		"passwordModal": {
+			"title": "Set password",
+			"description": "{{email}} will sign in with the new password and is signed out on every device.",
+			"googleOnly": "The user signs in only with Google so far. With a password they can also sign in with email and password.",
+			"close": "Close",
+			"cancel": "Cancel",
+			"submit": "Set password",
+			"success": "The password of {{email}} has been set.",
+			"password": {
+				"label": "New password",
+				"placeholder": "Min. {{min}} characters"
+			},
+			"passwordConfirm": {
+				"label": "Repeat new password",
+				"placeholder": "••••••••",
+				"mismatch": "The passwords do not match."
+			}
+		},
+		"blockModal": {
+			"close": "Close",
+			"cancel": "Cancel",
+			"block": {
+				"title": "Block user",
+				"message": "{{email}} is signed out right away and cannot sign in with a password or Google until you unblock them. Their projects and roles stay.",
+				"confirm": "Block",
+				"success": "{{email}} has been blocked."
+			},
+			"unblock": {
+				"title": "Unblock user",
+				"message": "{{email}} can sign in again with a password and with Google.",
+				"confirm": "Unblock",
+				"success": "{{email}} has been unblocked."
+			}
+		},
 		"card": {
 			"label": "User account",
 			"createdAt": "Created {{date}}",
 			"roleSaved": "The administrator access was saved.",
 			"editEmail": "Edit email",
-			"editEmailLabel": "Edit email of user {{email}}"
+			"editEmailLabel": "Edit email of user {{email}}",
+			"signIn": "Sign-in: {{methods}}",
+			"methods": {
+				"password": "password",
+				"google": "Google"
+			},
+			"lastLogin": "last {{date}}",
+			"neverLoggedIn": "never signed in"
 		},
 		"adminModal": {
 			"close": "Close",
@@ -1125,10 +1172,11 @@
 		"security": {
 			"title": "Password and security",
 			"passwordChanged": "Password was last changed {{relative}}.",
+			"googleOnly": "You sign in with Google. An administrator can set a password for you.",
 			"changePassword": "Change password",
 			"modal": {
 				"title": "Change password",
-				"description": "Enter your current password and a new one. Your other sessions stay signed in.",
+				"description": "Enter your current password and a new password. Your other devices will be signed out.",
 				"close": "Close",
 				"cancel": "Cancel",
 				"submit": "Change password",

@@ -117,6 +117,17 @@ describe('UsersPage table', () => {
 		expect(within(janaRow).getByText('3. 10. 2026')).toBeInTheDocument()
 	})
 
+	it('marks a blocked user with Zablokovaný next to the role', async () => {
+		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, { ...JANA, isActive: false }]) })
+		renderApp('/admin/users')
+
+		expect(await screen.findByText(JANA.email)).toBeInTheDocument()
+		const [martinRow, janaRow] = within(getTable()).getAllByRole('row').slice(1) as [HTMLElement, HTMLElement]
+		// In the Rola column and, for a phone-wide table (hidden by CSS otherwise), under the email.
+		expect(within(janaRow).getAllByText('Zablokovaný')).toHaveLength(2)
+		expect(within(martinRow).queryByText('Zablokovaný')).not.toBeInTheDocument()
+	})
+
 	it('opens the user detail from the row', async () => {
 		signedInAs(ADMIN_USER, { 'GET /admin/users': usersResponse([MARTIN, JANA]) })
 		renderApp('/admin/users')

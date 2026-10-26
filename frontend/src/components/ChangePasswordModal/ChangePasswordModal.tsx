@@ -23,7 +23,7 @@ type FormValues = z.infer<typeof formSchema>
 
 const EMPTY_VALUES: FormValues = { currentPassword: '', newPassword: '', newPasswordConfirm: '' }
 
-/** "Zmeniť heslo" from the profile: current password, new password and its confirmation. The session stays signed in. */
+/** "Zmeniť heslo" from the profile: current password, new password and its confirmation. This session stays signed in, the other ones end. */
 const ChangePasswordModal = ({ opened, onClose }: ChangePasswordModalProps) => {
 	const { t } = useTranslation()
 	const changePassword = useChangePasswordMutation()

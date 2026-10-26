@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Alert, Button, TextInput } from '@mantine/core'
+import { Alert, Button, Divider, TextInput } from '@mantine/core'
+import { useSearch } from '@tanstack/react-router'
 import { isAxiosError } from 'axios'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -7,11 +8,12 @@ import { useTranslation } from 'react-i18next'
 
 import { ERROR_CODE, type LoginRequest, loginRequestSchema, toValidationCode } from '@locale/shared'
 
+import { useAuthProvidersQuery } from '@/api/auth/authProvidersQuery'
 import { useLoginMutation } from '@/api/auth/useLoginMutation'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import getApiErrorDetails from '@/api/getApiErrorDetails'
 import CenteredLayout from '@/components/CenteredLayout/CenteredLayout'
-import { ArrowRight } from '@/components/Icons'
+import { ArrowRight, GoogleLogo } from '@/components/Icons'
 import PageIntro from '@/components/PageIntro/PageIntro'
 
 type FormError = { code: ReturnType<typeof getApiErrorCode>; retryAfterSeconds?: number }
@@ -21,10 +23,13 @@ const getRetryAfterSeconds = (error: unknown) => {
 	return Number.isFinite(seconds) && seconds > 0 ? seconds : undefined
 }
 
+/** E-mail and password; above them Prihlásiť sa cez Google when the backend has it on. A failed Google sign-in returns here with `?error=`. */
 const LoginPage = () => {
 	const { t } = useTranslation()
 	const login = useLoginMutation()
-	const [formError, setFormError] = useState<FormError | null>(null)
+	const { data: providers } = useAuthProvidersQuery()
+	const { error: googleError } = useSearch({ from: '/login' })
+	const [formError, setFormError] = useState<FormError | null>(() => (googleError ? { code: googleError } : null))
 	const {
 		register,
 		handleSubmit,
@@ -61,7 +66,16 @@ const LoginPage = () => {
 	return (
 		<CenteredLayout>
 			<PageIntro eyebrow={t('loginPage.eyebrow')} title={t('loginPage.title')} description={t('loginPage.description')} />
-			<form className='mt-8 flex flex-col gap-4' onSubmit={(event) => void onSubmit(event)} noValidate>
+			{providers?.google && (
+				<div className='mt-8 flex flex-col gap-6'>
+					{/* A full page navigation: the backend redirects to Google and back. */}
+					<Button component='a' href='/api/auth/oauth/google' variant='default' fullWidth leftSection={<GoogleLogo aria-hidden />}>
+						{t('loginPage.google')}
+					</Button>
+					<Divider label={t('loginPage.or')} labelPosition='center' />
+				</div>
+			)}
+			<form className={`${providers?.google ? 'mt-6' : 'mt-8'} flex flex-col gap-4`} onSubmit={(event) => void onSubmit(event)} noValidate>
 				<TextInput
 					type='email'
 					autoComplete='username'

@@ -10,6 +10,7 @@ import { authenticatedRoute } from '@/routes/authenticatedRoute'
 import { homeLayoutRoute } from '@/routes/homeLayoutRoute'
 import { indexRoute } from '@/routes/indexRoute'
 import { loginRoute } from '@/routes/loginRoute'
+import { onboardingRoute } from '@/routes/onboardingRoute'
 import { profileRoute } from '@/routes/profileRoute'
 import { projectDashboardRoute } from '@/routes/projectDashboardRoute'
 import { projectHistoryRoute } from '@/routes/projectHistoryRoute'
@@ -24,6 +25,7 @@ import { rootRoute } from '@/routes/rootRoute'
 
 const routeTree = rootRoute.addChildren([
 	loginRoute,
+	onboardingRoute,
 	authenticatedRoute.addChildren([
 		homeLayoutRoute.addChildren([indexRoute]),
 		appLayoutRoute.addChildren([

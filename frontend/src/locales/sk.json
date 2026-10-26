@@ -1183,6 +1183,11 @@
 				}
 			}
 		},
+		"onboarding": {
+			"title": "Príručka pre editorov",
+			"description": "Ako prekladať v Locale Admin: preklady, premenné, plurály a verzie. PDF v jazyku rozhrania.",
+			"open": "Otvoriť príručku"
+		},
 		"save": "Uložiť profil",
 		"saveSuccess": "Profil bol uložený."
 	},

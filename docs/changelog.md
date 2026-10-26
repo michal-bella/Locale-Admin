@@ -8,6 +8,11 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Príručka pre editorov (2026-10-26)
+
+- verejná routa `/onboarding` otvorí PDF príručky pre editorov v jazyku rozhrania (sk, en, cs, súbory v `frontend/public/guides/`)
+- Môj profil: karta **Príručka pre editorov** s tlačidlom **Otvoriť príručku**
+
 ### Prístup administrátora s potvrdením (2026-10-26)
 
 - Preklady: namespace pod kľúčom je v jednom riadku s tromi bodkami (bunka kľúča je nižšia), celý je v modáli **Upraviť kľúč** v novom poli Namespace

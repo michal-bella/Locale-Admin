@@ -1143,6 +1143,11 @@
 				}
 			}
 		},
+		"onboarding": {
+			"title": "Editor guide",
+			"description": "How to translate in Locale Admin: translations, variables, plurals and versions. A PDF in the interface language.",
+			"open": "Open the guide"
+		},
 		"save": "Save profile",
 		"saveSuccess": "Profile saved."
 	},

@@ -10,6 +10,7 @@ import { ERROR_CODE, type Profile, ROLE, toValidationCode, type UpdateProfileReq
 import getApiErrorCode from '@/api/getApiErrorCode'
 import getApiErrorDetails from '@/api/getApiErrorDetails'
 import { useUpdateProfileMutation } from '@/api/profile/useUpdateProfileMutation'
+import OnboardingGuideSection from '@/components/OnboardingGuideSection/OnboardingGuideSection'
 import PersonalDetailsSection from '@/components/PersonalDetailsSection/PersonalDetailsSection'
 import PreferencesSection from '@/components/PreferencesSection/PreferencesSection'
 import ProfileCard from '@/components/ProfileCard/ProfileCard'
@@ -80,6 +81,7 @@ const ProfileForm = ({ profile, focusFirstField = false }: ProfileFormProps) => 
 			{profile.role !== ROLE.ADMIN && <ProfileProjectsSection />}
 			<PreferencesSection />
 			<SecuritySection passwordChangedAt={profile.passwordChangedAt} />
+			<OnboardingGuideSection />
 			<div className='flex justify-end'>
 				<Button type='submit' loading={isPending} disabled={!isDirty}>
 					{t('profilePage.save')}

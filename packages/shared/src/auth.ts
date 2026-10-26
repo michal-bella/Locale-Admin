@@ -4,21 +4,29 @@ import { emailSchema } from './email'
 import { PASSWORD_MAX_LENGTH } from './password'
 import { translationsLayoutSchema, translationsViewSchema } from './translations'
 
-/**
- * Global role stored on `User.role`. `ADMIN` manages everything and works in every project without a membership, `MANAGER` has the
- * rights of an ADMIN in the projects they are a member of but no administration (users, projects, members), `EDITOR` translates in the
- * projects they are a member of, `VISITOR` only reads, filters and exports translations in those projects (no edits, no project settings).
- * Project roles are a different concept (later phases).
- */
+/** Global role stored on `User.role`. `ADMIN` manages everything and works in every project without a membership; a `USER` works only in the projects they are a member of, with the role of that membership (`PROJECT_ROLE`). */
 export enum ROLE {
 	ADMIN = 'ADMIN',
+	USER = 'USER',
+}
+
+/**
+ * Role of a member in one project, stored on `ProjectMember.role` and set by an ADMIN. `MANAGER` has the rights of an ADMIN in the project
+ * but no administration (users, projects, members), `EDITOR` translates, `VISITOR` only reads, filters and exports translations.
+ */
+export enum PROJECT_ROLE {
 	MANAGER = 'MANAGER',
 	EDITOR = 'EDITOR',
 	VISITOR = 'VISITOR',
 }
 
+/** What a user may do in one project: `ADMIN` for an admin (no membership), otherwise the role of their membership. */
+export type ProjectAccessRole = ROLE.ADMIN | PROJECT_ROLE
+
+export const projectAccessRoleSchema = z.union([z.literal(ROLE.ADMIN), z.enum(PROJECT_ROLE)])
+
 /** ADMIN and MANAGER manage a project they can open: settings, languages, versions, imports and keys. Members stay ADMIN only. */
-export const canManageProject = (role: ROLE): boolean => role === ROLE.ADMIN || role === ROLE.MANAGER
+export const canManageProject = (role: ProjectAccessRole): boolean => role === ROLE.ADMIN || role === PROJECT_ROLE.MANAGER
 
 /** Login only requires a password; the rules for new passwords would turn a wrong password into a 400 instead of a 401. */
 export const loginRequestSchema = z.object({

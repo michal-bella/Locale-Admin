@@ -1,7 +1,7 @@
 import { ERROR_CODE, ROLE, type AdminUser, type AdminUserDetail, type CreateUserRequest, type UpdateUserRequest } from '@locale/shared'
 
 import { Prisma } from '../generated/prisma/client'
-import { ROLE_FROM_PRISMA, ROLE_TO_PRISMA } from '../lib/authUser'
+import { PROJECT_ROLE_FROM_PRISMA, ROLE_FROM_PRISMA, ROLE_TO_PRISMA } from '../lib/authUser'
 import { AppError } from '../lib/errors'
 import { hashPassword } from '../lib/password'
 import { type PrismaClient } from '../lib/prisma'
@@ -21,7 +21,7 @@ const toAdminUser = (user: Prisma.UserGetPayload<{ select: typeof ADMIN_USER_SEL
 const ADMIN_USER_DETAIL_SELECT = {
 	...ADMIN_USER_SELECT,
 	projectMemberships: {
-		select: { createdAt: true, project: { select: { id: true, name: true, slug: true, primaryColor: true } } },
+		select: { role: true, createdAt: true, project: { select: { id: true, name: true, slug: true, primaryColor: true } } },
 		orderBy: [{ project: { name: 'asc' } }, { projectId: 'asc' }],
 	},
 } satisfies Prisma.UserSelect
@@ -33,7 +33,11 @@ export const getUser = async (prisma: PrismaClient, id: string): Promise<AdminUs
 	}
 	return {
 		...toAdminUser(user),
-		projects: user.projectMemberships.map(({ createdAt, project }) => ({ ...project, joinedAt: createdAt.toISOString() })),
+		projects: user.projectMemberships.map(({ role, createdAt, project }) => ({
+			...project,
+			role: PROJECT_ROLE_FROM_PRISMA[role],
+			joinedAt: createdAt.toISOString(),
+		})),
 	}
 }
 
@@ -61,7 +65,7 @@ export const createUser = async (prisma: PrismaClient, { email, password, role }
 
 /**
  * Changes the global role and/or the email of any user, the own account included; the last ADMIN keeps the role so that somebody can
- * manage users. A new ADMIN loses their project memberships (an ADMIN works in every project without one).
+ * manage users. A new ADMIN keeps their memberships with the roles, they apply again once the admin role is taken away (`ACTIVE_MEMBERSHIP`).
  * No pre-check for the email: the unique constraint (P2002) also covers concurrent requests.
  */
 export const updateUser = async (prisma: PrismaClient, id: string, { role, email }: UpdateUserRequest): Promise<AdminUserDetail> => {
@@ -78,12 +82,7 @@ export const updateUser = async (prisma: PrismaClient, id: string, { role, email
 		throw new AppError(409, ERROR_CODE.LAST_ADMIN, 'The last admin cannot lose the admin role')
 	}
 	try {
-		await prisma.$transaction(async (tx) => {
-			await tx.user.update({ where: { id }, data: { role: role && ROLE_TO_PRISMA[role], email }, select: { id: true } })
-			if (role === ROLE.ADMIN) {
-				await tx.projectMember.deleteMany({ where: { userId: id } })
-			}
-		})
+		await prisma.user.update({ where: { id }, data: { role: role && ROLE_TO_PRISMA[role], email }, select: { id: true } })
 	} catch (err) {
 		if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
 			throw emailTaken()

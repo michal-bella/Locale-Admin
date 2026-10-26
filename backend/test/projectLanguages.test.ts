@@ -28,7 +28,7 @@ const expectErrorCode = (res: request.Response, status: number, code: ERROR_CODE
 }
 
 /** Logs in a new user who is a member of a new project. */
-const loginToProject = async (app: App, role: ROLE = ROLE.EDITOR, { member = true }: { member?: boolean } = {}) => {
+const loginToProject = async (app: App, role: ROLE = ROLE.USER, { member = true }: { member?: boolean } = {}) => {
 	const { user } = await createUser({ role })
 	const project = await getTestPrisma().project.create({
 		data: { name: 'A', slug: `a-${randomUUID().slice(0, 8)}`, members: member ? { create: { userId: user.id } } : undefined },
@@ -148,7 +148,7 @@ describe('GET /api/projects/:projectId/languages', () => {
 
 	it('returns 404 NOT_FOUND to an EDITOR who is not a member and 200 to an ADMIN who is not', async () => {
 		const app = createTestApp()
-		const editor = await loginToProject(app, ROLE.EDITOR, { member: false })
+		const editor = await loginToProject(app, ROLE.USER, { member: false })
 		const admin = await loginToProject(app, ROLE.ADMIN, { member: false })
 
 		expectErrorCode(await request(app).get(languagesUrl(editor.project.id)).set('Cookie', editor.cookie), 404, ERROR_CODE.NOT_FOUND)
@@ -228,7 +228,7 @@ describe('POST /api/projects/:projectId/languages', () => {
 
 	it('returns 404 NOT_FOUND to an EDITOR who is not a member and 403 CSRF_REJECTED without the header', async () => {
 		const app = createTestApp()
-		const outsider = await loginToProject(app, ROLE.EDITOR, { member: false })
+		const outsider = await loginToProject(app, ROLE.USER, { member: false })
 		const member = await loginToProject(app, ROLE.ADMIN)
 
 		expectErrorCode(await postLanguage(app, outsider.cookie, outsider.project.id, { tag: 'sk' }), 404, ERROR_CODE.NOT_FOUND)
@@ -312,7 +312,7 @@ describe('PUT /api/projects/:projectId/languages/order', () => {
 
 	it('returns 404 NOT_FOUND to an EDITOR who is not a member and 403 CSRF_REJECTED without the header', async () => {
 		const app = createTestApp()
-		const outsider = await loginToProject(app, ROLE.EDITOR, { member: false })
+		const outsider = await loginToProject(app, ROLE.USER, { member: false })
 		const member = await loginToProject(app, ROLE.ADMIN)
 		const sk = await createLanguageRow(member.project.id, 'sk', true)
 

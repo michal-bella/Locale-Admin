@@ -7,8 +7,14 @@ datasource db {
   provider = "postgresql"
 }
 
+/// Global role: an ADMIN works in every project without a membership, a USER only in their projects with the role of the membership.
 enum ROLE {
   ADMIN
+  USER
+}
+
+/// Role of a member in one project (`ProjectMember.role`), set by an ADMIN.
+enum PROJECT_ROLE {
   MANAGER
   EDITOR
   VISITOR
@@ -32,6 +38,7 @@ enum ACTIVITY_TYPE {
   BASE_LANGUAGE_CHANGED
   MEMBER_ADDED
   MEMBER_REMOVED
+  MEMBER_ROLE_CHANGED
   KEYS_IMPORTED
   KEY_CREATED
   KEY_UPDATED
@@ -52,7 +59,7 @@ model User {
   id                 String              @id @default(uuid()) @db.Uuid
   email              String              @unique
   passwordHash       String
-  role               ROLE                @default(EDITOR)
+  role               ROLE                @default(USER)
   firstName          String?
   lastName           String?
   isActive           Boolean             @default(true)
@@ -119,21 +126,21 @@ model Project {
 /// (code freeze); `endsAt`: editors finish the translations by this day and developers sync them. An ADMIN can rename it, move its dates
 /// and lock or unlock it by hand; it is never deleted (keys and cells point at it with `Restrict`).
 model ProjectVersion {
-  id           String           @id @default(uuid()) @db.Uuid
-  projectId    String           @db.Uuid
-  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  name         String
-  startsAt     DateTime         @db.Date
-  endsAt       DateTime         @db.Date
-  lock         VERSION_LOCK     @default(AUTO)
-  createdById  String?          @db.Uuid
-  createdBy    User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id          String           @id @default(uuid()) @db.Uuid
+  projectId   String           @db.Uuid
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  startsAt    DateTime         @db.Date
+  endsAt      DateTime         @db.Date
+  lock        VERSION_LOCK     @default(AUTO)
+  createdById String?          @db.Uuid
+  createdBy   User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   /// Time of the last import; `null` is an empty version (no keys yet). Kept to compare late changes of an older version later.
-  importedAt   DateTime?
-  keys         TranslationKey[]
-  events       ActivityEvent[]
+  importedAt  DateTime?
+  keys        TranslationKey[]
+  events      ActivityEvent[]
 
   @@unique([projectId, name])
   @@index([projectId, startsAt(sort: Desc)])
@@ -152,11 +159,12 @@ model ProjectOrder {
 }
 
 model ProjectMember {
-  projectId String   @db.Uuid
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  userId    String   @db.Uuid
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  projectId String       @db.Uuid
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String       @db.Uuid
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      PROJECT_ROLE @default(EDITOR)
+  createdAt DateTime     @default(now())
 
   @@id([projectId, userId])
   @@index([userId])
@@ -206,9 +214,9 @@ model Translation {
 /// `payload` is a snapshot validated by `activityEventDataSchema` in @locale/shared, so it stays readable after a key, language or user is deleted.
 /// `count` is the number of translations the event changed (import = written cells), the daily chart sums it.
 model ActivityEvent {
-  id        String        @id @default(uuid()) @db.Uuid
-  projectId String        @db.Uuid
-  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id        String          @id @default(uuid()) @db.Uuid
+  projectId String          @db.Uuid
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   userId    String?         @db.Uuid
   user      User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   /// Version the change belongs to (keys, cells, imports, the version itself); `null` for project-level events and after the version was deleted.

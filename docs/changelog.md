@@ -8,6 +8,38 @@ notion_page_id:
 
 ## Po fáze 1
 
+### Prístup administrátora s potvrdením (2026-10-26)
+
+- Preklady: namespace pod kľúčom je v jednom riadku s tromi bodkami (bunka kľúča je nižšia), celý je v modáli **Upraviť kľúč** v novom poli Namespace
+
+- Preklady: prepínače **Len preklady** a **Zobraziť len zmeny** sú nad tabuľkou pri zobrazení a jazykoch; v lište filtrov ostali vyhľadávanie a selecty, ktoré sa od 1680 px šírky okna zmestia do jedného riadku
+
+- Návštevník a editor v uzamknutej verzii alebo pred začiatkom verzie otvoria bunku prekladu v modáli **Preklad** iba na čítanie (celý text, bez editora a bez ukladania), aby si prečítali dlhé preklady orezané v tabuľke
+
+- kto sa stane adminom, ponechá si členstvá aj roly v projektoch; kým je admin, nie je v zozname členov ani v počtoch a pracuje všade ako admin, po odobratí admina mu roly znova platia
+- detail používateľa: prepínač **Administrátor** bez popisu sa ukladá až po potvrdení v modáli (pri udelení zoznam práv admina, pri odobratí projekty a roly, ktoré budú platiť); admin vidí uložené projekty s rolou Administrátor
+- popis pod prepínačom Administrátor zmizol aj v modáli Nový používateľ a v profile; tabuľka projektov na detaile sa prispôsobuje šírke karty
+- menu používateľa má ikony pri Môj profil a Odhlásiť sa; prepínače a checkboxy v celej aplikácii majú kurzor ukazovateľ (téma `cursorType: 'pointer'`)
+- výber roly v projekte má ikonu roly (aj pri možnostiach) a veľkosť ako prepínač jazyka; tabuľka projektov na detaile používateľa otvára namiesto členov preklady projektu (ikona Preklady)
+
+### Roly v projekte, míľnik 3 (2026-10-25)
+
+- E2E: nový `project-roles.spec.ts` (ten istý používateľ je Správca jedného projektu a Návštevník iného: sidebar, Nastavenia vs. 403, Moje projekty v profile) a v `api-smoke.spec.ts` rola pri pridaní člena, `myRole` a `PATCH …/members/:userId` (403 pre Správcu, 400 pre neplatnú rolu)
+- E2E prispôsobené novým rolám (`USER`, `addMember` s rolou, prepínač Administrátor, výber roly v Pridať člena a na detaile používateľa) aj zmenám z roly Správca, ktoré E2E ešte nemali (admin nie je člen, zrušené `LAST_MEMBER`, poradie položiek sidebaru, ceruzka Upraviť kľúč pre editora v uzamknutej verzii)
+
+### Roly v projekte, míľnik 2 (2026-10-25)
+
+- modál Pridať člena a Pridať do projektu (detail používateľa) majú výber **Rola v projekte** (Správca / Editor / Návštevník, predvolene Editor) s popisom roly
+- stránka Členovia: `ADMIN` mení rolu člena priamo v stĺpci Rola, detail používateľa má stĺpec Rola so zmenou v každom projekte; zmena sa zapíše do aktivity projektu
+- globálnu rolu v modáli Nový používateľ, na detaile používateľa a v profile admina nahradil prepínač **Administrátor**; bežný používateľ v profile rolu nevidí, má sekciu **Moje projekty** s rolou v každom projekte
+
+### Roly v projekte, míľnik 1 (2026-10-25)
+
+- rola Správca / Editor / Návštevník patrí členstvu v projekte (`ProjectMember.role`, enum `PROJECT_ROLE`), globálne ostáva iba `ADMIN` / `USER`; ten istý používateľ môže byť v jednom projekte Správca a v inom Návštevník ([plán](./plans/project-roles.md), [ADR 0008](./decisions/0008-project-roles.md))
+- migrácia `project_roles` skopírovala globálnu rolu každého člena do jeho členstiev a `User.role` zmenila na `USER`; práva sa nezmenili
+- API: `POST …/members` prijme `role` (predvolene `EDITOR`), nový `PATCH …/members/:userId` (iba `ADMIN`) mení rolu a zapíše aktivitu `MEMBER_ROLE_CHANGED`; `GET /api/projects` vracia `myRole`, detail používateľa rolu v každom projekte; projektové cesty kontrolujú rolu v projekte (`requireProjectRole`)
+- frontend: práva na stránkach projektu a guardy pre Návštevníka sa riadia rolou v projekte (`useProjectRole`, `fetchProjectRole`); modál Nový používateľ a profil ponúkajú Administrátor / Používateľ. Výber roly pri pridaní člena a jej zmena na stránke Členovia prídu v míľniku 2
+
 ### Rola Správca a admin bez členstva (2026-10-25)
 
 - rola `MANAGER` (Správca): v projektoch, kde je členom, má práva admina (nastavenia, jazyky, verzie, import, kľúče, zápis do uzamknutej verzie), ale nemá sekciu Správa, nevytvára projekty a nespravuje členov ([plán](./plans/manager-role.md))

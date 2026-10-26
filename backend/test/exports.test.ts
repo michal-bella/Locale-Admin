@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
 	ERROR_CODE,
 	EXPORT_ISSUES_MAX,
+	PROJECT_ROLE,
 	ROLE,
 	errorResponseSchema,
 	exportCheckResponseSchema,
@@ -21,7 +22,7 @@ import { EXPORT_BATCH_SIZE } from '../src/services/exports.service'
 import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
-import { TEST_PASSWORD, createUser } from './helpers/users'
+import { TEST_PASSWORD, createUser, globalRoleOf, memberRoleOf, type TestRole } from './helpers/users'
 import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
@@ -31,9 +32,9 @@ const expectErrorCode = (res: request.Response, status: number, code: ERROR_CODE
 	expect(errorResponseSchema.parse(res.body).error.code).toBe(code)
 }
 
-const createProject = (members: string[] = []) =>
+const createProject = (members: string[] = [], role?: PROJECT_ROLE) =>
 	getTestPrisma().project.create({
-		data: { name: 'A', slug: `a-${randomUUID().slice(0, 8)}`, members: { create: members.map((userId) => ({ userId })) } },
+		data: { name: 'A', slug: `a-${randomUUID().slice(0, 8)}`, members: { create: members.map((userId) => ({ userId, role })) } },
 	})
 
 const createLanguage = (projectId: string, tag: string, { isBase = false, position = 0 } = {}) =>
@@ -52,9 +53,9 @@ const createKey = async (projectId: string, namespace: string, name: string, val
 	})
 
 /** A member of a new project with `sk` (base), then `en` and `cs` in the order of their position. */
-const setup = async (app: App, { member = true, role = ROLE.EDITOR }: { member?: boolean; role?: ROLE } = {}) => {
-	const { user } = await createUser({ role })
-	const project = await createProject(member ? [user.id] : [])
+const setup = async (app: App, { member = true, role = PROJECT_ROLE.EDITOR }: { member?: boolean; role?: TestRole } = {}) => {
+	const { user } = await createUser({ role: globalRoleOf(role) })
+	const project = await createProject(member ? [user.id] : [], memberRoleOf(role))
 	await createVersionRow(project.id)
 	const cs = await createLanguage(project.id, 'cs', { position: 2 })
 	const sk = await createLanguage(project.id, 'sk', { isBase: true, position: 1 })
@@ -363,7 +364,7 @@ describe('GET /api/projects/:projectId/export', () => {
 
 	it('lets a VISITOR member export', async () => {
 		const app = createTestApp()
-		const { project, sk, cookie } = await setup(app, { role: ROLE.VISITOR })
+		const { project, sk, cookie } = await setup(app, { role: PROJECT_ROLE.VISITOR })
 		await createKey(project.id, 'loc', 'a', { [sk.id]: 'A' })
 
 		expect(await exportOk(app, cookie, project.id, { languageIds: sk.id })).toBe('Keys; sk \n--loc--\n a; A\n')
@@ -455,7 +456,7 @@ describe('GET /api/projects/:projectId/export', () => {
 			const { project, sk, cookie } = await setup(app)
 			await createKey(project.id, 'loc', 'a', { [sk.id]: 'A' })
 			const prisma = getTestPrisma()
-			const count = prisma.projectMember.count.bind(prisma.projectMember)
+			const findUnique = prisma.projectMember.findUnique.bind(prisma.projectMember)
 			let entered = () => {}
 			const accessChecked = new Promise<void>((resolve) => {
 				entered = resolve
@@ -464,11 +465,11 @@ describe('GET /api/projects/:projectId/export', () => {
 			const released = new Promise<void>((resolve) => {
 				release = resolve
 			})
-			const spy = vi.spyOn(prisma.projectMember, 'count').mockImplementationOnce((async (...args: Parameters<typeof count>) => {
+			const spy = vi.spyOn(prisma.projectMember, 'findUnique').mockImplementationOnce((async (...args: Parameters<typeof findUnique>) => {
 				entered()
 				await released
-				return count(...args)
-			}) as typeof prisma.projectMember.count)
+				return findUnique(...args)
+			}) as unknown as typeof prisma.projectMember.findUnique)
 			const server = app.listen(0)
 			try {
 				const { port } = server.address() as AddressInfo

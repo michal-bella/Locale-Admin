@@ -80,11 +80,16 @@ test('reads, filters and exports the translations without any edit control, and 
 	await expect(page.getByText('Verzia v2.45: ostáva 12 dní do uzamknutia.')).toBeVisible()
 	await expect(page.getByRole('button', { name: 'Zamknúť' })).toHaveCount(0)
 	await expect(getTranslationRows(page)).toHaveCount(10)
-	// Cells are text: nothing in the body takes the focus and a click opens nothing.
-	await expect(table.locator('tbody').locator('button, a, input, textarea, select, [tabindex]')).toHaveCount(0)
-	const cell = getTranslationRow(page, 'dashboard.welcome').getByText('Preklad kľúča dashboard.welcome, angličtina:').locator('..')
+	// Only the cells take the focus; a cell opens the whole translation read-only, without the editor and without saving.
+	await expect(table.locator('tbody').locator('a, input, textarea, select, button:not([data-status])')).toHaveCount(0)
+	const cell = getTranslationRow(page, 'dashboard.welcome').getByRole('button', { name: /^Preklad kľúča dashboard\.welcome, angličtina:/ })
 	await expect(cell).toContainText('Welcome back')
 	await cell.click()
+	const dialog = page.getByRole('dialog', { name: 'Preklad' })
+	await expect(dialog).toContainText('Welcome back')
+	await expect(dialog.getByRole('textbox')).toHaveCount(0)
+	await expect(dialog.getByRole('button', { name: /^Uložiť/ })).toHaveCount(0)
+	await dialog.getByRole('button', { name: 'Zavrieť' }).last().click()
 	await expect(page.getByRole('dialog')).toHaveCount(0)
 
 	// Extended view (the default of a new user): a row is untranslated when any language is, so en 3 + sk legal.terms.

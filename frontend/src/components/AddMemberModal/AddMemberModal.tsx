@@ -4,7 +4,7 @@ import { notifications } from '@mantine/notifications'
 import { type SubmitEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ERROR_CODE, ROLE } from '@locale/shared'
+import { ERROR_CODE, PROJECT_ROLE, ROLE } from '@locale/shared'
 
 import { useAdminUsersQuery } from '@/api/adminUsers/adminUsersQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -13,11 +13,13 @@ import { useAddProjectMemberMutation } from '@/api/projectMembers/useAddProjectM
 import AppModal from '@/components/AppModal/AppModal'
 import CreateUserModal from '@/components/CreateUserModal/CreateUserModal'
 import { ChevronDown, Plus } from '@/components/Icons'
+import ProjectRoleSelect from '@/components/ProjectRoleSelect/ProjectRoleSelect'
 
 import { type AddMemberModalProps } from './types'
 
 /**
- * "Pridať člena" (ADMIN only): a searchable select over the users who are neither members yet nor admins. "Vytvoriť nového používateľa"
+ * "Pridať člena" (ADMIN only): a searchable select over the users who are neither members yet nor admins and their role in the project
+ * (Editor by default). "Vytvoriť nového používateľa"
  * opens `CreateUserModal` on top and preselects the created user unless it is an admin; the admin still confirms with Pridať.
  */
 const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => {
@@ -27,6 +29,7 @@ const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => 
 	const addMember = useAddProjectMemberMutation(projectId)
 	const { isPending } = addMember
 	const [userId, setUserId] = useState<string | null>(null)
+	const [role, setRole] = useState(PROJECT_ROLE.EDITOR)
 	const [fieldError, setFieldError] = useState<string>()
 	const [createOpened, createModal] = useDisclosure(false)
 	const inputRef = useRef<HTMLInputElement>(null)
@@ -39,6 +42,7 @@ const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => 
 
 	const resetAndClose = () => {
 		setUserId(null)
+		setRole(PROJECT_ROLE.EDITOR)
 		setFieldError(undefined)
 		addMember.reset()
 		onClose()
@@ -56,7 +60,7 @@ const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => 
 			return
 		}
 		addMember.mutate(
-			{ userId },
+			{ userId, role },
 			{
 				onSuccess: (member) => {
 					notifications.show({ color: 'green', message: t('membersPage.addModal.success', { email: member.email }) })
@@ -150,11 +154,11 @@ const AddMemberModal = ({ projectId, opened, onClose }: AddMemberModalProps) => 
 						{t('membersPage.addModal.createUser')}
 					</Button>
 				</div>
+				<ProjectRoleSelect label={t('projectRole.label')} value={role} onChange={setRole} disabled={isPending} />
 			</AppModal>
 			<CreateUserModal
 				opened={createOpened}
 				onClose={createModal.close}
-				defaultRole={ROLE.EDITOR}
 				onCreated={(user) => {
 					if (user.role !== ROLE.ADMIN) {
 						setUserId(user.id)

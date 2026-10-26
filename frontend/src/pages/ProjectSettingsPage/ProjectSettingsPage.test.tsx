@@ -46,10 +46,7 @@ const LANGUAGES_URL = `/projects/${SETTINGS.id}/languages`
 const loaded = (settings: ProjectSettings = SETTINGS, languages: Language[] = [SLOVAK, ENGLISH], isMember = true) => ({
 	[`GET ${SETTINGS_URL}`]: { status: 200, data: settings },
 	[`GET ${LANGUAGES_URL}`]: { status: 200, data: languages },
-	'GET /projects': {
-		status: 200,
-		data: { projects: [{ id: settings.id, name: settings.name, slug: settings.slug, primaryColor: settings.primaryColor, isMember }] },
-	},
+	'GET /projects': () => projectListResponse({ id: settings.id, name: settings.name, slug: settings.slug, primaryColor: settings.primaryColor, isMember }),
 })
 
 const getSaveButton = () => screen.getByRole('button', { name: 'Uložiť zmeny' })
@@ -133,8 +130,8 @@ describe('ProjectSettingsPage', () => {
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Projekt sa nenašiel' })).toBeInTheDocument()
 		expect(screen.getByRole('link', { name: 'Späť na projekty' })).toHaveAttribute('href', '/')
-		// The cached list missed, so the loader asked for a fresh one before giving up.
-		expect(requests.filter((request) => request.url === '/projects')).toHaveLength(2)
+		// The cached list missed, so the visitor guard and then the loader each asked for a fresh one before giving up.
+		expect(requests.filter((request) => request.url === '/projects')).toHaveLength(3)
 	})
 
 	it('shows the project not-found page when the settings answer 404', async () => {

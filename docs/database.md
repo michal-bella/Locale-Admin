@@ -12,19 +12,19 @@ PostgreSQL 17, Prisma 7 s driver adapterom `@prisma/adapter-pg`. Schéma je v `b
 
 ### User
 
-| Pole                     | Typ                        | Poznámka                                                                                                                                                                                                              |
-| ------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                     | UUID                       | PK                                                                                                                                                                                                                    |
-| `email`                  | string, unique             | uložený normalizovaný (`trim()` + malé písmená)                                                                                                                                                                       |
-| `passwordHash`           | string                     | argon2id, nikdy sa nevracia v API                                                                                                                                                                                     |
-| `role`                   | enum `ROLE`                | `ADMIN`, `MANAGER` (práva `ADMIN`-a vo svojich projektoch, bez správy), `EDITOR` alebo `VISITOR` (iba číta a exportuje), default `EDITOR`; nastavuje ho `POST /api/admin/users` (jediná cesta, ako používateľ vzniká) |
-| `firstName`, `lastName`  | string, nullable           | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                                                                                                                                                |
-| `isActive`               | boolean                    | default `true`, neaktívny user sa neprihlási                                                                                                                                                                          |
-| `translationsView`       | enum `TRANSLATIONS_VIEW`   | `EXTENDED` (default, všetky jazyky vedľa seba) alebo `COMPACT` (zdrojový → cieľový); preferencia stránky Preklady, mení `PATCH /api/profile/preferences`                                                              |
-| `translationsLayout`     | enum `TRANSLATIONS_LAYOUT` | `COLUMNS` (default, jazyky vedľa seba) alebo `STACKED` (pod sebou); preferencia stránky Preklady, mení `PATCH /api/profile/preferences`                                                                               |
-| `lastLoginAt`            | datetime, nullable         | nastaví sa pri úspešnom logine                                                                                                                                                                                        |
-| `passwordChangedAt`      | datetime                   | default čas vytvorenia                                                                                                                                                                                                |
-| `createdAt`, `updatedAt` | datetime                   |                                                                                                                                                                                                                       |
+| Pole                     | Typ                        | Poznámka                                                                                                                                                                                                                                      |
+| ------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                     | UUID                       | PK                                                                                                                                                                                                                                            |
+| `email`                  | string, unique             | uložený normalizovaný (`trim()` + malé písmená)                                                                                                                                                                                               |
+| `passwordHash`           | string                     | argon2id, nikdy sa nevracia v API                                                                                                                                                                                                             |
+| `role`                   | enum `ROLE`                | `ADMIN` alebo `USER` (default); práva `USER`-a v projekte určuje `ProjectMember.role`. Nastavuje ho `POST /api/admin/users` (jediná cesta, ako používateľ vzniká), migrácia `project_roles` zmenila `MANAGER`, `EDITOR` a `VISITOR` na `USER` |
+| `firstName`, `lastName`  | string, nullable           | upravuje ich používateľ na obrazovke Môj profil (`PATCH /api/profile`)                                                                                                                                                                        |
+| `isActive`               | boolean                    | default `true`, neaktívny user sa neprihlási                                                                                                                                                                                                  |
+| `translationsView`       | enum `TRANSLATIONS_VIEW`   | `EXTENDED` (default, všetky jazyky vedľa seba) alebo `COMPACT` (zdrojový → cieľový); preferencia stránky Preklady, mení `PATCH /api/profile/preferences`                                                                                      |
+| `translationsLayout`     | enum `TRANSLATIONS_LAYOUT` | `COLUMNS` (default, jazyky vedľa seba) alebo `STACKED` (pod sebou); preferencia stránky Preklady, mení `PATCH /api/profile/preferences`                                                                                                       |
+| `lastLoginAt`            | datetime, nullable         | nastaví sa pri úspešnom logine                                                                                                                                                                                                                |
+| `passwordChangedAt`      | datetime                   | default čas vytvorenia                                                                                                                                                                                                                        |
+| `createdAt`, `updatedAt` | datetime                   |                                                                                                                                                                                                                                               |
 
 ### Session
 
@@ -84,13 +84,14 @@ Každý projekt má vlastné jazyky a vlastný základný jazyk (`ProjectLanguag
 
 ### ProjectMember
 
-Členstvo používateľa v projekte. Určuje, ktoré projekty vidí `MANAGER`, `EDITOR` a `VISITOR` a ku ktorým majú prístup (`ADMIN` má prístup ku všetkým a členom nie je nikdy: migrácia `add_manager_role` jeho členstvá zmazala, `POST …/members` ho odmietne a zmena roly na `ADMIN` jeho členstvá zmaže). Vzniká pridaním existujúceho používateľa na stránke Členovia alebo na detaile používateľa (iba `ADMIN`); zaniká akciou Opustiť projekt, odobratím členom `ADMIN`-om alebo kaskádou pri zmazaní používateľa či projektu.
+Členstvo používateľa v projekte. Určuje, ktoré projekty vidí `USER` a s akou rolou v nich pracuje (`ADMIN` má prístup ku všetkým a členom nie je: migrácia `add_manager_role` jeho vtedajšie členstvá zmazala a `POST …/members` ho odmietne. Kto sa stane `ADMIN`-om, členstvá s rolami si ponechá, no kým je `ADMIN`, nepočítajú sa (`ACTIVE_MEMBERSHIP`: zoznam členov, počty členov, filter editorov, `isMember`); po odobratí admina platia znova). Vzniká pridaním existujúceho používateľa na stránke Členovia alebo na detaile používateľa (iba `ADMIN`); zaniká akciou Opustiť projekt, odobratím členom `ADMIN`-om alebo kaskádou pri zmazaní používateľa či projektu.
 
-| Pole        | Typ      | Poznámka                                       |
-| ----------- | -------- | ---------------------------------------------- |
-| `projectId` | UUID     | FK na `Project`, pri zmazaní projektu sa zmaže |
-| `userId`    | UUID     | FK na `User`, pri zmazaní usera sa zmaže       |
-| `createdAt` | datetime | čas pridania do projektu                       |
+| Pole        | Typ                 | Poznámka                                                                                                                                                                                                                                                 |
+| ----------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `projectId` | UUID                | FK na `Project`, pri zmazaní projektu sa zmaže                                                                                                                                                                                                           |
+| `userId`    | UUID                | FK na `User`, pri zmazaní usera sa zmaže                                                                                                                                                                                                                 |
+| `role`      | enum `PROJECT_ROLE` | `MANAGER` (práva `ADMIN`-a v projekte, bez správy členov), `EDITOR` (default, prekladá) alebo `VISITOR` (iba číta a exportuje); mení ju `ADMIN` (`PATCH …/members/:userId`). Migrácia `project_roles` ju naplnila z vtedajšej globálnej roly používateľa |
+| `createdAt` | datetime            | čas pridania do projektu                                                                                                                                                                                                                                 |
 
 PK je dvojica (`projectId`, `userId`), index na `userId`. Používateľ má spätnú reláciu `projectMemberships`.
 
@@ -197,6 +198,7 @@ Udalosť zapisuje helper `recordActivity(tx, …)` (`backend/src/lib/activity.ts
 | `BASE_LANGUAGE_CHANGED` | základný jazyk sa naozaj zmenil: `baseLanguageId` v `PATCH …/settings` alebo nový prvý jazyk v `PUT …/languages/order` | `{ fromTag, toTag }` (`fromTag` je `null`, ak projekt základný jazyk nemal)               |
 | `MEMBER_ADDED`          | `POST …/members`                                                                                                       | `{ member: { id, firstName, lastName, email } }`                                          |
 | `MEMBER_REMOVED`        | `DELETE …/members/:userId` aj `DELETE …/membership` (odchod)                                                           | `{ member, left }` – `left` je `true`, keď člen odišiel sám                               |
+| `MEMBER_ROLE_CHANGED`   | `PATCH …/members/:userId`, iba keď sa rola zmení                                                                       | `{ member, fromRole, toRole }` – stará a nová rola v projekte                             |
 | `KEYS_IMPORTED`         | `POST …/imports`, ak vytvoril kľúč alebo zapísal hodnotu; jedna udalosť za import                                      | `{ keysCreated, translationsCreated, translationsUpdated, languageTags }`                 |
 | `KEY_CREATED`           | `POST …/keys` (ručné pridanie kľúča)                                                                                   | `{ keyId, namespace, name, languageTags }` – jazyky s vyplnenou hodnotou                  |
 | `KEY_UPDATED`           | `PATCH …/keys/:keyId`, iba ak sa zmenil názov, popis alebo plurál                                                      | `{ keyId, namespace, name, fields }` – `name` je nový názov                               |
@@ -270,6 +272,7 @@ erDiagram
     ProjectMember {
         uuid projectId PK, FK
         uuid userId PK, FK
+        PROJECT_ROLE role
         datetime createdAt
     }
     ProjectOrder {

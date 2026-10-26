@@ -26,6 +26,23 @@
 	min-width: 1rem;
 }
 
+/* The switches end the row, at its right edge. */
+.switches {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0 1rem;
+	margin-inline-start: auto;
+}
+
+/* As tall as the selects, so the row keeps one baseline. */
+.switch {
+	display: flex;
+	align-items: center;
+	min-height: 2.75rem;
+	padding-inline: 0.25rem;
+	white-space: nowrap;
+}
+
 .optionHint {
 	color: var(--app-color-muted);
 }
@@ -82,6 +99,10 @@
 	.modes,
 	.languages {
 		flex-basis: 100%;
+	}
+
+	.switches {
+		margin-inline-start: 0;
 	}
 
 	.view {

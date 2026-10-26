@@ -13,9 +13,24 @@
 	},
 	"roles": {
 		"ADMIN": "Administrator",
+		"USER": "User",
 		"MANAGER": "Manager",
 		"EDITOR": "Editor",
 		"VISITOR": "Visitor"
+	},
+	"projectRole": {
+		"label": "Role in the project",
+		"memberLabel": "Role of {{email}} in the project",
+		"projectLabel": "Role in the project {{name}}",
+		"saved": "The role in the project was saved.",
+		"description": {
+			"MANAGER": "Manages the project: settings, languages, versions, imports and keys. Does not manage members.",
+			"EDITOR": "Translates in the project.",
+			"VISITOR": "Only reads and exports the translations of the project."
+		}
+	},
+	"adminAccess": {
+		"label": "Administrator"
 	},
 	"notFoundPage": {
 		"eyebrow": "Error 404",
@@ -157,7 +172,7 @@
 		},
 		"createModal": {
 			"title": "New user",
-			"description": "Enter the email, password and role of the new user. Add them to projects on the Members page of a project.",
+			"description": "Enter the email and password of the new user. Add them to projects with a role on the Members page of a project.",
 			"close": "Close",
 			"email": {
 				"label": "Email",
@@ -166,15 +181,6 @@
 			"password": {
 				"label": "Password",
 				"placeholder": "Min. {{min}} characters"
-			},
-			"role": {
-				"label": "Role",
-				"description": {
-					"ADMIN": "Manages the system, users and every project without being added to them.",
-					"MANAGER": "Manages the projects an administrator adds them to: languages, versions, imports and keys. Does not manage users or members.",
-					"EDITOR": "Translates only in the projects an administrator adds them to.",
-					"VISITOR": "Only reads and exports translations in the projects an administrator adds them to."
-				}
 			},
 			"cancel": "Cancel",
 			"submit": "Create user",
@@ -215,10 +221,33 @@
 		"card": {
 			"label": "User account",
 			"createdAt": "Created {{date}}",
-			"role": "Role",
-			"roleSaved": "The role was saved.",
+			"roleSaved": "The administrator access was saved.",
 			"editEmail": "Edit email",
 			"editEmailLabel": "Edit email of user {{email}}"
+		},
+		"adminModal": {
+			"close": "Close",
+			"cancel": "Cancel",
+			"grant": {
+				"title": "Grant administrator access",
+				"message": "{{email}} becomes an administrator. An administrator:",
+				"rights": {
+					"projects": "works in every project without being added, with the rights of a Manager (settings, languages, versions, imports, keys, writing into a locked version),",
+					"createProjects": "creates, edits and deletes projects,",
+					"users": "creates, edits and deletes users and grants administrator access,",
+					"members": "adds and removes project members and changes their roles."
+				},
+				"kept": "Their roles in projects are kept and apply again if you take the administrator access away later.",
+				"confirm": "Grant access"
+			},
+			"revoke": {
+				"title": "Revoke administrator access",
+				"message": "{{email}} stops being an administrator and works only in these projects with these roles:",
+				"projectsLabel": "Projects and roles after the revocation",
+				"project": "{{name}}: {{role}}",
+				"noProjects": "{{email}} stops being an administrator. They are no member of any project; add them to projects on this page.",
+				"confirm": "Revoke access"
+			}
 		},
 		"projects": {
 			"title": "Projects",
@@ -227,20 +256,21 @@
 				"label": "User projects",
 				"project": "Project",
 				"slug": "Slug",
+				"role": "Role",
 				"joinedAt": "Added",
 				"joinedOn": "Added {{date}}",
 				"empty": "The user is not in any project yet.",
 				"actionsColumn": "Actions",
-				"open": "Open members",
-				"openLabel": "Open members of project {{name}}",
+				"open": "Open translations",
+				"openLabel": "Open the translations of {{name}}",
 				"remove": "Remove from project",
 				"removeLabel": "Remove from project {{name}}"
 			},
-			"allProjects": "An administrator has access to every project and is not added to projects."
+			"allProjects": "An administrator has access to every project and is not added to more. The roles kept below apply again once the administrator access is taken away."
 		},
 		"addModal": {
 			"title": "Add to project",
-			"description": "Pick the project the user {{email}} gets access to.",
+			"description": "Pick a project and the role {{email}} will have in it.",
 			"close": "Close",
 			"project": {
 				"label": "Project",
@@ -387,6 +417,7 @@
 		},
 		"editModal": {
 			"title": "Edit translation",
+			"titleReadOnly": "Translation",
 			"close": "Close",
 			"key": "Key",
 			"baseLanguage": "Base language",
@@ -422,6 +453,9 @@
 		"editKeyModal": {
 			"title": "Edit key",
 			"close": "Close",
+			"namespace": {
+				"label": "Namespace"
+			},
 			"name": {
 				"label": "Key"
 			},
@@ -583,6 +617,7 @@
 				"baseLanguageChanged": "changed the base language from {{from}} to {{to}}",
 				"memberAdded": "added the member {{member}}",
 				"memberRemoved": "removed the member {{member}}",
+				"memberRoleChanged": "changed the role of {{member}}: {{from}} → {{to}}",
 				"memberLeft": "left the project",
 				"keysImported": "imported a CSV: {{changes}}",
 				"translationCount_one": "{{count}} translation",
@@ -1017,7 +1052,7 @@
 		},
 		"addModal": {
 			"title": "Add member",
-			"description": "Pick an existing user who gets access to this project.",
+			"description": "Pick an existing user and their role in this project.",
 			"close": "Close",
 			"user": {
 				"label": "User",
@@ -1054,8 +1089,13 @@
 			"description": "Other members of your projects will see this information.",
 			"firstName": "First name",
 			"lastName": "Last name",
-			"email": "Email address",
-			"role": "Role"
+			"email": "Email address"
+		},
+		"projects": {
+			"title": "My projects",
+			"description": "The role you have in each project. An administrator changes it.",
+			"label": "My projects and roles",
+			"empty": "You are not a member of any project yet."
 		},
 		"preferences": {
 			"title": "Preferences",

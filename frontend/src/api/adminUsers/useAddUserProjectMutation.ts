@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { ERROR_CODE, type ProjectMember } from '@locale/shared'
+import { ERROR_CODE, type PROJECT_ROLE, type ProjectMember } from '@locale/shared'
 
 import { invalidateDashboard } from '@/api/dashboard/invalidateDashboard'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -12,8 +12,9 @@ export const useAddUserProjectMutation = (userId: string) => {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: async (projectId: string) => (await http.post<ProjectMember>(`/projects/${projectId}/members`, { userId })).data,
-		onSuccess: (_member, projectId) =>
+		mutationFn: async ({ projectId, role }: { projectId: string; role: PROJECT_ROLE }) =>
+			(await http.post<ProjectMember>(`/projects/${projectId}/members`, { userId, role })).data,
+		onSuccess: (_member, { projectId }) =>
 			Promise.all([
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.USERS() }),
 				queryClient.invalidateQueries({ queryKey: QUERY_KEYS.ADMIN.PROJECTS() }),

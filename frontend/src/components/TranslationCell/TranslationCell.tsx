@@ -13,10 +13,10 @@ import { type TranslationCellProps } from './types'
 const TOOLTIP_EVENTS = { hover: true, focus: false, touch: true } as const
 
 /**
- * A translation in the table: a button with the read-only value that opens `EditTranslationModal`, or the same box as plain text without
- * `onClick`; an untranslated cell is an empty box with a red border (Bez prekladu only for screen readers), a `changed` one a brand
- * ⇄ icon next to where the variable warning icon goes, one whose variables differ from `reference` an orange border. The cell's tooltip says
- * why (Nepreložené or the variable warning, then the change), so the icons and chips inside have none of their own.
+ * A translation in the table: a button with the read-only value that opens `EditTranslationModal`; an untranslated cell is an empty box
+ * with a red border (Bez prekladu only for screen readers), a `changed` one a brand ⇄ icon next to where the variable warning icon goes,
+ * one whose variables differ from `reference` an orange border. The cell's tooltip says why (Nepreložené or the variable warning, then the
+ * change), so the icons and chips inside have none of their own.
  */
 const TranslationCell = ({ cell, label, pluralTag, reference, changed = false, onClick }: TranslationCellProps) => {
 	const { t } = useTranslation()
@@ -55,22 +55,16 @@ const TranslationCell = ({ cell, label, pluralTag, reference, changed = false, o
 			multiline={warning !== null}
 			w={warning === null ? undefined : 260}
 		>
-			{onClick ? (
-				<button
-					type='button'
-					className={classes.button}
-					data-status={cell.status}
-					data-changed={changedAttribute}
-					data-warning={warningAttribute}
-					onClick={onClick}
-				>
-					{content}
-				</button>
-			) : (
-				<div className={classes.button} data-status={cell.status} data-changed={changedAttribute} data-warning={warningAttribute} data-readonly>
-					{content}
-				</div>
-			)}
+			<button
+				type='button'
+				className={classes.button}
+				data-status={cell.status}
+				data-changed={changedAttribute}
+				data-warning={warningAttribute}
+				onClick={onClick}
+			>
+				{content}
+			</button>
 		</Tooltip>
 	)
 }

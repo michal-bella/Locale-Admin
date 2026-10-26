@@ -2,7 +2,7 @@ import { Avatar, Tooltip } from '@mantine/core'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { getInitials, ROLE } from '@locale/shared'
+import { getInitials, PROJECT_ROLE } from '@locale/shared'
 
 import classes from './ProjectManagers.module.css'
 import { type ProjectManagersProps } from './types'
@@ -11,7 +11,7 @@ import { type ProjectManagersProps } from './types'
 const ProjectManagers = ({ members }: ProjectManagersProps) => {
 	const { t } = useTranslation()
 	const labelId = useId()
-	const managers = members.filter((member) => member.role === ROLE.MANAGER)
+	const managers = members.filter((member) => member.role === PROJECT_ROLE.MANAGER)
 
 	if (managers.length === 0) {
 		return null

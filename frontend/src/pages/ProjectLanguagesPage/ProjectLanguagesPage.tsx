@@ -6,21 +6,21 @@ import { useTranslation } from 'react-i18next'
 
 import { canManageProject, type Language, SUPPORTED_LANGUAGES } from '@locale/shared'
 
-import { useMeQuery } from '@/api/auth/meQuery'
 import { useProjectLanguagesQuery } from '@/api/projectLanguages/projectLanguagesQuery'
 import AddLanguageModal from '@/components/AddLanguageModal/AddLanguageModal'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal/ConfirmDeleteModal'
 import { Plus } from '@/components/Icons'
 import LanguagesTable from '@/components/LanguagesTable/LanguagesTable'
 import PageIntro from '@/components/PageIntro/PageIntro'
+import { useProjectRole } from '@/hooks/useProjectRole'
 
 /** Languages of the project (Figma 3:812 without the translation statistics columns): an ADMIN or MANAGER adds from the catalog, removes or reorders. */
 const ProjectLanguagesPage = () => {
 	const { t } = useTranslation()
 	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { data: languages } = useProjectLanguagesQuery(projectId)
-	const { data: user } = useMeQuery()
-	const canManage = user !== undefined && canManageProject(user.role)
+	const projectRole = useProjectRole(projectId)
+	const canManage = projectRole !== undefined && canManageProject(projectRole)
 	const [addOpened, addModal] = useDisclosure(false)
 	const [deleteOpened, deleteModal] = useDisclosure(false)
 	const [deleteLanguage, setDeleteLanguage] = useState<Language | null>(null)

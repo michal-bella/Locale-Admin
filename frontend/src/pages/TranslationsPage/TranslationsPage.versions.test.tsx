@@ -304,13 +304,16 @@ describe('TranslationsPage versions', () => {
 		expect(bodyOf(requests.find((request) => request.method === 'put'))).toEqual({ value: 'Welcome!' })
 	})
 
-	it('keeps the cells of a locked version read-only for an EDITOR and says why', async () => {
+	it('opens the translations of a locked version read-only for an EDITOR and says why', async () => {
 		mockPage({ user: EDITOR_USER })
 		renderApp(`${PAGE_PATH}?version=${LOCKED.id}`)
 
 		const row = await findRow('dashboard.welcome')
 		expect(screen.getByText('Verzia v2.44 je uzamknutá, jej preklady upravuje už len administrátor.')).toBeInTheDocument()
-		expect(within(row).queryByRole('button', { name: /Preklad kľúča dashboard.welcome, angličtina/ })).not.toBeInTheDocument()
+		fireEvent.click(within(row).getByRole('button', { name: /Preklad kľúča dashboard.welcome, angličtina/ }))
+		const dialog = await screen.findByRole('dialog', { name: 'Preklad' })
+		expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument()
+		expect(within(dialog).queryByRole('button', { name: /^Uložiť/ })).not.toBeInTheDocument()
 	})
 
 	it('lets an ADMIN edit in a locked version', async () => {
@@ -595,7 +598,7 @@ describe('TranslationsPage versions', () => {
 		expect(Array.from(previous.querySelectorAll('del'), (mark) => mark.textContent)).toEqual(['Hello there'])
 	})
 
-	it('marks the changes in the read-only table of a VISITOR too', async () => {
+	it('marks the changes in the cells of a VISITOR too', async () => {
 		mockPage({
 			user: VISITOR_USER,
 			routes: {
@@ -609,10 +612,7 @@ describe('TranslationsPage versions', () => {
 
 		const row = await findRow('dashboard.welcome')
 		expect(within(row).getByText('Nový kľúč')).toBeInTheDocument()
-		expect(within(row).getByText('Preklad kľúča dashboard.welcome, angličtina: Zmenené:').closest('[data-readonly]')).toHaveAttribute(
-			'data-changed',
-			'true',
-		)
+		expect(within(row).getByText('Preklad kľúča dashboard.welcome, angličtina: Zmenené:').closest('[data-status]')).toHaveAttribute('data-changed', 'true')
 	})
 
 	it('shows an EDITOR no Vytvoriť verziu and no lock button', async () => {

@@ -29,7 +29,7 @@ const patchProfile = (app: App, cookie: string, body: unknown) =>
 		.send(body as object)
 
 describe('GET /api/profile', () => {
-	it.each([ROLE.ADMIN, ROLE.EDITOR])('returns the profile of the session user for %s', async (role) => {
+	it.each([ROLE.ADMIN, ROLE.USER])('returns the profile of the session user for %s', async (role) => {
 		const app = createTestApp()
 		const passwordChangedAt = new Date('2026-05-04T10:20:30.000Z')
 		const { user } = await createUser({ role, firstName: 'Jana', lastName: 'Nováková' })
@@ -77,7 +77,7 @@ describe('PATCH /api/profile', () => {
 		expect(res.body).toEqual({
 			id: user.id,
 			email: user.email,
-			role: ROLE.EDITOR,
+			role: ROLE.USER,
 			firstName: 'Jana',
 			lastName: 'Nováková',
 			preferences: { translationsView: 'EXTENDED', translationsLayout: 'COLUMNS' },
@@ -105,9 +105,9 @@ describe('PATCH /api/profile', () => {
 		const res = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', email: 'iny@firma.sk' })
 
 		expect(res.status).toBe(200)
-		expect(res.body).toMatchObject({ email: user.email, role: ROLE.EDITOR })
+		expect(res.body).toMatchObject({ email: user.email, role: ROLE.USER })
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
-		expect(stored).toMatchObject({ email: user.email, role: ROLE.EDITOR })
+		expect(stored).toMatchObject({ email: user.email, role: ROLE.USER })
 	})
 
 	it('lets an admin change their role when another admin stays and GET /api/auth/me reflects it', async () => {
@@ -115,21 +115,21 @@ describe('PATCH /api/profile', () => {
 		await createUser({ role: ROLE.ADMIN })
 		const { user, cookie } = await loginWithUser(app, { role: ROLE.ADMIN })
 
-		const res = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', role: ROLE.EDITOR })
+		const res = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', role: ROLE.USER })
 
 		expect(res.status).toBe(200)
-		expect(res.body).toMatchObject({ role: ROLE.EDITOR })
+		expect(res.body).toMatchObject({ role: ROLE.USER })
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
-		expect(stored.role).toBe(ROLE.EDITOR)
+		expect(stored.role).toBe(ROLE.USER)
 		const me = await request(app).get('/api/auth/me').set('Cookie', cookie)
-		expect(me.body).toMatchObject({ role: ROLE.EDITOR })
+		expect(me.body).toMatchObject({ role: ROLE.USER })
 	})
 
 	it('returns 409 LAST_ADMIN when the only admin gives up the role', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await loginWithUser(app, { role: ROLE.ADMIN })
 
-		const res = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', role: ROLE.EDITOR })
+		const res = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', role: ROLE.USER })
 
 		expectErrorCode(res, 409, ERROR_CODE.LAST_ADMIN)
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
@@ -144,11 +144,11 @@ describe('PATCH /api/profile', () => {
 
 		expectErrorCode(forbidden, 403, ERROR_CODE.FORBIDDEN)
 		const stored = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })
-		expect(stored).toMatchObject({ role: ROLE.EDITOR, firstName: null })
+		expect(stored).toMatchObject({ role: ROLE.USER, firstName: null })
 
-		const same = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', role: ROLE.EDITOR })
+		const same = await patchProfile(app, cookie, { firstName: 'Jana', lastName: 'Nováková', role: ROLE.USER })
 		expect(same.status).toBe(200)
-		expect(same.body).toMatchObject({ role: ROLE.EDITOR, firstName: 'Jana' })
+		expect(same.body).toMatchObject({ role: ROLE.USER, firstName: 'Jana' })
 	})
 
 	it('changes only the session user', async () => {

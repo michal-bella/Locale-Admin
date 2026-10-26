@@ -3,7 +3,7 @@ import { expect, type Locator, type Page, test } from '@playwright/test'
 import { ANONYMOUS, expectLoggedInHome, loginViaUi } from '../support/auth'
 import { newAdminApi } from '../support/languages'
 import { createProject, listProjects, newTestProjectInput } from '../support/projects'
-import { addMember, createEditor, createMember, createProjectOf } from '../support/users'
+import { createEditor, createMember, createProjectOf } from '../support/users'
 
 /** Mantine MultiSelect also renders a hidden input with the same label; the visible one opens the options. */
 const pickLanguages = async (page: Page, dialog: Locator, ...options: string[]) => {
@@ -46,7 +46,7 @@ test.describe('member', () => {
 		await expect(page.getByRole('button', { name: 'Nový projekt' })).toHaveCount(0)
 	})
 
-	test('the last member cannot leave; after another member joins, leaving removes the project from the list', async ({ page, playwright, baseURL }) => {
+	test('the last member leaves and the project disappears from the list', async ({ page, playwright, baseURL }) => {
 		const editor = await createEditor(playwright.request, baseURL)
 		await loginViaUi(page, editor)
 		await expectLoggedInHome(page)
@@ -54,16 +54,6 @@ test.describe('member', () => {
 		const project = await createProjectOf(adminApi, 'leave', editor.id)
 		await adminApi.dispose()
 		await page.reload()
-
-		const dialog = await leaveFromList(page, project.name)
-		await expect(page.getByText('Projekt musí mať aspoň jedného člena.')).toBeVisible()
-		await expect(dialog).toBeVisible()
-		await dialog.getByRole('button', { name: 'Zrušiť' }).click()
-		await expect(dialog).toBeHidden()
-
-		const admin = await newAdminApi(playwright.request)
-		await addMember(admin, project.id, (await createMember(playwright.request, baseURL)).id)
-		await admin.dispose()
 
 		await leaveFromList(page, project.name)
 		await expect(page.getByText(`Opustili ste projekt ${project.name}.`)).toBeVisible()

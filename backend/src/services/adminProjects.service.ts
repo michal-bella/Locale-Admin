@@ -1,5 +1,6 @@
 import { ERROR_CODE, type AdminProjectListItem, type LanguageTag } from '@locale/shared'
 
+import { ACTIVE_MEMBERSHIP } from '../lib/authUser'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 
@@ -12,7 +13,7 @@ export const listAllProjects = async (prisma: PrismaClient): Promise<AdminProjec
 			primaryColor: true,
 			createdAt: true,
 			languages: { where: { isBase: true }, select: { tag: true } },
-			_count: { select: { languages: true, members: true } },
+			_count: { select: { languages: true, members: { where: ACTIVE_MEMBERSHIP } } },
 		},
 		orderBy: [{ name: 'asc' }, { id: 'asc' }],
 	})

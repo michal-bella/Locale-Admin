@@ -13,6 +13,7 @@ import { useUpdateProfileMutation } from '@/api/profile/useUpdateProfileMutation
 import PersonalDetailsSection from '@/components/PersonalDetailsSection/PersonalDetailsSection'
 import PreferencesSection from '@/components/PreferencesSection/PreferencesSection'
 import ProfileCard from '@/components/ProfileCard/ProfileCard'
+import ProfileProjectsSection from '@/components/ProfileProjectsSection/ProfileProjectsSection'
 import SecuritySection from '@/components/SecuritySection/SecuritySection'
 
 import { type ProfileFormProps } from './types'
@@ -76,6 +77,7 @@ const ProfileForm = ({ profile, focusFirstField = false }: ProfileFormProps) => 
 		<form onSubmit={(event) => void onSubmit(event)} noValidate className='flex flex-col gap-5'>
 			<ProfileCard profile={profile} />
 			<PersonalDetailsSection register={register} errors={errors} control={control} email={profile.email} canChangeRole={profile.role === ROLE.ADMIN} />
+			{profile.role !== ROLE.ADMIN && <ProfileProjectsSection />}
 			<PreferencesSection />
 			<SecuritySection passwordChangedAt={profile.passwordChangedAt} />
 			<div className='flex justify-end'>

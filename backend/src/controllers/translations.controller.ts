@@ -16,6 +16,7 @@ import {
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 import { getAuth } from '../middleware/auth.middleware'
+import { getProjectRole } from '../middleware/projectAccess.middleware'
 import { createTranslationKey, listTranslations, updateTranslation, updateTranslationKey } from '../services/translations.service'
 
 type Params = { projectId: string; keyId: string; languageId: string }
@@ -44,7 +45,7 @@ export const createUpdateTranslationController =
 		const languageId = parseId(req.params.languageId, ERROR_CODE.NOT_FOUND, 'Language not found')
 		const input = updateTranslationRequestSchema.parse(req.body)
 		const { user } = getAuth(req)
-		const ids = { projectId: req.params.projectId, keyId, languageId, userId: user.id, role: user.role }
+		const ids = { projectId: req.params.projectId, keyId, languageId, userId: user.id, role: getProjectRole(req) }
 		const body: UpdateTranslationResponse = await updateTranslation(prisma, ids, input)
 		res.status(200).json(body)
 	}
@@ -55,7 +56,7 @@ export const createUpdateTranslationKeyController =
 		const keyId = parseId(req.params.keyId, ERROR_CODE.TRANSLATION_KEY_NOT_FOUND, 'Translation key not found')
 		const input = updateTranslationKeyRequestSchema.parse(req.body)
 		const { user } = getAuth(req)
-		const ids = { projectId: req.params.projectId, keyId, userId: user.id, role: user.role }
+		const ids = { projectId: req.params.projectId, keyId, userId: user.id, role: getProjectRole(req) }
 		const body: UpdateTranslationKeyResponse = await updateTranslationKey(prisma, ids, input)
 		res.status(200).json(body)
 	}
@@ -67,7 +68,7 @@ export const createCreateTranslationKeyController =
 		const { user } = getAuth(req)
 		const body: CreateTranslationKeyResponse = await createTranslationKey(
 			prisma,
-			{ projectId: req.params.projectId, userId: user.id, role: user.role },
+			{ projectId: req.params.projectId, userId: user.id, role: getProjectRole(req) },
 			input,
 		)
 		res.status(201).json(body)

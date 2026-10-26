@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 
 import { type APIRequestContext, expect } from '@playwright/test'
 
-import { MUTATION_HEADERS } from './api'
+import { MUTATION_HEADERS, type ProjectRole } from './api'
 
 export type ProjectListItem = {
 	id: string
@@ -10,6 +10,7 @@ export type ProjectListItem = {
 	slug: string
 	primaryColor: string
 	isMember: boolean
+	myRole: 'ADMIN' | ProjectRole
 	languageTags: string[]
 	keyCount: number
 	translatedCount: number

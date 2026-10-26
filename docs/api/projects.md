@@ -1,6 +1,6 @@
 ---
 title: 'API: projekty a členovia'
-updated: 2026-10-19
+updated: 2026-10-25
 notion_page_id:
 ---
 
@@ -17,18 +17,21 @@ Zoznam projektov pre index stránku, vytvorenie a opustenie projektu, nastavenia
 | `GET`    | `/api/projects/:projectId/settings`        | člen alebo `ADMIN`        | nastavenia projektu                           |
 | `PATCH`  | `/api/projects/:projectId/settings`        | člen alebo `ADMIN`        | uloží nastavenia (základný jazyk iba `ADMIN`) |
 | `GET`    | `/api/projects/:projectId/members`         | člen alebo `ADMIN`        | členovia projektu                             |
-| `POST`   | `/api/projects/:projectId/members`         | člen alebo `ADMIN`        | vytvorí nového používateľa `EDITOR` a člena   |
-| `DELETE` | `/api/projects/:projectId/members/:userId` | člen alebo `ADMIN`        | odoberie člena z projektu, účet ostane        |
+| `POST`   | `/api/projects/:projectId/members`         | iba `ADMIN`               | pridá existujúceho používateľa s rolou        |
+| `PATCH`  | `/api/projects/:projectId/members/:userId` | iba `ADMIN`               | zmení rolu člena v projekte                   |
+| `DELETE` | `/api/projects/:projectId/members/:userId` | iba `ADMIN`               | odoberie člena z projektu, účet ostane        |
 
 Celý router je za `requireAuth`: bez session vráti 401 `AUTH_UNAUTHENTICATED`. Mutácie potrebujú CSRF hlavičku a JSON telo (aj `DELETE` posiela `{}`), inak 403 `CSRF_REJECTED` (viď [auth](./auth.md#csrf)).
 
 ## Prístup k projektu
 
-Cesty s `:projectId` sú za `requireProjectAccess` (`middleware/projectAccess.middleware.ts`). Pustí `ADMIN`-a k akémukoľvek projektu (bez členstva, `ADMIN` nie je členom žiadneho projektu) a `MANAGER`-a, `EDITOR`-a či `VISITOR`-a iba k projektu, kde má záznam `ProjectMember`. Inak, aj pri neexistujúcom projekte alebo `projectId`, ktoré nie je UUID, vráti 404 `NOT_FOUND`, aby sa neprezradilo, že projekt existuje. Projektové role zatiaľ nie sú, všetci členovia majú rovnaké práva.
+Cesty s `:projectId` sú za `requireProjectAccess` (`middleware/projectAccess.middleware.ts`). Pustí `ADMIN`-a k akémukoľvek projektu (bez členstva, `ADMIN` nie je členom žiadneho projektu) a používateľa `USER` iba k projektu, kde má záznam `ProjectMember`. Inak, aj pri neexistujúcom projekte alebo `projectId`, ktoré nie je UUID, vráti 404 `NOT_FOUND`, aby sa neprezradilo, že projekt existuje.
+
+Práva v projekte určuje rola členstva (`ProjectMember.role`: `MANAGER`, `EDITOR` alebo `VISITOR`), nie globálna rola: ten istý používateľ môže byť `MANAGER` v jednom projekte a `VISITOR` v inom. `requireProjectAccess` si rolu uloží na request (`ADMIN` pre admina) a `requireProjectRole(...)` na jednotlivých cestách ju porovná, inak 403 `FORBIDDEN`. Plán: [project-roles](../plans/project-roles.md).
 
 ## GET /api/projects
 
-Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema`) vo vlastnom poradí používateľa ([PUT /api/projects/order](#put-apiprojectsorder)); projekty bez pozície (nové, alebo kým používateľ poradie nezmenil) nasledujú za nimi podľa názvu. `ADMIN` dostane všetky projekty, `EDITOR` iba tie, kde je členom.
+Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema`) vo vlastnom poradí používateľa ([PUT /api/projects/order](#put-apiprojectsorder)); projekty bez pozície (nové, alebo kým používateľ poradie nezmenil) nasledujú za nimi podľa názvu. `ADMIN` dostane všetky projekty, `USER` iba tie, kde je členom.
 
 | Pole              | Typ      | Popis                                                                                                                       |
 | ----------------- | -------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -37,6 +40,7 @@ Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema
 | `slug`            | string   | slug projektu                                                                                                               |
 | `primaryColor`    | string   | primárna farba `#RRGGBB`                                                                                                    |
 | `isMember`        | boolean  | či je prihlásený používateľ členom (`false` iba pre `ADMIN`-a)                                                              |
+| `myRole`          | string   | rola prihláseného používateľa v projekte: `ADMIN` pre admina, inak `MANAGER`, `EDITOR` alebo `VISITOR` z členstva           |
 | `languageTags`    | string[] | tagy jazykov projektu, základný jazyk prvý, potom podľa pridania                                                            |
 | `keyCount`        | number   | počet kľúčov projektu                                                                                                       |
 | `translatedCount` | number   | počet vyplnených hodnôt cez všetky kľúče a jazyky; projekt je celý preložený, keď sa rovná `keyCount × languageTags.length` |
@@ -52,6 +56,7 @@ Vráti `200 { projects: ProjectListItem[] }` (schéma `projectListResponseSchema
 			"slug": "b2b-admin",
 			"primaryColor": "#E83E8C",
 			"isMember": true,
+			"myRole": "EDITOR",
 			"languageTags": ["sk", "en"],
 			"keyCount": 224,
 			"translatedCount": 447,
@@ -168,26 +173,37 @@ Vráti `200 { members: ProjectMember[] }` (schéma `projectMemberListResponseSch
 | `email`        | string                           | e-mail                                                              |
 | `firstName`    | string alebo null                | meno                                                                |
 | `lastName`     | string alebo null                | priezvisko                                                          |
-| `role`         | `MANAGER` / `EDITOR` / `VISITOR` | globálna rola používateľa (`ADMIN` nie je členom)                   |
+| `role`         | `MANAGER` / `EDITOR` / `VISITOR` | rola člena v tomto projekte (`ADMIN` nie je členom)                 |
 | `projectCount` | number                           | počet projektov, v ktorých je členom (ako v `GET /api/admin/users`) |
 | `createdAt`    | ISO dátum                        | kedy sa stal členom projektu                                        |
 
 ### POST /api/projects/:projectId/members
 
-Iba `ADMIN` (`requireRole(ROLE.ADMIN)` za kontrolou prístupu k projektu). Telo (schéma `addProjectMemberRequestSchema`): `{ "userId": "<uuid>" }`. Pridá existujúceho používateľa (ktoréhokoľvek z `GET /api/admin/users` okrem `ADMIN`-a, ten má prístup ku všetkým projektom bez členstva) do projektu; jeho účet, rola ani heslo sa nemenia. Nových používateľov zakladá iba `POST /api/admin/users` (viď [správa používateľov](./admin-users.md)).
+Iba `ADMIN` (`requireRole(ROLE.ADMIN)` za kontrolou prístupu k projektu). Telo (schéma `addProjectMemberRequestSchema`): `{ "userId": "<uuid>", "role": "VISITOR" }`, `role` je voliteľná (`MANAGER`, `EDITOR` alebo `VISITOR`, predvolene `EDITOR`). Pridá existujúceho používateľa (ktoréhokoľvek z `GET /api/admin/users` okrem `ADMIN`-a, ten má prístup ku všetkým projektom bez členstva) do projektu s touto rolou; jeho účet ani heslo sa nemenia. Nových používateľov zakladá iba `POST /api/admin/users` (viď [správa používateľov](./admin-users.md)).
 
 | HTTP | `code`             | Kedy                                                                                                         |
 | ---- | ------------------ | ------------------------------------------------------------------------------------------------------------ |
 | 201  |                    | telo `ProjectMember`                                                                                         |
-| 400  | `VALIDATION_ERROR` | `userId` chýba (`REQUIRED`) alebo nie je UUID (`INVALID`)                                                    |
+| 400  | `VALIDATION_ERROR` | `userId` chýba (`REQUIRED`) alebo nie je UUID (`INVALID`), `role` nie je projektová rola (`INVALID`)         |
 | 403  | `FORBIDDEN`        | prihlásený člen projektu, ktorý nie je `ADMIN`                                                               |
 | 404  | `NOT_FOUND`        | projekt mimo prístupu (viď [Prístup k projektu](#prístup-k-projektu)) alebo používateľ s `userId` neexistuje |
 | 409  | `ALREADY_MEMBER`   | používateľ už je členom projektu                                                                             |
 | 409  | `MEMBER_IS_ADMIN`  | používateľ s `userId` je `ADMIN`                                                                             |
 
+### PATCH /api/projects/:projectId/members/:userId
+
+Iba `ADMIN`. Telo (schéma `updateProjectMemberRequestSchema`): `{ "role": "MANAGER" }`. Zmení rolu člena iba v tomto projekte, jeho členstvá v iných projektoch ostanú. Vráti `200` s telom `ProjectMember`. Zmena sa zapíše do aktivity projektu (`MEMBER_ROLE_CHANGED` so starou a novou rolou); rovnaká rola nič nezapíše.
+
+| HTTP | `code`             | Kedy                                                                       |
+| ---- | ------------------ | -------------------------------------------------------------------------- |
+| 200  |                    | telo `ProjectMember` s novou rolou                                         |
+| 400  | `VALIDATION_ERROR` | `role` chýba alebo nie je `MANAGER`, `EDITOR` ani `VISITOR`                |
+| 403  | `FORBIDDEN`        | prihlásený člen projektu, ktorý nie je `ADMIN` (aj `MANAGER`)              |
+| 404  | `NOT_FOUND`        | projekt mimo prístupu, používateľ nie je členom alebo `userId` nie je UUID |
+
 ### DELETE /api/projects/:projectId/members/:userId
 
-Iba `ADMIN`. Odoberie člena z projektu (zmaže `ProjectMember`), účet používateľa ostane a môže byť v iných projektoch. Člen projektu vidí zoznam, ale odoberať nemôže, projektové role zatiaľ nie sú. Rovnako ako pri opustení projektu drží zámok riadku projektu; odobrať ide aj posledného člena. UI vlastný riadok neponúka, na to je Opustiť projekt.
+Iba `ADMIN`. Odoberie člena z projektu (zmaže `ProjectMember`), účet používateľa ostane a môže byť v iných projektoch. Člen projektu vidí zoznam, ale odoberať nemôže. Rovnako ako pri opustení projektu drží zámok riadku projektu; odobrať ide aj posledného člena. UI vlastný riadok neponúka, na to je Opustiť projekt.
 
 | HTTP | `code`      | Kedy                                                                       |
 | ---- | ----------- | -------------------------------------------------------------------------- |

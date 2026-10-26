@@ -1,5 +1,5 @@
-import { type ROLE } from '@locale/shared'
+import { type PROJECT_ROLE, type ROLE } from '@locale/shared'
 
 export type RoleBadgeProps = {
-	role: ROLE
+	role: ROLE | PROJECT_ROLE
 }

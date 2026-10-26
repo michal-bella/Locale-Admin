@@ -7,6 +7,7 @@ import {
 	ACTIVITY_TYPE,
 	type CreateProjectVersionRequestInput,
 	ERROR_CODE,
+	PROJECT_ROLE,
 	ROLE,
 	type UpdateProjectVersionRequestInput,
 	VALIDATION_CODE,
@@ -68,7 +69,7 @@ const VALID: CreateProjectVersionRequestInput = { name: 'v2.45', startsAt: '2026
 describe('GET /api/projects/:projectId/versions', () => {
 	it('lists only the versions of the project, newest startsAt first, with lock, state and the current one', async () => {
 		const app = createTestApp()
-		const { project, user, cookie } = await setup(app, { role: ROLE.EDITOR })
+		const { project, user, cookie } = await setup(app, { role: ROLE.USER })
 		const other = await getTestPrisma().project.create({ data: { name: 'B', slug: `b-${randomUUID().slice(0, 8)}` } })
 		await createVersionRow(other.id, { startsAt: TODAY, endsAt: dayShift(5) })
 		const past = await createVersionRow(project.id, { name: 'v1', startsAt: dayShift(-30), endsAt: dayShift(-10), createdById: user.id })
@@ -91,10 +92,10 @@ describe('GET /api/projects/:projectId/versions', () => {
 
 	it("returns an empty list for a project without versions and 404 outside the member's projects", async () => {
 		const app = createTestApp()
-		const { project, cookie } = await setup(app, { role: ROLE.EDITOR })
+		const { project, cookie } = await setup(app, { role: ROLE.USER })
 		expect((await request(app).get(versionsUrl(project.id)).set('Cookie', cookie)).body).toEqual({ items: [] })
 
-		const outsider = await setup(app, { role: ROLE.EDITOR, member: false })
+		const outsider = await setup(app, { role: ROLE.USER, member: false })
 		expectErrorCode(await request(app).get(versionsUrl(project.id)).set('Cookie', outsider.cookie), 404, ERROR_CODE.NOT_FOUND)
 		expectErrorCode(await request(app).get(versionsUrl(project.id)), 401, ERROR_CODE.AUTH_UNAUTHENTICATED)
 	})
@@ -160,7 +161,7 @@ describe('POST /api/projects/:projectId/versions', () => {
 
 	it('is for ADMIN only and needs the CSRF header', async () => {
 		const app = createTestApp()
-		const editor = await setup(app, { role: ROLE.EDITOR })
+		const editor = await setup(app, { role: ROLE.USER })
 		expectErrorCode(await post(app, editor.cookie, editor.project.id, VALID), 403, ERROR_CODE.FORBIDDEN)
 
 		const admin = await setup(app)
@@ -237,7 +238,7 @@ describe('PATCH /api/projects/:projectId/versions/:versionId', () => {
 		expectErrorCode(await patch(app, cookie, project.id, foreign.id, { name: 'x' }), 404, ERROR_CODE.PROJECT_VERSION_NOT_FOUND)
 		expectErrorCode(await patch(app, cookie, project.id, 'not-a-uuid', { name: 'x' }), 404, ERROR_CODE.PROJECT_VERSION_NOT_FOUND)
 
-		const editor = await setup(app, { role: ROLE.EDITOR })
+		const editor = await setup(app, { role: ROLE.USER })
 		const version = await createVersionRow(editor.project.id, { startsAt: '2026-09-08', endsAt: '2026-09-29' })
 		expectErrorCode(await patch(app, editor.cookie, editor.project.id, version.id, { lock: 'UNLOCKED' }), 403, ERROR_CODE.FORBIDDEN)
 	})
@@ -271,7 +272,7 @@ describe('resolveVersion', () => {
 		const lockedEarly = await createVersionRow(project.id, { startsAt: dayShift(-1), endsAt: dayShift(10), lock: VERSION_LOCK.LOCKED })
 		const foreign = await createVersionRow(other.id, { startsAt: dayShift(-1), endsAt: dayShift(10) })
 
-		const asEditor = (versionId: string) => resolveVersion(prisma, { projectId: project.id, versionId, role: ROLE.EDITOR })
+		const asEditor = (versionId: string) => resolveVersion(prisma, { projectId: project.id, versionId, role: PROJECT_ROLE.EDITOR })
 		await expect(asEditor(expired.id)).rejects.toMatchObject({ status: 409, code: ERROR_CODE.PROJECT_VERSION_LOCKED })
 		await expect(asEditor(upcoming.id)).rejects.toMatchObject({ status: 409, code: ERROR_CODE.PROJECT_VERSION_LOCKED })
 		await expect(asEditor(lockedEarly.id)).rejects.toMatchObject({ status: 409, code: ERROR_CODE.PROJECT_VERSION_LOCKED })

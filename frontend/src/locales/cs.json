@@ -13,9 +13,24 @@
 	},
 	"roles": {
 		"ADMIN": "Administrátor",
+		"USER": "Uživatel",
 		"MANAGER": "Správce",
 		"EDITOR": "Editor",
 		"VISITOR": "Návštěvník"
+	},
+	"projectRole": {
+		"label": "Role v projektu",
+		"memberLabel": "Role uživatele {{email}} v projektu",
+		"projectLabel": "Role v projektu {{name}}",
+		"saved": "Role v projektu byla uložena.",
+		"description": {
+			"MANAGER": "Spravuje projekt: nastavení, jazyky, verze, import a klíče. Členy nespravuje.",
+			"EDITOR": "Překládá v projektu.",
+			"VISITOR": "Překlady v projektu pouze čte a exportuje."
+		}
+	},
+	"adminAccess": {
+		"label": "Administrátor"
 	},
 	"notFoundPage": {
 		"eyebrow": "Chyba 404",
@@ -157,7 +172,7 @@
 		},
 		"createModal": {
 			"title": "Nový uživatel",
-			"description": "Zadejte e-mail, heslo a roli nového uživatele. Do projektů ho přidáte na stránce Členové projektu.",
+			"description": "Zadejte e-mail a heslo nového uživatele. Do projektů ho přidáte s rolí na stránce Členové projektu.",
 			"close": "Zavřít",
 			"email": {
 				"label": "E-mail",
@@ -166,15 +181,6 @@
 			"password": {
 				"label": "Heslo",
 				"placeholder": "Min. {{min}} znaků"
-			},
-			"role": {
-				"label": "Role",
-				"description": {
-					"ADMIN": "Spravuje systém, uživatele a všechny projekty bez přidávání do nich.",
-					"MANAGER": "Spravuje projekty, do kterých ho přidá administrátor: jazyky, verze, import a klíče. Nespravuje uživatele ani členy.",
-					"EDITOR": "Překládá pouze v projektech, do kterých ho přidá administrátor.",
-					"VISITOR": "Pouze čte a exportuje překlady v projektech, do kterých ho přidá administrátor."
-				}
 			},
 			"cancel": "Zrušit",
 			"submit": "Vytvořit uživatele",
@@ -217,10 +223,33 @@
 		"card": {
 			"label": "Účet uživatele",
 			"createdAt": "Vytvořen {{date}}",
-			"role": "Role",
-			"roleSaved": "Role byla uložena.",
+			"roleSaved": "Přístup administrátora byl uložen.",
 			"editEmail": "Upravit e-mail",
 			"editEmailLabel": "Upravit e-mail uživatele {{email}}"
+		},
+		"adminModal": {
+			"close": "Zavřít",
+			"cancel": "Zrušit",
+			"grant": {
+				"title": "Udělit přístup administrátora",
+				"message": "Uživatel {{email}} bude administrátor. Administrátor:",
+				"rights": {
+					"projects": "pracuje ve všech projektech bez přidávání, s právy Správce (nastavení, jazyky, verze, import, klíče, zápis do uzamčené verze),",
+					"createProjects": "zakládá, upravuje a maže projekty,",
+					"users": "vytváří, upravuje a odstraňuje uživatele a uděluje přístup administrátora,",
+					"members": "přidává a odebírá členy projektů a mění jejich role."
+				},
+				"kept": "Jeho role v projektech se zachovají a platí znovu, pokud mu přístup administrátora později odeberete.",
+				"confirm": "Udělit přístup"
+			},
+			"revoke": {
+				"title": "Odebrat přístup administrátora",
+				"message": "Uživatel {{email}} přestane být administrátor a bude pracovat pouze v těchto projektech s rolemi:",
+				"projectsLabel": "Projekty a role po odebrání",
+				"project": "{{name}}: {{role}}",
+				"noProjects": "Uživatel {{email}} přestane být administrátor. Není členem žádného projektu, do projektů ho přidáte na této stránce.",
+				"confirm": "Odebrat přístup"
+			}
 		},
 		"projects": {
 			"title": "Projekty",
@@ -229,20 +258,21 @@
 				"label": "Projekty uživatele",
 				"project": "Projekt",
 				"slug": "Slug",
+				"role": "Role",
 				"joinedAt": "Přidán",
 				"joinedOn": "Přidán {{date}}",
 				"empty": "Uživatel zatím není v žádném projektu.",
 				"actionsColumn": "Akce",
-				"open": "Otevřít členy",
-				"openLabel": "Otevřít členy projektu {{name}}",
+				"open": "Otevřít překlady",
+				"openLabel": "Otevřít překlady projektu {{name}}",
 				"remove": "Odebrat z projektu",
 				"removeLabel": "Odebrat z projektu {{name}}"
 			},
-			"allProjects": "Administrátor má přístup do všech projektů, do projektů se nepřidává."
+			"allProjects": "Administrátor má přístup do všech projektů a do dalších se nepřidává. Uložené role v projektech níže platí znovu, pokud mu přístup administrátora odeberete."
 		},
 		"addModal": {
 			"title": "Přidat do projektu",
-			"description": "Vyberte projekt, ke kterému uživatel {{email}} získá přístup.",
+			"description": "Vyberte projekt a roli, se kterou v něm bude {{email}} pracovat.",
 			"close": "Zavřít",
 			"project": {
 				"label": "Projekt",
@@ -393,6 +423,7 @@
 		},
 		"editModal": {
 			"title": "Upravit překlad",
+			"titleReadOnly": "Překlad",
 			"close": "Zavřít",
 			"key": "Klíč",
 			"baseLanguage": "Základní jazyk",
@@ -428,6 +459,9 @@
 		"editKeyModal": {
 			"title": "Upravit klíč",
 			"close": "Zavřít",
+			"namespace": {
+				"label": "Namespace"
+			},
 			"name": {
 				"label": "Klíč"
 			},
@@ -599,6 +633,7 @@
 				"baseLanguageChanged": "změna základního jazyka z {{from}} na {{to}}",
 				"memberAdded": "přidání člena {{member}}",
 				"memberRemoved": "odebrání člena {{member}}",
+				"memberRoleChanged": "změna role člena {{member}}: {{from}} → {{to}}",
 				"memberLeft": "odchod z projektu",
 				"keysImported": "import CSV: {{changes}}",
 				"translationCount_one": "{{count}} překlad",
@@ -1057,7 +1092,7 @@
 		},
 		"addModal": {
 			"title": "Přidat člena",
-			"description": "Vyberte existujícího uživatele, který získá přístup k tomuto projektu.",
+			"description": "Vyberte existujícího uživatele a jeho roli v tomto projektu.",
 			"close": "Zavřít",
 			"user": {
 				"label": "Uživatel",
@@ -1094,8 +1129,13 @@
 			"description": "Tyto informace uvidí ostatní členové vašich projektů.",
 			"firstName": "Jméno",
 			"lastName": "Příjmení",
-			"email": "E-mailová adresa",
-			"role": "Role"
+			"email": "E-mailová adresa"
+		},
+		"projects": {
+			"title": "Moje projekty",
+			"description": "Role, se kterou pracujete v jednotlivých projektech. Mění ji administrátor.",
+			"label": "Moje projekty a role",
+			"empty": "Zatím nejste členem žádného projektu."
 		},
 		"preferences": {
 			"title": "Předvolby",

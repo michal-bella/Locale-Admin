@@ -6,7 +6,7 @@ import { flushSync } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import Sortable from 'sortablejs'
 
-import { type ProjectListItem, ROLE } from '@locale/shared'
+import { type ProjectListItem, ROLE, PROJECT_ROLE } from '@locale/shared'
 
 import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
@@ -72,7 +72,6 @@ const ProjectProgress = ({ project }: { project: ProjectListItem }) => {
 const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 	const { t, i18n } = useTranslation()
 	const { data: user } = useMeQuery()
-	const isVisitor = user?.role === ROLE.VISITOR
 	const { data, isPending, isError, error, refetch, isRefetching } = useProjectsQuery()
 	const listRef = useRef<HTMLUListElement>(null)
 	const [retrySucceeded, setRetrySucceeded] = useState(false)
@@ -296,7 +295,7 @@ const ProjectsList = ({ onLeave }: ProjectsListProps) => {
 							</ul>
 						</div>
 						{/* A VISITOR cannot open the settings nor leave a project (403 from both), so the row has no actions. */}
-						{!isVisitor && (
+						{project.myRole !== PROJECT_ROLE.VISITOR && (
 							<div className='flex shrink-0 items-center gap-1'>
 								<Tooltip label={t('projectsPage.list.settings')}>
 									<ActionIcon

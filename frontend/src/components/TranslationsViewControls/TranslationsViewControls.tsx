@@ -1,4 +1,14 @@
-import { type ComboboxItem, type ComboboxLikeRenderOptionInput, MultiSelect, Pill, SegmentedControl, Select, Tooltip, VisuallyHidden } from '@mantine/core'
+import {
+	type ComboboxItem,
+	type ComboboxLikeRenderOptionInput,
+	MultiSelect,
+	Pill,
+	SegmentedControl,
+	Select,
+	Switch,
+	Tooltip,
+	VisuallyHidden,
+} from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 
 import { type Language, LANGUAGE_TAGS, translationsLayoutSchema, translationsViewSchema } from '@locale/shared'
@@ -63,7 +73,8 @@ const LanguageSelect = ({
 
 /**
  * What the translations table shows, apart from the filters: the view and layout switches, source → target in the compact view or the shown languages
- * in the extended one, Zobraziť len zmeny (the diff against the previous version) and Len preklady, which hides the key and status columns.
+ * in the extended one, Zobraziť len zmeny (the diff against the previous version; a filter, but it reads as a view of the version) and Len
+ * preklady, which hides the key and status columns.
  * Sits above the table card and scrolls away; only the filters stick.
  */
 const TranslationsViewControls = ({
@@ -76,6 +87,9 @@ const TranslationsViewControls = ({
 	sourceLanguage,
 	targetLanguage,
 	shownLanguages,
+	translationsOnly,
+	diffOnly,
+	diffAvailable,
 	onChange,
 }: TranslationsViewControlsProps) => {
 	const { t } = useTranslation()
@@ -178,6 +192,22 @@ const TranslationsViewControls = ({
 					comboboxProps={{ width: 260, position: 'bottom-start' }}
 				/>
 			)}
+			<div className={classes.switches}>
+				{diffAvailable && (
+					<Switch
+						label={t('translationsPage.view.diffOnly')}
+						checked={diffOnly === true}
+						onChange={(event) => onChange({ diff: event.currentTarget.checked || undefined })}
+						className={classes.switch}
+					/>
+				)}
+				<Switch
+					label={t('translationsPage.toolbar.translationsOnly')}
+					checked={translationsOnly === true}
+					onChange={(event) => onChange({ translationsOnly: event.currentTarget.checked || undefined })}
+					className={classes.switch}
+				/>
+			</div>
 		</div>
 	)
 }

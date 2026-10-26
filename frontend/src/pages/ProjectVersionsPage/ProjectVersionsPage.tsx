@@ -6,21 +6,21 @@ import { useTranslation } from 'react-i18next'
 
 import { canManageProject, type ProjectVersion } from '@locale/shared'
 
-import { useMeQuery } from '@/api/auth/meQuery'
 import DeleteVersionModal from '@/components/DeleteVersionModal/DeleteVersionModal'
 import { Plus } from '@/components/Icons'
 import PageIntro from '@/components/PageIntro/PageIntro'
 import VersionFormModal from '@/components/VersionFormModal/VersionFormModal'
 import VersionLockModal from '@/components/VersionLockModal/VersionLockModal'
 import VersionsTable from '@/components/VersionsTable/VersionsTable'
+import { useProjectRole } from '@/hooks/useProjectRole'
 
 /** Versions of the project (named date windows matching the code releases): an ADMIN or MANAGER creates, edits, locks, unlocks and deletes them. */
 const ProjectVersionsPage = () => {
 	const { t } = useTranslation()
 	const { projectSlug } = useParams({ from: '/_authenticated/_app/projects/$projectSlug' })
 	const { projectId } = useLoaderData({ from: '/_authenticated/_app/projects/$projectSlug' })
-	const { data: user } = useMeQuery()
-	const canManage = user !== undefined && canManageProject(user.role)
+	const projectRole = useProjectRole(projectId)
+	const canManage = projectRole !== undefined && canManageProject(projectRole)
 	const [formOpened, formModal] = useDisclosure(false)
 	const [lockOpened, lockModal] = useDisclosure(false)
 	const [deleteOpened, deleteModal] = useDisclosure(false)

@@ -3,23 +3,25 @@ import { notifications } from '@mantine/notifications'
 import { type SubmitEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ERROR_CODE } from '@locale/shared'
+import { ERROR_CODE, PROJECT_ROLE } from '@locale/shared'
 
 import { useAdminProjectsQuery } from '@/api/adminProjects/adminProjectsQuery'
 import { useAddUserProjectMutation } from '@/api/adminUsers/useAddUserProjectMutation'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import AppModal from '@/components/AppModal/AppModal'
 import { ChevronDown } from '@/components/Icons'
+import ProjectRoleSelect from '@/components/ProjectRoleSelect/ProjectRoleSelect'
 
 import { type AddUserProjectModalProps } from './types'
 
-/** "Pridať do projektu" on the user detail: a searchable select over the projects the user is not a member of yet. */
+/** "Pridať do projektu" on the user detail: a searchable select over the projects the user is not a member of yet and the role in it (Editor by default). */
 const AddUserProjectModal = ({ user, opened, onClose }: AddUserProjectModalProps) => {
 	const { t } = useTranslation()
 	const projects = useAdminProjectsQuery(opened)
 	const addProject = useAddUserProjectMutation(user.id)
 	const { isPending } = addProject
 	const [projectId, setProjectId] = useState<string | null>(null)
+	const [role, setRole] = useState(PROJECT_ROLE.EDITOR)
 	const [fieldError, setFieldError] = useState<string>()
 	const inputRef = useRef<HTMLInputElement>(null)
 
@@ -30,6 +32,7 @@ const AddUserProjectModal = ({ user, opened, onClose }: AddUserProjectModalProps
 
 	const resetAndClose = () => {
 		setProjectId(null)
+		setRole(PROJECT_ROLE.EDITOR)
 		setFieldError(undefined)
 		addProject.reset()
 		onClose()
@@ -47,23 +50,26 @@ const AddUserProjectModal = ({ user, opened, onClose }: AddUserProjectModalProps
 		if (!picked || isPending) {
 			return
 		}
-		addProject.mutate(picked.value, {
-			onSuccess: () => {
-				notifications.show({ color: 'green', message: t('userPage.addModal.success', { email: user.email, name: picked.label }) })
-				resetAndClose()
+		addProject.mutate(
+			{ projectId: picked.value, role },
+			{
+				onSuccess: () => {
+					notifications.show({ color: 'green', message: t('userPage.addModal.success', { email: user.email, name: picked.label }) })
+					resetAndClose()
+				},
+				onError: (error) => {
+					const code = getApiErrorCode(error)
+					if (code === ERROR_CODE.ALREADY_MEMBER || code === ERROR_CODE.NOT_FOUND) {
+						setProjectId(null)
+						setFieldError(t(`errors.${code}`))
+						// Deferred so the error is in the DOM (aria-describedby) when the input gets focus and is announced.
+						setTimeout(() => inputRef.current?.focus())
+						return
+					}
+					notifications.show({ color: 'red', message: t(`errors.${code}`) })
+				},
 			},
-			onError: (error) => {
-				const code = getApiErrorCode(error)
-				if (code === ERROR_CODE.ALREADY_MEMBER || code === ERROR_CODE.NOT_FOUND) {
-					setProjectId(null)
-					setFieldError(t(`errors.${code}`))
-					// Deferred so the error is in the DOM (aria-describedby) when the input gets focus and is announced.
-					setTimeout(() => inputRef.current?.focus())
-					return
-				}
-				notifications.show({ color: 'red', message: t(`errors.${code}`) })
-			},
-		})
+		)
 	}
 
 	const renderField = () => {
@@ -130,6 +136,7 @@ const AddUserProjectModal = ({ user, opened, onClose }: AddUserProjectModalProps
 			}
 		>
 			{renderField()}
+			<ProjectRoleSelect label={t('projectRole.label')} value={role} onChange={setRole} disabled={isPending} />
 		</AppModal>
 	)
 }

@@ -1,4 +1,4 @@
-import { canManageProject, ERROR_CODE, type ROLE, type VERSION_LOCK, isVersionLocked, toVersionDate } from '@locale/shared'
+import { canManageProject, ERROR_CODE, type ProjectAccessRole, type VERSION_LOCK, isVersionLocked, toVersionDate } from '@locale/shared'
 
 import { type Prisma } from '../generated/prisma/client'
 import { type PrismaClient } from '../lib/prisma'
@@ -69,7 +69,7 @@ export const assertProjectVersion = async (db: PrismaClient | Prisma.Transaction
  */
 export const resolveVersion = async (
 	db: PrismaClient | Prisma.TransactionClient,
-	{ projectId, versionId, role }: { projectId: string; versionId: string; role: ROLE },
+	{ projectId, versionId, role }: { projectId: string; versionId: string; role: ProjectAccessRole },
 ): Promise<ResolvedVersion> => {
 	const version = await db.projectVersion.findFirst({
 		where: { id: versionId, projectId },

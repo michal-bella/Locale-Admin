@@ -46,6 +46,7 @@ describe('projectListItemSchema', () => {
 			slug: 'booking-web',
 			primaryColor: '#E83E8C',
 			isMember: true,
+			myRole: 'EDITOR',
 			languageTags: ['sk'],
 			keyCount: 0,
 			translatedCount: 0,
@@ -92,8 +93,13 @@ describe('addProjectMemberRequestSchema', () => {
 		return result.success ? [] : toValidationIssues(result.error)
 	}
 
-	it('accepts a user id and drops unknown fields', () => {
-		expect(addProjectMemberRequestSchema.parse({ userId: ID, email: 'jana.novakova@firma.sk' })).toEqual({ userId: ID })
+	it('accepts a user id, defaults the role to EDITOR and drops unknown fields', () => {
+		expect(addProjectMemberRequestSchema.parse({ userId: ID, email: 'jana.novakova@firma.sk' })).toEqual({ userId: ID, role: 'EDITOR' })
+		expect(addProjectMemberRequestSchema.parse({ userId: ID, role: 'VISITOR' })).toEqual({ userId: ID, role: 'VISITOR' })
+	})
+
+	it('rejects a role that is not a project role', () => {
+		expect(issuesOf({ userId: ID, role: 'ADMIN' })).toEqual([{ path: 'role', code: VALIDATION_CODE.INVALID }])
 	})
 
 	it('maps a missing or malformed user id to shared codes', () => {

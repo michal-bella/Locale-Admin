@@ -89,9 +89,12 @@ const UserPage = () => {
 					)}
 				</div>
 				{data.role === ROLE.ADMIN ? (
-					<Text size='sm' className={classes.state}>
-						{t('userPage.projects.allProjects')}
-					</Text>
+					<>
+						<Text size='sm' className={classes.state}>
+							{t('userPage.projects.allProjects')}
+						</Text>
+						{data.projects.length > 0 && <UserProjectsTable user={data} />}
+					</>
 				) : (
 					<>
 						<UserProjectsTable user={data} />

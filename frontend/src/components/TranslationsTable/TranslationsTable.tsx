@@ -7,12 +7,11 @@ import {
 	canManageProject,
 	type Language,
 	placeholderReference,
-	ROLE,
 	type TranslationCell as TranslationCellData,
 	type TranslationListItem,
+	PROJECT_ROLE,
 } from '@locale/shared'
 
-import { useMeQuery } from '@/api/auth/meQuery'
 import getApiErrorCode from '@/api/getApiErrorCode'
 import BaseLanguageHint from '@/components/BaseLanguageHint/BaseLanguageHint'
 import EditKeyModal from '@/components/EditKeyModal/EditKeyModal'
@@ -23,6 +22,7 @@ import RowAction from '@/components/RowAction/RowAction'
 import TranslationCell from '@/components/TranslationCell/TranslationCell'
 import TranslationStatusBadge from '@/components/TranslationStatusBadge/TranslationStatusBadge'
 import TranslationValue from '@/components/TranslationValue/TranslationValue'
+import { useProjectRole } from '@/hooks/useProjectRole'
 import { formatDateTime } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 
@@ -73,9 +73,9 @@ const TranslationsTable = ({
 	onSave,
 }: TranslationsTableProps) => {
 	const { t, i18n } = useTranslation()
-	const { data: me } = useMeQuery()
-	const canManage = me !== undefined && canManageProject(me.role)
-	const canOpenKey = canManage || me?.role === ROLE.EDITOR
+	const projectRole = useProjectRole(projectId)
+	const canManage = projectRole !== undefined && canManageProject(projectRole)
+	const canOpenKey = canManage || projectRole === PROJECT_ROLE.EDITOR
 	const tableRef = useRef<HTMLTableElement>(null)
 	const scrollRef = useRef<HTMLDivElement>(null)
 	// Which sticky column has content scrolled under it: the key column once scrolled right, the status column until the right end.
@@ -154,7 +154,7 @@ const TranslationsTable = ({
 	// Set during render, not in an effect: the request opens the modal once, as soon as the (possibly still placeholder) list has the key.
 	const openRequest = openTranslationOf && `${openTranslationOf.keyId}:${openTranslationOf.language.id}`
 	if (openRequest !== openedRequest) {
-		const requested = openTranslationOf && !readOnly ? data?.items.find((item) => item.keyId === openTranslationOf.keyId) : undefined
+		const requested = openTranslationOf ? data?.items.find((item) => item.keyId === openTranslationOf.keyId) : undefined
 		if (!openTranslationOf || requested) {
 			setOpenedRequest(openRequest)
 		}
@@ -213,7 +213,7 @@ const TranslationsTable = ({
 			pluralTag={item.plural ? language.tag : undefined}
 			reference={referenceFor(item, language)}
 			changed={isChanged(item, language)}
-			onClick={readOnly ? undefined : () => openTranslation(item, language)}
+			onClick={() => openTranslation(item, language)}
 		/>
 	)
 
@@ -306,7 +306,9 @@ const TranslationsTable = ({
 							)}
 						</div>
 						<span className={classes.meta}>
-							<span>{item.group || t('translationsPage.table.noGroup')}</span>
+							<span className={classes.metaGroup} title={item.group || undefined}>
+								{item.group || t('translationsPage.table.noGroup')}
+							</span>
 							{updatedAt && (
 								<>
 									<span aria-hidden className={classes.metaDot} />
@@ -519,19 +521,18 @@ const TranslationsTable = ({
 					canEditDescription={canManage || !readOnly}
 				/>
 			)}
-			{!readOnly && (
-				<EditTranslationModal
-					item={editingTranslation?.item ?? null}
-					language={editingTranslation?.language ?? null}
-					baseLanguage={baseLanguage}
-					opened={translationOpened}
-					onClose={translationModal.close}
-					onSave={onSave}
-					onNext={nextUntranslated && (() => setEditingTranslation({ ...nextUntranslated, viaNext: true }))}
-					focusOnSwitch={editingTranslation?.viaNext}
-					previousVersionName={previousVersionName}
-				/>
-			)}
+			<EditTranslationModal
+				item={editingTranslation?.item ?? null}
+				language={editingTranslation?.language ?? null}
+				baseLanguage={baseLanguage}
+				opened={translationOpened}
+				onClose={translationModal.close}
+				onSave={onSave}
+				onNext={nextUntranslated && (() => setEditingTranslation({ ...nextUntranslated, viaNext: true }))}
+				focusOnSwitch={editingTranslation?.viaNext}
+				readOnly={readOnly}
+				previousVersionName={previousVersionName}
+			/>
 		</div>
 	)
 }

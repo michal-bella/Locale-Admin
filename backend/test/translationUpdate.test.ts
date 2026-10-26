@@ -3,12 +3,12 @@ import { randomUUID } from 'node:crypto'
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 
-import { ERROR_CODE, ROLE, errorResponseSchema, translationsResponseSchema, updateTranslationResponseSchema } from '@locale/shared'
+import { ERROR_CODE, PROJECT_ROLE, ROLE, errorResponseSchema, translationsResponseSchema, updateTranslationResponseSchema } from '@locale/shared'
 
 import { createTestApp } from './helpers/app'
 import { CSRF_HEADERS, loginAs } from './helpers/auth'
 import { getTestPrisma } from './helpers/db'
-import { TEST_PASSWORD, createUser } from './helpers/users'
+import { TEST_PASSWORD, createUser, globalRoleOf, memberRoleOf, type TestRole } from './helpers/users'
 import { createVersionRow, versionIdOf } from './helpers/versions'
 
 type App = ReturnType<typeof createTestApp>
@@ -18,9 +18,9 @@ const expectErrorCode = (res: request.Response, status: number, code: ERROR_CODE
 	expect(errorResponseSchema.parse(res.body).error.code).toBe(code)
 }
 
-const createProject = (members: string[] = [], protectVariables = true) =>
+const createProject = (members: string[] = [], protectVariables = true, role?: PROJECT_ROLE) =>
 	getTestPrisma().project.create({
-		data: { name: 'A', slug: `a-${randomUUID().slice(0, 8)}`, protectVariables, members: { create: members.map((userId) => ({ userId })) } },
+		data: { name: 'A', slug: `a-${randomUUID().slice(0, 8)}`, protectVariables, members: { create: members.map((userId) => ({ userId, role })) } },
 	})
 
 const createLanguage = (projectId: string, tag: string, isBase = false) => getTestPrisma().projectLanguage.create({ data: { projectId, tag, isBase } })
@@ -39,9 +39,12 @@ const createKey = async (projectId: string, name: string, values: Record<string,
 	})
 
 /** Logs in a new user who is a member of a new project with `sk` (base) and `en`. */
-const setup = async (app: App, { role = ROLE.EDITOR, member = true, protectVariables = true } = {}) => {
-	const { user } = await createUser({ role })
-	const project = await createProject(member ? [user.id] : [], protectVariables)
+const setup = async (
+	app: App,
+	{ role = PROJECT_ROLE.EDITOR, member = true, protectVariables = true }: { role?: TestRole; member?: boolean; protectVariables?: boolean } = {},
+) => {
+	const { user } = await createUser({ role: globalRoleOf(role) })
+	const project = await createProject(member ? [user.id] : [], protectVariables, memberRoleOf(role))
 	await createVersionRow(project.id)
 	const sk = await createLanguage(project.id, 'sk', true)
 	const en = await createLanguage(project.id, 'en')
@@ -289,7 +292,7 @@ describe('PUT /api/projects/:projectId/keys/:keyId/translations/:languageId', ()
 
 	it('returns 403 FORBIDDEN to a VISITOR member and writes nothing', async () => {
 		const app = createTestApp()
-		const { project, sk, en, cookie } = await setup(app, { role: ROLE.VISITOR })
+		const { project, sk, en, cookie } = await setup(app, { role: PROJECT_ROLE.VISITOR })
 		const key = await createKey(project.id, 'a', { [sk.id]: 'A' })
 
 		expectErrorCode(await put(app, cookie, project.id, key.id, en.id, 'B'), 403, ERROR_CODE.FORBIDDEN)

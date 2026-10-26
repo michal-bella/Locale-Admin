@@ -1,0 +1,30 @@
+.avatar {
+	display: grid;
+	flex-shrink: 0;
+	place-items: center;
+	width: 2rem;
+	height: 2rem;
+	border-radius: var(--mantine-radius-sm);
+	font-size: var(--mantine-font-size-3xs);
+	font-weight: 700;
+	color: var(--mantine-color-white);
+}
+
+/* The avatar sits on the project's color, so its text is black or white in both schemes. */
+.avatar[data-tone='dark'] {
+	color: var(--mantine-color-black);
+}
+
+.name {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 500;
+	color: var(--app-color-text-strong);
+	overflow-wrap: anywhere;
+	text-decoration: none;
+}
+
+.name:hover {
+	text-decoration: underline;
+}

@@ -220,10 +220,13 @@ describe('EditKeyModal', () => {
 		expect(body(patches()[0])).toEqual({ name: 'dashboard.greeting' })
 	})
 
-	it('opens with the key, the description and the plural setting of the key', async () => {
+	it('opens with the namespace, the key, the description and the plural setting of the key', async () => {
 		mockPage()
 		renderApp(PAGE_PATH)
 		const dialog = await openModal('items.count')
+
+		expect(within(dialog).getByLabelText('Namespace')).toHaveValue(translationGroup('loc', 'items.count'))
+		expect(within(dialog).getByLabelText('Namespace')).toHaveAttribute('readonly')
 
 		expect(within(dialog).getByLabelText(/Kľúč/)).toHaveValue('items.count')
 		expect(within(dialog).getByLabelText(/Kľúč/)).toHaveFocus()

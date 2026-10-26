@@ -15,7 +15,7 @@ type App = ReturnType<typeof createTestApp>
 
 const DAY_MS = 86_400_000
 
-const login = async (app: App, role: ROLE = ROLE.EDITOR, names: { firstName?: string; lastName?: string } = {}) => {
+const login = async (app: App, role: ROLE = ROLE.USER, names: { firstName?: string; lastName?: string } = {}) => {
 	const { user } = await createUser({ role, ...names })
 	return { user, cookie: await loginAs(app, { email: user.email, password: TEST_PASSWORD }) }
 }
@@ -156,7 +156,7 @@ describe('GET /api/projects/:projectId/dashboard', () => {
 describe('GET /api/projects/:projectId/activity', () => {
 	it('pages newest first by createdAt and id with the total and the users of the project', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app, ROLE.EDITOR, { firstName: 'Jana', lastName: 'Nováková' })
+		const { user, cookie } = await login(app, ROLE.USER, { firstName: 'Jana', lastName: 'Nováková' })
 		const { user: other } = await createUser({ firstName: 'Adam', lastName: 'Biely' })
 		const project = await createProject([user.id])
 		const at = (minutes: number) => new Date(Date.UTC(2026, 9, 20, 10, minutes))
@@ -307,7 +307,7 @@ describe('GET /api/projects/:projectId/activity/daily', () => {
 
 	it('lists the top 5 contributors by changes, ties by name, without deleted users and zero counts', async () => {
 		const app = createTestApp()
-		const { user, cookie } = await login(app, ROLE.EDITOR, { firstName: 'Zuzana' })
+		const { user, cookie } = await login(app, ROLE.USER, { firstName: 'Zuzana' })
 		const project = await createProject([user.id])
 		const names = ['Adam', 'Beáta', 'Cyril', 'Dana', 'Emil', 'Filip']
 		const users = await Promise.all(names.map(async (firstName) => (await createUser({ firstName })).user))

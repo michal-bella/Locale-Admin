@@ -225,7 +225,7 @@ describe('EditKeyModal', () => {
 		renderApp(PAGE_PATH)
 		const dialog = await openModal('items.count')
 
-		expect(within(dialog).getByLabelText('Namespace')).toHaveValue(translationGroup('loc', 'items.count'))
+		expect(within(dialog).getByLabelText('Namespace')).toHaveValue('loc')
 		expect(within(dialog).getByLabelText('Namespace')).toHaveAttribute('readonly')
 
 		expect(within(dialog).getByLabelText(/Kľúč/)).toHaveValue('items.count')

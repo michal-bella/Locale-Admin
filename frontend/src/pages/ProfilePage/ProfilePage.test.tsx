@@ -309,6 +309,16 @@ describe('ProfilePage', () => {
 		expect(requests.some((request) => request.method === 'patch')).toBe(false)
 	})
 
+	it('links to the onboarding guide in a new tab', async () => {
+		signedInAs(ADMIN_USER, { 'GET /profile': { status: 200, data: ADMIN_PROFILE } })
+		await renderProfile()
+
+		const section = within(screen.getByRole('region', { name: 'Príručka pre editorov' }))
+		const link = section.getByRole('link', { name: 'Otvoriť príručku' })
+		expect(link).toHaveAttribute('href', '/onboarding')
+		expect(link).toHaveAttribute('target', '_blank')
+	})
+
 	it('shows the relative password time in en', async () => {
 		await i18n.changeLanguage('en')
 		signedInAs(ADMIN_USER, { 'GET /profile': { status: 200, data: ADMIN_PROFILE } })

@@ -1,5 +1,5 @@
 .search {
-	flex: 2 1 16rem;
+	flex: 2 1 12rem;
 }
 
 .search svg,
@@ -14,12 +14,16 @@
 	gap: 0.5rem;
 }
 
-/* 12.5rem fits „Nepreložené najprv“ next to the icon and the chevron. The cap keeps a select alone in a wrapped row (Zdroj → cieľ has a narrower
-   table) from stretching over it; the search takes the rest of the first row. */
+/* 11rem keeps the search and six selects on one row of a 1680 px desktop; the sort gets 12.5rem for „Nepreložené najprv“ next to its icon
+   and chevron. The cap keeps a select alone in a wrapped row from stretching over it; the search takes the rest of the row. */
 .select {
-	flex: 1 1 12.5rem;
+	flex: 1 1 11rem;
 	min-width: 0;
 	max-width: 16rem;
+}
+
+.sortSelect {
+	flex-basis: 12.5rem;
 }
 
 /* The chosen status shows as the badge next to the icon in the left section; the input keeps the text for the accessible value but paints it invisible. */
@@ -38,39 +42,14 @@
 	color: transparent;
 }
 
-/* The switches end the row of filters; as tall as a select, so a row of only switches keeps the rhythm. */
-.switches {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.5rem 1rem;
-	align-items: center;
-	min-height: 2.75rem;
-	margin-inline-start: auto;
-}
-
-.switch {
-	flex-shrink: 0;
-	padding-inline: 0.25rem;
-	white-space: nowrap;
-}
-
-.pointer {
-	cursor: pointer;
-}
-
-/* Below Tailwind's sm breakpoint every filter takes the full width; the switches sit under them, left-aligned. */
+/* Below Tailwind's sm breakpoint every filter takes the full width. */
 @media (max-width: 39.99em) {
 	.search,
-	.select,
-	.switches {
+	.select {
 		flex-basis: 100%;
 	}
 
 	.select {
 		max-width: none;
-	}
-
-	.switches {
-		margin-inline-start: 0;
 	}
 }

@@ -261,8 +261,8 @@
 				"joinedOn": "Added {{date}}",
 				"empty": "The user is not in any project yet.",
 				"actionsColumn": "Actions",
-				"open": "Open members",
-				"openLabel": "Open members of project {{name}}",
+				"open": "Open translations",
+				"openLabel": "Open the translations of {{name}}",
 				"remove": "Remove from project",
 				"removeLabel": "Remove from project {{name}}"
 			},

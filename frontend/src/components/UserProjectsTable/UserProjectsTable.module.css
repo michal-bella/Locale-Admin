@@ -20,7 +20,7 @@
 }
 
 .roleColumn {
-	width: 10rem;
+	width: 12.5rem;
 }
 
 .joinedColumn {
@@ -102,7 +102,7 @@
 	.phoneOnly {
 		display: block;
 		width: 100%;
-		max-width: 10rem;
+		max-width: 11rem;
 		margin-top: 0.5rem;
 	}
 

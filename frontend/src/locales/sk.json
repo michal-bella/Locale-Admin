@@ -263,8 +263,8 @@
 				"joinedOn": "Pridaný {{date}}",
 				"empty": "Používateľ zatiaľ nie je v žiadnom projekte.",
 				"actionsColumn": "Akcie",
-				"open": "Otvoriť členov",
-				"openLabel": "Otvoriť členov projektu {{name}}",
+				"open": "Otvoriť preklady",
+				"openLabel": "Otvoriť preklady projektu {{name}}",
 				"remove": "Odobrať z projektu",
 				"removeLabel": "Odobrať z projektu {{name}}"
 			},

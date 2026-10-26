@@ -112,7 +112,10 @@ describe('UserPage', () => {
 		expect(within(bookingRow).getAllByText('booking-web')).toHaveLength(2)
 		expect(within(bookingRow).getByText('13. 10. 2026')).toBeInTheDocument()
 		expect(within(bookingRow).getByText('Pridaný 13. 10. 2026')).toBeInTheDocument()
-		expect(within(bookingRow).getByRole('link', { name: 'Otvoriť členov projektu Booking Web' })).toHaveAttribute('href', '/projects/booking-web/members')
+		expect(within(bookingRow).getByRole('link', { name: 'Otvoriť preklady projektu Booking Web' })).toHaveAttribute(
+			'href',
+			'/projects/booking-web/translations',
+		)
 		expect(within(bookingRow).getByRole('button', { name: 'Odobrať z projektu Booking Web' })).toBeInTheDocument()
 		expect(within(iosRow).getByText('15. 10. 2026')).toBeInTheDocument()
 	})

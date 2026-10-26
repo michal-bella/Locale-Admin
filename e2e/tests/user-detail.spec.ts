@@ -9,7 +9,7 @@ const UNKNOWN_USER_ID = '00000000-0000-4000-8000-000000000999'
 const formatCreatedAt = (createdAt: string) =>
 	new Intl.DateTimeFormat('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' }).format(new Date(createdAt))
 
-test('ADMIN opens a user from the table, adds them to a project as a Správca, changes a role, removes them from another and opens the members', async ({
+test('ADMIN opens a user from the table, adds them to a project as a Správca, changes a role, removes them from another and opens the translations', async ({
 	page,
 	playwright,
 	baseURL,
@@ -75,8 +75,11 @@ test('ADMIN opens a user from the table, adds them to a project as a Správca, c
 	await expect(firstRow).toHaveCount(0)
 	await expect(secondRow).toBeVisible()
 
-	await secondRow.getByRole('link', { name: `Otvoriť členov projektu ${second.name}` }).click()
-	await expect(page).toHaveURL(`/projects/${second.slug}/members`)
+	await secondRow.getByRole('link', { name: `Otvoriť preklady projektu ${second.name}` }).click()
+	await expect(page).toHaveURL(`/projects/${second.slug}/translations`)
+	await expect(page.getByRole('heading', { level: 1, name: 'Preklady' })).toBeVisible()
+
+	await page.goto(`/projects/${second.slug}/members`)
 	const members = page.getByRole('table', { name: 'Zoznam členov' })
 	await expect(members).toHaveAttribute('aria-busy', 'false')
 	await expect(members.getByRole('row').filter({ hasText: editor.email })).toBeVisible()

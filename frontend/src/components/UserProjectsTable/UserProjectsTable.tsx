@@ -8,7 +8,7 @@ import { type AdminUserProject, type PROJECT_ROLE, ROLE } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useUpdateProjectMemberMutation } from '@/api/projectMembers/useUpdateProjectMemberMutation'
-import { ArrowRight, UserMinus } from '@/components/Icons'
+import { Translate, UserMinus } from '@/components/Icons'
 import ProjectRoleSelect from '@/components/ProjectRoleSelect/ProjectRoleSelect'
 import RemoveUserProjectModal from '@/components/RemoveUserProjectModal/RemoveUserProjectModal'
 import RoleBadge from '@/components/RoleBadge/RoleBadge'
@@ -19,7 +19,7 @@ import { getProjectInitials, isLightColor } from '@/lib/utils'
 import classes from './UserProjectsTable.module.css'
 import { type UserProjectsTableProps } from './types'
 
-/** Projects of one user in a card, same look as the admin projects table. Each row changes the user's role in the project, opens the project's members or removes the user from it. */
+/** Projects of one user in a card, same look as the admin projects table. Each row changes the user's role in the project, opens the project's translations or removes the user from it. */
 const UserProjectsTable = ({ user }: UserProjectsTableProps) => {
 	const { t, i18n } = useTranslation()
 	const tableRef = useRef<HTMLTableElement>(null)
@@ -114,10 +114,10 @@ const UserProjectsTable = ({ user }: UserProjectsTableProps) => {
 					<Table.Td className={`${classes.td} ${classes.actionsCell}`}>
 						<div className='flex items-center justify-end gap-1'>
 							<RowAction
-								icon={ArrowRight}
+								icon={Translate}
 								tooltip={t('userPage.projects.table.open')}
 								label={t('userPage.projects.table.openLabel', { name: project.name })}
-								to='/projects/$projectSlug/members'
+								to='/projects/$projectSlug/translations'
 								params={{ projectSlug: project.slug }}
 							/>
 							<RowAction

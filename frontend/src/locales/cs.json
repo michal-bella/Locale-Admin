@@ -263,8 +263,8 @@
 				"joinedOn": "Přidán {{date}}",
 				"empty": "Uživatel zatím není v žádném projektu.",
 				"actionsColumn": "Akce",
-				"open": "Otevřít členy",
-				"openLabel": "Otevřít členy projektu {{name}}",
+				"open": "Otevřít překlady",
+				"openLabel": "Otevřít překlady projektu {{name}}",
 				"remove": "Odebrat z projektu",
 				"removeLabel": "Odebrat z projektu {{name}}"
 			},

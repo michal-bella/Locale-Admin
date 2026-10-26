@@ -1,7 +1,7 @@
 import { notifications } from '@mantine/notifications'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { type AxiosAdapter } from 'axios'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { type AuthUser, type Profile } from '@locale/shared'
 
@@ -13,9 +13,11 @@ import i18n from '@/lib/i18n'
 import { ADMIN_USER, apiError, EDITOR_USER, signedInAs } from '@/test/mockApi'
 import { renderApp } from '@/test/renderApp'
 
+const NOW = new Date(2026, 9, 20, 12, 0, 0)
+
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000
 
-const profileOf = (user: AuthUser): Profile => ({ ...user, passwordChangedAt: new Date(Date.now() - NINETY_DAYS_MS).toISOString() })
+const profileOf = (user: AuthUser): Profile => ({ ...user, passwordChangedAt: new Date(NOW.getTime() - NINETY_DAYS_MS).toISOString() })
 
 const ADMIN_PROFILE = profileOf(ADMIN_USER)
 
@@ -54,7 +56,13 @@ beforeAll(() => {
 	queryClient.setQueryDefaults(QUERY_KEYS.PROFILE(), { retry: false })
 })
 
+beforeEach(() => {
+	vi.useFakeTimers({ toFake: ['Date'] })
+	vi.setSystemTime(NOW)
+})
+
 afterEach(() => {
+	vi.useRealTimers()
 	vi.restoreAllMocks()
 })
 

@@ -306,7 +306,9 @@ const TranslationsTable = ({
 							)}
 						</div>
 						<span className={classes.meta}>
-							<span>{item.group || t('translationsPage.table.noGroup')}</span>
+							<span className={classes.metaGroup} title={item.group || undefined}>
+								{item.group || t('translationsPage.table.noGroup')}
+							</span>
 							{updatedAt && (
 								<>
 									<span aria-hidden className={classes.metaDot} />

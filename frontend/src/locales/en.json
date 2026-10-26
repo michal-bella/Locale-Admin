@@ -453,6 +453,9 @@
 		"editKeyModal": {
 			"title": "Edit key",
 			"close": "Close",
+			"namespace": {
+				"label": "Namespace"
+			},
 			"name": {
 				"label": "Key"
 			},

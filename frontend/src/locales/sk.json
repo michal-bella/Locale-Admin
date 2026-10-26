@@ -459,6 +459,9 @@
 		"editKeyModal": {
 			"title": "Upraviť kľúč",
 			"close": "Zavrieť",
+			"namespace": {
+				"label": "Namespace"
+			},
 			"name": {
 				"label": "Kľúč"
 			},

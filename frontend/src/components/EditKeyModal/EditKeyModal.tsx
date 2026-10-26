@@ -189,6 +189,16 @@ const EditKeyModal = ({ projectId, item, opened, onClose, canEditKey, canEditDes
 				</>
 			}
 		>
+			{item && (
+				<Textarea
+					readOnly
+					data-disabled
+					label={t('translationsPage.editKeyModal.namespace.label')}
+					value={item.group || t('translationsPage.table.noGroup')}
+					autosize
+					minRows={1}
+				/>
+			)}
 			<Textarea
 				data-autofocus={canEditKey || undefined}
 				required={canEditKey}

@@ -10,6 +10,8 @@ notion_page_id:
 
 ### Prístup administrátora s potvrdením (2026-10-26)
 
+- Preklady: namespace pod kľúčom je v jednom riadku s tromi bodkami (bunka kľúča je nižšia), celý je v modáli **Upraviť kľúč** v novom poli Namespace
+
 - Preklady: prepínače **Len preklady** a **Zobraziť len zmeny** sú nad tabuľkou pri zobrazení a jazykoch; v lište filtrov ostali vyhľadávanie a selecty, ktoré sa od 1680 px šírky okna zmestia do jedného riadku
 
 - Návštevník a editor v uzamknutej verzii alebo pred začiatkom verzie otvoria bunku prekladu v modáli **Preklad** iba na čítanie (celý text, bez editora a bez ukladania), aby si prečítali dlhé preklady orezané v tabuľke

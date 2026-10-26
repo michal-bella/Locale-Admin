@@ -256,7 +256,7 @@ Vynechané, lebo ešte neexistujú: Aktivita a box Chránené premenné. Prehľa
 
 Blok podľa Figmy `3:1742` (vo Figme dole v sidebari, v aplikácii vpravo v hornej lište na každej prihlásenej stránke, najviac 240 px): padding 8 px, medzera 12 px, avatar 32 px (`--app-color-avatar`, iniciály 10 px / 700 biele cez `getInitials`, `aria-hidden`), meno 12 / 16 / 600 `--app-color-text-strong` (bez mena email, dlhý text sa skráti), pod ním globálna rola 10 / 15 `--app-color-muted` (`Administrátor` / `Editor` / `Návštevník`, kľúče `roles.<ROLE>`, rovnaké ako v karte profilu). Celý blok je tlačidlo (`UnstyledButton` ako `Menu.Target`, pri hoveri a otvorenom menu pozadie `--app-color-surface-muted`), ktoré otvorí menu; tlačidlo `⋯` nie je. Prístupné meno je **Menu používateľa** (skrytý prefix `VisuallyHidden`) a za ním viditeľné meno a rola, aby viditeľný text bol v mene tlačidla (WCAG 2.5.3).
 
-Tlačidlo otvára Mantine `Menu` pod tlačidlom (240 px): email, **Môj profil** (všetky role, odkaz na `/profile`) a **Odhlásiť sa**. Chyba pri odhlásení sa ukáže ako notifikácia `errors.<CODE>`. Odkazy Používatelia a Jazyky sú v navigácii sidebaru, nie v menu.
+Tlačidlo otvára Mantine `Menu` pod tlačidlom (240 px): email, **Môj profil** (ikona `User`, všetky role, odkaz na `/profile`) a **Odhlásiť sa** (ikona `LogOut`). Chyba pri odhlásení sa ukáže ako notifikácia `errors.<CODE>`. Odkazy Používatelia a Jazyky sú v navigácii sidebaru, nie v menu.
 
 ### Horná lišta
 

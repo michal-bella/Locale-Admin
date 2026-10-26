@@ -13,6 +13,7 @@ notion_page_id:
 - kto sa stane adminom, ponechá si členstvá aj roly v projektoch; kým je admin, nie je v zozname členov ani v počtoch a pracuje všade ako admin, po odobratí admina mu roly znova platia
 - detail používateľa: prepínač **Administrátor** bez popisu sa ukladá až po potvrdení v modáli (pri udelení zoznam práv admina, pri odobratí projekty a roly, ktoré budú platiť); admin vidí uložené projekty s rolou Administrátor
 - popis pod prepínačom Administrátor zmizol aj v modáli Nový používateľ a v profile; tabuľka projektov na detaile sa prispôsobuje šírke karty
+- menu používateľa má ikony pri Môj profil a Odhlásiť sa; prepínače a checkboxy v celej aplikácii majú kurzor ukazovateľ (téma `cursorType: 'pointer'`)
 - výber roly v projekte má ikonu roly (aj pri možnostiach) a veľkosť ako prepínač jazyka; tabuľka projektov na detaile používateľa otvára namiesto členov preklady projektu (ikona Preklady)
 
 ### Roly v projekte, míľnik 3 (2026-10-25)

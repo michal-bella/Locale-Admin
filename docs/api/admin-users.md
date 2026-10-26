@@ -132,7 +132,7 @@ Telo (schéma `updateUserRequestSchema`), aspoň jedno z polí:
 { "role": "ADMIN", "email": "jana@firma.sk" }
 ```
 
-- `role` (voliteľné) je `ADMIN` alebo `USER`. Mení ktoréhokoľvek používateľa vrátane vlastného účtu; nová rola platí hneď (ďalšia požiadavka aj `GET /api/auth/me` ju už vrátia). Kto sa stane `ADMIN`-om, stratí v tej istej transakcii všetky členstvá v projektoch (`ADMIN` má prístup ku všetkým bez členstva).
+- `role` (voliteľné) je `ADMIN` alebo `USER`. Mení ktoréhokoľvek používateľa vrátane vlastného účtu; nová rola platí hneď (ďalšia požiadavka aj `GET /api/auth/me` ju už vrátia). Kto sa stane `ADMIN`-om, členstvá v projektoch aj s rolami si ponechá: kým je `ADMIN`, nepočítajú sa (nie je v zozname členov ani v počtoch, pracuje všade ako `ADMIN`), detail ich vráti v `projects`; po zmene späť na `USER` platia znova.
 - Posledný `ADMIN` sa nemôže stať `USER`-om (409 `LAST_ADMIN`), aby mal kto spravovať používateľov. Rovnakú rolu, akú používateľ má, vráti 200 bez zmeny.
 - `email` (voliteľné) sa uloží normalizovaný (orezaný, malými písmenami) ako pri vytvorení. Používateľ sa odteraz prihlasuje novým emailom; heslo a session ostávajú. Email iného používateľa vráti 409 `EMAIL_TAKEN` a nezmení sa nič (ani rola z toho istého tela).
 - Pri úspechu vráti `200` s `AdminUserDetail` (ako `GET /api/admin/users/:id`).

@@ -270,7 +270,7 @@ export const listTranslations = async (prisma: PrismaClient, projectId: string, 
 			)
 			SELECT u.id, u.email, u."firstName", u."lastName", COALESCE(e.edits, 0) AS edits
 			FROM "User" u LEFT JOIN edits e ON e.id = u.id
-			WHERE e.id IS NOT NULL OR u.id IN (SELECT "userId" FROM "ProjectMember" WHERE "projectId" = ${projectId}::uuid)`,
+			WHERE e.id IS NOT NULL OR (u.role <> 'ADMIN' AND u.id IN (SELECT "userId" FROM "ProjectMember" WHERE "projectId" = ${projectId}::uuid))`,
 		prisma.$queryRaw<{ languageId: string; translated: number }[]>`
 			SELECT t."languageId", count(*)::int AS translated
 			FROM "Translation" t JOIN "TranslationKey" k ON k.id = t."keyId"

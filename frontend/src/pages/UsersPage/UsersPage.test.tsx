@@ -267,7 +267,6 @@ describe('CreateUserModal', () => {
 
 		const adminSwitch = within(dialog).getByRole('switch', { name: /^Administrátor/ })
 		expect(adminSwitch).not.toBeChecked()
-		expect(within(dialog).getByText('Spravuje systém, používateľov a všetky projekty bez pridávania do nich.')).toBeInTheDocument()
 
 		fireEvent.click(adminSwitch)
 		expect(adminSwitch).toBeChecked()

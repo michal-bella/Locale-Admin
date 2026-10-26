@@ -4,13 +4,14 @@ import { notifications } from '@mantine/notifications'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type AdminUserProject, type PROJECT_ROLE } from '@locale/shared'
+import { type AdminUserProject, type PROJECT_ROLE, ROLE } from '@locale/shared'
 
 import getApiErrorCode from '@/api/getApiErrorCode'
 import { useUpdateProjectMemberMutation } from '@/api/projectMembers/useUpdateProjectMemberMutation'
 import { ArrowRight, UserMinus } from '@/components/Icons'
 import ProjectRoleSelect from '@/components/ProjectRoleSelect/ProjectRoleSelect'
 import RemoveUserProjectModal from '@/components/RemoveUserProjectModal/RemoveUserProjectModal'
+import RoleBadge from '@/components/RoleBadge/RoleBadge'
 import RowAction from '@/components/RowAction/RowAction'
 import { formatDate } from '@/lib/formatDate'
 import { getProjectInitials, isLightColor } from '@/lib/utils'
@@ -63,14 +64,18 @@ const UserProjectsTable = ({ user }: UserProjectsTableProps) => {
 			)
 		}
 		return user.projects.map((project) => {
-			const role = (
-				<ProjectRoleSelect
-					ariaLabel={t('projectRole.projectLabel', { name: project.name })}
-					value={project.role}
-					onChange={(picked) => changeRole(project, picked)}
-					disabled={updateRole.isPending}
-				/>
-			)
+			// An ADMIN's memberships are kept for a later demotion; until then the ADMIN role applies in every project.
+			const role =
+				user.role === ROLE.ADMIN ? (
+					<RoleBadge role={ROLE.ADMIN} />
+				) : (
+					<ProjectRoleSelect
+						ariaLabel={t('projectRole.projectLabel', { name: project.name })}
+						value={project.role}
+						onChange={(picked) => changeRole(project, picked)}
+						disabled={updateRole.isPending}
+					/>
+				)
 			return (
 				<Table.Tr key={project.id} className={classes.tr}>
 					<Table.Td className={classes.td}>

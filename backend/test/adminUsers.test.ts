@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	ERROR_CODE,
 	PROJECT_ROLE,
+	projectListResponseSchema,
 	ROLE,
 	VALIDATION_CODE,
 	adminUserDetailSchema,
@@ -308,17 +309,32 @@ describe('PATCH /api/admin/users/:id', () => {
 		])
 	})
 
-	it('drops the project memberships of a user who becomes an ADMIN', async () => {
+	it('keeps the memberships of a user who becomes an ADMIN, hides them meanwhile and applies the roles again after the demotion', async () => {
 		const app = createTestApp()
 		const cookie = await loginWithRole(app, ROLE.ADMIN)
-		const { user: editor } = await createUser()
-		await getTestPrisma().project.create({ data: { name: 'A', slug: 'a', members: { create: { userId: editor.id } } } })
+		const { user } = await createUser()
+		const project = await getTestPrisma().project.create({
+			data: { name: 'A', slug: 'a', members: { create: { userId: user.id, role: PROJECT_ROLE.MANAGER } } },
+		})
 
-		const res = await patchUser(app, cookie, editor.id, { role: ROLE.ADMIN })
+		const promoted = await patchUser(app, cookie, user.id, { role: ROLE.ADMIN })
 
-		expect(res.status).toBe(200)
-		expect(adminUserDetailSchema.parse(res.body)).toMatchObject({ id: editor.id, role: ROLE.ADMIN, projectCount: 0, projects: [] })
-		expect(await getTestPrisma().project.count()).toBe(1)
+		expect(promoted.status).toBe(200)
+		expect(adminUserDetailSchema.parse(promoted.body)).toMatchObject({
+			id: user.id,
+			role: ROLE.ADMIN,
+			projects: [{ id: project.id, role: PROJECT_ROLE.MANAGER }],
+		})
+		expect((await request(app).get(`/api/projects/${project.id}/members`).set('Cookie', cookie)).body).toEqual({ members: [] })
+		const projectsOf = async (sessionCookie: string) =>
+			projectListResponseSchema.parse((await request(app).get('/api/projects').set('Cookie', sessionCookie)).body).projects
+		expect(await projectsOf(cookie)).toEqual([expect.objectContaining({ id: project.id, memberCount: 0 })])
+		const ownCookie = await loginAs(app, { email: user.email, password: TEST_PASSWORD })
+		expect(await projectsOf(ownCookie)).toEqual([expect.objectContaining({ id: project.id, isMember: false, myRole: ROLE.ADMIN })])
+
+		await patchUser(app, cookie, user.id, { role: ROLE.USER }).expect(200)
+
+		expect(await projectsOf(ownCookie)).toEqual([expect.objectContaining({ id: project.id, isMember: true, myRole: PROJECT_ROLE.MANAGER, memberCount: 1 })])
 	})
 
 	it('demotes an admin when another admin stays, the own account included', async () => {

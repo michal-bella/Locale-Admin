@@ -135,7 +135,7 @@ describe('GET /api/projects', () => {
 		])
 	})
 
-	it('returns every project to an ADMIN with isMember per project and the ADMIN role in each', async () => {
+	it('returns every project to an ADMIN as no member, kept memberships included, with the ADMIN role in each', async () => {
 		const app = createTestApp()
 		const { user, cookie } = await login(app, ROLE.ADMIN)
 		const own = await createProjectRow('A', 'a', [user.id])
@@ -144,7 +144,7 @@ describe('GET /api/projects', () => {
 		const res = await request(app).get('/api/projects').set('Cookie', cookie)
 
 		expect(projectListResponseSchema.parse(res.body).projects.map(({ id, isMember, myRole }) => ({ id, isMember, myRole }))).toEqual([
-			{ id: own.id, isMember: true, myRole: ROLE.ADMIN },
+			{ id: own.id, isMember: false, myRole: ROLE.ADMIN },
 			{ id: foreign.id, isMember: false, myRole: ROLE.ADMIN },
 		])
 	})

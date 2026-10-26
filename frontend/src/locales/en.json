@@ -30,8 +30,7 @@
 		}
 	},
 	"adminAccess": {
-		"label": "Administrator",
-		"description": "Manages the system, users and every project without being added to them."
+		"label": "Administrator"
 	},
 	"notFoundPage": {
 		"eyebrow": "Error 404",
@@ -226,6 +225,30 @@
 			"editEmail": "Edit email",
 			"editEmailLabel": "Edit email of user {{email}}"
 		},
+		"adminModal": {
+			"close": "Close",
+			"cancel": "Cancel",
+			"grant": {
+				"title": "Grant administrator access",
+				"message": "{{email}} becomes an administrator. An administrator:",
+				"rights": {
+					"projects": "works in every project without being added, with the rights of a Manager (settings, languages, versions, imports, keys, writing into a locked version),",
+					"createProjects": "creates, edits and deletes projects,",
+					"users": "creates, edits and deletes users and grants administrator access,",
+					"members": "adds and removes project members and changes their roles."
+				},
+				"kept": "Their roles in projects are kept and apply again if you take the administrator access away later.",
+				"confirm": "Grant access"
+			},
+			"revoke": {
+				"title": "Revoke administrator access",
+				"message": "{{email}} stops being an administrator and works only in these projects with these roles:",
+				"projectsLabel": "Projects and roles after the revocation",
+				"project": "{{name}}: {{role}}",
+				"noProjects": "{{email}} stops being an administrator. They are no member of any project; add them to projects on this page.",
+				"confirm": "Revoke access"
+			}
+		},
 		"projects": {
 			"title": "Projects",
 			"addButton": "Add to project",
@@ -243,7 +266,7 @@
 				"remove": "Remove from project",
 				"removeLabel": "Remove from project {{name}}"
 			},
-			"allProjects": "An administrator has access to every project and is not added to projects."
+			"allProjects": "An administrator has access to every project and is not added to more. The roles kept below apply again once the administrator access is taken away."
 		},
 		"addModal": {
 			"title": "Add to project",

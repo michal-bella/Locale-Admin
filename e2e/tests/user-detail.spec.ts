@@ -82,6 +82,38 @@ test('ADMIN opens a user from the table, adds them to a project as a Správca, c
 	await expect(members.getByRole('row').filter({ hasText: editor.email })).toBeVisible()
 })
 
+test('ADMIN grants and revokes the admin access after a confirmation; the roles in projects are kept meanwhile', async ({ page, playwright, baseURL }) => {
+	const editor = await createEditor(playwright.request, baseURL)
+	await page.goto(`/admin/users/${editor.id}`)
+	const card = page.getByRole('region', { name: 'Účet používateľa' })
+	const adminSwitch = card.getByRole('switch', { name: 'Administrátor' })
+	const projects = page.getByRole('table', { name: 'Projekty používateľa' })
+	await expect(adminSwitch).not.toBeChecked()
+
+	// The Mantine Switch input is visually hidden under its track, so the actionability checks are skipped.
+	await adminSwitch.click({ force: true })
+	const grant = page.getByRole('dialog', { name: 'Udeliť prístup administrátora' })
+	await expect(grant.getByRole('listitem')).toHaveCount(4)
+	await grant.getByRole('button', { name: 'Zrušiť' }).click()
+	await expect(grant).toBeHidden()
+	await expect(adminSwitch).not.toBeChecked()
+
+	await adminSwitch.click({ force: true })
+	await page.getByRole('dialog', { name: 'Udeliť prístup administrátora' }).getByRole('button', { name: 'Udeliť prístup' }).click()
+	await expect(page.getByRole('dialog')).toHaveCount(0)
+	await expect(page.getByText('Prístup administrátora bol uložený.').first()).toBeVisible()
+	await expect(adminSwitch).toBeChecked()
+	await expect(projects.getByRole('row').filter({ hasText: editor.projectSlug }).getByText('Administrátor', { exact: true }).last()).toBeVisible()
+	await expect(projects.getByRole('combobox')).toHaveCount(0)
+
+	await adminSwitch.click({ force: true })
+	const revoke = page.getByRole('dialog', { name: 'Odobrať prístup administrátora' })
+	await expect(revoke.getByRole('list', { name: 'Projekty a roly po odobratí' })).toContainText(': Editor')
+	await revoke.getByRole('button', { name: 'Odobrať prístup' }).click()
+	await expect(adminSwitch).not.toBeChecked()
+	await expect(projects.getByRole('combobox', { name: /^Rola v projekte / }).first()).toHaveValue('Editor')
+})
+
 test('an unknown user shows the not-found state with a link back to the list', async ({ page }) => {
 	await page.goto(`/admin/users/${UNKNOWN_USER_ID}`)
 

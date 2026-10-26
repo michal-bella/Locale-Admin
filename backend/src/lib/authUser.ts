@@ -1,6 +1,6 @@
 import { PROJECT_ROLE, ROLE, type AuthUser, type TranslationsLayout, type TranslationsView } from '@locale/shared'
 
-import { type User } from '../generated/prisma/client'
+import { type Prisma, type User } from '../generated/prisma/client'
 import { PROJECT_ROLE as PRISMA_PROJECT_ROLE, ROLE as PRISMA_ROLE, type TRANSLATIONS_LAYOUT, type TRANSLATIONS_VIEW } from '../generated/prisma/enums'
 
 export const ROLE_FROM_PRISMA: Record<PRISMA_ROLE, ROLE> = {
@@ -12,6 +12,12 @@ export const ROLE_TO_PRISMA: Record<ROLE, PRISMA_ROLE> = {
 	[ROLE.ADMIN]: PRISMA_ROLE.ADMIN,
 	[ROLE.USER]: PRISMA_ROLE.USER,
 }
+
+/**
+ * Memberships that count: an ADMIN keeps their memberships with the roles for the day the admin role is taken away, but works in every
+ * project as an ADMIN meanwhile, so they are no member of any project (lists, counts, filters).
+ */
+export const ACTIVE_MEMBERSHIP = { user: { role: PRISMA_ROLE.USER } } satisfies Prisma.ProjectMemberWhereInput
 
 export const PROJECT_ROLE_FROM_PRISMA: Record<PRISMA_PROJECT_ROLE, PROJECT_ROLE> = {
 	MANAGER: PROJECT_ROLE.MANAGER,

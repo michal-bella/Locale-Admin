@@ -27,7 +27,6 @@ const PersonalDetailsSection = ({ register, errors, control, email, canChangeRol
 								ref={ref}
 								className='sm:col-span-2'
 								label={t('adminAccess.label')}
-								description={t('adminAccess.description')}
 								checked={value === ROLE.ADMIN}
 								onChange={(event) => onChange(event.currentTarget.checked ? ROLE.ADMIN : ROLE.USER)}
 								onBlur={onBlur}

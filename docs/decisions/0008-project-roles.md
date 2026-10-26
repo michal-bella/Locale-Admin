@@ -1,6 +1,6 @@
 ---
 title: '0008: Rola v projekte namiesto globálnej roly člena'
-updated: 2026-10-25
+updated: 2026-10-26
 notion_page_id:
 ---
 
@@ -23,5 +23,6 @@ Alternatívy:
 ## Dôsledky
 
 - Ten istý používateľ môže mať v každom projekte inú rolu; správu členov má stále iba `ADMIN`.
+- Kto sa stane `ADMIN`-om, členstvá s rolami si ponechá; kým je `ADMIN`, nepočítajú sa a po odobratí admina platia znova (predtým sa mazali).
 - Modál Nový používateľ a detail používateľa vyberajú iba Administrátor / Používateľ, rola v projekte sa vyberá pri pridaní do projektu.
 - Projektové roly Administrator, Translator, Developer, Reviewer z pôvodného zadania sa nerobia.

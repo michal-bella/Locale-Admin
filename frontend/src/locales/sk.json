@@ -30,8 +30,7 @@
 		}
 	},
 	"adminAccess": {
-		"label": "Administrátor",
-		"description": "Spravuje systém, používateľov a všetky projekty bez pridávania do nich."
+		"label": "Administrátor"
 	},
 	"notFoundPage": {
 		"eyebrow": "Chyba 404",
@@ -228,6 +227,30 @@
 			"editEmail": "Upraviť e-mail",
 			"editEmailLabel": "Upraviť e-mail používateľa {{email}}"
 		},
+		"adminModal": {
+			"close": "Zavrieť",
+			"cancel": "Zrušiť",
+			"grant": {
+				"title": "Udeliť prístup administrátora",
+				"message": "Používateľ {{email}} bude administrátor. Administrátor:",
+				"rights": {
+					"projects": "pracuje vo všetkých projektoch bez pridávania, s právami Správcu (nastavenia, jazyky, verzie, import, kľúče, zápis do uzamknutej verzie),",
+					"createProjects": "zakladá, upravuje a maže projekty,",
+					"users": "vytvára, upravuje a odstraňuje používateľov a udeľuje prístup administrátora,",
+					"members": "pridáva a odoberá členov projektov a mení ich roly."
+				},
+				"kept": "Jeho roly v projektoch sa zachovajú a platia znova, ak mu prístup administrátora neskôr odoberiete.",
+				"confirm": "Udeliť prístup"
+			},
+			"revoke": {
+				"title": "Odobrať prístup administrátora",
+				"message": "Používateľ {{email}} prestane byť administrátor a bude pracovať iba v týchto projektoch s rolami:",
+				"projectsLabel": "Projekty a roly po odobratí",
+				"project": "{{name}}: {{role}}",
+				"noProjects": "Používateľ {{email}} prestane byť administrátor. Nie je členom žiadneho projektu, do projektov ho pridáte na tejto stránke.",
+				"confirm": "Odobrať prístup"
+			}
+		},
 		"projects": {
 			"title": "Projekty",
 			"addButton": "Pridať do projektu",
@@ -245,7 +268,7 @@
 				"remove": "Odobrať z projektu",
 				"removeLabel": "Odobrať z projektu {{name}}"
 			},
-			"allProjects": "Administrátor má prístup do všetkých projektov, do projektov sa nepridáva."
+			"allProjects": "Administrátor má prístup do všetkých projektov a do ďalších sa nepridáva. Uložené roly v projektoch nižšie platia znova, ak mu prístup administrátora odoberiete."
 		},
 		"addModal": {
 			"title": "Pridať do projektu",

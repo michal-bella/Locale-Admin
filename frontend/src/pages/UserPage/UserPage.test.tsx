@@ -138,9 +138,30 @@ describe('UserPage', () => {
 		)
 		renderApp(USER_URL)
 
-		expect(await screen.findByText('Administrátor má prístup do všetkých projektov, do projektov sa nepridáva.')).toBeInTheDocument()
+		expect(
+			await screen.findByText(
+				'Administrátor má prístup do všetkých projektov a do ďalších sa nepridáva. Uložené roly v projektoch nižšie platia znova, ak mu prístup administrátora odoberiete.',
+			),
+		).toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: 'Pridať do projektu' })).not.toBeInTheDocument()
 		expect(screen.queryByText('Používateľ zatiaľ nie je v žiadnom projekte.')).not.toBeInTheDocument()
+	})
+
+	it('shows an admin the kept projects with the Administrátor role instead of a role select', async () => {
+		signedInAs(
+			ADMIN_USER,
+			routes(() => ({ ...JANA, role: ROLE.ADMIN, projects: [{ ...BOOKING, role: PROJECT_ROLE.MANAGER }] })),
+		)
+		renderApp(USER_URL)
+
+		expect(
+			await screen.findByText(
+				'Administrátor má prístup do všetkých projektov a do ďalších sa nepridáva. Uložené roly v projektoch nižšie platia znova, ak mu prístup administrátora odoberiete.',
+			),
+		).toBeInTheDocument()
+		const row = within(getProjectsTable()).getByRole('row', { name: /Booking Web/ })
+		expect(within(row).queryByRole('combobox')).not.toBeInTheDocument()
+		expect(within(row).getAllByText('Administrátor')).toHaveLength(2)
 	})
 
 	it('shows the empty state for a user without projects', async () => {
@@ -186,8 +207,10 @@ describe('UserPage', () => {
 	})
 })
 
-describe('UserCard role', () => {
-	it('saves a new role on change, updates the card and notifies', async () => {
+describe('UserCard Administrátor', () => {
+	const switchOf = (card: HTMLElement) => within(card).getByRole('switch', { name: 'Administrátor' })
+
+	it('grants the admin access only after the confirmation that lists the rights, then notifies', async () => {
 		const show = vi.spyOn(notifications, 'show')
 		let role: ROLE = ROLE.USER
 		const requests = signedInAs(ADMIN_USER, {
@@ -200,13 +223,50 @@ describe('UserCard role', () => {
 		renderApp(USER_URL)
 		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
 
-		fireEvent.click(within(card).getByRole('switch', { name: /^Administrátor/ }))
+		fireEvent.click(switchOf(card))
+		const dialog = await screen.findByRole('dialog', { name: 'Udeliť prístup administrátora' })
+		expect(switchOf(card)).not.toBeChecked()
+		expect(within(dialog).getAllByRole('listitem')).toHaveLength(4)
+		expect(requests.filter((request) => request.method === 'patch')).toHaveLength(0)
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Udeliť prístup' }))
 
-		await waitFor(() => expect(within(card).getByRole('switch', { name: /^Administrátor/ })).toBeChecked())
+		await waitFor(() => expect(switchOf(card)).toBeChecked())
 		const patches = requests.filter((request) => request.method === 'patch')
 		expect(patches).toHaveLength(1)
 		expect(JSON.parse(patches[0]?.data as string)).toEqual({ role: 'ADMIN' })
 		expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'green', message: 'Prístup administrátora bol uložený.' }))
+	})
+
+	it('saves nothing when the confirmation is cancelled', async () => {
+		const requests = signedInAs(
+			ADMIN_USER,
+			routes(() => JANA),
+		)
+		renderApp(USER_URL)
+		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
+
+		fireEvent.click(switchOf(card))
+		const dialog = await screen.findByRole('dialog', { name: 'Udeliť prístup administrátora' })
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Zrušiť' }))
+
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+		expect(switchOf(card)).not.toBeChecked()
+		expect(requests.filter((request) => request.method === 'patch')).toHaveLength(0)
+	})
+
+	it('lists the kept projects and roles before the admin access is revoked', async () => {
+		signedInAs(
+			ADMIN_USER,
+			routes(() => ({ ...JANA, role: ROLE.ADMIN, projects: [{ ...BOOKING, role: PROJECT_ROLE.MANAGER }] })),
+		)
+		renderApp(USER_URL)
+		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
+
+		fireEvent.click(switchOf(card))
+		const dialog = await screen.findByRole('dialog', { name: 'Odobrať prístup administrátora' })
+		expect(within(within(dialog).getByRole('list', { name: 'Projekty a roly po odobratí' })).getByRole('listitem')).toHaveTextContent(
+			'Booking Web: Správca',
+		)
 	})
 
 	it('shows LAST_ADMIN as a notification and keeps the role', async () => {
@@ -215,16 +275,18 @@ describe('UserCard role', () => {
 		renderApp(USER_URL)
 		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
 
-		fireEvent.click(within(card).getByRole('switch', { name: /^Administrátor/ }))
+		fireEvent.click(switchOf(card))
+		const dialog = await screen.findByRole('dialog', { name: 'Odobrať prístup administrátora' })
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Odobrať prístup' }))
 
 		await waitFor(() =>
 			expect(show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red', message: 'Posledný administrátor sa nemôže vzdať svojej roly.' })),
 		)
-		expect(within(card).getByRole('switch', { name: /^Administrátor/ })).toBeChecked()
+		expect(switchOf(card)).toBeChecked()
 		expect(requests.filter((request) => request.method === 'patch')).toHaveLength(1)
 	})
 
-	it('updates the own role in the sidebar when the admin changes their own account', async () => {
+	it('updates the own role in the top bar when the admin revokes their own access', async () => {
 		const me: AdminUserDetail = { ...JANA, id: ADMIN_USER.id, email: ADMIN_USER.email, role: ROLE.ADMIN }
 		const meUrl = `/admin/users/${me.id}`
 		signedInAs(ADMIN_USER, {
@@ -236,7 +298,8 @@ describe('UserCard role', () => {
 		renderApp(meUrl)
 		const card = await screen.findByRole('region', { name: 'Účet používateľa' })
 
-		fireEvent.click(within(card).getByRole('switch', { name: /^Administrátor/ }))
+		fireEvent.click(switchOf(card))
+		fireEvent.click(within(await screen.findByRole('dialog', { name: 'Odobrať prístup administrátora' })).getByRole('button', { name: 'Odobrať prístup' }))
 
 		await waitFor(() => expect(within(screen.getByRole('banner')).getByText('Používateľ')).toBeInTheDocument())
 	})

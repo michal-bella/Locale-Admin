@@ -129,7 +129,6 @@ const CreateUserModal = ({ opened, onClose, onCreated }: CreateUserModalProps) =
 									<Switch
 										ref={field.ref}
 										label={t('adminAccess.label')}
-										description={t('adminAccess.description')}
 										checked={field.value === ROLE.ADMIN}
 										disabled={isPending}
 										onChange={(event) => field.onChange(event.currentTarget.checked ? ROLE.ADMIN : ROLE.USER)}

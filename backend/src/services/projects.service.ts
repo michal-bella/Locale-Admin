@@ -12,7 +12,7 @@ import {
 
 import { Prisma } from '../generated/prisma/client'
 import { recordActivity } from '../lib/activity'
-import { PROJECT_ROLE_FROM_PRISMA } from '../lib/authUser'
+import { ACTIVE_MEMBERSHIP, PROJECT_ROLE_FROM_PRISMA } from '../lib/authUser'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 import { toDbDate, todayVersionDate } from '../lib/projectVersions'
@@ -24,7 +24,7 @@ const PROJECT_LIST_SELECT = {
 	primaryColor: true,
 	createdAt: true,
 	languages: { select: { id: true, tag: true }, orderBy: [{ isBase: 'desc' }, { position: 'asc' }, { tag: 'asc' }] },
-	_count: { select: { members: true } },
+	_count: { select: { members: { where: ACTIVE_MEMBERSHIP } } },
 } satisfies Prisma.ProjectSelect
 
 type ProjectListRow = Prisma.ProjectGetPayload<{ select: typeof PROJECT_LIST_SELECT }>
@@ -105,8 +105,10 @@ export const listProjects = async (prisma: PrismaClient, user: AuthUser): Promis
 		.map(({ members: [membership], ...project }) =>
 			toListItem(
 				project,
-				// Only an ADMIN sees a project without a membership (`visibleProjects`).
-				{ isMember: membership !== undefined, myRole: membership && user.role !== ROLE.ADMIN ? PROJECT_ROLE_FROM_PRISMA[membership.role] : ROLE.ADMIN },
+				// Only an ADMIN sees a project without a membership (`visibleProjects`), and their kept memberships do not count (`ACTIVE_MEMBERSHIP`).
+				user.role === ROLE.ADMIN || !membership
+					? { isMember: false, myRole: ROLE.ADMIN }
+					: { isMember: true, myRole: PROJECT_ROLE_FROM_PRISMA[membership.role] },
 				counts.get(project.id) ?? { keyCount: 0, translatedCount: 0 },
 			),
 		)

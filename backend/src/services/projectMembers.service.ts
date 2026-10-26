@@ -2,7 +2,7 @@ import { ACTIVITY_TYPE, ERROR_CODE, ROLE, type AddProjectMemberRequest, type Pro
 
 import { type Prisma } from '../generated/prisma/client'
 import { recordActivity } from '../lib/activity'
-import { PROJECT_ROLE_FROM_PRISMA, PROJECT_ROLE_TO_PRISMA, ROLE_FROM_PRISMA } from '../lib/authUser'
+import { ACTIVE_MEMBERSHIP, PROJECT_ROLE_FROM_PRISMA, PROJECT_ROLE_TO_PRISMA, ROLE_FROM_PRISMA } from '../lib/authUser'
 import { AppError } from '../lib/errors'
 import { type PrismaClient } from '../lib/prisma'
 
@@ -23,7 +23,7 @@ const toProjectMember = ({ role, createdAt, user: { _count, ...user } }: Prisma.
 
 export const listProjectMembers = async (prisma: PrismaClient, projectId: string): Promise<ProjectMember[]> => {
 	const members = await prisma.projectMember.findMany({
-		where: { projectId },
+		where: { projectId, ...ACTIVE_MEMBERSHIP },
 		select: MEMBER_SELECT,
 		orderBy: [{ createdAt: 'asc' }, { userId: 'asc' }],
 	})

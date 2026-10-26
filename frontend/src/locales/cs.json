@@ -30,8 +30,7 @@
 		}
 	},
 	"adminAccess": {
-		"label": "Administrátor",
-		"description": "Spravuje systém, uživatele a všechny projekty bez přidávání do nich."
+		"label": "Administrátor"
 	},
 	"notFoundPage": {
 		"eyebrow": "Chyba 404",
@@ -228,6 +227,30 @@
 			"editEmail": "Upravit e-mail",
 			"editEmailLabel": "Upravit e-mail uživatele {{email}}"
 		},
+		"adminModal": {
+			"close": "Zavřít",
+			"cancel": "Zrušit",
+			"grant": {
+				"title": "Udělit přístup administrátora",
+				"message": "Uživatel {{email}} bude administrátor. Administrátor:",
+				"rights": {
+					"projects": "pracuje ve všech projektech bez přidávání, s právy Správce (nastavení, jazyky, verze, import, klíče, zápis do uzamčené verze),",
+					"createProjects": "zakládá, upravuje a maže projekty,",
+					"users": "vytváří, upravuje a odstraňuje uživatele a uděluje přístup administrátora,",
+					"members": "přidává a odebírá členy projektů a mění jejich role."
+				},
+				"kept": "Jeho role v projektech se zachovají a platí znovu, pokud mu přístup administrátora později odeberete.",
+				"confirm": "Udělit přístup"
+			},
+			"revoke": {
+				"title": "Odebrat přístup administrátora",
+				"message": "Uživatel {{email}} přestane být administrátor a bude pracovat pouze v těchto projektech s rolemi:",
+				"projectsLabel": "Projekty a role po odebrání",
+				"project": "{{name}}: {{role}}",
+				"noProjects": "Uživatel {{email}} přestane být administrátor. Není členem žádného projektu, do projektů ho přidáte na této stránce.",
+				"confirm": "Odebrat přístup"
+			}
+		},
 		"projects": {
 			"title": "Projekty",
 			"addButton": "Přidat do projektu",
@@ -245,7 +268,7 @@
 				"remove": "Odebrat z projektu",
 				"removeLabel": "Odebrat z projektu {{name}}"
 			},
-			"allProjects": "Administrátor má přístup do všech projektů, do projektů se nepřidává."
+			"allProjects": "Administrátor má přístup do všech projektů a do dalších se nepřidává. Uložené role v projektech níže platí znovu, pokud mu přístup administrátora odeberete."
 		},
 		"addModal": {
 			"title": "Přidat do projektu",

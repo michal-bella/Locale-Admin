@@ -190,13 +190,14 @@ const EditKeyModal = ({ projectId, item, opened, onClose, canEditKey, canEditDes
 			}
 		>
 			{item && (
-				<Textarea
+				<TextInput
 					readOnly
 					data-disabled
 					label={t('translationsPage.editKeyModal.namespace.label')}
 					value={item.group || t('translationsPage.table.noGroup')}
-					autosize
-					minRows={1}
+					title={item.group || undefined}
+					// One line: a long namespace ends with an ellipsis, the whole one is in the title.
+					styles={{ input: { textOverflow: 'ellipsis' } }}
 				/>
 			)}
 			<Textarea

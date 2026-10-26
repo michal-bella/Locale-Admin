@@ -20,3 +20,9 @@
 .input[data-disabled]:focus-within {
 	--input-bd: var(--app-color-border);
 }
+
+/* Mantine pads a textarea for its own 36 px inputs, so one row sits at the top of the 44 px field; this centers it (the line is 18 px).
+   Autosize counts the padding, so a longer text still grows the field and wraps. */
+textarea.input {
+	padding-block: calc((var(--input-height) - 1.125rem - 2px) / 2);
+}
